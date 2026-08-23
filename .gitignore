@@ -19,3 +19,9 @@ Thumbs.db
 # Geçici dosyalar
 *.tmp
 *.log
+
+# Yerel Yapılandırmalar (Şifreler vb.)
+appsettings.local.json
+
+# Yerel Veritabanı Kümesi
+db-data/
