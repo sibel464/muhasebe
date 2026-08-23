@@ -49,4 +49,7 @@ public class CariKart : TemelVarlik
     public decimal Borc { get; set; } = 0;
     public decimal Alacak { get; set; } = 0;
     public decimal Bakiye => Borc - Alacak;
+    
+    // Concurrency token to prevent concurrent balance update conflicts
+    public int Versiyon { get; set; } = 0;
 }

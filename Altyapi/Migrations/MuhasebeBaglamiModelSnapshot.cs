@@ -22,6 +22,64 @@ namespace Altyapi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("EtkiAlani.Modeller.Cari.CariHareket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Aciklama")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Alacak")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("BelgeNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Borc")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<int>("CariKartId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HareketTuru")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("IlgiliBelgeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OlusturmaTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Silindi")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Tarih")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CariKartId");
+
+                    b.HasIndex("Tarih");
+
+                    b.ToTable("CariHareketler", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CariHareket_BorcAlacak", "(\"Borc\" >= 0 AND \"Alacak\" >= 0) AND ((\"Borc\" = 0 AND \"Alacak\" >= 0) OR (\"Borc\" >= 0 AND \"Alacak\" = 0))");
+                        });
+                });
+
             modelBuilder.Entity("EtkiAlani.Modeller.Cari.CariKart", b =>
                 {
                     b.Property<int>("Id")
@@ -117,6 +175,10 @@ namespace Altyapi.Migrations
                     b.Property<string>("VergiNo")
                         .HasMaxLength(15)
                         .HasColumnType("character varying(15)");
+
+                    b.Property<int>("Versiyon")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
 
                     b.Property<string>("WebSitesi")
                         .HasMaxLength(100)
@@ -476,6 +538,17 @@ namespace Altyapi.Migrations
                             Silindi = false,
                             StokMiktari = 25.0000m
                         });
+                });
+
+            modelBuilder.Entity("EtkiAlani.Modeller.Cari.CariHareket", b =>
+                {
+                    b.HasOne("EtkiAlani.Modeller.Cari.CariKart", "CariKart")
+                        .WithMany()
+                        .HasForeignKey("CariKartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CariKart");
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.Fatura", b =>

@@ -1,0 +1,29 @@
+using System.Windows;
+using EtkiAlani.Modeller.Cari;
+using Masaustu.GorunumModelleri;
+using Uygulama.Arayuzler;
+
+namespace Masaustu.Gorunumler.Sayfa.Musteri;
+
+public partial class CariHareketlerPenceresi : Window
+{
+    public CariHareketlerPenceresi(ICariHareketServisi hareketServisi, ICariServisi cariServisi, CariKart cariKart)
+    {
+        InitializeComponent();
+        
+        var vm = new CariHareketGorunumModeli(hareketServisi, cariServisi, cariKart);
+        vm.KapatmaTetikle = () => this.Close();
+        DataContext = vm;
+
+        MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+                try { DragMove(); } catch { }
+        };
+    }
+
+    private void Kapat_Click(object sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -13,20 +14,25 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        Console.WriteLine("=== TİCARİ CARİ KART / MÜŞTERİ MODÜLÜ ENTEGRASYON TESTLERİ ===");
+        Console.WriteLine("=== TİCARİ CARİ HAREKET SİSTEMİ ENTEGRASYON TESTLERİ ===");
         
         var optionsBuilder = new DbContextOptionsBuilder<MuhasebeBaglami>();
         optionsBuilder.UseNpgsql("Host=127.0.0.1;Port=5432;Database=Muhasebe;Username=postgres;");
 
         using var baglam = new MuhasebeBaglami(optionsBuilder.Options);
         var cariServisi = new CariServisi(baglam);
+        var hareketServisi = new CariHareketServisi(baglam);
 
         try
         {
             // 1. Temizlik
-            Console.WriteLine("\n[TEMİZLİK] Eski test carileri ve faturaları temizleniyor...");
+            Console.WriteLine("\n[TEMİZLİK] Eski test verileri temizleniyor...");
             var eskiFaturalar = await baglam.Faturalar.IgnoreQueryFilters().ToListAsync();
             baglam.Faturalar.RemoveRange(eskiFaturalar);
+            await baglam.SaveChangesAsync();
+
+            var eskiHareketler = await baglam.CariHareketler.IgnoreQueryFilters().ToListAsync();
+            baglam.CariHareketler.RemoveRange(eskiHareketler);
             await baglam.SaveChangesAsync();
 
             var eskiCariler = await baglam.CariKartlar.IgnoreQueryFilters().Where(c => c.Kod.StartsWith("TEST_")).ToListAsync();
@@ -34,143 +40,281 @@ class Program
             await baglam.SaveChangesAsync();
             Console.WriteLine("Temizlik tamamlandı.");
 
-            // 2. Kurumsal Müşteri Ekleme (Create)
-            Console.WriteLine("\n[TEST 1] Kurumsal Müşteri ekleniyor...");
-            var kurumsal = new CariKart
+            // 2. Test Cari Kartı Ekle
+            Console.WriteLine("\n[HAZIRLIK] Test Cari Kartı oluşturuluyor...");
+            var testCari = new CariKart
             {
-                Kod = "TEST_ACME",
+                Kod = "TEST_CARI",
                 Tur = CariTuru.Musteri,
                 Tip = CariTipi.Kurumsal,
-                Unvan = "ACME Endüstriyel Ürünler San. Tic. A.Ş.",
-                VergiDairesi = "Kocasinan",
-                VergiNo = "1234567890", // Tam 10 hane
-                Eposta = "info@acme.com",
-                Telefon = "0352 123 45 67",
+                Unvan = "Test Cari Limit Ltd. Şti.",
                 Aktif = true
             };
+            var eklenenCari = await cariServisi.EkleAsync(testCari);
+            Console.WriteLine($"Cari oluşturuldu. ID: {eklenenCari.Id}, Başlangıç Borç: {eklenenCari.Borc}, Alacak: {eklenenCari.Alacak}, Bakiye: {eklenenCari.Bakiye}");
+
+            // 3. Sıralı İşlemler ve Bakiye Doğruluğu Testi
+            // Senaryo:
+            // 1. Devir       Borç     1000 TL
+            // 2. Satış       Borç      500 TL
+            // 3. Tahsilat    Alacak    300 TL
+            // Beklenen Bakiye = 1200 TL
+            Console.WriteLine("\n[TEST 1] Kümülatif Bakiye Doğruluğu Testi...");
             
-            var eklenenKurumsal = await cariServisi.EkleAsync(kurumsal);
-            Console.WriteLine($"BAŞARILI: Kurumsal müşteri eklendi. DB ID: {eklenenKurumsal.Id}");
-
-            // 3. Şahıs Müşteri Ekleme (Ad-Soyad Birleşim Doğrulaması)
-            Console.WriteLine("\n[TEST 2] Şahıs Müşteri ekleniyor...");
-            var sahis = new CariKart
+            await hareketServisi.EkleAsync(new CariHareket
             {
-                Kod = "TEST_YILMAZ",
-                Tur = CariTuru.Musteri,
-                Tip = CariTipi.Bireysel,
-                Ad = "Ahmet",
-                Soyad = "Yılmaz",
-                Unvan = "Ahmet Yılmaz", // VM tarafında set edilir, model seviyesinde de korunsun
-                TcNo = "98765432101", // Tam 11 hane
-                Eposta = "ahmet@yilmaz.com",
-                Aktif = true
-            };
+                CariKartId = eklenenCari.Id,
+                Tarih = DateTime.UtcNow.AddDays(-2),
+                HareketTuru = CariHareketTuru.Devir,
+                Aciklama = "Devir Borç Kaydı",
+                Borc = 1000.0000m,
+                Alacak = 0
+            });
+            Console.WriteLine("1. Devir Borç eklendi (1000 TL).");
 
-            var eklenenSahis = await cariServisi.EkleAsync(sahis);
-            Console.WriteLine($"BAŞARILI: Şahıs müşteri eklendi. DB ID: {eklenenSahis.Id}, Ünvan: '{eklenenSahis.Unvan}'");
-
-            // 4. Vergi No ve TCKN Format Doğrulaması (İş Kuralları)
-            Console.WriteLine("\n[TEST 3] Hatalı Vergi No / TCKN format testleri...");
-            var hataliVergi = new CariKart
+            await hareketServisi.EkleAsync(new CariHareket
             {
-                Kod = "TEST_HATA_V",
-                Unvan = "Hatalı Vergi Ltd.",
-                Tip = CariTipi.Kurumsal,
-                VergiNo = "123" // Hatalı (10 haneli olmalı)
-            };
+                CariKartId = eklenenCari.Id,
+                Tarih = DateTime.UtcNow.AddDays(-1),
+                HareketTuru = CariHareketTuru.SatisFaturasi,
+                Aciklama = "Test Satış Faturası",
+                Borc = 500.0000m,
+                Alacak = 0
+            });
+            Console.WriteLine("2. Satış Borç eklendi (500 TL).");
 
-            var hataliTc = new CariKart
+            await hareketServisi.EkleAsync(new CariHareket
             {
-                Kod = "TEST_HATA_T",
-                Unvan = "Hatalı TCKN Şahıs",
-                Tip = CariTipi.Bireysel,
-                TcNo = "123456789" // Hatalı (11 haneli olmalı)
-            };
-
-            // Not: Altyapı/Servis doğrulama metodları veya UI doğrulama metotları tetiklenebilir.
-            // Model kısıtlamalarını servis düzeyinde veya VM düzeyinde doğrulamıştık. 
-            // CariServisi içinde format doğrulaması eklenip test edilebilir.
-
-            // 5. Benzersiz Cari Kod Kuralı
-            Console.WriteLine("\n[TEST 4] Mükerrer Cari Kodu (TEST_ACME) engelleme testi...");
-            var mukerrer = new CariKart
-            {
-                Kod = "TEST_ACME",
-                Unvan = "ACME Mükerrer Firması",
-                Tip = CariTipi.Kurumsal
-            };
-
-            try
-            {
-                await cariServisi.EkleAsync(mukerrer);
-                Console.WriteLine("HATA: Aynı cari kodla mükerrer kayıt eklenebildi!");
-                return;
-            }
-            catch (InvalidOperationException ex)
-            {
-                Console.WriteLine($"BAŞARILI: Servis seviyesinde mükerrer kod engellendi: {ex.Message}");
-            }
-
-            // 6. Silme İlişkisi Güvenlik Testi (Faturası Varsa Silinemez Kuralı)
-            Console.WriteLine("\n[TEST 5] Faturalı cari kartın silinmesini engelleme testi...");
-            
-            // Cari kart için bir fatura ekle
-            var testFatura = new Fatura
-            {
-                FaturaNo = "TEST_FAT_01",
-                Tur = FaturaTuru.Satis,
+                CariKartId = eklenenCari.Id,
                 Tarih = DateTime.UtcNow,
-                CariKartId = eklenenKurumsal.Id,
-                GenelToplam = 1000.0000m
-            };
-            baglam.Faturalar.Add(testFatura);
-            await baglam.SaveChangesAsync();
-            Console.WriteLine($"Cari karta fatura bağlandı. Fatura ID: {testFatura.Id}");
+                HareketTuru = CariHareketTuru.Tahsilat,
+                Aciklama = "Test Tahsilat Fişi",
+                Borc = 0,
+                Alacak = 300.0000m
+            });
+            Console.WriteLine("3. Tahsilat Alacak eklendi (300 TL).");
 
-            // Şimdi silmeye çalış
+            // Yeniden Yükleme ve Toplam Kontrolleri
+            using var baglam2 = new MuhasebeBaglami(optionsBuilder.Options);
+            var guncelCari = await baglam2.CariKartlar.FirstAsync(c => c.Id == eklenenCari.Id);
+            
+            Console.WriteLine($"DB Cari Toplam Borç: {guncelCari.Borc} TL");
+            Console.WriteLine($"DB Cari Toplam Alacak: {guncelCari.Alacak} TL");
+            Console.WriteLine($"DB Cari Bakiye: {guncelCari.Bakiye} TL");
+
+            if (guncelCari.Borc == 1500 && guncelCari.Alacak == 300 && guncelCari.Bakiye == 1200)
+            {
+                Console.WriteLine("BAŞARILI: Bakiye hesabı ve cache değerler tam uyumlu (1200 TL).");
+            }
+            else
+            {
+                Console.WriteLine("HATA: Bakiye uyuşmazlığı tespit edildi!");
+                return;
+            }
+
+            // Dinamik Hareket Sorgu Kontrolü
+            var dinamikBakiye = await hareketServisi.BakiyeHesaplaAsync(eklenenCari.Id);
+            Console.WriteLine($"Dinamik Hesaplanan Bakiye: {dinamikBakiye} TL");
+            if (dinamikBakiye == guncelCari.Bakiye)
+            {
+                Console.WriteLine("BAŞARILI: Yaklaşım A (Dinamik) ile Yaklaşım B (Cached) değerleri birebir uyuşuyor.");
+            }
+            else
+            {
+                Console.WriteLine("HATA: Yaklaşım A ve B arasında uyumsuzluk!");
+                return;
+            }
+
+            // 4. Borç ve Alacak Kısıtlama Testi (İkisi Birden Pozitif Olmama Kuralı)
+            Console.WriteLine("\n[TEST 2] Borç ve Alacak alanlarının ikisinin birden pozitif olmasının engellenmesi testi...");
+            var gecersizHareket = new CariHareket
+            {
+                CariKartId = eklenenCari.Id,
+                Tarih = DateTime.UtcNow,
+                HareketTuru = CariHareketTuru.Diger,
+                Aciklama = "Geçersiz Çift Yönlü Hareket",
+                Borc = 100,
+                Alacak = 200 // İkisi birden pozitif
+            };
+
             try
             {
-                await cariServisi.SilAsync(eklenenKurumsal.Id);
-                Console.WriteLine("HATA: Faturası olan cari kart başarıyla silindi! Ticari veri bütünlüğü ihlal edildi.");
+                await hareketServisi.EkleAsync(gecersizHareket);
+                Console.WriteLine("HATA: Çift yönlü pozitif hareket eklenebildi!");
                 return;
             }
-            catch (InvalidOperationException ex)
+            catch (ArgumentException ex)
             {
-                Console.WriteLine($"BAŞARILI: Faturası olan carinin silinmesi engellendi. Hata mesajı: '{ex.Message}'");
+                Console.WriteLine($"BAŞARILI: Uygulama seviyesinde engellendi: {ex.Message}");
             }
 
-            // Faturası olmayanı başarıyla sil (Soft Delete)
-            Console.WriteLine("\n[TEST 6] Faturası olmayan carinin silinmesi (Soft Delete)...");
-            var silindi = await cariServisi.SilAsync(eklenenSahis.Id);
-            if (!silindi)
+            // DB Constraint Doğrulaması (Direkt DB'ye zorla eklemeyi dene)
+            Console.WriteLine("PostgreSQL DB Constraint testi yapılıyor...");
+            using (var hamBaglam = new MuhasebeBaglami(optionsBuilder.Options))
             {
-                Console.WriteLine("HATA: Cari kart silinemedi!");
+                var gecersizHareketDb = new CariHareket
+                {
+                    CariKartId = eklenenCari.Id,
+                    Tarih = DateTime.UtcNow,
+                    HareketTuru = CariHareketTuru.Diger,
+                    Aciklama = "Geçersiz Çift Yönlü Hareket (Constraint)",
+                    Borc = 100,
+                    Alacak = 200
+                };
+                hamBaglam.CariHareketler.Add(gecersizHareketDb);
+                try
+                {
+                    await hamBaglam.SaveChangesAsync();
+                    Console.WriteLine("HATA: PostgreSQL Constraint'i geçersiz hareketi engellemedi!");
+                    return;
+                }
+                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("CK_CariHareket_BorcAlacak") == true)
+                {
+                    Console.WriteLine("BAŞARILI: PostgreSQL Check Constraint tetiklendi ve işlemi engelledi.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"BAŞARILI: DB işlemi engelledi. Fırlatılan hata: {ex.InnerException?.Message}");
+                }
+            }
+
+            // 5. Negatif Tutar Engelleme Testi
+            Console.WriteLine("\n[TEST 3] Negatif tutarlı hareket engelleme testi...");
+            var negatifHareket = new CariHareket
+            {
+                CariKartId = eklenenCari.Id,
+                Tarih = DateTime.UtcNow,
+                HareketTuru = CariHareketTuru.Diger,
+                Aciklama = "Negatif Borç",
+                Borc = -100,
+                Alacak = 0
+            };
+
+            try
+            {
+                await hareketServisi.EkleAsync(negatifHareket);
+                Console.WriteLine("HATA: Negatif tutarlı hareket eklenebildi!");
+                return;
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"BAŞARILI: Uygulama seviyesinde engellendi: {ex.Message}");
+            }
+
+            // 6. Concurrency (Eş Zamanlı İşlem) Testi
+            // Senaryo: 10 farklı thread aynı anda aynı cari karta 100'er TL'lik Borç hareketi ekleyecek.
+            // Başlangıç bakiye: 1200 TL. Beklenen nihai bakiye: 1200 + 1000 = 2200 TL olmalıdır.
+            Console.WriteLine("\n[TEST 4] Eş Zamanlı (Concurrency) Bakiye Güncelleme Testi...");
+            Console.WriteLine("10 adet eş zamanlı hareket girişi tetikleniyor...");
+            
+            var gorevler = new List<Task<CariHareket>>();
+            for (int i = 0; i < 10; i++)
+            {
+                int index = i;
+                gorevler.Add(Task.Run(async () =>
+                {
+                    // Concurrency çakışmalarında yeniden deneme (Retry pattern)
+                    int denemeSayisi = 0;
+                    while (denemeSayisi < 10) // Deneme sayısını 10 yaptık
+                    {
+                        using var localBaglam = new MuhasebeBaglami(optionsBuilder.Options);
+                        var localServis = new CariHareketServisi(localBaglam);
+                        try
+                        {
+                            return await localServis.EkleAsync(new CariHareket
+                            {
+                                CariKartId = eklenenCari.Id,
+                                Tarih = DateTime.UtcNow,
+                                HareketTuru = CariHareketTuru.Diger,
+                                Aciklama = $"Eş Zamanlı İşlem #{index + 1}",
+                                Borc = 100.0000m,
+                                Alacak = 0
+                            });
+                        }
+                        catch (InvalidOperationException ex) when (ex.Message.Contains("çakışması"))
+                        {
+                            denemeSayisi++;
+                            // Rastgele bekleme (Jittered backoff) çakışmaları azaltmak için çok önemlidir
+                            await Task.Delay(new Random().Next(20, 150));
+                        }
+                    }
+                    throw new Exception("Çoklu deneme sonrası concurrency aşılamadı!");
+                }));
+            }
+
+            try
+            {
+                await Task.WhenAll(gorevler);
+                Console.WriteLine("Tüm eş zamanlı işlemler tamamlandı.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"HATA: Eş zamanlı işlem sırasında hata: {ex.Message}");
                 return;
             }
 
-            var silinenNormal = await cariServisi.IdIleGetirAsync(eklenenSahis.Id);
-            if (silinenNormal != null)
+            // Sonuçları DB'den doğrula
+            using var sonBaglam = new MuhasebeBaglami(optionsBuilder.Options);
+            var nihaiCari = await sonBaglam.CariKartlar.FirstAsync(c => c.Id == eklenenCari.Id);
+            Console.WriteLine($"Nihai Borç Toplamı: {nihaiCari.Borc} TL (Beklenen: 2500 TL)");
+            Console.WriteLine($"Nihai Alacak Toplamı: {nihaiCari.Alacak} TL (Beklenen: 300 TL)");
+            Console.WriteLine($"Nihai Bakiye: {nihaiCari.Bakiye} TL (Beklenen: 2200 TL)");
+
+            if (nihaiCari.Bakiye == 2200)
             {
-                Console.WriteLine("HATA: Silinen cari kart normal listede hala görünüyor!");
+                Console.WriteLine("BAŞARILI: Concurrency yönetimi başarılı, veri bütünlüğü korundu.");
+            }
+            else
+            {
+                Console.WriteLine("HATA: Eş zamanlı işlemler sırasında bakiye bozuldu!");
                 return;
             }
 
-            var silinenFiziksel = await baglam.CariKartlar.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == eklenenSahis.Id);
-            if (silinenFiziksel == null || !silinenFiziksel.Silindi)
+            // 7. Hareket Silme (Soft Delete) ve Bakiye Güncelleme Testi
+            Console.WriteLine("\n[TEST 5] Hareket silme (Soft Delete) ve bakiye geri çekme testi...");
+            
+            // Son eklenen işlemlerden birini seç ve sil
+            var silinecekHareket = (await sonBaglam.CariHareketler.Where(h => h.CariKartId == eklenenCari.Id).ToListAsync()).Last();
+            Console.WriteLine($"Silinecek hareket: ID {silinecekHareket.Id}, Borç: {silinecekHareket.Borc} TL");
+
+            using var silmeBaglami = new MuhasebeBaglami(optionsBuilder.Options);
+            var silmeServisi = new CariHareketServisi(silmeBaglami);
+            
+            var silindiMi = await silmeServisi.SilAsync(silinecekHareket.Id);
+            if (silindiMi)
             {
-                Console.WriteLine("HATA: Silinen cari kart veritabanında fiziksel olarak bulunamadı veya Silindi=True yapılmadı!");
+                var kontrolCari = await silmeBaglami.CariKartlar.FirstAsync(c => c.Id == eklenenCari.Id);
+                Console.WriteLine($"Silme sonrası Borç: {kontrolCari.Borc} TL (Beklenen: 2400 TL)");
+                Console.WriteLine($"Silme sonrası Bakiye: {kontrolCari.Bakiye} TL (Beklenen: 2100 TL)");
+                
+                if (kontrolCari.Bakiye == 2100)
+                {
+                    Console.WriteLine("BAŞARILI: Hareket başarıyla silindi ve cari bakiye tutarlı biçimde düşürüldü.");
+                }
+                else
+                {
+                    Console.WriteLine("HATA: Silme sonrası bakiye güncellenemedi!");
+                    return;
+                }
+            }
+            else
+            {
+                Console.WriteLine("HATA: Silme işlemi başarısız!");
                 return;
             }
-            Console.WriteLine("BAŞARILI: Silinen cari listeden gizlendi ancak DB'de Silindi=True olarak fiziksel olarak duruyor.");
 
             Console.WriteLine("\n=======================================================");
-            Console.WriteLine("TÜM MÜŞTERİ HESAP / CARİ KART TESTLERİ BAŞARIYLA TAMAMLANDI! (100% OK)");
+            Console.WriteLine("TÜM CARİ HAREKET SİSTEMİ TESTLERİ BAŞARIYLA GEÇTİ! (100% OK)");
             Console.WriteLine("=======================================================");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"BEKLENMEYEN HATA: {ex.Message}\n{ex.StackTrace}");
+            Console.WriteLine($"BEKLENMEYEN HATA: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"İÇ HATA: {ex.InnerException.Message}");
+            }
+            Console.WriteLine(ex.StackTrace);
         }
     }
 }

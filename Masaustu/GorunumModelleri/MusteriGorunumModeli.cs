@@ -65,9 +65,11 @@ public class MusteriGorunumModeli : TemelGorunumModeli
     public ICommand DuzenleKomutu { get; }
     public ICommand SilKomutu { get; }
     public ICommand YenileKomutu { get; }
+    public ICommand EkstreKomutu { get; }
 
     // Dialog açıcı delegesi (View'dan set edilecek)
     public Func<CariKart?, Task<bool>>? MusteriDuzenleFormAc { get; set; }
+    public Func<CariKart, Task>? CariEkstreAc { get; set; }
 
     public MusteriGorunumModeli(ICariServisi cariServisi)
     {
@@ -77,6 +79,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
         DuzenleKomutu = new KomutSarici(async _ => await DuzenleAsync(), _ => SeciliMusteri != null);
         SilKomutu = new KomutSarici(async _ => await SilAsync(), _ => SeciliMusteri != null);
         YenileKomutu = new KomutSarici(async _ => await VerileriYukleAsync());
+        EkstreKomutu = new KomutSarici(async obj => { if (obj is CariKart c) { if (CariEkstreAc != null) await CariEkstreAc(c); } });
 
         _ = VerileriYukleAsync();
     }

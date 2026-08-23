@@ -28,6 +28,20 @@ public partial class MusteriSayfasi : UserControl
                     pencere.ShowDialog();
                     return pencere.Kaydedildi;
                 };
+
+                vm.CariEkstreAc = async (cari) =>
+                {
+                    var hareketServisi = App.HizmetSaglayici.GetService(typeof(ICariHareketServisi)) as ICariHareketServisi;
+                    var cariServisi = App.HizmetSaglayici.GetService(typeof(ICariServisi)) as ICariServisi;
+                    if (hareketServisi == null || cariServisi == null) return;
+
+                    var pencere = new Musteri.CariHareketlerPenceresi(hareketServisi, cariServisi, cari)
+                    {
+                        Owner = Window.GetWindow(this)
+                    };
+                    pencere.ShowDialog();
+                    await vm.VerileriYukleAsync();
+                };
             }
         };
     }

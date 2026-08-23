@@ -16,6 +16,7 @@ public class MuhasebeBaglami : DbContext
 
     // Cari
     public DbSet<CariKart> CariKartlar => Set<CariKart>();
+    public DbSet<CariHareket> CariHareketler => Set<CariHareket>();
 
     // Stok
     public DbSet<Urun> Urunler => Set<Urun>();
@@ -34,11 +35,19 @@ public class MuhasebeBaglami : DbContext
 
         modelBuilder.Entity<Kullanici>().ToTable("Kullanicilar");
         modelBuilder.Entity<CariKart>().ToTable("CariKartlar");
+        modelBuilder.Entity<CariHareket>().ToTable("CariHareketler", t => t.HasCheckConstraint("CK_CariHareket_BorcAlacak", "(\"Borc\" >= 0 AND \"Alacak\" >= 0) AND ((\"Borc\" = 0 AND \"Alacak\" >= 0) OR (\"Borc\" >= 0 AND \"Alacak\" = 0))"));
         modelBuilder.Entity<Urun>().ToTable("Urunler");
         modelBuilder.Entity<Fatura>().ToTable("Faturalar");
         modelBuilder.Entity<FaturaKalemi>().ToTable("FaturaKalemleri");
         modelBuilder.Entity<KasaHareketi>().ToTable("KasaHareketleri");
         modelBuilder.Entity<BankaHareketi>().ToTable("BankaHareketleri");
+
+        // CariHareket ilişkileri
+        modelBuilder.Entity<CariHareket>()
+            .HasOne(h => h.CariKart)
+            .WithMany()
+            .HasForeignKey(h => h.CariKartId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Fatura ilişkileri
         modelBuilder.Entity<Fatura>()
@@ -63,6 +72,7 @@ public class MuhasebeBaglami : DbContext
         // Global sorgu filtresi - silinmis kayitlari gizle
         modelBuilder.Entity<Kullanici>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<CariKart>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<CariHareket>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Urun>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Fatura>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<FaturaKalemi>().HasQueryFilter(x => !x.Silindi);
@@ -73,6 +83,7 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
         modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique();
         modelBuilder.Entity<CariKart>().HasIndex(c => c.Kod).IsUnique();
+        modelBuilder.Entity<CariHareket>().HasIndex(h => h.Tarih);
 
         // Ürün Kısıtlamaları ve Hassasiyetleri
         modelBuilder.Entity<Urun>(entity =>
@@ -112,6 +123,16 @@ public class MuhasebeBaglami : DbContext
 
             entity.Property(c => c.Borc).HasPrecision(18, 4);
             entity.Property(c => c.Alacak).HasPrecision(18, 4);
+            entity.Property(c => c.Versiyon).IsConcurrencyToken();
+        });
+
+        // CariHareket Kısıtlamaları ve Hassasiyetleri
+        modelBuilder.Entity<CariHareket>(entity =>
+        {
+            entity.Property(h => h.Aciklama).IsRequired().HasMaxLength(500);
+            entity.Property(h => h.BelgeNo).HasMaxLength(50);
+            entity.Property(h => h.Borc).HasPrecision(18, 4);
+            entity.Property(h => h.Alacak).HasPrecision(18, 4);
         });
 
         // Seed Data
