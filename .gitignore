@@ -1,0 +1,21 @@
+# Build çıktıları
+bin/
+obj/
+
+# NuGet
+*.nupkg
+.nuget/
+
+# IDE
+.vs/
+*.user
+*.suo
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Geçici dosyalar
+*.tmp
+*.log
