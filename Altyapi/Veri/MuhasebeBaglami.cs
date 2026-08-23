@@ -83,5 +83,69 @@ public class MuhasebeBaglami : DbContext
         // Indexler
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
         modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique();
+
+        // Ürün Kısıtlamaları ve Hassasiyetleri
+        modelBuilder.Entity<Urun>(entity =>
+        {
+            entity.Property(u => u.Kod).IsRequired().HasMaxLength(50);
+            entity.Property(u => u.Ad).IsRequired().HasMaxLength(200);
+            entity.Property(u => u.Birim).IsRequired().HasMaxLength(20);
+            entity.Property(u => u.Kategori).HasMaxLength(100);
+            entity.Property(u => u.Barkod).HasMaxLength(50);
+
+            entity.Property(u => u.AlisFiyati).HasPrecision(18, 4);
+            entity.Property(u => u.SatisFiyati).HasPrecision(18, 4);
+            entity.Property(u => u.StokMiktari).HasPrecision(18, 4);
+            entity.Property(u => u.MinimumStok).HasPrecision(18, 4);
+            entity.Property(u => u.KdvOrani).HasPrecision(5, 2);
+        });
+
+        // Seed Data
+        modelBuilder.Entity<Kullanici>().HasData(
+            new Kullanici 
+            { 
+                Id = 1, 
+                KullaniciAdi = "admin", 
+                SifreHash = "$2a$11$qFm4zP4k4Vv5P5v5P5v5PeP4O4JzY.U25hWz9.eWbQ2yJq6G9qW", 
+                Ad = "Sistem", 
+                Soyad = "Yöneticisi", 
+                Rol = "Yonetici", 
+                Aktif = true,
+                OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        modelBuilder.Entity<Urun>().HasData(
+            new Urun 
+            { 
+                Id = 1, 
+                Kod = "URN001", 
+                Ad = "A4 Kağıt (500'lü)", 
+                Kategori = "Kırtasiye", 
+                Birim = "Paket", 
+                AlisFiyati = 45.0000m, 
+                SatisFiyati = 65.0000m, 
+                KdvOrani = 20.00m, 
+                StokMiktari = 150.0000m, 
+                MinimumStok = 20.0000m, 
+                Aktif = true,
+                OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Urun 
+            { 
+                Id = 2, 
+                Kod = "URN002", 
+                Ad = "Laptop Çantası", 
+                Kategori = "Elektronik", 
+                Birim = "Adet", 
+                AlisFiyati = 250.0000m, 
+                SatisFiyati = 399.0000m, 
+                KdvOrani = 20.00m, 
+                StokMiktari = 25.0000m, 
+                MinimumStok = 5.0000m, 
+                Aktif = true,
+                OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
     }
 }

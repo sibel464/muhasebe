@@ -7,6 +7,9 @@ using Masaustu.GorunumModelleri;
 using Masaustu.Gorunumler.Giris;
 using Masaustu.Gorunumler.Ana;
 using Masaustu.Servisler;
+using Uygulama.Arayuzler;
+using Uygulama.Servisler;
+using Altyapi.Servisler;
 
 namespace Masaustu;
 
@@ -33,6 +36,7 @@ public partial class App : Application
         var konfigurasyon = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
             .Build();
 
         // DI Servisleri Kaydet
@@ -48,6 +52,7 @@ public partial class App : Application
 
         // Servisler
         servisler.AddSingleton<NavigasyonServisi>();
+        servisler.AddTransient<IUrunServisi, UrunServisi>();
 
         // ViewModel'ler
         servisler.AddTransient<GirisGorunumModeli>();

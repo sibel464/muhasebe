@@ -25,3 +25,14 @@ public class TersBosBoslukDonusturucu : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class KaydediliyorMetinDonusturucu : IValueConverter
+{
+    public static readonly KaydediliyorMetinDonusturucu Ornek = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? "Kaydediliyor..." : "Kaydet";
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

@@ -1,0 +1,180 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Urun.UrunDuzenlePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+        Title="{Binding PencereBasligi}"
+        Width="560" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border CornerRadius="12" Background="White" ClipToBounds="True">
+        <Border.Effect>
+            <DropShadowEffect Color="#000" BlurRadius="30" ShadowDepth="5" Opacity="0.25"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Başlık Barı -->
+            <Border Grid.Row="0" Background="{StaticResource MenuGradient}" Padding="24,16">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="{Binding PencereBasligi}" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="Ürün bilgilerini doldurun ve kaydedin."
+                                   FontSize="11" Foreground="#80FFFFFF" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" Content="✕"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="#80FFFFFF" FontSize="14" Cursor="Hand"
+                            Command="{Binding IptalKomutu}"/>
+                </Grid>
+            </Border>
+
+            <!-- Form -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24,20">
+
+                    <!-- Satır 1: Kod + Ad -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Ürün Kodu *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Kod, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Ürün Adı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Ad, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Satır 2: Kategori + Birim -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="140"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Kategori" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Kategori, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Birim" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding BirimListesi}"
+                                      SelectedItem="{Binding Birim}"
+                                      Height="40" FontSize="13" Padding="10,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Satır 3: Fiyatlar -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Alış Fiyatı (₺)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding AlisFiyati, UpdateSourceTrigger=PropertyChanged, StringFormat='N2', ValidatesOnNotifyDataErrors=True}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="Satış Fiyatı (₺) *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding SatisFiyati, UpdateSourceTrigger=PropertyChanged, StringFormat='N2', ValidatesOnNotifyDataErrors=True}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="KDV (%)" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding KdvOranlari}"
+                                      SelectedItem="{Binding KdvOrani}"
+                                      Height="40" FontSize="13" Padding="10,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Satır 4: Stok -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Stok Miktarı" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding StokMiktari, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Minimum Stok" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding MinimumStok, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource ModernMetinKutusu}" Height="40"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Aktif -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox IsChecked="{Binding Aktif}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Ürün aktif" FontSize="13" Foreground="#374151" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Hata Mesajı -->
+                    <Border Background="#FEF2F2" CornerRadius="8" Padding="12,8"
+                            Margin="0,8,0,0"
+                            Visibility="{Binding HataMesaji, Converter={StaticResource BosBoslukDonusturucu}}">
+                        <TextBlock Text="{Binding HataMesaji}" Foreground="#DC2626" FontSize="12"/>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Alt Düğmeler -->
+            <Border Grid.Row="2" Background="#F9FAFB"
+                    BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="24,16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="İptal" Command="{Binding IptalKomutu}"
+                            Width="90" Height="38" Margin="0,0,8,0"
+                            Background="White" BorderBrush="#D1D5DB" BorderThickness="1"
+                            Foreground="#374151" FontSize="13" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" CornerRadius="8"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#F3F4F6"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Content="{Binding Kaydediliyor, Converter={x:Static yardimci:KaydediliyorMetinDonusturucu.Ornek}}"
+                            Command="{Binding KaydetKomutu}"
+                            Width="110" Height="38"
+                            Style="{StaticResource AnaDugme}" FontSize="13"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

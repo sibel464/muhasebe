@@ -125,6 +125,28 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
+    <!-- Hata Şablonu (Validation) -->
+    <ControlTemplate x:Key="HataSablonu">
+        <Grid>
+            <Border BorderBrush="#EF4444" BorderThickness="1.5" CornerRadius="8" Panel.ZIndex="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#EF4444" BlurRadius="6" ShadowDepth="0" Opacity="0.4"/>
+                </Border.Effect>
+            </Border>
+            <AdornedElementPlaceholder x:Name="placeholder"/>
+            <Popup x:Name="hataPopup" Placement="Bottom" PlacementTarget="{Binding ElementName=placeholder}" 
+                   IsOpen="{Binding ElementName=placeholder, Path=AdornedElement.(Validation.HasError)}" 
+                   AllowsTransparency="True" PopupAnimation="Fade">
+                <Border Background="#EF4444" CornerRadius="6" Padding="10,6" Margin="0,4,0,0">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="1" Opacity="0.15"/>
+                    </Border.Effect>
+                    <TextBlock Text="{Binding [0].ErrorContent}" Foreground="White" FontSize="12" FontWeight="Medium"/>
+                </Border>
+            </Popup>
+        </Grid>
+    </ControlTemplate>
+
     <!-- ═══════════════════════════════════════════════
          METİN KUTUSU STİLİ
     ═══════════════════════════════════════════════ -->
@@ -135,6 +157,7 @@
         <Setter Property="BorderThickness" Value="1.5"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Validation.ErrorTemplate" Value="{StaticResource HataSablonu}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
@@ -163,6 +186,7 @@
         <Setter Property="BorderThickness" Value="1.5"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Validation.ErrorTemplate" Value="{StaticResource HataSablonu}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="PasswordBox">

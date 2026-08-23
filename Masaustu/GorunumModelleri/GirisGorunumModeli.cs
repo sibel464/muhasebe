@@ -1,14 +1,16 @@
-using System.Windows;
 using System.Windows.Input;
-using Masaustu.GorunumModelleri;
+using Microsoft.EntityFrameworkCore;
+using Altyapi.Veri;
 using Masaustu.Yardimcilar;
 
 namespace Masaustu.GorunumModelleri;
 
 public class GirisGorunumModeli : TemelGorunumModeli
 {
+    private readonly MuhasebeBaglami _baglam;
+    
     private string _kullaniciAdi = string.Empty;
-    private string _hataMessaji = string.Empty;
+    private string _hataMesaji = string.Empty;
     private bool _yukleniyor = false;
 
     public string KullaniciAdi
@@ -19,8 +21,8 @@ public class GirisGorunumModeli : TemelGorunumModeli
 
     public string HataMesaji
     {
-        get => _hataMessaji;
-        set => OzellikAyarla(ref _hataMessaji, value);
+        get => _hataMesaji;
+        set => OzellikAyarla(ref _hataMesaji, value);
     }
 
     public bool Yukleniyor
@@ -35,15 +37,16 @@ public class GirisGorunumModeli : TemelGorunumModeli
 
     public ICommand GirisKomutu { get; }
 
-    public GirisGorunumModeli()
+    public GirisGorunumModeli(MuhasebeBaglami baglam)
     {
-        GirisKomutu = new KomutSarici(GirisYap, GirisYapabilir);
+        _baglam = baglam;
+        GirisKomutu = new KomutSarici(async _ => await GirisYapAsync(), _ => GirisYapabilir());
     }
 
-    private bool GirisYapabilir(object? _) =>
+    private bool GirisYapabilir() =>
         !string.IsNullOrWhiteSpace(KullaniciAdi) && !Yukleniyor;
 
-    private void GirisYap(object? _)
+    private async Task GirisYapAsync()
     {
         var sifre = SifreAl?.Invoke() ?? string.Empty;
 
@@ -56,16 +59,34 @@ public class GirisGorunumModeli : TemelGorunumModeli
         Yukleniyor = true;
         HataMesaji = string.Empty;
 
-        // TODO: Gerçek kullanıcı doğrulama - şimdilik basit kontrol
-        if (KullaniciAdi.Equals("admin", StringComparison.OrdinalIgnoreCase) && sifre == "admin")
+        try
         {
-            GirisBasarili?.Invoke();
-        }
-        else
-        {
-            HataMesaji = "Kullanıcı adı veya şifre hatalı.";
-        }
+            // Veritabanından kullanıcıyı sorgula
+            var kullanici = await _baglam.Kullanicilar
+                .FirstOrDefaultAsync(k => k.KullaniciAdi == KullaniciAdi && k.Aktif);
 
-        Yukleniyor = false;
+            if (kullanici != null && BCrypt.Net.BCrypt.Verify(sifre, kullanici.SifreHash))
+            {
+                // Giriş başarılı
+                kullanici.SonGirisTarihi = DateTime.UtcNow;
+                await _baglam.SaveChangesAsync();
+                
+                GirisBasarili?.Invoke();
+            }
+            else
+            {
+                HataMesaji = "Kullanıcı adı veya şifre hatalı.";
+            }
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = "Veritabanına bağlanılamadı. Lütfen servis durumunu kontrol ediniz.";
+            // Gerçek loglama veya console çıktı
+            System.Diagnostics.Debug.WriteLine($"Giriş Hatası: {ex.Message}");
+        }
+        finally
+        {
+            Yukleniyor = false;
+        }
     }
 }

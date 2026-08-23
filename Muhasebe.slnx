@@ -2,5 +2,6 @@
   <Project Path="Altyapi/Altyapi.csproj" />
   <Project Path="EtkiAlani/EtkiAlani.csproj" />
   <Project Path="Masaustu/Masaustu.csproj" />
+  <Project Path="TestKonsolu/TestKonsolu.csproj" />
   <Project Path="Uygulama/Uygulama.csproj" />
 </Solution>

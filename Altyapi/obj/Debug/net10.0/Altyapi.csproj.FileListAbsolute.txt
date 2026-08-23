@@ -11,7 +11,6 @@ C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.Genera
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.AssemblyInfoInputs.cache
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.AssemblyInfo.cs
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.csproj.CoreCompileInputs.cache
-C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.sourcelink.json
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.csproj.Up2Date
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\Altyapi.dll
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi\obj\Debug\net10.0\refint\Altyapi.dll
