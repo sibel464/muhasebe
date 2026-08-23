@@ -9,6 +9,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
 {
     private readonly NavigasyonServisi _navigasyon;
     private readonly IUrunServisi _urunServisi;
+    private readonly ICariServisi _cariServisi;
     private TemelGorunumModeli? _mevcutSayfa;
     private string _aktifMenu = "Dashboard";
     private string _kullaniciAdi = "Admin";
@@ -45,16 +46,17 @@ public class AnaGorunumModeli : TemelGorunumModeli
 
     public Action? CikisYapildi { get; set; }
 
-    public AnaGorunumModeli(NavigasyonServisi navigasyon, IUrunServisi urunServisi)
+    public AnaGorunumModeli(NavigasyonServisi navigasyon, IUrunServisi urunServisi, ICariServisi cariServisi)
     {
         _navigasyon = navigasyon;
         _urunServisi = urunServisi;
+        _cariServisi = cariServisi;
 
         _navigasyon.GorunumModelDegisti += gm => MevcutSayfa = gm;
 
         // Sayfa fabrikalarını kaydet
         _navigasyon.Kaydet("Dashboard", () => new DashboardGorunumModeli());
-        _navigasyon.Kaydet("Musteri", () => new MusteriGorunumModeli());
+        _navigasyon.Kaydet("Musteri", () => new MusteriGorunumModeli(_cariServisi));
         _navigasyon.Kaydet("Tedarikci", () => new TedarikciGorunumModeli());
         _navigasyon.Kaydet("Urun", () => new UrunGorunumModeli(_urunServisi));
         _navigasyon.Kaydet("Fatura", () => new FaturaGorunumModeli());

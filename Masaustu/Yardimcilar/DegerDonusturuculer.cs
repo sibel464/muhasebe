@@ -36,3 +36,37 @@ public class KaydediliyorMetinDonusturucu : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class BuyukMuDonusturucu : IValueConverter
+{
+    public static readonly BuyukMuDonusturucu SifirdanBuyuk = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is decimal d)
+            return d > 0;
+        if (value is double db)
+            return db > 0;
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class KucukMuDonusturucu : IValueConverter
+{
+    public static readonly KucukMuDonusturucu SifirdanKucuk = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is decimal d)
+            return d < 0;
+        if (value is double db)
+            return db < 0;
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

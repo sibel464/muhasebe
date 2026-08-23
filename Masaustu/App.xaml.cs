@@ -53,10 +53,13 @@ public partial class App : Application
         // Servisler
         servisler.AddSingleton<NavigasyonServisi>();
         servisler.AddTransient<IUrunServisi, UrunServisi>();
+        servisler.AddTransient<ICariServisi, CariServisi>();
 
         // ViewModel'ler
         servisler.AddTransient<GirisGorunumModeli>();
         servisler.AddTransient<AnaGorunumModeli>();
+        servisler.AddTransient<MusteriGorunumModeli>();
+        servisler.AddTransient<MusteriDuzenleGorunumModeli>();
 
         // Pencereler
         servisler.AddTransient<GirisEkrani>();

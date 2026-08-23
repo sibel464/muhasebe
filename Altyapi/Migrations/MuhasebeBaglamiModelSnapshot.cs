@@ -22,7 +22,7 @@ namespace Altyapi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("EtkiAlani.Modeller.Cari.Musteri", b =>
+            modelBuilder.Entity("EtkiAlani.Modeller.Cari.CariKart", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,93 +30,104 @@ namespace Altyapi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Aciklama")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Ad")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Adres")
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("Aktif")
                         .HasColumnType("boolean");
 
-                    b.Property<decimal>("Bakiye")
-                        .HasColumnType("numeric");
+                    b.Property<decimal>("Alacak")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Borc")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("CepTelefonu")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Eposta")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("GuncellemeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Il")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Ilce")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Kod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("OlusturmaTarihi")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Sehir")
-                        .HasColumnType("text");
+                    b.Property<string>("PostaKodu")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<bool>("Silindi")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Soyad")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("TcNo")
-                        .HasColumnType("text");
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
 
                     b.Property<string>("Telefon")
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
-                    b.Property<string>("VergiNo")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Musteriler", (string)null);
-                });
-
-            modelBuilder.Entity("EtkiAlani.Modeller.Cari.Tedarikci", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("Tip")
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<int>("Tur")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Ad")
+                    b.Property<string>("Unvan")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
-                    b.Property<string>("Adres")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Aktif")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal>("Bakiye")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Eposta")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("GuncellemeTarihi")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("OlusturmaTarihi")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Sehir")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Silindi")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Telefon")
-                        .HasColumnType("text");
+                    b.Property<string>("VergiDairesi")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("VergiNo")
-                        .HasColumnType("text");
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
+                    b.Property<string>("WebSitesi")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tedarikciler", (string)null);
+                    b.HasIndex("Kod")
+                        .IsUnique();
+
+                    b.ToTable("CariKartlar", (string)null);
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.Fatura", b =>
@@ -129,6 +140,9 @@ namespace Altyapi.Migrations
 
                     b.Property<decimal>("AraToplam")
                         .HasColumnType("numeric");
+
+                    b.Property<int?>("CariKartId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("FaturaNo")
                         .IsRequired()
@@ -143,9 +157,6 @@ namespace Altyapi.Migrations
                     b.Property<decimal>("KdvToplam")
                         .HasColumnType("numeric");
 
-                    b.Property<int?>("MusteriId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Notlar")
                         .HasColumnType("text");
 
@@ -158,17 +169,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("TedarikciId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Tur")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MusteriId");
-
-                    b.HasIndex("TedarikciId");
+                    b.HasIndex("CariKartId");
 
                     b.ToTable("Faturalar", (string)null);
                 });
@@ -474,19 +480,12 @@ namespace Altyapi.Migrations
 
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.Fatura", b =>
                 {
-                    b.HasOne("EtkiAlani.Modeller.Cari.Musteri", "Musteri")
+                    b.HasOne("EtkiAlani.Modeller.Cari.CariKart", "CariKart")
                         .WithMany()
-                        .HasForeignKey("MusteriId")
+                        .HasForeignKey("CariKartId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EtkiAlani.Modeller.Cari.Tedarikci", "Tedarikci")
-                        .WithMany()
-                        .HasForeignKey("TedarikciId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Musteri");
-
-                    b.Navigation("Tedarikci");
+                    b.Navigation("CariKart");
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.FaturaKalemi", b =>

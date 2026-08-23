@@ -157,3 +157,5 @@ C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\bin\Debug\net10.0-windows\tr\Mi
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\bin\Debug\net10.0-windows\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\bin\Debug\net10.0-windows\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\bin\Debug\net10.0-windows\BCrypt-Net-Next.dll
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\obj\Debug\net10.0-windows\Gorunumler\Sayfa\Musteri\MusteriDuzenlePenceresi.g.cs
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Masaustu\obj\Debug\net10.0-windows\Gorunumler\Sayfa\Musteri\MusteriDuzenlePenceresi.baml

@@ -15,8 +15,7 @@ public class MuhasebeBaglami : DbContext
     public DbSet<Kullanici> Kullanicilar => Set<Kullanici>();
 
     // Cari
-    public DbSet<Musteri> Musteriler => Set<Musteri>();
-    public DbSet<Tedarikci> Tedarikciler => Set<Tedarikci>();
+    public DbSet<CariKart> CariKartlar => Set<CariKart>();
 
     // Stok
     public DbSet<Urun> Urunler => Set<Urun>();
@@ -33,10 +32,8 @@ public class MuhasebeBaglami : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Tablo isimlerini Turkce olarak tanımla
         modelBuilder.Entity<Kullanici>().ToTable("Kullanicilar");
-        modelBuilder.Entity<Musteri>().ToTable("Musteriler");
-        modelBuilder.Entity<Tedarikci>().ToTable("Tedarikciler");
+        modelBuilder.Entity<CariKart>().ToTable("CariKartlar");
         modelBuilder.Entity<Urun>().ToTable("Urunler");
         modelBuilder.Entity<Fatura>().ToTable("Faturalar");
         modelBuilder.Entity<FaturaKalemi>().ToTable("FaturaKalemleri");
@@ -45,16 +42,9 @@ public class MuhasebeBaglami : DbContext
 
         // Fatura ilişkileri
         modelBuilder.Entity<Fatura>()
-            .HasOne(f => f.Musteri)
+            .HasOne(f => f.CariKart)
             .WithMany()
-            .HasForeignKey(f => f.MusteriId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Fatura>()
-            .HasOne(f => f.Tedarikci)
-            .WithMany()
-            .HasForeignKey(f => f.TedarikciId)
+            .HasForeignKey(f => f.CariKartId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -72,8 +62,7 @@ public class MuhasebeBaglami : DbContext
 
         // Global sorgu filtresi - silinmis kayitlari gizle
         modelBuilder.Entity<Kullanici>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Musteri>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Tedarikci>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<CariKart>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Urun>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Fatura>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<FaturaKalemi>().HasQueryFilter(x => !x.Silindi);
@@ -83,6 +72,7 @@ public class MuhasebeBaglami : DbContext
         // Indexler
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
         modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique();
+        modelBuilder.Entity<CariKart>().HasIndex(c => c.Kod).IsUnique();
 
         // Ürün Kısıtlamaları ve Hassasiyetleri
         modelBuilder.Entity<Urun>(entity =>
@@ -98,6 +88,30 @@ public class MuhasebeBaglami : DbContext
             entity.Property(u => u.StokMiktari).HasPrecision(18, 4);
             entity.Property(u => u.MinimumStok).HasPrecision(18, 4);
             entity.Property(u => u.KdvOrani).HasPrecision(5, 2);
+        });
+
+        // CariKart Kısıtlamaları ve Hassasiyetleri
+        modelBuilder.Entity<CariKart>(entity =>
+        {
+            entity.Property(c => c.Kod).IsRequired().HasMaxLength(50);
+            entity.Property(c => c.Unvan).IsRequired().HasMaxLength(250);
+            entity.Property(c => c.Ad).HasMaxLength(100);
+            entity.Property(c => c.Soyad).HasMaxLength(100);
+            entity.Property(c => c.VergiDairesi).HasMaxLength(100);
+            entity.Property(c => c.VergiNo).HasMaxLength(15);
+            entity.Property(c => c.TcNo).HasMaxLength(11);
+            entity.Property(c => c.Telefon).HasMaxLength(20);
+            entity.Property(c => c.CepTelefonu).HasMaxLength(20);
+            entity.Property(c => c.Eposta).HasMaxLength(100);
+            entity.Property(c => c.WebSitesi).HasMaxLength(100);
+            entity.Property(c => c.Adres).HasMaxLength(500);
+            entity.Property(c => c.Il).HasMaxLength(50);
+            entity.Property(c => c.Ilce).HasMaxLength(50);
+            entity.Property(c => c.PostaKodu).HasMaxLength(10);
+            entity.Property(c => c.Aciklama).HasMaxLength(500);
+
+            entity.Property(c => c.Borc).HasPrecision(18, 4);
+            entity.Property(c => c.Alacak).HasPrecision(18, 4);
         });
 
         // Seed Data
