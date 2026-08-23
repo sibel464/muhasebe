@@ -1,0 +1,124 @@
+<Window x:Class="Masaustu.Gorunumler.Giris.GirisEkrani"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+        Title="Muhasebe Yönetim Sistemi - Giriş"
+        Height="600" Width="900"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border CornerRadius="16" ClipToBounds="True">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="400"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sol Panel - Marka -->
+            <Border Grid.Column="0" Background="{StaticResource MenuGradient}">
+                <Grid>
+                    <!-- Dekoratif Daireler -->
+                    <Ellipse Width="300" Height="300" Fill="#0AFFFFFF"
+                             HorizontalAlignment="Left" VerticalAlignment="Top"
+                             Margin="-100,-100,0,0"/>
+                    <Ellipse Width="200" Height="200" Fill="#0AFFFFFF"
+                             HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                             Margin="0,0,-80,-80"/>
+
+                    <StackPanel VerticalAlignment="Center" Margin="50,0">
+                        <!-- Logo Alanı -->
+                        <Border Width="64" Height="64" CornerRadius="16"
+                                Background="#2AFFFFFF" HorizontalAlignment="Left" Margin="0,0,0,24">
+                            <TextBlock Text="M" FontSize="32" FontWeight="Bold"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <TextBlock Text="Muhasebe" FontSize="32" FontWeight="Bold"
+                                   Foreground="White" Margin="0,0,0,4"/>
+                        <TextBlock Text="Yönetim Sistemi" FontSize="18"
+                                   Foreground="#80FFFFFF" Margin="0,0,0,32"/>
+
+                        <Separator Background="#30FFFFFF" Height="1" Margin="0,0,0,32"/>
+
+                        <TextBlock Text="✓  Fatura Yönetimi" Foreground="#A0FFFFFF"
+                                   FontSize="13" Margin="0,0,0,12"/>
+                        <TextBlock Text="✓  Cari Hesap Takibi" Foreground="#A0FFFFFF"
+                                   FontSize="13" Margin="0,0,0,12"/>
+                        <TextBlock Text="✓  Stok Yönetimi" Foreground="#A0FFFFFF"
+                                   FontSize="13" Margin="0,0,0,12"/>
+                        <TextBlock Text="✓  Kasa &amp; Banka İşlemleri" Foreground="#A0FFFFFF"
+                                   FontSize="13" Margin="0,0,0,12"/>
+                        <TextBlock Text="✓  Gelir Gider Raporları" Foreground="#A0FFFFFF"
+                                   FontSize="13"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Sağ Panel - Giriş Formu -->
+            <Border Grid.Column="1" Background="White">
+                <Grid VerticalAlignment="Center" Margin="48,0">
+                    <StackPanel>
+                        <TextBlock Text="Hoş Geldiniz" FontSize="26" FontWeight="Bold"
+                                   Foreground="#1A2F5E" Margin="0,0,0,4"/>
+                        <TextBlock Text="Hesabınıza giriş yapın" FontSize="13"
+                                   Foreground="#6B7280" Margin="0,0,0,40"/>
+
+                        <!-- Kullanıcı Adı -->
+                        <TextBlock Text="Kullanıcı Adı" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox x:Name="KullaniciAdiKutusu"
+                                 Style="{StaticResource ModernMetinKutusu}"
+                                 Text="{Binding KullaniciAdi, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,16"
+                                 Height="44"/>
+
+                        <!-- Şifre -->
+                        <TextBlock Text="Şifre" Style="{StaticResource EtiketMetin}"/>
+                        <PasswordBox x:Name="SifreKutusu"
+                                     Style="{StaticResource ModernSifreKutusu}"
+                                     Margin="0,0,0,8"
+                                     Height="44"/>
+
+                        <!-- Hata Mesajı -->
+                        <TextBlock Text="{Binding HataMesaji}"
+                                   Foreground="#EF4444"
+                                   FontSize="12" Margin="0,0,0,16"
+                                   Visibility="{Binding HataMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+
+                        <!-- Giriş Düğmesi -->
+                        <Button Content="Giriş Yap"
+                                Command="{Binding GirisKomutu}"
+                                Style="{StaticResource AnaDugme}"
+                                Height="48" Margin="0,8,0,0"
+                                x:Name="GirisDugmesi"/>
+
+                        <TextBlock Text="Muhasebe Yönetim Sistemi v1.0"
+                                   Foreground="#9CA3AF" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,40,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Kapat Düğmesi -->
+            <Button Grid.Column="1" Content="✕"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,12,12,0"
+                    Width="32" Height="32"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="#9CA3AF" FontSize="14" Cursor="Hand"
+                    Click="KapatDugmeTiklandi"/>
+        </Grid>
+    </Border>
+</Window>

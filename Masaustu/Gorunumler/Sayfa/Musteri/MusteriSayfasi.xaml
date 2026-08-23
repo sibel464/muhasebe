@@ -1,0 +1,14 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.MusteriSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+    </UserControl.Resources>
+    <StackPanel Margin="32,28">
+        <TextBlock Text="Müşteriler" Style="{StaticResource SayfaBasligi}"/>
+        <TextBlock Text="Müşteri listesi ve yönetimi" Style="{StaticResource SayfaAltBaslik}"/>
+        <Border Style="{StaticResource KartBorder}">
+            <TextBlock Text="Müşteri modülü geliştirme aşamasındadır." Foreground="#6B7280" FontSize="14" Padding="0,20"/>
+        </Border>
+    </StackPanel>
+</UserControl>

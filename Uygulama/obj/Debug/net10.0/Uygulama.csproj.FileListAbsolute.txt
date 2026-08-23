@@ -1,0 +1,16 @@
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\bin\Debug\net10.0\Uygulama.deps.json
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\bin\Debug\net10.0\Uygulama.dll
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\bin\Debug\net10.0\Uygulama.pdb
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\bin\Debug\net10.0\EtkiAlani.dll
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\bin\Debug\net10.0\EtkiAlani.pdb
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.csproj.AssemblyReference.cache
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.AssemblyInfoInputs.cache
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.AssemblyInfo.cs
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.csproj.CoreCompileInputs.cache
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.sourcelink.json
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.csproj.Up2Date
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.dll
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\refint\Uygulama.dll
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\Uygulama.pdb
+C:\Users\ASUS\OneDrive\Desktop\muhasebe\Uygulama\obj\Debug\net10.0\ref\Uygulama.dll

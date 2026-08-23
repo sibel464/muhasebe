@@ -1,0 +1,14 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.BankaSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+    </UserControl.Resources>
+    <StackPanel Margin="32,28">
+        <TextBlock Text="Banka" Style="{StaticResource SayfaBasligi}"/>
+        <TextBlock Text="Banka hareketleri ve hesap yönetimi" Style="{StaticResource SayfaAltBaslik}"/>
+        <Border Style="{StaticResource KartBorder}">
+            <TextBlock Text="Banka modülü geliştirme aşamasındadır." Foreground="#6B7280" FontSize="14" Padding="0,20"/>
+        </Border>
+    </StackPanel>
+</UserControl>

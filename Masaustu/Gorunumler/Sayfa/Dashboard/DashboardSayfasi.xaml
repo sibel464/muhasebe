@@ -1,0 +1,95 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.DashboardSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,28">
+
+            <!-- Başlık -->
+            <TextBlock Text="Dashboard" Style="{StaticResource SayfaBasligi}"/>
+            <TextBlock Text="Genel bakış ve özet bilgiler" Style="{StaticResource SayfaAltBaslik}"/>
+
+            <!-- Özet Kartlar -->
+            <UniformGrid Columns="4" Margin="0,0,0,24">
+
+                <!-- Müşteri Kartı -->
+                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="👥" FontSize="28" Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding MusteriSayisi}" FontSize="28"
+                                   FontWeight="Bold" Foreground="#1A2F5E"/>
+                        <TextBlock Text="Müşteriler" FontSize="12" Foreground="#6B7280"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Ürün Kartı -->
+                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="📦" FontSize="28" Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding UrunSayisi}" FontSize="28"
+                                   FontWeight="Bold" Foreground="#1A2F5E"/>
+                        <TextBlock Text="Ürünler" FontSize="12" Foreground="#6B7280"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Fatura Kartı -->
+                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="🧾" FontSize="28" Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding AylikFatura}" FontSize="28"
+                                   FontWeight="Bold" Foreground="#1A2F5E"/>
+                        <TextBlock Text="Bu Ay Fatura" FontSize="12" Foreground="#6B7280"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Kasa Kartı -->
+                <Border Style="{StaticResource KartBorder}">
+                    <StackPanel>
+                        <TextBlock Text="💰" FontSize="28" Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding KasaBakiyesi, StringFormat='₺{0:N2}'}"
+                                   FontSize="22" FontWeight="Bold" Foreground="#1A2F5E"/>
+                        <TextBlock Text="Kasa Bakiyesi" FontSize="12" Foreground="#6B7280"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Alt Bölüm -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="280"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Son İşlemler -->
+                <Border Grid.Column="0" Style="{StaticResource KartBorder}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Son İşlemler" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="#1F2937" Margin="0,0,0,16"/>
+                        <Border Background="#F4F6FA" CornerRadius="8" Padding="20,40">
+                            <TextBlock Text="Henüz işlem bulunmuyor." HorizontalAlignment="Center"
+                                       Foreground="#9CA3AF" FontSize="13"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Hızlı Erişim -->
+                <Border Grid.Column="1" Style="{StaticResource KartBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Hızlı İşlemler" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="#1F2937" Margin="0,0,0,16"/>
+                        <Button Content="+ Yeni Müşteri" Style="{StaticResource AnaDugme}"
+                                Height="40" Margin="0,0,0,8" FontSize="13"/>
+                        <Button Content="+ Yeni Fatura" Style="{StaticResource AnaDugme}"
+                                Height="40" Margin="0,0,0,8" FontSize="13"/>
+                        <Button Content="+ Kasa Girişi" Style="{StaticResource AnaDugme}"
+                                Height="40" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
