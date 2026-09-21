@@ -1,0 +1,1 @@
+DELETE FROM "Urunler" WHERE "Kod" = 'RT_P1_FINAL_20260827';

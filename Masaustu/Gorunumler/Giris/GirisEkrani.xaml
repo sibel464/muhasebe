@@ -6,14 +6,15 @@
         Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent">
+        WindowStyle="SingleBorderWindow"
+        AllowsTransparency="False"
+        Background="White"
+        ShowInTaskbar="True">
 
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
         </ResourceDictionary>
@@ -86,10 +87,49 @@
 
                         <!-- Şifre -->
                         <TextBlock Text="Şifre" Style="{StaticResource EtiketMetin}"/>
-                        <PasswordBox x:Name="SifreKutusu"
-                                     Style="{StaticResource ModernSifreKutusu}"
-                                     Margin="0,0,0,8"
-                                     Height="44"/>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <PasswordBox x:Name="SifreKutusu"
+                                         Style="{StaticResource ModernSifreKutusu}"
+                                         Height="44" Padding="12,0,8,0"
+                                         PasswordChanged="SifreDegisti"
+                                         KeyDown="KlavyeTusuBasildi"/>
+
+                            <TextBox x:Name="AcikSifreKutusu"
+                                     Style="{StaticResource ModernMetinKutusu}"
+                                     Height="44" Padding="12,0,8,0"
+                                     Visibility="Collapsed"
+                                     TextChanged="AcikSifreDegisti"
+                                     KeyDown="KlavyeTusuBasildi"/>
+
+                            <Button Grid.Column="1" x:Name="SifreGosterDugmesi"
+                                    Content="👁️" FontSize="16" Foreground="#9CA3AF"
+                                    Background="Transparent" BorderThickness="0"
+                                    Margin="4,0" Cursor="Hand" ToolTip="Şifreyi Göster"
+                                    Click="SifreGosterGizleTiklandi"/>
+
+                            <Button Grid.Column="2" x:Name="SifreTemizleDugmesi"
+                                    Content="✕" FontSize="14" Foreground="#9CA3AF"
+                                    Background="Transparent" BorderThickness="0"
+                                    Margin="4,0,8,0" Cursor="Hand" ToolTip="Temizle"
+                                    Click="SifreTemizleTiklandi"/>
+                        </Grid>
+
+                        <!-- Caps Lock Uyarısı -->
+                        <Border x:Name="CapsLockUyarisi" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1"
+                                CornerRadius="6" Padding="8" Margin="0,0,0,16" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Caps Lock Açık. Parolanızı girmeden önce Caps Lock tuşunun kapalı olduğundan emin olun."
+                                           Foreground="#D97706" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Hata Mesajı -->
                         <TextBlock Text="{Binding HataMesaji}"
@@ -101,8 +141,70 @@
                         <Button Content="Giriş Yap"
                                 Command="{Binding GirisKomutu}"
                                 Style="{StaticResource AnaDugme}"
-                                Height="48" Margin="0,8,0,0"
-                                x:Name="GirisDugmesi"/>
+                                Height="48" Margin="0,8,0,16"
+                                x:Name="GirisDugmesi"
+                                IsDefault="True"/>
+
+                        <!-- Sanal Numpad -->
+                        <Grid HorizontalAlignment="Center" Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="60"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.Resources>
+                                <Style TargetType="Button">
+                                    <Setter Property="Margin" Value="4"/>
+                                    <Setter Property="Height" Value="48"/>
+                                    <Setter Property="FontSize" Value="20"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Background" Value="#F3F4F6"/>
+                                    <Setter Property="Foreground" Value="#374151"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <EventSetter Event="Click" Handler="NumpadTusaBasildi"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E5E7EB"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#D1D5DB"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Grid.Resources>
+
+                            <Button Grid.Row="0" Grid.Column="0" Content="1" Tag="1"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="2" Tag="2"/>
+                            <Button Grid.Row="0" Grid.Column="2" Content="3" Tag="3"/>
+
+                            <Button Grid.Row="1" Grid.Column="0" Content="4" Tag="4"/>
+                            <Button Grid.Row="1" Grid.Column="1" Content="5" Tag="5"/>
+                            <Button Grid.Row="1" Grid.Column="2" Content="6" Tag="6"/>
+
+                            <Button Grid.Row="2" Grid.Column="0" Content="7" Tag="7"/>
+                            <Button Grid.Row="2" Grid.Column="1" Content="8" Tag="8"/>
+                            <Button Grid.Row="2" Grid.Column="2" Content="9" Tag="9"/>
+
+                            <Button Grid.Row="3" Grid.Column="0" Content="⌫" Tag="BACK" ToolTip="Sil" FontSize="24"/>
+                            <Button Grid.Row="3" Grid.Column="1" Content="0" Tag="0"/>
+                            <Button Grid.Row="3" Grid.Column="2" Content="C" Tag="CLEAR" ToolTip="Temizle"/>
+                        </Grid>
 
                         <TextBlock Text="Muhasebe Yönetim Sistemi v1.0"
                                    Foreground="#9CA3AF" FontSize="11"

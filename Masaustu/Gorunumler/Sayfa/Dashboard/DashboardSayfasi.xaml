@@ -1,95 +1,189 @@
 <UserControl x:Class="Masaustu.Gorunumler.Sayfa.DashboardSayfasi"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
     <UserControl.Resources>
-        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="32,28">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 1. Başlık Alanı -->
+                <RowDefinition Height="Auto"/> <!-- 2. KPI Kartları -->
+                <RowDefinition Height="Auto"/> <!-- 3. Hızlı İşlemler & Aksiyonlar -->
+                <RowDefinition Height="*"/>    <!-- 4. Bilgi ve Durum Paneli -->
+            </Grid.RowDefinitions>
 
-            <!-- Başlık -->
-            <TextBlock Text="Dashboard" Style="{StaticResource SayfaBasligi}"/>
-            <TextBlock Text="Genel bakış ve özet bilgiler" Style="{StaticResource SayfaAltBaslik}"/>
-
-            <!-- Özet Kartlar -->
-            <UniformGrid Columns="4" Margin="0,0,0,24">
-
-                <!-- Müşteri Kartı -->
-                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
-                    <StackPanel>
-                        <TextBlock Text="👥" FontSize="28" Margin="0,0,0,12"/>
-                        <TextBlock Text="{Binding MusteriSayisi}" FontSize="28"
-                                   FontWeight="Bold" Foreground="#1A2F5E"/>
-                        <TextBlock Text="Müşteriler" FontSize="12" Foreground="#6B7280"/>
+            <!-- 1. ÜST BAŞLIK ALANI -->
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource BaslikIkonKutusu}">
+                        <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Genel Bakış &amp; Dashboard" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Güncel finansal göstergeler, operasyonel özetler ve hızlı erişim menüsü." Style="{StaticResource SayfaAltBaslik}"/>
                     </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <!-- 2. KPI / ÖZET KARTLARI -->
+            <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,24">
+                <!-- Müşteri Kartı -->
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="TOPLAM CARİ KART" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding MusteriSayisi}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                            <TextBlock Text="Kayıtlı Müşteri &amp; Tedarikçi" FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="40" Height="40" CornerRadius="8" Background="{StaticResource InfoLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <TextBlock Text="👥" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <!-- Ürün Kartı -->
-                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
-                    <StackPanel>
-                        <TextBlock Text="📦" FontSize="28" Margin="0,0,0,12"/>
-                        <TextBlock Text="{Binding UrunSayisi}" FontSize="28"
-                                   FontWeight="Bold" Foreground="#1A2F5E"/>
-                        <TextBlock Text="Ürünler" FontSize="12" Foreground="#6B7280"/>
-                    </StackPanel>
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="AKTİF STOK KARTLARI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding UrunSayisi}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="Kritik Stok: " FontSize="11" Foreground="{StaticResource TextMutedFirca}"/>
+                                <TextBlock Text="{Binding KritikStokSayisi}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource WarningDarkFirca}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <Border Width="40" Height="40" CornerRadius="8" Background="{StaticResource WarningLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <TextBlock Text="📦" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <!-- Fatura Kartı -->
-                <Border Style="{StaticResource KartBorder}" Margin="0,0,12,0">
-                    <StackPanel>
-                        <TextBlock Text="🧾" FontSize="28" Margin="0,0,0,12"/>
-                        <TextBlock Text="{Binding AylikFatura}" FontSize="28"
-                                   FontWeight="Bold" Foreground="#1A2F5E"/>
-                        <TextBlock Text="Bu Ay Fatura" FontSize="12" Foreground="#6B7280"/>
-                    </StackPanel>
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="BU AYKİ FATURALAR" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding AylikFatura}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource PrimaryFirca}"/>
+                            <TextBlock Text="Onaylanan Resmi Belge" FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="40" Height="40" CornerRadius="8" Background="{StaticResource PrimaryLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <TextBlock Text="🧾" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <!-- Kasa Kartı -->
-                <Border Style="{StaticResource KartBorder}">
-                    <StackPanel>
-                        <TextBlock Text="💰" FontSize="28" Margin="0,0,0,12"/>
-                        <TextBlock Text="{Binding KasaBakiyesi, StringFormat='₺{0:N2}'}"
-                                   FontSize="22" FontWeight="Bold" Foreground="#1A2F5E"/>
-                        <TextBlock Text="Kasa Bakiyesi" FontSize="12" Foreground="#6B7280"/>
-                    </StackPanel>
+                <Border Style="{StaticResource KpiKarti}">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="KASA NAKİT BAKİYESİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding KasaBakiyesi, StringFormat='₺{0:N2}'}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"/>
+                            <TextBlock Text="Aktif Nakit Durumu" FontSize="11" Foreground="{StaticResource SuccessFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="40" Height="40" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <TextBlock Text="💰" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
                 </Border>
             </UniformGrid>
 
-            <!-- Alt Bölüm -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="280"/>
-                </Grid.ColumnDefinitions>
+            <!-- 3. HIZLI İŞLEMLER (Quick Action Cards) -->
+            <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,24"
+                    BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="⚡ Hızlı İşlemler &amp; Kısayollar" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,16"/>
 
-                <!-- Son İşlemler -->
-                <Border Grid.Column="0" Style="{StaticResource KartBorder}" Margin="0,0,12,0">
-                    <StackPanel>
-                        <TextBlock Text="Son İşlemler" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="#1F2937" Margin="0,0,0,16"/>
-                        <Border Background="#F4F6FA" CornerRadius="8" Padding="20,40">
-                            <TextBlock Text="Henüz işlem bulunmuyor." HorizontalAlignment="Center"
-                                       Foreground="#9CA3AF" FontSize="13"/>
-                        </Border>
+                    <UniformGrid Columns="3">
+                        <!-- Yeni Müşteri / Cari -->
+                        <Button Command="{Binding YeniMusteriKomutu}" Style="{StaticResource IkinciDugme}" Height="64" Margin="0,0,12,0" HorizontalContentAlignment="Left" Padding="16,0">
+                            <Grid Width="220">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="38" Height="38" CornerRadius="8" Background="{StaticResource InfoLightFirca}" Margin="0,0,12,0">
+                                    <TextBlock Text="👥" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Yeni Cari Kart Ekle" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}"/>
+                                    <TextBlock Text="Müşteri / Tedarikçi Tanımla" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Yeni Stok -->
+                        <Button Command="{Binding YeniUrunKomutu}" Style="{StaticResource IkinciDugme}" Height="64" Margin="0,0,12,0" HorizontalContentAlignment="Left" Padding="16,0">
+                            <Grid Width="220">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="38" Height="38" CornerRadius="8" Background="{StaticResource WarningLightFirca}" Margin="0,0,12,0">
+                                    <TextBlock Text="📦" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Yeni Ürün / Stok Kartı" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}"/>
+                                    <TextBlock Text="Stok &amp; Fiyat Girişi" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Hızlı Satış (POS) -->
+                        <Button Command="{Binding HizliSatisKomutu}" Style="{StaticResource BirinciDugme}" Height="64" HorizontalContentAlignment="Left" Padding="16,0">
+                            <Grid Width="220">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="38" Height="38" CornerRadius="8" Background="#3B82F6" Margin="0,0,12,0">
+                                    <TextBlock Text="🛒" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Hızlı Satış (POS Ekranı)" FontWeight="Bold" FontSize="13" Foreground="White"/>
+                                    <TextBlock Text="Barkodlu Satış &amp; Fiş Basımı" FontSize="11" Foreground="#DBEAFE"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- 4. SİSTEM BİLGİ & GÜVENLİK DURUMU -->
+            <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="20"
+                    BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="VERİTABANI DURUMU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="🟢 PostgreSQL Bağlantısı Aktif" FontWeight="Bold" FontSize="13" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="Npgsql EF Core 10 ACID Transaction Tutarlı" FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
                     </StackPanel>
-                </Border>
 
-                <!-- Hızlı Erişim -->
-                <Border Grid.Column="1" Style="{StaticResource KartBorder}">
-                    <StackPanel>
-                        <TextBlock Text="Hızlı İşlemler" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="#1F2937" Margin="0,0,0,16"/>
-                        <Button Content="+ Yeni Müşteri" Style="{StaticResource AnaDugme}"
-                                Height="40" Margin="0,0,0,8" FontSize="13"/>
-                        <Button Content="+ Yeni Fatura" Style="{StaticResource AnaDugme}"
-                                Height="40" Margin="0,0,0,8" FontSize="13"/>
-                        <Button Content="+ Kasa Girişi" Style="{StaticResource AnaDugme}"
-                                Height="40" FontSize="13"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="GÜVENLİK &amp; AUDIT TRAIL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="🛡️ Otomatik Değişiklik Günlüğü Aktif" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PrimaryFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="Tüm ekleme, silme ve soft-delete işlemleri izlenmektedir." FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
                     </StackPanel>
-                </Border>
-            </Grid>
 
-        </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="EŞZAMANLILIK (CONCURRENCY)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="🔒 Versiyon Çakışma Koruması Devrede" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="Lost update ve mükerrer stok hareketleri engellenir." FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
     </ScrollViewer>
 </UserControl>

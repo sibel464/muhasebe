@@ -11,7 +11,8 @@ public partial class CariHareketlerPenceresi : Window
     {
         InitializeComponent();
         
-        var vm = new CariHareketGorunumModeli(hareketServisi, cariServisi, cariKart);
+        var yazdirmaServisi = App.HizmetSaglayici?.GetService(typeof(IBelgeYazdirmaServisi)) as IBelgeYazdirmaServisi;
+        var vm = new CariHareketGorunumModeli(hareketServisi, cariServisi, cariKart, yazdirmaServisi);
         vm.KapatmaTetikle = () => this.Close();
         DataContext = vm;
 

@@ -1,0 +1,34 @@
+<Window x:Class="Masaustu.Gorunumler.Pencere.UrunSecimPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ürün Seçimi" Width="1050" Height="620" MinWidth="850" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#F5F7FB">
+    <Grid Margin="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="ÜRÜN ARA" FontSize="13" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBox x:Name="AramaKutusu" Grid.Column="1" Height="38" FontSize="15" Padding="10,6" VerticalContentAlignment="Center"
+                         ToolTip="Ürün kodu, barkod veya ürün adı" TextChanged="AramaKutusu_TextChanged" KeyDown="AramaKutusu_KeyDown"/>
+                <Button Grid.Column="2" Content="Seç  ↵" Width="105" Margin="12,0,0,0" Click="Sec_Click" Background="#1D4ED8" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+        <DataGrid x:Name="UrunGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                  RowHeight="42" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderBrush="#DCE3ED" AlternatingRowBackground="#F8FAFC"
+                  MouseDoubleClick="UrunGrid_MouseDoubleClick" KeyDown="UrunGrid_KeyDown">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Kod" Binding="{Binding Urun.Kod}" Width="115"/>
+                <DataGridTextColumn Header="Barkod" Binding="{Binding Urun.Barkod}" Width="135"/>
+                <DataGridTextColumn Header="Ürün" Binding="{Binding Urun.Ad}" Width="2*"/>
+                <DataGridTextColumn Header="Kategori" Binding="{Binding Kategori}" Width="120"/>
+                <DataGridTextColumn Header="Marka" Binding="{Binding Marka}" Width="110"/>
+                <DataGridTextColumn Header="Birim" Binding="{Binding Urun.Birim}" Width="70"/>
+                <DataGridTextColumn Header="Fiyat" Binding="{Binding Urun.PerakendeSatisFiyati, StringFormat={}{0:N2} ₺}" Width="105"/>
+                <DataGridTextColumn Header="Mağaza" Binding="{Binding Magaza, StringFormat=N2}" Width="75"/>
+                <DataGridTextColumn Header="Depo 1" Binding="{Binding Depo1, StringFormat=N2}" Width="75"/>
+                <DataGridTextColumn Header="Depo 2" Binding="{Binding Depo2, StringFormat=N2}" Width="75"/>
+                <DataGridTextColumn Header="Toplam" Binding="{Binding Toplam, StringFormat=N2}" Width="80"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock Grid.Row="2" Text="Enter veya çift tıklama ile ürünü sepete ekleyin.  Esc: Kapat" Foreground="#64748B" Margin="2,10,0,0"/>
+    </Grid>
+</Window>

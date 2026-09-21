@@ -1,14 +1,260 @@
 <UserControl x:Class="Masaustu.Gorunumler.Sayfa.FaturaSayfasi"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+             xmlns:fatura="clr-namespace:EtkiAlani.Modeller.Fatura;assembly=EtkiAlani"
+             mc:Ignorable="d" 
+             d:DesignHeight="720" d:DesignWidth="1024"
+             Background="Transparent">
+
     <UserControl.Resources>
-        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel Margin="32,28">
-        <TextBlock Text="Faturalar" Style="{StaticResource SayfaBasligi}"/>
-        <TextBlock Text="Satış ve alış faturası yönetimi" Style="{StaticResource SayfaAltBaslik}"/>
-        <Border Style="{StaticResource KartBorder}">
-            <TextBlock Text="Fatura modülü geliştirme aşamasındadır." Foreground="#6B7280" FontSize="14" Padding="0,20"/>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- 1. Başlık ve Aksiyonlar -->
+            <RowDefinition Height="Auto"/> <!-- 2. KPI / Özet Kartlar -->
+            <RowDefinition Height="Auto"/> <!-- 3. Filtre Barı -->
+            <RowDefinition Height="*"/>    <!-- 4. DataGrid Listesi -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. ÜST PANEL: Başlık ve Aksiyon Butonları -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="🧾" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Fatura &amp; Finans Yönetimi" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Alış ve satış faturaları, onaylama süreçleri ve resmi belge yazdırma." Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔄" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yenile" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding FaturaEkleSayfasinaGitKomutu}" Style="{StaticResource BirinciDugme}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="➕" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yeni Fatura Kes" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- 2. KPI / ÖZET KARTLARI -->
+        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,16">
+            <!-- Satış Toplamı -->
+            <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0" Padding="16,14">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="BU AYKİ SATIŞ FATURALARI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding BuAySatisToplam, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource PrimaryLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="📤" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Alış Toplamı -->
+            <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0" Padding="16,14">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="BU AYKİ ALIŞ FATURALARI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding BuAyAlisToplam, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="📥" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Bekleyen Taslaklar -->
+            <Border Style="{StaticResource KpiKarti}" Padding="16,14">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="BEKLEYEN TASLAK FATURALAR" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding TaslakSayisi, StringFormat={}{0} Adet}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource WarningDarkFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource WarningLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="📝" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </UniformGrid>
+
+        <!-- 3. FİLTRELEME BARI -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="14,10" Margin="0,0,0,16"
+                BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Fatura No / Cari Ünvan Ara" Style="{StaticResource EtiketMetin}"/>
+                    <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Text="{Binding DurumMesaji}" Foreground="{StaticResource TextSecondaryFirca}" FontSize="12" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+            </Grid>
         </Border>
-    </StackPanel>
+
+        <!-- 4. DATAGRID TABLO -->
+        <Border Grid.Row="3" Background="White" CornerRadius="10"
+                BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding Faturalar}" SelectedItem="{Binding SeciliFatura}"
+                      Style="{StaticResource ModernDataGrid}"
+                      AutoGenerateColumns="False" IsReadOnly="True"
+                      SelectionMode="Single">
+                <DataGrid.Columns>
+                    <!-- Tür Badge -->
+                    <DataGridTemplateColumn Header="TÜR" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border HorizontalAlignment="Left">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource DurumRozeti}">
+                                            <Setter Property="Background" Value="{StaticResource PrimaryLightFirca}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FaturaTuru}" Value="{x:Static fatura:FaturaTuru.Alis}">
+                                                    <Setter Property="Background" Value="{StaticResource SuccessLightFirca}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding FaturaTuru}" FontSize="11" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryDarkFirca}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaturaTuru}" Value="{x:Static fatura:FaturaTuru.Alis}">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="130" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="TARİH" Binding="{Binding FaturaTarihi, StringFormat=dd.MM.yyyy}" Width="100"/>
+                    <DataGridTextColumn Header="CARİ ÜNVANI" Binding="{Binding CariKart.Unvan}" Width="2*"/>
+                    
+                    <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding ToplamTutar, StringFormat={}{0:N2} ₺}" Width="130">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryFirca}"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Durum Badge -->
+                    <DataGridTemplateColumn Header="DURUM" Width="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border HorizontalAlignment="Left">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource DurumRozeti}">
+                                            <Setter Property="Background" Value="#F1F5F9"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Durum}" Value="{x:Static fatura:BelgeDurumu.Onaylandi}">
+                                                    <Setter Property="Background" Value="{StaticResource SuccessLightFirca}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Durum}" Value="{x:Static fatura:BelgeDurumu.Iptal}">
+                                                    <Setter Property="Background" Value="{StaticResource DangerLightFirca}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Durum}" FontSize="11" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryFirca}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Durum}" Value="{x:Static fatura:BelgeDurumu.Onaylandi}">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Durum}" Value="{x:Static fatura:BelgeDurumu.Iptal}">
+                                                        <Setter Property="Foreground" Value="{StaticResource DangerDarkFirca}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- İşlemler -->
+                    <DataGridTemplateColumn Header="İŞLEMLER" Width="260">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Command="{Binding DataContext.YazdirKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,6,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🖨️" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Yazdır"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.DetayKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,6,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="👁️" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Detay"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.OnaylaKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource SuccessLightFirca}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,6,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="✓" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Onayla"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.IptalEtKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource DangerLightFirca}" Foreground="{StaticResource DangerDarkFirca}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="✕" Margin="0,0,4,0"/>
+                                            <TextBlock Text="İptal"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
 </UserControl>

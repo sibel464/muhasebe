@@ -1,14 +1,484 @@
 <UserControl x:Class="Masaustu.Gorunumler.Sayfa.RaporSayfasi"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" FontFamily="Segoe UI" d:DesignWidth="1366" d:DesignHeight="768">
+
     <UserControl.Resources>
-        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+
+        <Style x:Key="Kart" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="KpiKart" TargetType="Border" BasedOn="{StaticResource Kart}">
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+        </Style>
+
+        <Style x:Key="EtiketKucuk" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="FilterBtn" TargetType="Button">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryBtn" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Setter Property="Background" Value="#1D4ED8"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="GridStyle" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowHeight" Value="36"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="CanUserResizeColumns" Value="True"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+        </Style>
     </UserControl.Resources>
-    <StackPanel Margin="32,28">
-        <TextBlock Text="Raporlar" Style="{StaticResource SayfaBasligi}"/>
-        <TextBlock Text="Finansal raporlar ve analizler" Style="{StaticResource SayfaAltBaslik}"/>
-        <Border Style="{StaticResource KartBorder}">
-            <TextBlock Text="Rapor modülü geliştirme aşamasındadır." Foreground="#6B7280" FontSize="14" Padding="0,20"/>
+
+    <Grid Background="#F8FAFC">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Loading Overlay -->
+        <Border Grid.RowSpan="4" Background="#80FFFFFF" Visibility="{Binding Yukleniyor, Converter={StaticResource BoolVis}}" Panel.ZIndex="100">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="⏳ Rapor Verileri Hazırlanıyor..." FontSize="16" FontWeight="Bold" Foreground="#1E293B"/>
+                <TextBlock Text="Lütfen bekleyiniz, veritabanı sorgulanıyor" FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
+            </StackPanel>
         </Border>
-    </StackPanel>
+
+        <!-- 1. Header Bar -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="📊 RAPOR MERKEZİ &amp; YÖNETİCİ ANALİZ PANELİ" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
+                    <TextBlock Text="Gerçek ticari veriler üzerinden sunucu tarafı server-side analiz ve raporlama" FontSize="12" Foreground="#64748B"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="📥 Excel (.xlsx)" Style="{StaticResource FilterBtn}" Command="{Binding ExcelAktarKomutu}"/>
+                    <Button Content="📄 PDF Çıktı" Style="{StaticResource FilterBtn}" Command="{Binding PdfAktarKomutu}"/>
+                    <Button Content="🖨️ Yazdır" Style="{StaticResource FilterBtn}" Command="{Binding YazdirKomutu}"/>
+                    <Button Content="🔄 Yenile" Style="{StaticResource PrimaryBtn}" Command="{Binding YenileKomutu}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. Global Filter Bar & Date Presets -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,10">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Text="Dönem:" VerticalAlignment="Center" FontWeight="Bold" Foreground="#475569" Margin="0,0,10,0"/>
+                <Button Content="Bugün" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Bugun"/>
+                <Button Content="Dün" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Dun"/>
+                <Button Content="Bu Hafta" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuHafta"/>
+                <Button Content="Bu Ay" Style="{StaticResource PrimaryBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuAy"/>
+                <Button Content="Geçen Ay" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenAy"/>
+                <Button Content="Bu Yıl" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuYil"/>
+                <Button Content="Geçen Yıl" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenYil"/>
+
+                <CheckBox Content="İptal Edilenleri Dahil Et" IsChecked="{Binding Filtre.IptalleriDahilEt, Mode=TwoWay}" VerticalAlignment="Center" Margin="15,0,0,0" FontWeight="SemiBold" Foreground="#475569"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- 3. Main Content (Tabs & Reports) -->
+        <TabControl Grid.Row="2" SelectedIndex="{Binding SeciliSekmeIndeksi, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Margin="15,10,15,10">
+
+            <!-- TAB 0: Yönetici Özeti -->
+            <TabItem Header="👑 Yönetici Özeti">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10">
+                        <!-- KPI Row 1 -->
+                        <WrapPanel Margin="0,0,0,10">
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BUGÜNKÜ SATIŞ" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BugunkuSatis, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#2563EB"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BU AY SATIŞ" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BuAySatis, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#166534"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BU AY ALIŞ" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BuAyAlis, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#D97706"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BU AY TAHSİLAT" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BuAyTahsilat, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#059669"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BU AY ÖDEME" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BuAyOdeme, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#DC2626"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BRÜT KÂR" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BrutKar, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#7C3AED"/>
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+
+                        <!-- KPI Row 2 -->
+                        <WrapPanel Margin="0,0,0,15">
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="TOPLAM ALACAK" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.ToplamAlacak, StringFormat={}{0:N2} TL}" FontSize="16" FontWeight="Bold" Foreground="#1E293B"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="TOPLAM BORÇ" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.ToplamBorc, StringFormat={}{0:N2} TL}" FontSize="16" FontWeight="Bold" Foreground="#475569"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="KASA TOPLAMI" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.KasaToplami, StringFormat={}{0:N2} TL}" FontSize="16" FontWeight="Bold" Foreground="#2563EB"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="BANKA TOPLAMI" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.BankaToplami, StringFormat={}{0:N2} TL}" FontSize="16" FontWeight="Bold" Foreground="#0D9488"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="VADESİ GEÇMİŞ ALACAK" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.VadesiGecmisAlacak, StringFormat={}{0:N2} TL}" FontSize="16" FontWeight="Bold" Foreground="#E11D48"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="190">
+                                <StackPanel>
+                                    <TextBlock Text="KRİTİK STOK SAYISI" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding YoneticiOzet.KritikStokSayisi}" FontSize="16" FontWeight="Bold" Foreground="#CA8A04"/>
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+
+                        <!-- Dönem Karşılaştırma Tablosu -->
+                        <Border Style="{StaticResource Kart}" Padding="16" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="📈 Dönemsel Performans Karşılaştırması" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                                <DataGrid ItemsSource="{Binding DonemKarsilastirma.Kalemler}" Style="{StaticResource GridStyle}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Metrik" Binding="{Binding MetrikAd}" Width="200"/>
+                                        <DataGridTextColumn Header="Mevcut Dönem" Binding="{Binding MevcutDeger, StringFormat={}{0:N2}}" Width="150"/>
+                                        <DataGridTextColumn Header="Önceki Dönem" Binding="{Binding ÖncekiDeger, StringFormat={}{0:N2}}" Width="150"/>
+                                        <DataGridTextColumn Header="Değişim Miktarı" Binding="{Binding DegisimMiktari, StringFormat={}{0:N2}}" Width="150"/>
+                                        <DataGridTextColumn Header="Değişim %" Binding="{Binding YuzdeDegisim, StringFormat={}% {0:N2}}" Width="120"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 1: Satış Raporları -->
+            <TabItem Header="🛍️ Satış Raporları">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding SatisRaporu.Items}" Style="{StaticResource GridStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                            <DataGridTextColumn Header="Belge No" Binding="{Binding BelgeNo}" Width="120"/>
+                            <DataGridTextColumn Header="Cari Ünvan" Binding="{Binding CariUnvan}" Width="180"/>
+                            <DataGridTextColumn Header="Ürün" Binding="{Binding UrunAd}" Width="160"/>
+                            <DataGridTextColumn Header="Miktar" Binding="{Binding Miktar, StringFormat={}{0:N2}}" Width="90"/>
+                            <DataGridTextColumn Header="Birim Fiyat" Binding="{Binding BirimFiyat, StringFormat={}{0:N2} TL}" Width="110"/>
+                            <DataGridTextColumn Header="KDV %" Binding="{Binding KdvOrani}" Width="70"/>
+                            <DataGridTextColumn Header="Net Tutar" Binding="{Binding NetTutar, StringFormat={}{0:N2} TL}" Width="120"/>
+                            <DataGridTextColumn Header="Maliyet" Binding="{Binding Maliyet, StringFormat={}{0:N2} TL}" Width="110"/>
+                            <DataGridTextColumn Header="Brüt Kâr" Binding="{Binding BrutKar, StringFormat={}{0:N2} TL}" Width="110"/>
+                            <DataGridTextColumn Header="Kâr %" Binding="{Binding KarYuzdesi, StringFormat={}% {0:N2}}" Width="80"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <!-- Pagination Bar -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="◀ Önceki Sayfa" Style="{StaticResource FilterBtn}" Command="{Binding ÖncekiSayfaKomutu}"/>
+                        <TextBlock Text="{Binding SatisRaporu.PageNumber, StringFormat={}Sayfa {0}}" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
+                        <Button Content="Sonraki Sayfa ▶" Style="{StaticResource FilterBtn}" Command="{Binding SonrakiSayfaKomutu}"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: Alış Raporları -->
+            <TabItem Header="📦 Alış Raporları">
+                <DataGrid ItemsSource="{Binding AlisRaporu.Items}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="Belge No" Binding="{Binding BelgeNo}" Width="120"/>
+                        <DataGridTextColumn Header="Tedarikçi" Binding="{Binding TedarikciUnvan}" Width="220"/>
+                        <DataGridTextColumn Header="Ürün" Binding="{Binding UrunAd}" Width="180"/>
+                        <DataGridTextColumn Header="Miktar" Binding="{Binding Miktar, StringFormat={}{0:N2}}" Width="100"/>
+                        <DataGridTextColumn Header="Toplam Tutar" Binding="{Binding ToplamTutar, StringFormat={}{0:N2} TL}" Width="140"/>
+                        <DataGridTextColumn Header="Ortalama Maliyet" Binding="{Binding OrtalamaAlisMaliyeti, StringFormat={}{0:N2} TL}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 3: Cari Raporları -->
+            <TabItem Header="👥 Cari Raporları">
+                <DataGrid ItemsSource="{Binding CariRaporu.Items}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cari Kod" Binding="{Binding CariKod}" Width="120"/>
+                        <DataGridTextColumn Header="Ünvan" Binding="{Binding CariUnvan}" Width="250"/>
+                        <DataGridTextColumn Header="Tür" Binding="{Binding CariTur}" Width="120"/>
+                        <DataGridTextColumn Header="Toplam Borç" Binding="{Binding ToplamBorc, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Toplam Alacak" Binding="{Binding ToplamAlacak, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Net Bakiye" Binding="{Binding NetBakiye, StringFormat={}{0:N2} TL}" Width="140"/>
+                        <DataGridTextColumn Header="Bakiye Tipi" Binding="{Binding BakiyeTipi}" Width="110"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 4: Cari Yaşlandırma -->
+            <TabItem Header="⏳ Cari Yaşlandırma">
+                <DataGrid ItemsSource="{Binding CariYaslandirmaRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cari Kod" Binding="{Binding CariKod}" Width="110"/>
+                        <DataGridTextColumn Header="Ünvan" Binding="{Binding CariUnvan}" Width="220"/>
+                        <DataGridTextColumn Header="Vadesi Gelmemiş" Binding="{Binding VadesiGelmemis, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="1-30 Gün" Binding="{Binding Gun1_30, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="31-60 Gün" Binding="{Binding Gun31_60, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="61-90 Gün" Binding="{Binding Gun61_90, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="90+ Gün" Binding="{Binding Gun90Plus, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="Risk Seviyesi" Binding="{Binding RiskSeviyesi}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 5: Stok Raporları -->
+            <TabItem Header="🏢 Stok Raporları">
+                <DataGrid ItemsSource="{Binding StokRaporu.Items}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Ürün Kodu" Binding="{Binding UrunKod}" Width="120"/>
+                        <DataGridTextColumn Header="Ürün Adı" Binding="{Binding UrunAd}" Width="220"/>
+                        <DataGridTextColumn Header="Kategori" Binding="{Binding Kategori}" Width="140"/>
+                        <DataGridTextColumn Header="Lokasyon" Binding="{Binding LokasyonAd}" Width="130"/>
+                        <DataGridTextColumn Header="Fiziksel Stok" Binding="{Binding FizikselStok, StringFormat={}{0:N2}}" Width="120"/>
+                        <DataGridTextColumn Header="Rezerve Stok" Binding="{Binding RezerveStok, StringFormat={}{0:N2}}" Width="120"/>
+                        <DataGridTextColumn Header="Kullanılabilir" Binding="{Binding KullanilabilirStok, StringFormat={}{0:N2}}" Width="120"/>
+                        <DataGridTextColumn Header="Stok Değeri" Binding="{Binding StokDegeri, StringFormat={}{0:N2} TL}" Width="130"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 6: Stok Devir & Hareketsiz -->
+            <TabItem Header="🔄 Hareketsiz Ürünler">
+                <DataGrid ItemsSource="{Binding HareketsizUrunler}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Ürün Kodu" Binding="{Binding UrunKod}" Width="120"/>
+                        <DataGridTextColumn Header="Ürün Adı" Binding="{Binding UrunAd}" Width="250"/>
+                        <DataGridTextColumn Header="Stok Miktarı" Binding="{Binding StokMiktari, StringFormat={}{0:N2}}" Width="120"/>
+                        <DataGridTextColumn Header="Hareketsiz Gün" Binding="{Binding HareketsizGunSayisi}" Width="130"/>
+                        <DataGridTextColumn Header="Stok Değeri" Binding="{Binding StokDegeri, StringFormat={}{0:N2} TL}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 7: Stok Değeri -->
+            <TabItem Header="💰 Stok Değer Raporu">
+                <DataGrid ItemsSource="{Binding StokDegerRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Lokasyon / Depo" Binding="{Binding LokasyonAd}" Width="250"/>
+                        <DataGridTextColumn Header="Ürün Çeşidi Sayısı" Binding="{Binding UrunCesidiSayisi}" Width="160"/>
+                        <DataGridTextColumn Header="Toplam Fiziksel Miktar" Binding="{Binding ToplamMiktar, StringFormat={}{0:N2}}" Width="180"/>
+                        <DataGridTextColumn Header="Toplam Stok Değeri" Binding="{Binding ToplamStokDegeri, StringFormat={}{0:N2} TL}" Width="200"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 8: Finans Raporları -->
+            <TabItem Header="💳 Finans Raporları">
+                <DataGrid ItemsSource="{Binding FinansRaporu.Items}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Width="140"/>
+                        <DataGridTextColumn Header="İşlem Türü" Binding="{Binding IslemTuru}" Width="130"/>
+                        <DataGridTextColumn Header="Hesap / Kasa" Binding="{Binding HesabAd}" Width="160"/>
+                        <DataGridTextColumn Header="Cari / Açıklama" Binding="{Binding CariUnvan}" Width="220"/>
+                        <DataGridTextColumn Header="Giren" Binding="{Binding Giren, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="Çıkan" Binding="{Binding Cikan, StringFormat={}{0:N2} TL}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 9: Nakit Akışı -->
+            <TabItem Header="🌊 Nakit Akışı">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,10">
+                        <WrapPanel Margin="0,0,0,15">
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="DÖNEM BAŞI NAKİT" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.DonemBasiNakit, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#475569"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="TAHSİLATLAR" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.Tahsilatlar, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#166534"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="ÖDEMELER" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.Odemeler, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#DC2626"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="NET NAKİT AKIŞI" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.NetNakitAkisi, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#2563EB"/>
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 10: Kasa / Banka Raporları -->
+            <TabItem Header="🏦 Kasa &amp; Banka Raporu">
+                <DataGrid ItemsSource="{Binding KasaBankaRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Hesap Adı" Binding="{Binding HesapAd}" Width="220"/>
+                        <DataGridTextColumn Header="Tür" Binding="{Binding Hesapturu}" Width="110"/>
+                        <DataGridTextColumn Header="Devir" Binding="{Binding Devir, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Giriş" Binding="{Binding Giris, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Çıkış" Binding="{Binding Cikis, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Bakiye" Binding="{Binding Bakiye, StringFormat={}{0:N2} TL}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 11: POS Raporu -->
+            <TabItem Header="🏧 POS Raporu">
+                <DataGrid ItemsSource="{Binding PosRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cihaz Adı" Binding="{Binding CihazAd}" Width="160"/>
+                        <DataGridTextColumn Header="Banka" Binding="{Binding BankaAd}" Width="180"/>
+                        <DataGridTextColumn Header="Taksit" Binding="{Binding TaksitSayisi}" Width="80"/>
+                        <DataGridTextColumn Header="Brüt Tutar" Binding="{Binding BrutTutar, StringFormat={}{0:N2} TL}" Width="140"/>
+                        <DataGridTextColumn Header="Komisyon %" Binding="{Binding KomisyonOrani}" Width="100"/>
+                        <DataGridTextColumn Header="Komisyon Tutar" Binding="{Binding KomisyonTutar, StringFormat={}{0:N2} TL}" Width="130"/>
+                        <DataGridTextColumn Header="Net Tutar" Binding="{Binding NetTutar, StringFormat={}{0:N2} TL}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 12: Çek / Senet Raporu -->
+            <TabItem Header="📑 Çek &amp; Senet Raporu">
+                <DataGrid ItemsSource="{Binding CekSenetRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Portföy No" Binding="{Binding PortfoyNo}" Width="130"/>
+                        <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" Width="100"/>
+                        <DataGridTextColumn Header="Yön" Binding="{Binding Direction}" Width="100"/>
+                        <DataGridTextColumn Header="Vade Tarihi" Binding="{Binding VadeTarihi, StringFormat={}{0:dd.MM.yyyy}}" Width="120"/>
+                        <DataGridTextColumn Header="Tutar" Binding="{Binding Tutar, StringFormat={}{0:N2} TL}" Width="140"/>
+                        <DataGridTextColumn Header="Durum" Binding="{Binding Durum}" Width="130"/>
+                        <DataGridTextColumn Header="Borçlu Cari" Binding="{Binding BorcluCari}" Width="200"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- TAB 13: KDV Raporu -->
+            <TabItem Header="🏛️ KDV Raporu">
+                <DataGrid ItemsSource="{Binding KdvRaporu}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="KDV Oranı" Binding="{Binding KdvOrani, StringFormat={}% {0}}" Width="120"/>
+                        <DataGridTextColumn Header="Satış Matrahı" Binding="{Binding SatisMatrah, StringFormat={}{0:N2} TL}" Width="160"/>
+                        <DataGridTextColumn Header="Satış KDV" Binding="{Binding SatisKdv, StringFormat={}{0:N2} TL}" Width="160"/>
+                        <DataGridTextColumn Header="Alış Matrahı" Binding="{Binding AlisMatrah, StringFormat={}{0:N2} TL}" Width="160"/>
+                        <DataGridTextColumn Header="Alış KDV" Binding="{Binding AlisKdv, StringFormat={}{0:N2} TL}" Width="160"/>
+                        <DataGridTextColumn Header="Net Ödenecek / Devreden KDV" Binding="{Binding NetKdv, StringFormat={}{0:N2} TL}" Width="220"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- 4. Status Bar -->
+        <Border Grid.Row="3" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="15,6">
+            <Grid>
+                <TextBlock Text="{Binding DurumMesaji}" FontSize="12" Foreground="#475569" VerticalAlignment="Center"/>
+                <TextBlock Text="Ticari Muhasebe Raporlama Engine v12.0 (.NET 10 WPF)" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
 </UserControl>

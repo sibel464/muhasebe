@@ -2,8 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using EtkiAlani.Modeller.Stok;
 using Masaustu.GorunumModelleri;
+using Masaustu.Gorunumler.Sayfa.Urun;
 using Uygulama.Arayuzler;
-using UrunModel = EtkiAlani.Modeller.Stok.Urun;
 
 namespace Masaustu.Gorunumler.Sayfa;
 
@@ -13,16 +13,16 @@ public partial class UrunSayfasi : UserControl
     {
         InitializeComponent();
 
-        Loaded += (_, _) =>
+        DataContextChanged += (_, _) =>
         {
             if (DataContext is UrunGorunumModeli vm)
             {
-                vm.DuzenleFormAc = async (urun) =>
+                vm.UrunDuzenleFormAc = async (mevcutUrun) =>
                 {
                     var urunServisi = App.HizmetSaglayici.GetService(typeof(IUrunServisi)) as IUrunServisi;
                     if (urunServisi == null) return false;
 
-                    var pencere = new Urun.UrunDuzenlePenceresi(urunServisi, urun)
+                    var pencere = new UrunDuzenlePenceresi(urunServisi, mevcutUrun)
                     {
                         Owner = Window.GetWindow(this)
                     };

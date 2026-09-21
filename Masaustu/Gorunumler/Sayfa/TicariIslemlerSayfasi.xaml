@@ -1,0 +1,97 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.TicariIslemlerSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="TİCARİ İŞLEMLER" Style="{StaticResource SayfaBasligi}"/>
+            <TextBlock Text="Satış, satınalma, cari, stok ve finans işlemlerinize hızlıca ulaşın." Style="{StaticResource SayfaAltBaslik}"/>
+        </StackPanel>
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,20,0,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="GLOBAL ARAMA" Foreground="{StaticResource PrimaryDarkFirca}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBox Grid.Column="1" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}" Height="40" Padding="12,8" FontSize="14" VerticalContentAlignment="Center" ToolTip="Cari, ürün, barkod veya belge numarası ara..."/>
+                <TextBlock Grid.Column="2" Text="{Binding DurumMesaji}" Foreground="{StaticResource TextSecondaryFirca}" VerticalAlignment="Center" Margin="16,0,0,0"/>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,9,0">
+                <StackPanel>
+                    <TextBlock Text="HIZLI ERİŞİM" Foreground="{StaticResource TextSecondaryFirca}" FontSize="11" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <UniformGrid Columns="2">
+                        <Button Content="Cari Hesaplar" Command="{Binding CariKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,8"/>
+                        <Button Content="Ürünler / Malzemeler" Command="{Binding UrunKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,0,8"/>
+                        <Button Content="Tahsilatlar" Command="{Binding TahsilatKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,8"/>
+                        <Button Content="Ödemeler" Command="{Binding OdemeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,0,8"/>
+                        <Button Content="Kasa" Command="{Binding KasaKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,8"/>
+                        <Button Content="Banka" Command="{Binding BankaKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,0,8"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+            <StackPanel Grid.Column="1" Margin="9,0,0,0">
+                <Border Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="SATIŞ" Foreground="{StaticResource TextSecondaryFirca}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <WrapPanel>
+                            <Button Content="Hızlı Satış" Command="{Binding SatisKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"/>
+                            <Button Content="Satış Siparişleri" Command="{Binding SiparisKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"/>
+                            <Button Content="Satış İrsaliyeleri" Command="{Binding IrsaliyeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"/>
+                            <Button Content="Satış Faturaları" Command="{Binding FaturaKomutu}" Style="{StaticResource IkinciDugme}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="SATINALMA" Foreground="{StaticResource TextSecondaryFirca}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <WrapPanel>
+                            <Button Content="Satınalma Siparişleri" Command="{Binding SiparisKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"/>
+                            <Button Content="Satınalma İrsaliyeleri" Command="{Binding IrsaliyeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"/>
+                            <Button Content="Yeni Alış Faturası" Command="{Binding FaturaEkleKomutu}" Style="{StaticResource IkinciDugme}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="10" Padding="18">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <TextBlock Text="ARAMA SONUÇLARI" Foreground="{StaticResource TextSecondaryFirca}" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Sonuclar}" BorderThickness="0" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.SonucaGitKomutu, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="8" Margin="0,0,0,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Kategori}" Foreground="{StaticResource PrimaryDarkFirca}" FontWeight="Bold" FontSize="10"/>
+                                        <StackPanel Grid.Column="1"><TextBlock Text="{Binding Kod}" FontWeight="SemiBold"/><TextBlock Text="{Binding Baslik}" Foreground="{StaticResource TextSecondaryFirca}"/></StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding AltBilgi}" Foreground="{StaticResource TextSecondaryFirca}" TextTrimming="CharacterEllipsis"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

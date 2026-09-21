@@ -23,9 +23,11 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
 {
     private readonly ICariHareketServisi _hareketServisi;
     private readonly ICariServisi _cariServisi;
+    private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
     private CariKart _cariKart;
 
     private ObservableCollection<CariHareketSatiri> _hareketler = new();
+    private List<CariHareket> _hamHareketler = new();
     private bool _yukleniyor = false;
     private string _durumMesaji = string.Empty;
 
@@ -61,15 +63,28 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
     public decimal MutlakBakiye => Math.Abs(Bakiye);
 
     public ICommand YenileKomutu { get; }
+    public ICommand EkstreYazdirKomutu { get; }
     public Action? KapatmaTetikle { get; set; }
 
-    public CariHareketGorunumModeli(ICariHareketServisi hareketServisi, ICariServisi cariServisi, CariKart cariKart)
+    public CariHareketGorunumModeli(
+        ICariHareketServisi hareketServisi, 
+        ICariServisi cariServisi, 
+        CariKart cariKart,
+        IBelgeYazdirmaServisi? yazdirmaServisi = null)
     {
         _hareketServisi = hareketServisi;
         _cariServisi = cariServisi;
         _cariKart = cariKart;
+        _yazdirmaServisi = yazdirmaServisi;
 
         YenileKomutu = new KomutSarici(async _ => await HareketleriYukleAsync());
+        EkstreYazdirKomutu = new KomutSarici(async _ => 
+        {
+            if (_yazdirmaServisi != null)
+            {
+                await _yazdirmaServisi.CariEkstreYazdirAsync(CariKart, _hamHareketler);
+            }
+        });
 
         _ = HareketleriYukleAsync();
     }
@@ -93,7 +108,7 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
             }
 
             var dbHareketler = await _hareketServisi.CariKartinHareketleriniGetirAsync(CariKart.Id);
-            
+            _hamHareketler = dbHareketler;
             var list = new List<CariHareketSatiri>();
             decimal kumulatifBakiye = 0;
 

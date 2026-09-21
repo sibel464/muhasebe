@@ -1,0 +1,385 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.CekSenetSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:gm="clr-namespace:Masaustu.GorunumModelleri"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1280"
+             d:DataContext="{d:DesignInstance Type=gm:CekSenetGorunumModeli, IsDesignTimeCreatable=False}"
+             Background="#FAFAFA"
+             Loaded="UserControl_Loaded">
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık, Aksiyonlar ve KPI -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,5">
+                    <TextBlock Text="ÇEK &amp; SENET PORTFÖYÜ" FontSize="26" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                    <Button Content="+ Yeni Çek / Senet Girişi" Command="{Binding EkleCommand}" 
+                            Height="38" Padding="15,0" Margin="20,0,0,0" VerticalAlignment="Center"
+                            Background="#10B981" Foreground="White" BorderThickness="0" FontWeight="Bold" FontSize="13">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+                <TextBlock Text="Gelişmiş Finansal Belgeler, Ciro, Tahsilat ve Portföy Yönetimi" FontSize="13" Foreground="#64748B"/>
+            </StackPanel>
+
+            <!-- KPI Kartları -->
+            <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20,15" Margin="10,0"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" Opacity="0.03" BlurRadius="10" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Portföydeki Tutar" Foreground="#64748B" FontSize="12" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding PortfoydekiToplam, StringFormat={}{0:N2} ₺}" Foreground="#3B82F6" FontSize="20" FontWeight="Bold" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="White" CornerRadius="12" Padding="20,15" Margin="10,0"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" Opacity="0.03" BlurRadius="10" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Tahsil Edilen" Foreground="#64748B" FontSize="12" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TahsilEdilenToplam, StringFormat={}{0:N2} ₺}" Foreground="#10B981" FontSize="20" FontWeight="Bold" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Background="White" CornerRadius="12" Padding="20,15" Margin="10,0,0,0"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" Opacity="0.03" BlurRadius="10" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Yaklaşan Vade" Foreground="#64748B" FontSize="12" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding YaklasanVadeSayisi, StringFormat={}{0} Adet (Son 7 Gün)}" Foreground="#F59E0B" FontSize="20" FontWeight="Bold" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Gelişmiş Filtreler -->
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,20"
+                BorderBrush="#E2E8F0" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" Opacity="0.03" BlurRadius="10" ShadowDepth="2"/>
+            </Border.Effect>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Arama -->
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="Cari, Keşideci veya Belge No Ara" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}" 
+                             Height="40" Padding="10,0" VerticalContentAlignment="Center"
+                             BorderBrush="#CBD5E1" BorderThickness="1" Foreground="#1E293B" FontSize="14"/>
+                </StackPanel>
+
+                <!-- Tür Filtresi -->
+                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="Belge Türü" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding Turler}" SelectedItem="{Binding SeciliTur}" 
+                              Height="40" Padding="10,0" VerticalContentAlignment="Center"
+                              BorderBrush="#CBD5E1" BorderThickness="1" FontSize="14"/>
+                </StackPanel>
+
+                <!-- Durum Filtresi -->
+                <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                    <TextBlock Text="Durum" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding Durumlar}" SelectedItem="{Binding SeciliDurum}" 
+                              Height="40" Padding="10,0" VerticalContentAlignment="Center"
+                              BorderBrush="#CBD5E1" BorderThickness="1" FontSize="14"/>
+                </StackPanel>
+
+                <!-- Başlangıç Vade Tarihi -->
+                <StackPanel Grid.Column="3" Margin="0,0,12,0">
+                    <TextBlock Text="Başlangıç Vade" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <DatePicker SelectedDate="{Binding BaslangicTarihi}" Height="40" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Bitiş Vade Tarihi -->
+                <StackPanel Grid.Column="4" Margin="0,0,12,0">
+                    <TextBlock Text="Bitiş Vade" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <DatePicker SelectedDate="{Binding BitisTarihi}" Height="40" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Butonlar -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="Sıfırla" Command="{Binding SifirlaCommand}"
+                            Width="80" Height="40" Margin="0,0,8,0"
+                            Background="#E2E8F0" Foreground="#475569" BorderThickness="0" FontWeight="Bold">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="Yenile" Command="{Binding YukleCommand}"
+                            Width="90" Height="40"
+                            Background="#3B82F6" Foreground="White" BorderThickness="0" FontWeight="Bold">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Tablo -->
+        <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="0"
+                BorderBrush="#E2E8F0" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" Opacity="0.03" BlurRadius="10" ShadowDepth="2"/>
+            </Border.Effect>
+            
+            <DataGrid ItemsSource="{Binding TabloVerisi}" SelectedItem="{Binding SeciliKayit}"
+                      AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                      BorderThickness="0" HeadersVisibility="Column" Background="Transparent"
+                      RowHeight="52" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                      Margin="10">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#64748B"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="15,10"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    </Style>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F8FAFC"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#EFF6FF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Resources>
+                
+                <DataGrid.Columns>
+                    <!-- Tür İkonu / Rengi -->
+                    <DataGridTemplateColumn Width="110" Header="TÜR">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="#F1F5F9" CornerRadius="6" Padding="8,4" HorizontalAlignment="Left" Margin="10,0">
+                                    <TextBlock Text="{Binding Tur}" Foreground="#475569" FontWeight="SemiBold" FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="110"
+                                      ElementStyle="{StaticResource {x:Type TextBlock}}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="10,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="CARİ ÜNVAN" Binding="{Binding CariUnvan}" Width="*"
+                                      ElementStyle="{StaticResource {x:Type TextBlock}}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Foreground" Value="#334155"/>
+                                <Setter Property="Padding" Value="10,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="KEŞİDECİ" Binding="{Binding Kesideci}" Width="130"
+                                      ElementStyle="{StaticResource {x:Type TextBlock}}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Foreground" Value="#64748B"/>
+                                <Setter Property="Padding" Value="10,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="VADE" Binding="{Binding VadeTarihi, StringFormat=dd.MM.yyyy}" Width="100"
+                                      ElementStyle="{StaticResource {x:Type TextBlock}}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Foreground" Value="#334155"/>
+                                <Setter Property="Padding" Value="10,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn Width="95" Header="KALAN GÜN">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="6" Padding="8,4" HorizontalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#F1F5F9"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding VadeDurumuGorsel}" Value="Gecikti">
+                                                    <Setter Property="Background" Value="#FEE2E2"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding VadeDurumuGorsel}" Value="Yaklaştı">
+                                                    <Setter Property="Background" Value="#FEF3C7"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding KalanGun, StringFormat={}{0} Gün}" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#475569"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VadeDurumuGorsel}" Value="Gecikti">
+                                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding VadeDurumuGorsel}" Value="Yaklaştı">
+                                                        <Setter Property="Foreground" Value="#D97706"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Width="120" Header="DURUM">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="#EFF6FF" CornerRadius="6" Padding="8,4" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Durum}" Foreground="#2563EB" FontWeight="Bold" FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} ₺}" Width="120"
+                                      ElementStyle="{StaticResource {x:Type TextBlock}}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Padding" Value="10,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Aksiyonlar (Satır İçi İşlem Yap & Sil Butonları) -->
+                    <DataGridTemplateColumn Width="160" Header="İŞLEMLER">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Button Content="⚡ İşlem Yap" 
+                                            Command="{Binding DataContext.DurumDegistirCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Height="28" Padding="8,0" Margin="0,0,5,0"
+                                            Background="#3B82F6" Foreground="White" BorderThickness="0" FontSize="11" FontWeight="Bold">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                    <Button Content="🗑️" 
+                                            Command="{Binding DataContext.SilCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Height="28" Width="28"
+                                            Background="#FEE2E2" Foreground="#EF4444" BorderThickness="0" FontSize="11" FontWeight="Bold" ToolTip="Sil / İptal Et">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+    </Grid>
+</UserControl>

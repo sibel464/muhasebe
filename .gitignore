@@ -25,3 +25,6 @@ appsettings.local.json
 
 # Yerel Veritabanı Kümesi
 db-data/
+
+# Geçici çalışma dizini
+scratch/

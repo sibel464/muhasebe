@@ -1,0 +1,193 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.CariEkleSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+             xmlns:model="clr-namespace:EtkiAlani.Modeller.Cari;assembly=EtkiAlani"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. ÜST PANEL: Başlık -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="➕" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Yeni Cari Kart Tanımlama" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Sisteme yeni bir müşteri veya tedarikçi hesabı tanımlayın." Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="430" Padding="16,10" CornerRadius="8"
+                    Visibility="{Binding DurumGorunur, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border.Style>
+                    <Style TargetType="Border"><Setter Property="Background" Value="#FEF2F2"/><Setter Property="BorderBrush" Value="#FECACA"/><Setter Property="BorderThickness" Value="1"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding DurumBasarili}" Value="True"><Setter Property="Background" Value="#ECFDF5"/><Setter Property="BorderBrush" Value="#A7F3D0"/></DataTrigger></Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding DurumMesaji}" TextWrapping="Wrap" FontWeight="SemiBold">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#B91C1C"/><Style.Triggers><DataTrigger Binding="{Binding DurumBasarili}" Value="True"><Setter Property="Foreground" Value="#047857"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                </TextBlock>
+            </Border>
+        </Grid>
+
+        <!-- 2. FORM ALANI -->
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="24"
+                BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel MaxWidth="800" HorizontalAlignment="Left">
+                    
+                    <TextBlock Text="Temel Kimlik Bilgileri" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="270"/>
+                            <ColumnDefinition Width="270"/>
+                            <ColumnDefinition Width="220"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Cari Kodu *" Style="{StaticResource EtiketMetin}"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="92"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding CariKodlari}" Text="{Binding Kod, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" IsReadOnly="{Binding KodSaltOkunur}" IsTextSearchEnabled="True" StaysOpenOnEdit="True" Style="{StaticResource FormAcilirKutu}"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding KodlamaSecenekleri}" SelectedItem="{Binding Kodlama}" Margin="4,0,0,0" Style="{StaticResource FormAcilirKutu}"/>
+                                <Button Grid.Column="2" Content="+" Click="CariKoduEkle_Click" Margin="4,0,0,0" ToolTip="Cari kodu seç veya ekle"/>
+                            </Grid>
+                            <TextBlock Text="{Binding KodYardimMetni}" FontSize="10" Foreground="#64748B" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="Grup Kodu" Style="{StaticResource EtiketMetin}"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="92"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding GrupKodlari}" Text="{Binding GrupKodu, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" IsReadOnly="{Binding GrupKoduSaltOkunur}" IsTextSearchEnabled="True" StaysOpenOnEdit="True" Style="{StaticResource FormAcilirKutu}"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding KodlamaSecenekleri}" SelectedItem="{Binding GrupKodlama}" Margin="4,0,0,0" Style="{StaticResource FormAcilirKutu}"/>
+                                <Button Grid.Column="2" Content="+" Click="GrupKoduEkle_Click" Margin="4,0,0,0" ToolTip="Grup kodu seç veya ekle"/>
+                            </Grid>
+                            <TextBlock Text="{Binding GrupKoduYardimMetni}" FontSize="10" Foreground="#64748B" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Cari Tipi" Style="{StaticResource EtiketMetin}"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding CariTipleri}" DisplayMemberPath="Ad" SelectedItem="{Binding SeciliCariTipi}" Style="{StaticResource FormAcilirKutu}"/>
+                                <Button Grid.Column="1" Content="+" Click="CariTipiYonet_Click" ToolTip="Cari tipi ekle veya yönet" Margin="4,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Margin="0,0,0,14">
+                        <TextBlock Text="Firma Ünvanı *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding Unvan, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Adı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Ad, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Soyadı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Soyad, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0" Visibility="{Binding IsKurumsal, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Vergi Dairesi" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding VergiDairesi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Visibility="{Binding IsKurumsal, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Vergi Numarası" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding VergiNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" MaxLength="10"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="İletişim &amp; Adres Bilgileri" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Telefon Numarası" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Telefon, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" PreviewTextInput="SadeceRakamGirisi"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="E-Posta Adresi" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Eposta, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="İl (Şehir)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Il, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="İlçe" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Ilce, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Margin="0,0,0,14">
+                        <TextBlock Text="Açık Adres" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding Adres, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,24">
+                        <TextBlock Text="Açıklama / Not" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
+                    </StackPanel>
+
+                    <!-- Alt Aksiyon Butonları -->
+                    <Border Background="#F8FAFC" CornerRadius="8" Padding="14,12" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <Grid>
+                            <TextBlock Text="{Binding DurumMesaji}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center">
+                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource DangerDarkFirca}"/><Style.Triggers><DataTrigger Binding="{Binding DurumBasarili}" Value="True"><Setter Property="Foreground" Value="#047857"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="✕" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Vazgeç"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="💾" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding KaydetDugmeMetni}"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

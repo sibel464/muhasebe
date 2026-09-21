@@ -1,0 +1,107 @@
+<Window x:Class="Masaustu.Gorunumler.Pencere.CekSenetEklePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yeni Çek / Senet Girişi" Width="600" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize"
+        Background="#FAFAFA">
+
+    <Border Padding="25">
+        <StackPanel>
+            <TextBlock Text="Yeni Çek / Senet Tanımlama" FontSize="20" FontWeight="Bold" Foreground="#1E293B" Margin="0,0,0,15"/>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Belge Türü -->
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Belge Türü *" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="TurCombo" Height="38" FontSize="14" SelectedIndex="0">
+                        <ComboBoxItem Content="Alınan Çek"/>
+                        <ComboBoxItem Content="Verilen Çek"/>
+                        <ComboBoxItem Content="Alınan Senet"/>
+                        <ComboBoxItem Content="Verilen Senet"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Seri / Belge No -->
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Text="Seri / Belge No *" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="BelgeNoTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Cari Kart Seçimi -->
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="İlişkili Cari (Müşteri / Tedarikçi) *" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="CariUnvanTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center" IsReadOnly="True" Background="#F1F5F9"/>
+                    <Button Grid.Column="1" Content="Cari Seç..." Width="100" Height="38" Margin="8,0,0,0" Click="CariSec_Click" Background="#3B82F6" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+                </Grid>
+            </StackPanel>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Vade Tarihi -->
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Vade Tarihi *" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <DatePicker x:Name="VadeTarihiPicker" Height="38" FontSize="14" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Tutar -->
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Text="Tutar (₺) *" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TutarTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center" FontWeight="Bold" Foreground="#0F172A"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Keşideci -->
+                <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                    <TextBlock Text="Keşideci / Borçlu" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="KesideciTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Banka Adı -->
+                <StackPanel Grid.Column="1" Margin="5,0,5,0">
+                    <TextBlock Text="Banka Adı" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="BankaAdiTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Şube Adı -->
+                <StackPanel Grid.Column="2" Margin="5,0,0,0">
+                    <TextBlock Text="Şube Adı" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="SubeAdiTxt" Height="38" FontSize="14" Padding="8,0" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Açıklama -->
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="Açıklama" Foreground="#64748B" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <TextBox x:Name="AciklamaTxt" Height="60" FontSize="14" Padding="8" TextWrapping="Wrap" AcceptsReturn="True"/>
+            </StackPanel>
+
+            <!-- Butonlar -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="İptal" Width="100" Height="40" Margin="0,0,10,0" Click="Iptal_Click" Background="#E2E8F0" Foreground="#475569" BorderThickness="0" FontWeight="Bold"/>
+                <Button Content="Kaydet" Width="120" Height="40" Click="Kaydet_Click" Background="#10B981" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

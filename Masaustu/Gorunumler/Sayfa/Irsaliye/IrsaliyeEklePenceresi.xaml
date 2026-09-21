@@ -1,0 +1,256 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Irsaliye.IrsaliyeEklePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+        Title="Yeni İrsaliye Oluştur" 
+        Height="780" Width="1080"
+        MinHeight="650" MinWidth="900"
+        WindowStartupLocation="CenterOwner"
+        Background="#F8FAFC"
+        WindowStyle="None"
+        AllowsTransparency="True">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border CornerRadius="12" BorderBrush="{StaticResource BorderDarkFirca}" BorderThickness="1" Background="#F8FAFC" ClipToBounds="True">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="25" ShadowDepth="4" Opacity="0.25"/>
+        </Border.Effect>
+
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 1. Pencere Başlığı & Tür Seçimi -->
+                <RowDefinition Height="Auto"/> <!-- 2. Üst Form: Cari, No, Tarih -->
+                <RowDefinition Height="Auto"/> <!-- 3. Ürün Ekleme Paneli -->
+                <RowDefinition Height="*"/>    <!-- 4. Kalemler Tablosu -->
+                <RowDefinition Height="Auto"/> <!-- 5. Finansal Özet ve Butonlar -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. ÜST BAŞLIK -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource BaslikIkonKutusu}">
+                        <TextBlock Text="📋" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Yeni İrsaliye Düzenle" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                        <TextBlock Text="İrsaliye detaylarını girin ve kalemleri ekleyin." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Tür Seçimi -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <RadioButton Content="📤 Satış (Sevk) İrsaliyesi" IsChecked="{Binding IsSatisIrsaliyesi}" 
+                                 GroupName="IrsaliyeTurGrup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                    <RadioButton Content="📥 Alış İrsaliyesi" IsChecked="{Binding IsAlisIrsaliyesi}" 
+                                 GroupName="IrsaliyeTurGrup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Kapat Butonu -->
+                <Button Grid.Column="2" Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Width="36" Height="36" Padding="0">
+                    <TextBlock Text="✕" FontSize="14" FontWeight="Bold"/>
+                </Button>
+            </Grid>
+
+            <!-- 2. CARİ, NUMARA, TARİH KARTI -->
+            <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>   <!-- Cari Kart -->
+                        <ColumnDefinition Width="1.2*"/> <!-- İrsaliye No -->
+                        <ColumnDefinition Width="*"/>    <!-- Tarih -->
+                        <ColumnDefinition Width="2*"/>   <!-- Açıklama -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Cari Seçimi -->
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="Cari Kart *" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding Cariler}" SelectedItem="{Binding SeciliCari}"
+                                  Text="{Binding CariAramaMetni, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                                  DisplayMemberPath="Unvan" Style="{StaticResource FormAcilirKutu}"
+                                  ToolTip="Cari ünvanı veya kodu ile arayın veya listeden seçin"/>
+                    </StackPanel>
+
+                    <!-- İrsaliye No -->
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="İrsaliye Numarası *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding IrsaliyeNo, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+
+                    <!-- Tarih -->
+                    <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                        <TextBlock Text="Tarih *" Style="{StaticResource EtiketMetin}"/>
+                        <DatePicker SelectedDate="{Binding Tarih}" Height="38" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Açıklama -->
+                    <StackPanel Grid.Column="3">
+                        <TextBlock Text="Açıklama / Sevk Notu" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 3. KALEM EKLEME FORMU -->
+            <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="16" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.5*"/> <!-- Ürün Seçimi -->
+                        <ColumnDefinition Width="1*"/>   <!-- Miktar -->
+                        <ColumnDefinition Width="1.2*"/> <!-- Birim Fiyat -->
+                        <ColumnDefinition Width="1*"/>   <!-- KDV -->
+                        <ColumnDefinition Width="Auto"/> <!-- Ekle Butonu -->
+                    </Grid.ColumnDefinitions>
+
+                      <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                          <TextBlock Text="Ürün Ara / Ekle *" Style="{StaticResource EtiketMetin}"/>
+                          <ComboBox ItemsSource="{Binding Urunler}" SelectedItem="{Binding SeciliUrun}"
+                                    Text="{Binding UrunAramaMetni, UpdateSourceTrigger=PropertyChanged}"
+                                    IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                                    DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}"
+                                    ToolTip="Ürün adı, kodu veya barkodu ile arayın veya listeden seçin"/>
+                      </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="Miktar *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding KalemMiktar, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                        <TextBlock Text="Birim Fiyat (₺) *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding KalemBirimFiyat, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3" Margin="0,0,12,0">
+                        <TextBlock Text="KDV (%)" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding KalemKdv, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                        <Button Command="{Binding KalemEkleKomutu}" Style="{StaticResource BirinciDugme}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="➕" Margin="0,0,6,0"/>
+                                <TextBlock Text="Satır Ekle"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 4. KALEMLER TABLOSU -->
+            <Border Grid.Row="3" Background="White" CornerRadius="10" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" ClipToBounds="True">
+                <DataGrid ItemsSource="{Binding Kalemler}" 
+                          Style="{StaticResource ModernDataGrid}"
+                          AutoGenerateColumns="False" 
+                          IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ÜRÜN KODU" Binding="{Binding Urun.Kod}" Width="120" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding Urun.Ad}" Width="2*"/>
+                        
+                        <DataGridTextColumn Header="MİKTAR" Binding="{Binding Miktar, StringFormat='{}{0:N2}'}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="BİRİM FİYAT" Binding="{Binding BirimFiyat, StringFormat='{}{0:N2} ₺'}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="KDV" Binding="{Binding Kdv, StringFormat='%{0}'}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="TOPLAM" Binding="{Binding Toplam, StringFormat='{}{0:N2} ₺'}" Width="130">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryDarkFirca}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="" Width="44">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.KalemSilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MikroSilDugme}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- 5. ÖZET VE AKSİYON BUTONLARI -->
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Sol Hata/Bilgi Mesajı -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding DurumMesaji}" Foreground="{StaticResource DangerDarkFirca}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Sağ Toplam & Buton Grubu -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="White" CornerRadius="8" Padding="14,8" Margin="0,0,16,0" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="GENEL TOPLAM: " FontSize="13" Foreground="{StaticResource TextSecondaryFirca}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding GenelToplam, StringFormat='{}{0:N2} ₺'}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✕" Margin="0,0,6,0"/>
+                            <TextBlock Text="Vazgeç"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💾" Margin="0,0,6,0"/>
+                            <TextBlock Text="İrsaliyeyi Kaydet"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

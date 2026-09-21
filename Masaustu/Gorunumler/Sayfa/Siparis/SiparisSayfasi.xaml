@@ -1,0 +1,83 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Siparis.SiparisSayfasi"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:y="clr-namespace:Masaustu.Yardimcilar">
+ <UserControl.Resources><y:SiparisDurumRenkDonusturucu x:Key="DurumRenk"/><y:SiparisMetinDonusturucu x:Key="SiparisMetin"/><y:SifirGorunurlukDonusturucu x:Key="SifirVis"/></UserControl.Resources>
+ <Grid Background="#F4F6F9" Margin="16">
+   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="0"/><RowDefinition Height="0"/></Grid.RowDefinitions>
+  <DockPanel Margin="0,0,0,12" LastChildFill="False">
+   <TextBlock Text="SİPARİŞLER" FontSize="24" FontWeight="SemiBold" Foreground="#14213D" VerticalAlignment="Center"/>
+   <Button DockPanel.Dock="Right" Command="{Binding YeniKomutu}" Content="+ Yeni Sipariş" Width="140" Height="36" Background="#14213D" Foreground="White" BorderThickness="0"/>
+  </DockPanel>
+   <Grid Grid.Row="1" Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+    <Border Grid.Column="0" Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0"><StackPanel><TextBlock Text="Bugünkü Sipariş" Foreground="#64748B"/><TextBlock Text="{Binding BugunkuSiparis}" FontSize="18" FontWeight="SemiBold"/></StackPanel></Border>
+    <Border Grid.Column="1" Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0"><StackPanel><TextBlock Text="Bekleyen" Foreground="#64748B"/><TextBlock Text="{Binding Bekleyen}" FontSize="18" FontWeight="SemiBold"/></StackPanel></Border>
+    <Border Grid.Column="2" Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0"><StackPanel><TextBlock Text="Onaylanan" Foreground="#64748B"/><TextBlock Text="{Binding Onaylanan}" FontSize="18" FontWeight="SemiBold"/></StackPanel></Border>
+    <Border Grid.Column="3" Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0"><StackPanel><TextBlock Text="Tamamlanan" Foreground="#64748B"/><TextBlock Text="{Binding Tamamlanan}" FontSize="18" FontWeight="SemiBold"/></StackPanel></Border>
+    <Border Grid.Column="4" Background="White" BorderBrush="#DCE3ED" BorderThickness="1" CornerRadius="5" Padding="10"><StackPanel><TextBlock Text="Toplam Sipariş Tutarı" Foreground="#64748B"/><TextBlock Text="{Binding ToplamTutar, StringFormat={}{0:N2} ₺}" FontSize="18" FontWeight="SemiBold"/></StackPanel></Border>
+  </Grid>
+   <Grid Grid.Row="2" Background="White"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+    <WrapPanel Margin="8"><StackPanel Margin="0,0,5,4"><TextBlock Text="ARA" FontSize="10" Foreground="#64748B"/><TextBox Width="180" Text="{Binding Arama, UpdateSourceTrigger=PropertyChanged}" ToolTip="Sipariş no, cari veya telefon"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="SİPARİŞ NO" FontSize="10" Foreground="#64748B"/><TextBox Width="120" Text="{Binding SiparisNoFiltre, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="CARİ" FontSize="10" Foreground="#64748B"/><ComboBox Width="140" ItemsSource="{Binding Cariler}" SelectedItem="{Binding FiltreCari}" DisplayMemberPath="Unvan"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="TÜR" FontSize="10" Foreground="#64748B"/><ComboBox Width="110" ItemsSource="{Binding Turler}" SelectedItem="{Binding TurFiltre}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource SiparisMetin}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="DURUM" FontSize="10" Foreground="#64748B"/><ComboBox Width="125" ItemsSource="{Binding Durumlar}" SelectedItem="{Binding DurumFiltre}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource SiparisMetin}}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="BAŞLANGIÇ" FontSize="10" Foreground="#64748B"/><DatePicker Width="110" SelectedDate="{Binding BaslangicTarihi}"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="BİTİŞ" FontSize="10" Foreground="#64748B"/><DatePicker Width="110" SelectedDate="{Binding BitisTarihi}"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="TESLİM" FontSize="10" Foreground="#64748B"/><DatePicker Width="110" SelectedDate="{Binding TeslimTarihiFiltre}"/></StackPanel>
+     <StackPanel Margin="0,0,5,4"><TextBlock Text="OLUŞTURAN" FontSize="10" Foreground="#64748B"/><ComboBox Width="110" ItemsSource="{Binding Olusturanlar}" SelectedItem="{Binding FiltreOlusturan}" DisplayMemberPath="KullaniciAdi"/></StackPanel>
+    <Button Content="Temizle" Command="{Binding FiltreleriTemizleKomutu}" Padding="8,4" Margin="0,0,5,4"/><Button Content="Yenile" Command="{Binding YenileKomutu}" Padding="8,4" Margin="0,0,0,4"/>
+   </WrapPanel>
+    <DataGrid Grid.Row="1" ItemsSource="{Binding Siparisler}" SelectedItem="{Binding SeciliSiparis}" AutoGenerateColumns="False" IsReadOnly="True" RowHeight="36" CanUserAddRows="False" AlternatingRowBackground="#F8FAFC" GridLinesVisibility="Horizontal">
+    <DataGrid.Columns>
+     <DataGridTextColumn Header="Sipariş No" Binding="{Binding SiparisNo}" Width="120"/><DataGridTextColumn Header="Tarih" Binding="{Binding SiparisTarihi, StringFormat=dd.MM.yyyy}" Width="85"/>
+     <DataGridTemplateColumn Header="Tür" Width="105"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SiparisTuru, Converter={StaticResource SiparisMetin}}" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn><DataGridTextColumn Header="Cari" Binding="{Binding CariKart.Unvan}" Width="*"/>
+     <DataGridTextColumn Header="Referans No" Binding="{Binding ReferansNo}" Width="100"/><DataGridTextColumn Header="Teslim" Binding="{Binding TeslimTarihi, StringFormat=dd.MM.yyyy}" Width="85"/>
+     <DataGridTextColumn Header="Ürün" Binding="{Binding Kalemler.Count}" Width="55"/><DataGridTextColumn Header="Ara Toplam" Binding="{Binding AraToplam, StringFormat=N2}" Width="90"/>
+     <DataGridTextColumn Header="KDV" Binding="{Binding KdvToplami, StringFormat=N2}" Width="75"/><DataGridTextColumn Header="Genel Toplam" Binding="{Binding GenelToplam, StringFormat=N2}" Width="100"/>
+     <DataGridTextColumn Header="Para" Binding="{Binding ParaBirimi.Kod}" Width="55"/><DataGridTemplateColumn Header="Durum" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Background="{Binding Durum, Converter={StaticResource DurumRenk}}" CornerRadius="4" Padding="6,2"><TextBlock Text="{Binding Durum, Converter={StaticResource SiparisMetin}}" HorizontalAlignment="Center"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+     <DataGridTextColumn Header="Oluşturan" Binding="{Binding OlusturanKullanici.KullaniciAdi}" Width="85"/>
+     <DataGridTemplateColumn Header="İşlem" Width="195"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal">
+      <Button Content="Görüntüle" Command="{Binding DataContext.GoruntuleKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Padding="3,1" Margin="1"/>
+      <Button Content="Düzenle" Command="{Binding DataContext.DuzenleKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Padding="3,1" Margin="1"/>
+       <Button Content="İptal" Command="{Binding DataContext.SiparisIptalKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Padding="3,1" Margin="1"/>
+     </StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+    </DataGrid.Columns>
+    </DataGrid>
+    <Border Grid.Row="1" Background="#F8FAFC" Visibility="{Binding Siparisler.Count, Converter={StaticResource SifirVis}}" IsHitTestVisible="False">
+     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="Henüz sipariş bulunmuyor." FontSize="16" FontWeight="SemiBold" Foreground="#334155" HorizontalAlignment="Center"/><TextBlock Text="İlk siparişinizi oluşturmak için Yeni Sipariş düğmesini kullanın." Foreground="#64748B" Margin="0,6,0,0"/></StackPanel>
+    </Border>
+   </Grid>
+   <Grid Grid.Row="3" Visibility="Collapsed" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="330"/><ColumnDefinition Width="*"/><ColumnDefinition Width="230"/></Grid.ColumnDefinitions>
+   <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+    <TextBlock Text="SİPARİŞ BİLGİLERİ" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Turler}" SelectedItem="{Binding Form.SiparisTuru}" Margin="0,5"/>
+    <DatePicker SelectedDate="{Binding Form.SiparisTarihi}" Margin="0,3"/><DatePicker SelectedDate="{Binding Form.TeslimTarihi}" Margin="0,3"/>
+    <TextBox Text="{Binding Form.ReferansNo}" Margin="0,3" ToolTip="Referans No"/>
+    <TextBlock Text="CARİ BİLGİLERİ" FontWeight="SemiBold" Margin="0,8,0,0"/><Button Content="Cari Seç" Command="{Binding CariSecKomutu}" Padding="8,4" HorizontalAlignment="Left"/>
+    <TextBlock Text="{Binding SeciliCari.Kod, StringFormat=Kod: {0}}"/><TextBlock Text="{Binding SeciliCari.Unvan}"/><TextBlock Text="{Binding SeciliCari.Telefon}"/><TextBlock Text="{Binding SeciliCari.Bakiye, StringFormat=Bakiye: {0:N2}}"/>
+    <TextBlock Text="TESLİMAT BİLGİLERİ" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBox Text="{Binding Form.TeslimatAdSoyad}" Margin="0,3"/><TextBox x:Name="TelefonKutusu" Text="{Binding Form.TeslimatTelefon}" PreviewTextInput="TelefonKutusu_PreviewTextInput" Margin="0,3"/>
+    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding Form.TeslimatIl}" Margin="0,3,3,3"/><TextBox Grid.Column="1" Text="{Binding Form.TeslimatIlce}" Margin="3"/></Grid>
+    <TextBox Text="{Binding Form.TeslimatAdres}" AcceptsReturn="True" TextWrapping="Wrap" Height="55" Margin="0,3"/>
+   </StackPanel></ScrollViewer>
+   <Grid Grid.Column="1" Margin="10,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <DockPanel><Button DockPanel.Dock="Right" Content="Ürün Seç" Command="{Binding UrunSecKomutu}" Padding="10,5"/></DockPanel>
+    <DataGrid Grid.Row="1" ItemsSource="{Binding Kalemler}" AutoGenerateColumns="False" CanUserAddRows="False" CellEditEnding="KalemGrid_CellEditEnding">
+     <DataGrid.Columns><DataGridTextColumn Header="Kod" Binding="{Binding UrunKodu}" IsReadOnly="True"/><DataGridTextColumn Header="Ürün" Binding="{Binding UrunAdi}" Width="*"/>
+      <DataGridTextColumn Header="Miktar" Binding="{Binding Miktar}"/><DataGridTextColumn Header="Birim Fiyat" Binding="{Binding BirimFiyat}"/>
+      <DataGridTextColumn Header="İskonto %" Binding="{Binding IskontoOrani}"/><DataGridTextColumn Header="KDV %" Binding="{Binding KdvOrani}"/><DataGridTextColumn Header="Toplam" Binding="{Binding SatirToplami, StringFormat=N2}"/>
+      <DataGridTemplateColumn Header="İşlem"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="Sil" Command="{Binding DataContext.KalemSilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+     </DataGrid.Columns>
+    </DataGrid>
+    <TextBox Grid.Row="2" Text="{Binding Form.Aciklama}" AcceptsReturn="True" TextWrapping="Wrap" Height="45" ToolTip="Açıklama / Not"/>
+   </Grid>
+   <StackPanel Grid.Column="2" Background="White" Margin="12">
+    <TextBlock Text="TİCARİ BİLGİLER" FontWeight="SemiBold"/><TextBlock Text="Kur"/><TextBox Text="{Binding Form.Kur}"/><TextBlock Text="Vade Tarihi" Margin="0,6,0,0"/><DatePicker SelectedDate="{Binding Form.VadeTarihi}"/>
+    <ComboBox ItemsSource="{Binding OdemeSekilleri}" SelectedItem="{Binding Form.OdemeSekli}" Margin="0,6"/>
+    <Separator Margin="0,8"/><TextBlock Text="{Binding Form.BrutToplam, StringFormat=Brüt Toplam: {0:N2}}"/><TextBlock Text="{Binding Form.IskontoToplami, StringFormat=İskonto: {0:N2}}"/>
+    <TextBlock Text="{Binding Form.AraToplam, StringFormat=Ara Toplam: {0:N2}}"/><TextBlock Text="{Binding Form.KdvToplami, StringFormat=KDV: {0:N2}}"/>
+    <TextBlock Text="{Binding Form.GenelToplam, StringFormat=GENEL TOPLAM: {0:N2}}" FontSize="16" FontWeight="Bold" Margin="0,8"/>
+   </StackPanel>
+  </Grid>
+   <DockPanel Grid.Row="4" Visibility="Collapsed" Margin="0,10,0,0"><TextBlock Text="{Binding Mesaj}" VerticalAlignment="Center"/>
+   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="İptal" Command="{Binding IptalKomutu}" Padding="12,6" Margin="4,0"/><Button Content="Taslak Kaydet" Command="{Binding TaslakKaydetKomutu}" Padding="12,6" Margin="4,0"/><Button Content="Siparişi Kaydet" Command="{Binding KaydetKomutu}" Padding="12,6" Background="#14213D" Foreground="White"/></StackPanel>
+  </DockPanel>
+ </Grid>
+</UserControl>

@@ -1,0 +1,143 @@
+<Window x:Class="Masaustu.Gorunumler.Pencere.StokDagilimiPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Masaustu.GorunumModelleri"
+        mc:Ignorable="d"
+        Title="Stok Dağılımı Seçimi" Height="450" Width="550"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <!-- Modern Style Definitions -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Ürün Stok Dağılımı" FontSize="20" FontWeight="SemiBold" Foreground="#1F2937" Margin="0,0,0,15"/>
+
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Ürün:" Foreground="#6B7280" FontSize="12"/>
+                <TextBlock Text="{Binding Urun.Ad}" FontWeight="SemiBold" FontSize="14" Foreground="#111827"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                <TextBlock Text="Satış Miktarı:" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Right"/>
+                <TextBlock Text="{Binding ToplamMiktar}" FontWeight="Bold" FontSize="18" Foreground="#3B82F6" HorizontalAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+
+        <DataGrid Grid.Row="2" 
+                  ItemsSource="{Binding Dagilimlar}" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="1"
+                  BorderBrush="#E5E7EB"
+                  Background="White"
+                  RowHeight="40">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Stok Alanı" Binding="{Binding DepoAdi}" IsReadOnly="True" Width="*"/>
+                <DataGridTextColumn Header="Mevcut Stok" Binding="{Binding MevcutStok}" IsReadOnly="True" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Margin" Value="0,0,10,0"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTemplateColumn Header="Çıkış Miktarı" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding MiktarMetni, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', FallbackValue=''}" 
+                                     Margin="5" 
+                                     TextAlignment="Right" 
+                                     VerticalContentAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="3" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Text="Dağıtılan:" Foreground="#6B7280" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding DagitilanMiktar}" FontWeight="Bold" FontSize="16" Foreground="#10B981" Margin="5,0,15,0" VerticalAlignment="Center"/>
+                
+                <TextBlock Text="Kalan:" Foreground="#6B7280" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding KalanMiktar}" FontWeight="Bold" FontSize="16" Foreground="#EF4444" Margin="5,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button Content="Mağazaya Eşitle" Command="{Binding MagazayaEsiteKomutu}" Background="#E0E7FF" Foreground="#3730A3" FontWeight="Medium">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#C7D2FE"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Temizle" Command="{Binding TemizleKomutu}" Background="#F3F4F6" Foreground="#374151">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E5E7EB"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="İptal" Command="{Binding IptalKomutu}" Background="#EF4444"/>
+                <Button Content="Uygula" Command="{Binding UygulaKomutu}" Background="#10B981" FontWeight="SemiBold" Padding="20,8"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

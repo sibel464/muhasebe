@@ -12,4 +12,7 @@ public class Kullanici : TemelVarlik
     public bool Aktif { get; set; } = true;
     public string Rol { get; set; } = "Kullanici";
     public DateTime? SonGirisTarihi { get; set; }
+    
+    // İlişkiler
+    public KullaniciYetkileri? Yetkiler { get; set; }
 }

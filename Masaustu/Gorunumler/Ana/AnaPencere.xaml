@@ -1,11 +1,19 @@
 <Window x:Class="Masaustu.Gorunumler.Ana.AnaPencere"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dovizGm="clr-namespace:Masaustu.GorunumModeli.Doviz"
+        xmlns:dovizSayfa="clr-namespace:Masaustu.Gorunumler.Sayfa.Doviz"
         xmlns:gm="clr-namespace:Masaustu.GorunumModelleri"
         xmlns:sayfa="clr-namespace:Masaustu.Gorunumler.Sayfa"
+        xmlns:siparisSayfa="clr-namespace:Masaustu.Gorunumler.Sayfa.Siparis"
+        xmlns:stokSayfa="clr-namespace:Masaustu.Gorunumler.Sayfa.Stok"
+        xmlns:finansSayfa="clr-namespace:Masaustu.Gorunumler.Sayfa.Finans"
+        xmlns:muhasebeSayfa="clr-namespace:Masaustu.Gorunumler.Sayfa.Muhasebe"
+        xmlns:muhasebeGm="clr-namespace:Masaustu.GorunumModeli.Muhasebe"
         Title="Muhasebe Yönetim Sistemi"
         Height="720" Width="1280"
         MinHeight="600" MinWidth="1000"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -14,24 +22,56 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <DataTemplate DataType="{x:Type dovizGm:DovizKurMerkeziGorunumModeli}">
+                <dovizSayfa:DovizKurMerkeziSayfasi/>
+            </DataTemplate>
             <!-- DataTemplate - Navigasyon eşleştirmesi -->
             <DataTemplate DataType="{x:Type gm:DashboardGorunumModeli}">
                 <sayfa:DashboardSayfasi/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:FinansMerkeziGorunumModeli}">
+                <finansSayfa:FinansMerkeziSayfasi/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:MusteriGorunumModeli}">
                 <sayfa:MusteriSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:CariEkleGorunumModeli}">
+                <sayfa:CariEkleSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:CariSilGorunumModeli}">
+                <sayfa:CariSilSayfasi/>
             </DataTemplate>
             <DataTemplate DataType="{x:Type gm:TedarikciGorunumModeli}">
                 <sayfa:TedarikciSayfasi/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:UrunEkleGorunumModeli}">
+                <sayfa:UrunEkleSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:UrunSilGorunumModeli}">
+                <sayfa:UrunSilSayfasi/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:UrunGorunumModeli}">
                 <sayfa:UrunSayfasi/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:SatisGorunumModeli}">
+                <sayfa:ProfesyonelSatisSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:IrsaliyeGorunumModeli}">
+                <sayfa:IrsaliyeSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:FaturaEkleGorunumModeli}">
+                <sayfa:FaturaEkleSayfasi/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:FaturaGorunumModeli}">
                 <sayfa:FaturaSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:SiparisGorunumModeli}">
+                <siparisSayfa:SiparisSayfasi/>
             </DataTemplate>
             <DataTemplate DataType="{x:Type gm:KasaGorunumModeli}">
                 <sayfa:KasaSayfasi/>
@@ -39,11 +79,59 @@
             <DataTemplate DataType="{x:Type gm:BankaGorunumModeli}">
                 <sayfa:BankaSayfasi/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:TahsilatOdemeGorunumModeli}">
+                <sayfa:TahsilatOdemeSayfasi/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:RaporGorunumModeli}">
+                <sayfa:RaporSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:RaporMerkeziGorunumModeli}">
                 <sayfa:RaporSayfasi/>
             </DataTemplate>
             <DataTemplate DataType="{x:Type gm:AyarlarGorunumModeli}">
                 <sayfa:AyarlarSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:KullanicilarGorunumModeli}">
+                <sayfa:KullanicilarSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:FirmaIslemleriGorunumModeli}">
+                <sayfa:FirmaIslemleriSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:TicariIslemlerGorunumModeli}">
+                <sayfa:TicariIslemlerSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:CekSenetGorunumModeli}">
+                <sayfa:CekSenetSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:DepoGorunumModeli}">
+                <sayfa:DepoSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type gm:StokOperasyonMerkeziGorunumModeli}">
+                <stokSayfa:StokOperasyonMerkeziSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:HesapPlaniGorunumModeli}">
+                <muhasebeSayfa:HesapPlaniSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:YevmiyeFisGorunumModeli}">
+                <muhasebeSayfa:YevmiyeFisSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:YevmiyeDefteriGorunumModeli}">
+                <muhasebeSayfa:YevmiyeDefteriSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:BuyukDefterGorunumModeli}">
+                <muhasebeSayfa:BuyukDefterSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:MuavinGorunumModeli}">
+                <muhasebeSayfa:MuavinSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:MizanGorunumModeli}">
+                <muhasebeSayfa:MizanSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:MuhasebeBaglantiGorunumModeli}">
+                <muhasebeSayfa:MuhasebeBaglantiSayfasi/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:MuhasebeSaglikGorunumModeli}">
+                <muhasebeSayfa:MuhasebeSaglikSayfasi/>
             </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
@@ -103,49 +191,177 @@
                                 </StackPanel>
                             </Button>
 
-                            <TextBlock Text="CARİ" Foreground="#50FFFFFF" FontSize="10"
+                            <Button Command="{Binding TicariIslemlerKomutu}" Height="48"
+                                    Style="{StaticResource MenuOgeDugme}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="▦" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ticari İşlemler" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <TextBlock Text="YÖNETİM" Foreground="#50FFFFFF" FontSize="10"
                                        FontWeight="SemiBold" Margin="28,16,0,4"/>
-
-                            <Button Command="{Binding MusteriKomutu}" Height="48"
+                            <Button Command="{Binding FirmaIslemleriKomutu}" Height="48"
                                     Style="{StaticResource MenuOgeDugme}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="👥" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Müşteriler" VerticalAlignment="Center"/>
+                                    <TextBlock Text="🏢" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Firma İşlemleri" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
-                            <Button Command="{Binding TedarikciKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                            <TextBlock Text="CARİ İŞLEMLERİ" Foreground="#50FFFFFF" FontSize="10"
+                                       FontWeight="SemiBold" Margin="28,16,0,4"
+                                       Visibility="{Binding MenuCariGorunur, Converter={StaticResource BoolToVis}}"/>
+
+                            <Button Command="{Binding CariEkleKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuCariGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🏭" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Tedarikçiler" VerticalAlignment="Center"/>
+                                    <TextBlock Text="➕" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Cari Ekleme" VerticalAlignment="Center" FontSize="13"/>
                                 </StackPanel>
                             </Button>
+
+                            <Button Command="{Binding CariSilKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuCariGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑️" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Cari Silme" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding MusteriKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuCariGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📋" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Cari Listesi" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Eski Tedarikçiler butonu geçici olarak kapalı, Cari Listesi'nde hepsi görülecek -->
 
                             <TextBlock Text="STOK" Foreground="#50FFFFFF" FontSize="10"
-                                       FontWeight="SemiBold" Margin="28,16,0,4"/>
+                                       FontWeight="SemiBold" Margin="28,16,0,4"
+                                       Visibility="{Binding MenuStokGorunur, Converter={StaticResource BoolToVis}}"/>
 
-                            <Button Command="{Binding UrunKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                            <Button Command="{Binding UrunEkleKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuStokGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="📦" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Ürünler" VerticalAlignment="Center"/>
+                                    <TextBlock Text="➕" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ürün Ekle" VerticalAlignment="Center" FontSize="13"/>
                                 </StackPanel>
                             </Button>
 
-                            <TextBlock Text="FİNANS" Foreground="#50FFFFFF" FontSize="10"
+                            <Button Command="{Binding UrunSilKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuStokGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑️" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ürün Sil" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding UrunKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuStokGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📦" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ürün Listesi" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding DepoKomutu}" Height="40"
+                                     Style="{StaticResource MenuOgeDugme}"
+                                     Visibility="{Binding MenuDepoGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🏬" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Mağaza &amp; Depo" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <TextBlock Text="SATIŞ &amp; SEVK" Foreground="#50FFFFFF" FontSize="10"
+                                       FontWeight="SemiBold" Margin="28,16,0,4"
+                                       Visibility="{Binding MenuSatisGorunur, Converter={StaticResource BoolToVis}}"/>
+
+                            <Button Command="{Binding SatisKomutu}" Height="44"
+                                     Style="{StaticResource MenuOgeDugme}"
+                                     Visibility="{Binding MenuSatisGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛒" FontSize="15" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Hızlı Satış (POS)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding IrsaliyeKomutu}" Height="44"
+                                     Style="{StaticResource MenuOgeDugme}"
+                                     Visibility="{Binding MenuIrsaliyeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📦" FontSize="15" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="İrsaliye Yönetimi" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding SiparisKomutu}" Height="44"
+                                     Style="{StaticResource MenuOgeDugme}"
+                                     Visibility="{Binding MenuFaturaGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="S" FontWeight="Bold" FontSize="14" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Siparişler" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <TextBlock Text="FİNANS &amp; FATURA" Foreground="#50FFFFFF" FontSize="10"
                                        FontWeight="SemiBold" Margin="28,16,0,4"/>
 
-                            <Button Command="{Binding FaturaKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                            <Button Command="{Binding FinansKomutu}" Height="44" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuFinansGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🧾" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Faturalar" VerticalAlignment="Center"/>
+                                    <TextBlock Text="💳" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Finans Merkezi" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding TahsilatKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuTahsilatOdemeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="18" Margin="8,0,12,0"/><TextBlock Text="Tahsilat" VerticalAlignment="Center"/></StackPanel>
+                            </Button>
+                            <Button Command="{Binding OdemeKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuTahsilatOdemeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="−" FontSize="18" Margin="8,0,12,0"/><TextBlock Text="Ödeme" VerticalAlignment="Center"/></StackPanel>
+                            </Button>
+                            
+                            <Button Command="{Binding CekSenetKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuTahsilatOdemeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📄" FontSize="16" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Çek ve Senetler" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding FaturaEkleKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuFaturaGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="➕" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Fatura Kes" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding FaturaKomutu}" Height="40"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuFaturaGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🧾" FontSize="14" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Fatura Listesi" VerticalAlignment="Center" FontSize="13"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Command="{Binding KasaKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuKasaGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="💰" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Kasa" VerticalAlignment="Center"/>
@@ -153,10 +369,81 @@
                             </Button>
 
                             <Button Command="{Binding BankaKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuBankaGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🏦" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Banka" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <TextBlock Text="MUHASEBE 360°" Foreground="#50FFFFFF" FontSize="10"
+                                       FontWeight="SemiBold" Margin="28,16,0,4"
+                                       Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}"/>
+
+                            <Button Command="{Binding HesapPlaniKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📚" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Hesap Planı" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding YevmiyeFisKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📄" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Muhasebe Fişleri" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding YevmiyeDefteriKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📖" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Yevmiye Defteri" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding BuyukDefterKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📘" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Büyük Defter" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding MuavinKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📑" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Muavin Defter" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding MizanKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚖️" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Mizan" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding MuhasebeBaglantiKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚙️" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Bağlantı Kodları" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Content="Döviz &amp; Kur Merkezi" Command="{Binding DovizKurKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}" Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}"/>
+
+                            <Button Command="{Binding MuhasebeSaglikKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuMuhasebeGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🏥" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Sağlık Paneli" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
@@ -164,15 +451,26 @@
                                        FontWeight="SemiBold" Margin="28,16,0,4"/>
 
                             <Button Command="{Binding RaporKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuRaporGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📈" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Raporlar" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+                            
+                            <Button Command="{Binding KullanicilarKomutu}" Height="48"
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuKullanicilarGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛡️" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Kullanıcı Yönetimi" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
 
                             <Button Command="{Binding AyarlarKomutu}" Height="48"
-                                    Style="{StaticResource MenuOgeDugme}">
+                                    Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuAyarlarGorunur, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙️" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Ayarlar" VerticalAlignment="Center"/>
@@ -202,7 +500,7 @@
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
                                 <TextBlock Text="{Binding KullaniciAdi}" FontSize="12"
                                            FontWeight="SemiBold" Foreground="White"/>
-                                <TextBlock Text="Yönetici" FontSize="10" Foreground="#70FFFFFF"/>
+                                <TextBlock Text="{Binding RolAd}" FontSize="10" Foreground="#70FFFFFF"/>
                             </StackPanel>
 
                             <Button Grid.Column="2" Content="⏻"
@@ -229,10 +527,9 @@
                         BorderBrush="{StaticResource GriOrtaFirca}" BorderThickness="0,0,0,1">
                     <Grid Margin="24,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd.MM.yyyy'}"
+                            <TextBlock Text="{Binding BugunTarih}"
                                        FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"
-                                       Margin="0,0,16,0"
-                                       xmlns:sys="clr-namespace:System;assembly=mscorlib"/>
+                                       Margin="0,0,16,0"/>
                             <!-- Pencere kontrol düğmeleri -->
                             <Button Content="—" Background="Transparent" BorderThickness="0"
                                     Foreground="#9CA3AF" FontSize="14" Width="32" Height="32"
@@ -250,6 +547,8 @@
                 <!-- İçerik (ContentControl + DataTemplate ile navigasyon) -->
                 <ContentControl Grid.Row="1"
                                 Content="{Binding MevcutSayfa}"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
                                 Margin="0"/>
             </Grid>
         </Grid>

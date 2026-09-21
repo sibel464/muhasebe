@@ -4,10 +4,17 @@ namespace Masaustu.Yardimcilar;
 
 public class KomutSarici : ICommand
 {
-    private readonly Action<object?> _yurutme;
+    private readonly Func<object?, Task> _yurutme;
     private readonly Func<object?, bool>? _calistirabilir;
 
     public KomutSarici(Action<object?> yurutme, Func<object?, bool>? calistirabilir = null)
+        : this(parametre =>
+        {
+            yurutme(parametre);
+            return Task.CompletedTask;
+        }, calistirabilir) { }
+
+    public KomutSarici(Func<object?, Task> yurutme, Func<object?, bool>? calistirabilir = null)
     {
         _yurutme = yurutme;
         _calistirabilir = calistirabilir;
@@ -23,7 +30,7 @@ public class KomutSarici : ICommand
     }
 
     public bool CanExecute(object? parametre) => _calistirabilir?.Invoke(parametre) ?? true;
-    public void Execute(object? parametre) => _yurutme(parametre);
+    public async void Execute(object? parametre) => await _yurutme(parametre);
 
     public void BildirimGonder() => CommandManager.InvalidateRequerySuggested();
 }

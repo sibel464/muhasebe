@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using System.Collections.ObjectModel;
 using EtkiAlani.Modeller.Cari;
 using Uygulama.Arayuzler;
 using Masaustu.Yardimcilar;
@@ -9,10 +10,12 @@ namespace Masaustu.GorunumModelleri;
 public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
 {
     private readonly ICariServisi _cariServisi;
+    private readonly ICariTipiTanimiServisi _cariTipiServisi;
     private readonly CariKart? _mevcutCari;
 
     private string _kod = string.Empty;
-    private CariTipi _tip = CariTipi.Kurumsal;
+    private string? _grupKodu;
+    private CariTipiTanimi? _seciliCariTipi;
     private string _unvan = string.Empty;
     private string? _ad;
     private string? _soyad;
@@ -21,6 +24,8 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     private string? _tcNo;
     private string? _telefon;
     private string? _cepTelefonu;
+    private string? _evTelefonu;
+    private string? _isTelefonu;
     private string? _eposta;
     private string? _webSitesi;
     private string? _adres;
@@ -29,6 +34,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     private string? _postaKodu;
     private string? _aciklama;
     private bool _aktif = true;
+    private CariTuru _cariTuru = CariTuru.Musteri;
     
     private string _hataMesaji = string.Empty;
     private bool _kaydediliyor = false;
@@ -49,12 +55,16 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         } 
     }
 
-    public CariTipi Tip 
+    public ObservableCollection<CariTipiTanimi> CariTipleri { get; } = new();
+    public IReadOnlyList<KeyValuePair<CariTuru, string>> CariTurleri { get; } = [new(CariTuru.Musteri, "Müşteri"), new(CariTuru.Tedarikci, "Tedarikçi"), new(CariTuru.MusteriTedarikci, "Müşteri ve Tedarikçi")];
+    public CariTuru SeciliCariTuru { get => _cariTuru; set => OzellikAyarla(ref _cariTuru, value); }
+    public ObservableCollection<string> GrupKodlari { get; } = new();
+    public CariTipiTanimi? SeciliCariTipi
     { 
-        get => _tip; 
+        get => _seciliCariTipi;
         set 
         { 
-            if (OzellikAyarla(ref _tip, value))
+            if (OzellikAyarla(ref _seciliCariTipi, value))
             {
                 // Tip değiştiğinde ilgili vergi no / tc no kontrollerini tetikle
                 DogrulaVergiNo(VergiNo);
@@ -65,8 +75,8 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         } 
     }
 
-    public bool IsKurumsal => Tip == CariTipi.Kurumsal;
-    public bool IsBireysel => Tip == CariTipi.Bireysel;
+    public bool IsKurumsal => SeciliCariTipi?.Kod == "KURUMSAL";
+    public bool IsBireysel => SeciliCariTipi?.Kod == "BIREYSEL";
 
     public string Unvan 
     { 
@@ -162,6 +172,31 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         } 
     }
 
+    public string? EvTelefonu 
+    { 
+        get => _evTelefonu; 
+        set 
+        { 
+            if (OzellikAyarla(ref _evTelefonu, value))
+            {
+                DogrulaTelefon(value, nameof(EvTelefonu));
+            }
+        } 
+    }
+
+    public string? IsTelefonu 
+    { 
+        get => _isTelefonu; 
+        set 
+        { 
+            if (OzellikAyarla(ref _isTelefonu, value))
+            {
+                DogrulaTelefon(value, nameof(IsTelefonu));
+            }
+        } 
+    }
+
+    public string? GrupKodu { get => _grupKodu; set => OzellikAyarla(ref _grupKodu, value); }
     public string? Eposta 
     { 
         get => _eposta; 
@@ -190,15 +225,16 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
 
     public Action<bool>? PencereKapat { get; set; }
 
-    public MusteriDuzenleGorunumModeli(ICariServisi cariServisi, CariKart? mevcutCari = null)
+    public MusteriDuzenleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, CariKart? mevcutCari = null)
     {
         _cariServisi = cariServisi;
+        _cariTipiServisi = cariTipiServisi;
         _mevcutCari = mevcutCari;
 
         if (mevcutCari != null)
         {
             _kod = mevcutCari.Kod;
-            _tip = mevcutCari.Tip;
+            _grupKodu = mevcutCari.GrupKodu;
             _unvan = mevcutCari.Unvan;
             _ad = mevcutCari.Ad;
             _soyad = mevcutCari.Soyad;
@@ -207,6 +243,8 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
             _tcNo = mevcutCari.TcNo;
             _telefon = mevcutCari.Telefon;
             _cepTelefonu = mevcutCari.CepTelefonu;
+            _evTelefonu = mevcutCari.EvTelefonu;
+            _isTelefonu = mevcutCari.IsTelefonu;
             _eposta = mevcutCari.Eposta;
             _webSitesi = mevcutCari.WebSitesi;
             _adres = mevcutCari.Adres;
@@ -215,10 +253,13 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
             _postaKodu = mevcutCari.PostaKodu;
             _aciklama = mevcutCari.Aciklama;
             _aktif = mevcutCari.Aktif;
+            _cariTuru = mevcutCari.Tur;
         }
 
         KaydetKomutu = new KomutSarici(async _ => await KaydetAsync(), _ => !Kaydediliyor && !HasErrors);
         IptalKomutu = new KomutSarici(_ => PencereKapat?.Invoke(false));
+        CariTipleriniYenileKomutu = new KomutSarici(async _ => await CariTipleriniYukleAsync());
+        _ = CariTipleriniYukleAsync();
 
         // İlk açılışta boş değerlerin validasyonu (yeni kayıtlarda)
         if (YeniKayit)
@@ -227,6 +268,18 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
             DogrulaUnvan(Unvan);
         }
     }
+
+    public ICommand CariTipleriniYenileKomutu { get; }
+    private async Task CariTipleriniYukleAsync()
+    {
+        var secilecekId = SeciliCariTipi?.Id ?? _mevcutCari?.CariTipiId ?? CariTipiTanimi.KurumsalId;
+        var liste = await _cariTipiServisi.ListeleAsync(true, _mevcutCari?.CariTipiId);
+        CariTipleri.Clear();
+        foreach (var tip in liste) CariTipleri.Add(tip);
+        SeciliCariTipi = CariTipleri.FirstOrDefault(x => x.Id == secilecekId) ?? CariTipleri.FirstOrDefault();
+        GrupKodlari.Clear(); foreach (var grup in await _cariServisi.GrupKodlariniGetirAsync()) GrupKodlari.Add(grup);
+    }
+    public async Task CariTipiniSecAsync(int id) { await CariTipleriniYukleAsync(); SeciliCariTipi = CariTipleri.FirstOrDefault(x => x.Id == id) ?? SeciliCariTipi; }
 
     // Doğrulama Kuralları (Validation Rules)
     private void DogrulaKod(string value)
@@ -348,20 +401,20 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
                 {
                     Id = _mevcutCari.Id,
                     OlusturmaTarihi = _mevcutCari.OlusturmaTarihi,
-                    Kod = Kod, Tur = CariTuru.Musteri, Tip = Tip, Unvan = Unvan,
+                    Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0, Unvan = Unvan,
                     Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
-                    CepTelefonu = CepTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
+                    CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
                     Aciklama = Aciklama, Aktif = Aktif,
                     Borc = _mevcutCari.Borc, Alacak = _mevcutCari.Alacak
                 }
                 : new CariKart
                 {
-                    Kod = Kod, Tur = CariTuru.Musteri, Tip = Tip, Unvan = Unvan,
+                    Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0, Unvan = Unvan,
                     Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
-                    CepTelefonu = CepTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
+                    CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
                     Aciklama = Aciklama, Aktif = Aktif
                 };

@@ -1,0 +1,478 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0dad0cc4-82ab-4c9f-a92c-4af4346adc66" name="ASUS@LAPTOP-VLQH8D41 2026-08-29 15:12:14" runUser="LAPTOP-VLQH8D41\ASUS" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-29T15:12:14.8448497+03:00" queuing="2026-08-29T15:12:14.8448513+03:00" start="2026-08-29T15:12:13.6377680+03:00" finish="2026-08-29T15:12:14.8788632+03:00" />
+  <TestSettings name="default" id="7512288e-d9a7-41bb-a12e-0d0a8a5adb58">
+    <Deployment runDeploymentRoot="ASUS_LAPTOP-VLQH8D41_2026-08-29_15_12_14" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e45c98b4-d3d0-49f7-bcd1-60cbc8a12438" testId="3c491fb6-79cf-21e2-265a-0f3a941c8cc8" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0018396" startTime="2026-08-29T15:12:14.8102315+03:00" endTime="2026-08-29T15:12:14.8102317+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e45c98b4-d3d0-49f7-bcd1-60cbc8a12438">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 46&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8c93a25a-9d01-4f93-806f-c6d7c70eac75" testId="a1d8d286-b375-f5b8-7363-2be371821927" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0011013" startTime="2026-08-29T15:12:14.7766490+03:00" endTime="2026-08-29T15:12:14.7766491+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8c93a25a-9d01-4f93-806f-c6d7c70eac75">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(FaturaTuru tur) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 68&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ba9e2ffb-282c-4378-892e-d3bcdaeb9024" testId="eb1bf614-f44e-67df-ff92-d6e31efff9c9" testName="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Kredi Kartı&quot;, kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0000254" startTime="2026-08-29T15:12:14.8117636+03:00" endTime="2026-08-29T15:12:14.8117637+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba9e2ffb-282c-4378-892e-d3bcdaeb9024">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 68&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 27&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="223ecbcf-6fd0-4b37-aaa4-ecabea17af3d" testId="ff855977-7b3b-f1fb-43cd-f33959b3544d" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0001747" startTime="2026-08-29T15:12:14.7770960+03:00" endTime="2026-08-29T15:12:14.7770962+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="223ecbcf-6fd0-4b37-aaa4-ecabea17af3d">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(FaturaTuru tur) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 68&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="bc6497f7-8871-4a3e-a76b-85080d21164d" testId="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 12000, kdvHesap: &quot;191&quot;, kdvTutar: 2000)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0005505" startTime="2026-08-29T15:12:14.7746854+03:00" endTime="2026-08-29T15:12:14.7746856+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bc6497f7-8871-4a3e-a76b-85080d21164d">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 28&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="f6102bba-52f8-45e9-b7c0-eaed904fe94e" testId="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 10000, kdvHesap: &quot;191&quot;, kdvTutar: 0)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.1900878" startTime="2026-08-29T15:12:14.7699781+03:00" endTime="2026-08-29T15:12:14.7700013+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6102bba-52f8-45e9-b7c0-eaed904fe94e">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 28&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9b47e48f-36d9-4e54-bd02-829f5855d8a1" testId="f00eac32-7549-c7fd-a62a-a9a66e87fa4f" testName="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Nakit&quot;, kasaSayisi: 1, bankaSayisi: 0, cariSayisi: 2)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0003802" startTime="2026-08-29T15:12:14.8115362+03:00" endTime="2026-08-29T15:12:14.8115362+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b47e48f-36d9-4e54-bd02-829f5855d8a1">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 68&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 27&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="df65b19b-61cd-4d39-981c-f3c5ed9013c0" testId="5fd4834d-d4ec-9483-b622-2cf7cb650ab2" testName="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Banka&quot;, kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0035443" startTime="2026-08-29T15:12:14.8112951+03:00" endTime="2026-08-29T15:12:14.8112951+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="df65b19b-61cd-4d39-981c-f3c5ed9013c0">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 68&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 27&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="49547c7a-3539-427f-9a89-c6328f557718" testId="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: &quot;120&quot;, ilkTutar: 12000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 2000)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0000227" startTime="2026-08-29T15:12:14.7761103+03:00" endTime="2026-08-29T15:12:14.7761104+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="49547c7a-3539-427f-9a89-c6328f557718">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 28&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="64361106-8ea4-48a1-a92e-c3888c3c8a03" testId="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427" testName="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0015963" startTime="2026-08-29T15:12:14.8124527+03:00" endTime="2026-08-29T15:12:14.8124527+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="64361106-8ea4-48a1-a92e-c3888c3c8a03">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\UrunKayitDevelopmentDbTests.cs:line 21&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1f10b69f-9f43-4b08-aa0d-5d01c6a2f484" testId="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0007427" startTime="2026-08-29T15:12:14.7784392+03:00" endTime="2026-08-29T15:12:14.7784393+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1f10b69f-9f43-4b08-aa0d-5d01c6a2f484">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 57&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="05158f08-ae68-4110-b05a-53df16c4e151" testId="44781a23-9446-3f06-fafd-06bbe58059c5" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0018589" startTime="2026-08-29T15:12:14.8107080+03:00" endTime="2026-08-29T15:12:14.8107081+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="05158f08-ae68-4110-b05a-53df16c4e151">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 147&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="81f5c502-9d2a-45c2-9759-f1d975547b0e" testId="88057a45-0b1a-62cb-54bc-d2e780b80a83" testName="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Açık Hesap&quot;, kasaSayisi: 0, bankaSayisi: 0, cariSayisi: 1)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0000252" startTime="2026-08-29T15:12:14.8119923+03:00" endTime="2026-08-29T15:12:14.8119924+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="81f5c502-9d2a-45c2-9759-f1d975547b0e">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 68&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 27&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="747b8410-8e3b-4416-bcd0-0cb6c16ec035" testId="2b9ddf17-c596-a159-7e4b-9a621c73ea6c" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: &quot;120&quot;, alacakKaynak: &quot;600&quot;, kdvHesap: &quot;391&quot;)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0003041" startTime="2026-08-29T15:12:14.7780001+03:00" endTime="2026-08-29T15:12:14.7780003+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="747b8410-8e3b-4416-bcd0-0cb6c16ec035">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(FaturaTuru tur, String borcKaynak, String alacakKaynak, String kdvHesap) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 92&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d8366bac-d987-4890-9428-650fb270a8ef" testId="e710bd1d-cb4a-121e-5155-2d382818b0bf" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: &quot;320&quot;, alacakKaynak: &quot;153&quot;, kdvHesap: &quot;191&quot;)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0029001" startTime="2026-08-29T15:12:14.7775279+03:00" endTime="2026-08-29T15:12:14.7775280+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d8366bac-d987-4890-9428-650fb270a8ef">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(FaturaTuru tur, String borcKaynak, String alacakKaynak, String kdvHesap) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 92&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c0be4e8c-3b83-4fb2-b867-615a154ada1c" testId="3ea643a3-1d93-062f-1f53-cf6127b4134e" testName="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Son_asama_hatasi_tum_pos_kayitlarini_geri_alir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0017505" startTime="2026-08-29T15:12:14.8122284+03:00" endTime="2026-08-29T15:12:14.8122285+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c0be4e8c-3b83-4fb2-b867-615a154ada1c">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 68&#xD;
+   at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Son_asama_hatasi_tum_pos_kayitlarini_geri_alir() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs:line 49&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5661b36c-509e-4056-b5d0-631c4d952a52" testId="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: &quot;120&quot;, ilkTutar: 10000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 0)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0000348" startTime="2026-08-29T15:12:14.7756373+03:00" endTime="2026-08-29T15:12:14.7756373+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5661b36c-509e-4056-b5d0-631c4d952a52">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 28&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6b66236d-6186-4d35-b324-606746f3c6f1" testId="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0019748" startTime="2026-08-29T15:12:14.8109590+03:00" endTime="2026-08-29T15:12:14.8109591+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b66236d-6186-4d35-b324-606746f3c6f1">
+      <Output>
+        <ErrorInfo>
+          <Message>$XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.</Message>
+          <StackTrace>   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 43&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar) in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 159&#xD;
+   at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs:line 125&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Açık Hesap&quot;, kasaSayisi: 0, bankaSayisi: 0, cariSayisi: 1)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="88057a45-0b1a-62cb-54bc-d2e780b80a83">
+      <Execution id="81f5c502-9d2a-45c2-9759-f1d975547b0e" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests" name="Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="a1d8d286-b375-f5b8-7363-2be371821927">
+      <Execution id="8c93a25a-9d01-4f93-806f-c6d7c70eac75" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: &quot;320&quot;, alacakKaynak: &quot;153&quot;, kdvHesap: &quot;191&quot;)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="e710bd1d-cb4a-121e-5155-2d382818b0bf">
+      <Execution id="d8366bac-d987-4890-9428-650fb270a8ef" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Kredi Kartı&quot;, kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="eb1bf614-f44e-67df-ff92-d6e31efff9c9">
+      <Execution id="ba9e2ffb-282c-4378-892e-d3bcdaeb9024" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests" name="Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Son_asama_hatasi_tum_pos_kayitlarini_geri_alir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="3ea643a3-1d93-062f-1f53-cf6127b4134e">
+      <Execution id="c0be4e8c-3b83-4fb2-b867-615a154ada1c" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests" name="Son_asama_hatasi_tum_pos_kayitlarini_geri_alir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="3c491fb6-79cf-21e2-265a-0f3a941c8cc8">
+      <Execution id="e45c98b4-d3d0-49f7-bcd1-60cbc8a12438" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Nakit&quot;, kasaSayisi: 1, bankaSayisi: 0, cariSayisi: 2)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="f00eac32-7549-c7fd-a62a-a9a66e87fa4f">
+      <Execution id="9b47e48f-36d9-4e54-bd02-829f5855d8a1" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests" name="Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427">
+      <Execution id="64361106-8ea4-48a1-a92e-c3888c3c8a03" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests" name="UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: &quot;Banka&quot;, kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="5fd4834d-d4ec-9483-b622-2cf7cb650ab2">
+      <Execution id="df65b19b-61cd-4d39-981c-f3c5ed9013c0" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests" name="Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac">
+      <Execution id="6b66236d-6186-4d35-b324-606746f3c6f1" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Eszamanli_onayda_tek_finansal_islem_kalir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: &quot;120&quot;, ilkTutar: 10000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 0)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a">
+      <Execution id="5661b36c-509e-4056-b5d0-631c4d952a52" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: &quot;120&quot;, ilkTutar: 12000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 2000)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef">
+      <Execution id="49547c7a-3539-427f-9a89-c6328f557718" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="ff855977-7b3b-f1fb-43cd-f33959b3544d">
+      <Execution id="223ecbcf-6fd0-4b37-aaa4-ecabea17af3d" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3">
+      <Execution id="1f10b69f-9f43-4b08-aa0d-5d01c6a2f484" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: &quot;120&quot;, alacakKaynak: &quot;600&quot;, kdvHesap: &quot;391&quot;)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="2b9ddf17-c596-a159-7e4b-9a621c73ea6c">
+      <Execution id="747b8410-8e3b-4416-bcd0-0cb6c16ec035" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 12000, kdvHesap: &quot;191&quot;, kdvTutar: 2000)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a">
+      <Execution id="bc6497f7-8871-4a3e-a76b-85080d21164d" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 10000, kdvHesap: &quot;191&quot;, kdvTutar: 0)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e">
+      <Execution id="f6102bba-52f8-45e9-b7c0-eaed904fe94e" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="44781a23-9446-3f06-fafd-06bbe58059c5">
+      <Execution id="05158f08-ae68-4110-b05a-53df16c4e151" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="3c491fb6-79cf-21e2-265a-0f3a941c8cc8" executionId="e45c98b4-d3d0-49f7-bcd1-60cbc8a12438" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a1d8d286-b375-f5b8-7363-2be371821927" executionId="8c93a25a-9d01-4f93-806f-c6d7c70eac75" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eb1bf614-f44e-67df-ff92-d6e31efff9c9" executionId="ba9e2ffb-282c-4378-892e-d3bcdaeb9024" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ff855977-7b3b-f1fb-43cd-f33959b3544d" executionId="223ecbcf-6fd0-4b37-aaa4-ecabea17af3d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a" executionId="bc6497f7-8871-4a3e-a76b-85080d21164d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e" executionId="f6102bba-52f8-45e9-b7c0-eaed904fe94e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f00eac32-7549-c7fd-a62a-a9a66e87fa4f" executionId="9b47e48f-36d9-4e54-bd02-829f5855d8a1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5fd4834d-d4ec-9483-b622-2cf7cb650ab2" executionId="df65b19b-61cd-4d39-981c-f3c5ed9013c0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef" executionId="49547c7a-3539-427f-9a89-c6328f557718" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427" executionId="64361106-8ea4-48a1-a92e-c3888c3c8a03" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3" executionId="1f10b69f-9f43-4b08-aa0d-5d01c6a2f484" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="44781a23-9446-3f06-fafd-06bbe58059c5" executionId="05158f08-ae68-4110-b05a-53df16c4e151" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="88057a45-0b1a-62cb-54bc-d2e780b80a83" executionId="81f5c502-9d2a-45c2-9759-f1d975547b0e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2b9ddf17-c596-a159-7e4b-9a621c73ea6c" executionId="747b8410-8e3b-4416-bcd0-0cb6c16ec035" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e710bd1d-cb4a-121e-5155-2d382818b0bf" executionId="d8366bac-d987-4890-9428-650fb270a8ef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3ea643a3-1d93-062f-1f53-cf6127b4134e" executionId="c0be4e8c-3b83-4fb2-b867-615a154ada1c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a" executionId="5661b36c-509e-4056-b5d0-631c4d952a52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac" executionId="6b66236d-6186-4d35-b324-606746f3c6f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Bir Listede Olmayan Sonuçlar" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Yüklenen Tüm Sonuçlar" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="18" executed="18" passed="0" failed="18" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.11)&#xD;
+[xUnit.net 00:00:00.08]   Discovering: Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:00.13]   Discovered:  Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:00.14]   Starting:    Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:00.63]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.63]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(28,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(28,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(28,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(28,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(FaturaTuru tur, Decimal kdv, String ilkHesap, Decimal ilkTutar, String karsitHesap, Decimal karsitTutar, String kdvHesap, Decimal kdvTutar)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(FaturaTuru tur)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(FaturaTuru tur)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(92,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(FaturaTuru tur, String borcKaynak, String alacakKaynak, String kdvHesap)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(92,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(FaturaTuru tur, String borcKaynak, String alacakKaynak, String kdvHesap)&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.64]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.64]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.64]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(57,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir()&#xD;
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(46,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez()&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(147,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir()&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(159,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.SeedAndCreateInvoiceAsync(FaturaTuru tur, Decimal kdv, Decimal miktar)&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\FinancialTransactionIntegrationTests.cs(125,0): at Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir()&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(27,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi)&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(27,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi)&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(27,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi)&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(27,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(String odemeYontemi, Int32 kasaSayisi, Int32 bankaSayisi, Int32 cariSayisi)&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(68,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.SeedAsync()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\PosSatisIntegrationTests.cs(49,0): at Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Son_asama_hatasi_tum_pos_kayitlarini_geri_alir()&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]       $XunitDynamicSkip$MUHASEBE_TEST_CONNECTION_STRING tanımlı değil; test DB'ye fallback yapılmadı.&#xD;
+[xUnit.net 00:00:00.68]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(43,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.RequireDatabase()&#xD;
+[xUnit.net 00:00:00.68]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\UrunKayitDevelopmentDbTests.cs(21,0): at Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder()&#xD;
+[xUnit.net 00:00:00.68]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.68]   Finished:    Altyapi.EntegrasyonTestleri&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7668881+03:00">
+        <Text>[xUnit.net 00:00:00.63]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: "153", ilkTutar: 10000, karsitHesap: "320", karsitTutar: 10000, kdvHesap: "191", kdvTutar: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7746732+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: "153", ilkTutar: 10000, karsitHesap: "320", karsitTutar: 12000, kdvHesap: "191", kdvTutar: 2000) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7755837+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: "120", ilkTutar: 10000, karsitHesap: "600", karsitTutar: 10000, kdvHesap: "391", kdvTutar: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7758912+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: "120", ilkTutar: 12000, karsitHesap: "600", karsitTutar: 10000, kdvHesap: "391", kdvTutar: 2000) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7764158+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7769134+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7773223+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: "320", alacakKaynak: "153", kdvHesap: "191") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7777586+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: "120", alacakKaynak: "600", kdvHesap: "391") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.7782289+03:00">
+        <Text>[xUnit.net 00:00:00.64]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8580786+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8581409+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8581799+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8582260+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: "Banka", kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8582756+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: "Nakit", kasaSayisi: 1, bankaSayisi: 0, cariSayisi: 2) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8583252+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: "Kredi Kartı", kasaSayisi: 0, bankaSayisi: 1, cariSayisi: 2) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8583684+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Pos_satisi_odeme_stok_cari_ve_yevmiye_ile_atomik_tamamlanir(odemeYontemi: "Açık Hesap", kasaSayisi: 0, bankaSayisi: 0, cariSayisi: 1) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8584108+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.PosSatisIntegrationTests.Son_asama_hatasi_tum_pos_kayitlarini_geri_alir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-29T15:12:14.8584511+03:00">
+        <Text>[xUnit.net 00:00:00.68]     Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

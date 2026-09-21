@@ -17,9 +17,17 @@ public class CariHareket : TemelVarlik
     public decimal Borc { get; set; } = 0;
     public decimal Alacak { get; set; } = 0;
 
+    // Çoklu Para Birimi (Döviz)
+    public int? ParaBirimiId { get; set; }
+    public EtkiAlani.Modeller.Kurumsal.ParaBirimi? ParaBirimi { get; set; }
+    public decimal Kur { get; set; } = 1;
+    public decimal DovizBorc { get; set; } = 0;
+    public decimal DovizAlacak { get; set; } = 0;
+
+    // Fatura Kapama (Eşleştirme)
+    public decimal KapaliTutar { get; set; } = 0;
+    public decimal KapaliDovizTutar { get; set; } = 0;
+
     // Fatura veya Kasa/Banka Hareket ID'si
     public int? IlgiliBelgeId { get; set; }
-
-    // Sistem zaman damgası (değiştirilemez)
-    public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 }

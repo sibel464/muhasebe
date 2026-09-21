@@ -1,14 +1,436 @@
 <UserControl x:Class="Masaustu.Gorunumler.Sayfa.KasaSayfasi"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+             xmlns:EtkiAlani_Modeller_Finans="clr-namespace:EtkiAlani.Modeller.Finans;assembly=EtkiAlani"
+             mc:Ignorable="d" 
+             d:DesignHeight="768" d:DesignWidth="1100"
+             Background="Transparent">
+
     <UserControl.Resources>
-        <ResourceDictionary Source="/Kaynaklar/Stiller.xaml"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+            <yardimci:HareketTurDonusturucu x:Key="HareketTurDonusturucu"/>
+            <yardimci:ParaTutariDonusturucu x:Key="ParaTutariDonusturucu"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel Margin="32,28">
-        <TextBlock Text="Kasa" Style="{StaticResource SayfaBasligi}"/>
-        <TextBlock Text="Kasa hareketleri ve bakiye takibi" Style="{StaticResource SayfaAltBaslik}"/>
-        <Border Style="{StaticResource KartBorder}">
-            <TextBlock Text="Kasa modülü geliştirme aşamasındadır." Foreground="#6B7280" FontSize="14" Padding="0,20"/>
-        </Border>
-    </StackPanel>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- 1. Üst Panel & Özet -->
+            <RowDefinition Height="*"/>    <!-- 2. Tab Modülleri -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. ÜST PANEL -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource BaslikIkonKutusu}">
+                        <TextBlock Text="💰" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                        <TextBlock Text="Kasa &amp; Nakit Yönetimi" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Çoklu kasa takibi, fiş kayıtları, virman ve gün sonu z-sayım mutabakatı." Style="{StaticResource SayfaAltBaslik}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- Kasa Seçici -->
+                    <TextBlock Text="Aktif Kasa: " VerticalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,8,0"/>
+                    <ComboBox ItemsSource="{Binding Kasalar}" SelectedItem="{Binding SeciliKasa}" DisplayMemberPath="Ad" Width="200" Height="36" Style="{StaticResource FormAcilirKutu}" Margin="0,0,12,0"
+                              IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+
+                    <Button Command="{Binding DokumYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🖨️" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Kasa Dökümü" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔄" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Yenile" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Özet İstatistik Kartları -->
+            <UniformGrid Grid.Row="1" Columns="3">
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="KASA BAKİYESİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                            <TextBlock Text="{Binding ToplamBakiye, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="💵" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="BU AYKİ NAKİT GİRİŞİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                            <TextBlock Text="{Binding BuAyGelir, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="📈" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource KpiKarti}" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="BU AYKİ NAKİT ÇIKIŞI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                            <TextBlock Text="{Binding BuAyGider, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource DangerLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="📉" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+            </UniformGrid>
+        </Grid>
+
+        <!-- 2. TAB İÇERİĞİ -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+            <!-- TAB 1: KASA FİŞLERİ & HAREKET GEÇMİŞİ -->
+            <TabItem Header="📝 Kasa Fişleri ve Hareketler" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="340" MinWidth="300" MaxWidth="380"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- SOL: FİŞ GİRİŞ FORMU -->
+                    <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,16,0"
+                            BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Kasa Fiş Girişi" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Tahsilat, Tediye, Gelir veya Gider fişi girin." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,16"/>
+
+                                <!-- Fiş Tipi -->
+                                <TextBlock Text="Fiş Tipi *" Style="{StaticResource EtiketMetin}"/>
+                                <ComboBox Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                          ItemsSource="{Binding FisTurleri}"
+                                          SelectedItem="{Binding SeciliFisTuru}"
+                                          IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"/>
+
+                                <!-- Cari Seçimi -->
+                                <TextBlock Text="Cari Kart (Müşteri / Tedarikçi)" Style="{StaticResource EtiketMetin}"/>
+                                <ComboBox Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                          ItemsSource="{Binding CariKartlar}"
+                                          SelectedItem="{Binding SeciliCariKart}"
+                                          DisplayMemberPath="Unvan"
+                                          IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Unvan"/>
+
+                                <!-- Tutar -->
+                                <TextBlock Text="Tutar (₺) *" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"
+                                         Text="{Binding YeniTutar, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}, ValidatesOnExceptions=True}"/>
+
+                                <!-- Makbuz No / Belge No -->
+                                <TextBlock Text="Makbuz / Belge No" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"
+                                         Text="{Binding YeniMakbuzNo, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- Masraf Kodu -->
+                                <TextBlock Text="Masraf / Gider Kalem Kodu" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"
+                                         Text="{Binding YeniMasrafKodu, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- Açıklama -->
+                                <TextBlock Text="Açıklama *" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Height="50" Margin="0,0,0,16"
+                                         TextWrapping="Wrap" AcceptsReturn="True"
+                                         Text="{Binding YeniAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- Kaydet Butonu -->
+                                <Button Command="{Binding FisKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="💾" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Fişi Kaydet" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,4"
+                                           Visibility="{Binding BasariMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                                <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}" FontWeight="SemiBold" FontSize="12"
+                                           Visibility="{Binding HataMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- SAĞ: HAREKET GEÇMİŞİ DATA GRID -->
+                    <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="16"
+                            BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Arama Filtresi -->
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="280"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Style="{StaticResource FiltreKutusu}" 
+                                         Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+
+                            <!-- DataGrid -->
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding Hareketler}"
+                                      Style="{StaticResource ModernDataGrid}"
+                                      AutoGenerateColumns="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="FİŞ NO" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="FİŞ TİPİ" Binding="{Binding FisTuru}" Width="110"/>
+                                    <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy HH:mm}" Width="120"/>
+                                    <DataGridTextColumn Header="KASA" Binding="{Binding Kasa.Ad}" Width="120"/>
+                                    <DataGridTextColumn Header="CARİ KART" Binding="{Binding CariKart.Unvan}" Width="1.5*"/>
+                                    <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="2*"/>
+                                    
+                                    <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} ₺}" Width="110">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryFirca}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- Sil -->
+                                    <DataGridTemplateColumn Header="" Width="44">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding DataContext.SilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource MikroSilDugme}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: VİRMAN & BANKAYA PARA YATIRMA -->
+            <TabItem Header="🔄 Virman &amp; Transfer" FontSize="13" FontWeight="SemiBold">
+                <UniformGrid Columns="2" Margin="0,12,0,0">
+                    <!-- KASALAR ARASI VİRMAN -->
+                    <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,12,0" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="🔄 Kasalar Arası Virman Fişi" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                            <TextBlock Text="Bir kasadan diğer kasaya nakit aktarımı yapın." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="Kaynak Kasa (Çıkış) *" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding Kasalar}" SelectedItem="{Binding SeciliKasa}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+
+                            <TextBlock Text="Hedef Kasa (Giriş) *" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding Kasalar}" SelectedItem="{Binding SeciliTargetKasa}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+
+                            <TextBlock Text="Virman Tutari (₺) *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding VirmanTutari, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"/>
+
+                            <TextBlock Text="Virman Açıklaması *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Height="50" Margin="0,0,0,16" Text="{Binding VirmanAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <Button Command="{Binding KasaVirmanKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                <TextBlock Text="🚀 Kasalar Arası Virman Yap"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- KASADAN BANKAYA YATIRMA -->
+                    <Border Background="White" CornerRadius="12" Padding="20" Margin="12,0,0,0" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="🏦 Kasadan Bankaya Para Yatırma" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                            <TextBlock Text="Kasadaki nakiti banka vadesiz hesabına yatırın." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="Kaynak Kasa (Çıkış) *" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding Kasalar}" SelectedItem="{Binding SeciliKasa}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+
+                            <TextBlock Text="Hedef Banka Hesabı (Giriş) *" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox ItemsSource="{Binding BankaHesaplari}" SelectedItem="{Binding SeciliTargetBankaHesabi}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
+                                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+
+                            <TextBlock Text="Yatırılan Tutar (₺) *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding VirmanTutari, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"/>
+
+                            <TextBlock Text="Açıklama *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Height="50" Margin="0,0,0,16" Text="{Binding VirmanAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <Button Command="{Binding BankayaYatirKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                <TextBlock Text="🏦 Bankaya Para Yatır"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+            </TabItem>
+
+            <!-- TAB 3: GÜN SONU KASA MUTABAKATI & Z-SAYIMI -->
+            <TabItem Header="📊 Gün Sonu Z-Mutabakatı" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="400"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- SOL: BANKNOT & BOZUK PARA SAYIM MATRİSİ -->
+                    <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,16,0" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Fiziki Nakit Sayım Matrisi" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Kasayı fiziki olarak sayıp banknot adetlerini girin." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,16"/>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="200 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet200, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="100 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet100, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="50 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet50, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="20 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet20, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="10 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet10, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="5 ₺ Adet:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding Adet5, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Bozuk Paralar (₺):" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Grid.Column="1" Style="{StaticResource FormGirisKutusu}" Text="{Binding BozukParaToplam, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"/>
+                                </Grid>
+
+                                <TextBlock Text="Mutabakat Notu" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Height="40" Margin="0,0,0,16" Text="{Binding MutabakatAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <Button Command="{Binding MutabakatKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                    <TextBlock Text="✅ Gün Sonu Mutabakatını Kaydet"/>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- SAĞ: MUTABAKAT ÖZETİ VE FARK RAPORU -->
+                    <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="24" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Sayım vs Sistem Karşılaştırması" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,16"/>
+
+                            <Border Background="{StaticResource BackgroundFirca}" CornerRadius="10" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="Fiziki Nakit Sayım Toplamı:" FontSize="15" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding SayimFizikiToplam, StringFormat={}{0:N2} ₺}" FontSize="16" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="Sistemdeki Kasa Bakiyesi:" FontSize="15" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding ToplamBakiye, StringFormat={}{0:N2} ₺}" FontSize="16" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{StaticResource TextPrimaryFirca}"/>
+                                    </Grid>
+                                    <Separator Margin="0,4,0,8"/>
+                                    <Grid>
+                                        <TextBlock Text="Kasa Sayım Farkı:" FontSize="16" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding SayimFark, StringFormat={}{0:N2} ₺}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="💡 Not: Sayım kaydedildiğinde eğer sayım farkı 0 değilse sistem otomatik olarak Kasa Sayım Farkı Fişi (Noksan veya Fazla) kaydeder." FontSize="13" Foreground="{StaticResource TextSecondaryFirca}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: KASA TANIMLARI -->
+            <TabItem Header="⚙️ Kasa Kartları Tanımları" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="340"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- YENİ KASA TANIMLAMA -->
+                    <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,16,0" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Yeni Kasa Kartı Ekle" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="Kasa Kodu *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding YeniKasaKodu, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Text="Kasa Adı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding YeniKasaAd, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Text="Muhasebe Kodu (100.01.xxx)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,16" Text="{Binding YeniKasaMuhasebeKodu, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <Button Command="{Binding KasaEkleKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                <TextBlock Text="➕ Yeni Kasa Kaydet"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- KASALAR LİSTESİ -->
+                    <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <DataGrid ItemsSource="{Binding Kasalar}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="KASA KODU" Binding="{Binding Kod}" Width="120" FontWeight="Bold"/>
+                                <DataGridTextColumn Header="KASA ADI" Binding="{Binding Ad}" Width="*"/>
+                                <DataGridTextColumn Header="MUHASEBE KODU" Binding="{Binding MuhasebeKodu}" Width="140"/>
+                                <DataGridTextColumn Header="PARA BİRİMİ" Binding="{Binding ParaBirimi}" Width="100"/>
+                                <DataGridCheckBoxColumn Header="AKTİF Mİ" Binding="{Binding AktifMi}" Width="90"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </UserControl>
+

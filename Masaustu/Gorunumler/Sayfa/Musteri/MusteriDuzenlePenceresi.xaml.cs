@@ -9,10 +9,11 @@ public partial class MusteriDuzenlePenceresi : Window
 {
     public bool Kaydedildi { get; private set; }
 
-    public MusteriDuzenlePenceresi(ICariServisi cariServisi, CariKart? mevcutCari = null)
+    public MusteriDuzenlePenceresi(ICariServisi cariServisi, ICariTipiTanimiServisi? cariTipiServisi = null, CariKart? mevcutCari = null)
     {
         InitializeComponent();
-        var vm = new MusteriDuzenleGorunumModeli(cariServisi, mevcutCari);
+        cariTipiServisi ??= App.HizmetSaglayici.GetService(typeof(ICariTipiTanimiServisi)) as ICariTipiTanimiServisi;
+        var vm = new MusteriDuzenleGorunumModeli(cariServisi, cariTipiServisi!, mevcutCari);
         vm.PencereKapat = kaydedildi =>
         {
             Kaydedildi = kaydedildi;

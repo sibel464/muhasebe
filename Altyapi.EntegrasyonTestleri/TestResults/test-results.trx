@@ -1,0 +1,816 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="a3d2edfe-e47f-40e5-8c8e-ae715fc5a67d" name="ASUS@LAPTOP-VLQH8D41 2026-08-27 14:12:40" runUser="LAPTOP-VLQH8D41\ASUS" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-27T14:12:40.9573925+03:00" queuing="2026-08-27T14:12:40.9573930+03:00" start="2026-08-27T14:12:37.5267430+03:00" finish="2026-08-27T14:12:42.7933665+03:00" />
+  <TestSettings name="default" id="c73c33a0-e755-464c-9846-c79f44b54df5">
+    <Deployment runDeploymentRoot="ASUS_LAPTOP-VLQH8D41_2026-08-27_14_12_40" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="13850b1a-eef4-4c95-b37e-3c2fad400e4f" testId="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: &quot;120&quot;, ilkTutar: 12000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 2000)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4209244+03:00" endTime="2026-08-27T14:12:42.4209247+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="13850b1a-eef4-4c95-b37e-3c2fad400e4f">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a480a57a-40b7-4d2c-be74-b77a023b0e5d" testId="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4603398+03:00" endTime="2026-08-27T14:12:42.4603400+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a480a57a-40b7-4d2c-be74-b77a023b0e5d">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e28ce7d2-19df-40e6-863a-325187c9f4ed" testId="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4364043+03:00" endTime="2026-08-27T14:12:42.4364046+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e28ce7d2-19df-40e6-863a-325187c9f4ed">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="537573b4-5df7-4234-aeeb-413f0c5100bb" testId="e710bd1d-cb4a-121e-5155-2d382818b0bf" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: &quot;320&quot;, alacakKaynak: &quot;153&quot;, kdvHesap: &quot;191&quot;)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4294348+03:00" endTime="2026-08-27T14:12:42.4294352+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="537573b4-5df7-4234-aeeb-413f0c5100bb">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5fae85cc-adc4-4599-a717-58d26fcb641c" testId="3c491fb6-79cf-21e2-265a-0f3a941c8cc8" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4576736+03:00" endTime="2026-08-27T14:12:42.4576739+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5fae85cc-adc4-4599-a717-58d26fcb641c">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a04a08bc-c32d-404b-98fd-6c8d9f271fca" testId="ff855977-7b3b-f1fb-43cd-f33959b3544d" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4282418+03:00" endTime="2026-08-27T14:12:42.4282421+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a04a08bc-c32d-404b-98fd-6c8d9f271fca">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="b7565734-41e9-4f4b-a46e-a921c725b0d9" testId="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: &quot;120&quot;, ilkTutar: 10000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 0)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4196468+03:00" endTime="2026-08-27T14:12:42.4196471+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b7565734-41e9-4f4b-a46e-a921c725b0d9">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="21f797dc-a16c-4e15-a5e4-121839147f28" testId="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 12000, kdvHesap: &quot;191&quot;, kdvTutar: 2000)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4179512+03:00" endTime="2026-08-27T14:12:42.4179517+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21f797dc-a16c-4e15-a5e4-121839147f28">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c8038a15-6735-4a5d-ac36-5e9cc50cacc1" testId="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427" testName="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" computerName="LAPTOP-VLQH8D41" duration="00:00:01.7555239" startTime="2026-08-27T14:12:39.8685797+03:00" endTime="2026-08-27T14:12:39.8686049+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c8038a15-6735-4a5d-ac36-5e9cc50cacc1" />
+    <UnitTestResult executionId="b0f0b9b0-e0d3-4826-8abd-a8a49601203c" testId="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 10000, kdvHesap: &quot;191&quot;, kdvTutar: 0)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4116452+03:00" endTime="2026-08-27T14:12:42.4116456+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b0f0b9b0-e0d3-4826-8abd-a8a49601203c">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="3d52206a-3222-4fc0-ba94-0f3027569cd8" testId="a1d8d286-b375-f5b8-7363-2be371821927" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4272067+03:00" endTime="2026-08-27T14:12:42.4272070+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3d52206a-3222-4fc0-ba94-0f3027569cd8">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7248fe17-b0dd-44f0-98af-9e5205014651" testId="44781a23-9446-3f06-fafd-06bbe58059c5" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4590412+03:00" endTime="2026-08-27T14:12:42.4590416+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7248fe17-b0dd-44f0-98af-9e5205014651">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="94a77bcd-ef70-4743-81b3-9cac383a6e62" testId="2b9ddf17-c596-a159-7e4b-9a621c73ea6c" testName="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: &quot;120&quot;, alacakKaynak: &quot;600&quot;, kdvHesap: &quot;391&quot;)" computerName="LAPTOP-VLQH8D41" duration="00:00:00.0010000" startTime="2026-08-27T14:12:42.4354691+03:00" endTime="2026-08-27T14:12:42.4354693+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="94a77bcd-ef70-4743-81b3-9cac383a6e62">
+      <Output>
+        <ErrorInfo>
+          <Message>Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist</Message>
+          <StackTrace>   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+--- End of stack trace from previous location ---&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30&#xD;
+   at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync() in C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="a1d8d286-b375-f5b8-7363-2be371821927">
+      <Execution id="3d52206a-3222-4fc0-ba94-0f3027569cd8" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: &quot;320&quot;, alacakKaynak: &quot;153&quot;, kdvHesap: &quot;191&quot;)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="e710bd1d-cb4a-121e-5155-2d382818b0bf">
+      <Execution id="537573b4-5df7-4234-aeeb-413f0c5100bb" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="3c491fb6-79cf-21e2-265a-0f3a941c8cc8">
+      <Execution id="5fae85cc-adc4-4599-a717-58d26fcb641c" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests.UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427">
+      <Execution id="c8038a15-6735-4a5d-ac36-5e9cc50cacc1" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.UrunKayitDevelopmentDbTests" name="UrunServisi_GecerliUrunu_PostgreSqlVeritabaninaKaydeder" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac">
+      <Execution id="a480a57a-40b7-4d2c-be74-b77a023b0e5d" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Eszamanli_onayda_tek_finansal_islem_kalir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: &quot;120&quot;, ilkTutar: 10000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 0)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a">
+      <Execution id="b7565734-41e9-4f4b-a46e-a921c725b0d9" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: &quot;120&quot;, ilkTutar: 12000, karsitHesap: &quot;600&quot;, karsitTutar: 10000, kdvHesap: &quot;391&quot;, kdvTutar: 2000)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef">
+      <Execution id="13850b1a-eef4-4c95-b37e-3c2fad400e4f" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="ff855977-7b3b-f1fb-43cd-f33959b3544d">
+      <Execution id="a04a08bc-c32d-404b-98fd-6c8d9f271fca" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3">
+      <Execution id="e28ce7d2-19df-40e6-863a-325187c9f4ed" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: &quot;120&quot;, alacakKaynak: &quot;600&quot;, kdvHesap: &quot;391&quot;)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="2b9ddf17-c596-a159-7e4b-9a621c73ea6c">
+      <Execution id="94a77bcd-ef70-4743-81b3-9cac383a6e62" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 12000, kdvHesap: &quot;191&quot;, kdvTutar: 2000)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a">
+      <Execution id="21f797dc-a16c-4e15-a5e4-121839147f28" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: &quot;153&quot;, ilkTutar: 10000, karsitHesap: &quot;320&quot;, karsitTutar: 10000, kdvHesap: &quot;191&quot;, kdvTutar: 0)" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e">
+      <Execution id="b0f0b9b0-e0d3-4826-8abd-a8a49601203c" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur" />
+    </UnitTest>
+    <UnitTest name="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" storage="c:\users\asus\onedrive\desktop\muhasebe\altyapi.entegrasyontestleri\bin\debug\net10.0\altyapi.entegrasyontestleri.dll" id="44781a23-9446-3f06-fafd-06bbe58059c5">
+      <Execution id="7248fe17-b0dd-44f0-98af-9e5205014651" />
+      <TestMethod codeBase="C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\bin\Debug\net10.0\Altyapi.EntegrasyonTestleri.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests" name="Yetersiz_stok_hatasi_finansal_transactioni_geri_alir" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f5d08cf7-d590-ab2a-867d-82d50f7ac4ef" executionId="13850b1a-eef4-4c95-b37e-3c2fad400e4f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0b6473a3-a74e-c518-ed2f-6f9ae85e04ac" executionId="a480a57a-40b7-4d2c-be74-b77a023b0e5d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1fdddfb6-ba9f-6b63-a401-e5413bc77cf3" executionId="e28ce7d2-19df-40e6-863a-325187c9f4ed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e710bd1d-cb4a-121e-5155-2d382818b0bf" executionId="537573b4-5df7-4234-aeeb-413f0c5100bb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c491fb6-79cf-21e2-265a-0f3a941c8cc8" executionId="5fae85cc-adc4-4599-a717-58d26fcb641c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ff855977-7b3b-f1fb-43cd-f33959b3544d" executionId="a04a08bc-c32d-404b-98fd-6c8d9f271fca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b005f8bc-3d61-12a9-ec1c-8ee0f2c4fa8a" executionId="b7565734-41e9-4f4b-a46e-a921c725b0d9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b5cb5848-abe4-b8b2-1e77-cc8bc79b674a" executionId="21f797dc-a16c-4e15-a5e4-121839147f28" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0d29f7f0-1663-cfc6-a00f-dc8c37ce2427" executionId="c8038a15-6735-4a5d-ac36-5e9cc50cacc1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9567d49e-e8ea-ac2b-9a8e-fd55583a4b3e" executionId="b0f0b9b0-e0d3-4826-8abd-a8a49601203c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a1d8d286-b375-f5b8-7363-2be371821927" executionId="3d52206a-3222-4fc0-ba94-0f3027569cd8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="44781a23-9446-3f06-fafd-06bbe58059c5" executionId="7248fe17-b0dd-44f0-98af-9e5205014651" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2b9ddf17-c596-a159-7e4b-9a621c73ea6c" executionId="94a77bcd-ef70-4743-81b3-9cac383a6e62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Bir Listede Olmayan Sonuçlar" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Yüklenen Tüm Sonuçlar" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="13" executed="13" passed="1" failed="12" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.11)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:00.12]   Discovered:  Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:00.13]   Starting:    Altyapi.EntegrasyonTestleri&#xD;
+[xUnit.net 00:00:04.47]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.47]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.47]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.47]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.47]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.47]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.48]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.48]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.48]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.48]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.48]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.48]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.48]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.48]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.48]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.48]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.48]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.48]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.48]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.48]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.49]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.49]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.49]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.49]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.49]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.51]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.51]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.52]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.52]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.52]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.52]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.52]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.52]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.52]       Npgsql.PostgresException : 42P01: relation "MerkeziTanimlar" does not exist&#xD;
+[xUnit.net 00:00:04.52]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)&#xD;
+[xUnit.net 00:00:04.52]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource&lt;TResult&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQueryAsync(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementationAsync(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.&lt;&gt;c.&lt;&lt;MigrateAsync&gt;b__22_1&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:04.52]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]            at Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal.NpgsqlMigrator.MigrateAsync(String targetMigration, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.52]         C:\Users\ASUS\OneDrive\Desktop\muhasebe\Altyapi.EntegrasyonTestleri\IsolatedPostgreSqlFixture.cs(30,0): at Altyapi.EntegrasyonTestleri.IsolatedPostgreSqlFixture.InitializeAsync()&#xD;
+[xUnit.net 00:00:04.77]   Finished:    Altyapi.EntegrasyonTestleri&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4079245+03:00">
+        <Text>[xUnit.net 00:00:04.47]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 0, ilkHesap: "153", ilkTutar: 10000, karsitHesap: "320", karsitTutar: 10000, kdvHesap: "191", kdvTutar: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4170078+03:00">
+        <Text>[xUnit.net 00:00:04.47]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Alis, kdv: 20, ilkHesap: "153", ilkTutar: 10000, karsitHesap: "320", karsitTutar: 12000, kdvHesap: "191", kdvTutar: 2000) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4186392+03:00">
+        <Text>[xUnit.net 00:00:04.48]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 0, ilkHesap: "120", ilkTutar: 10000, karsitHesap: "600", karsitTutar: 10000, kdvHesap: "391", kdvTutar: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4199735+03:00">
+        <Text>[xUnit.net 00:00:04.48]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Fatura_onayi_beklenen_yevmiye_ve_hareketleri_olusturur(tur: Satis, kdv: 20, ilkHesap: "120", ilkTutar: 12000, karsitHesap: "600", karsitTutar: 10000, kdvHesap: "391", kdvTutar: 2000) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4212214+03:00">
+        <Text>[xUnit.net 00:00:04.48]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: AlisIade) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4275455+03:00">
+        <Text>[xUnit.net 00:00:04.49]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Iade_faturasi_ters_yonlu_yevmiye_ve_stok_hareketi_olusturur(tur: SatisIade) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4285677+03:00">
+        <Text>[xUnit.net 00:00:04.49]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Alis, borcKaynak: "320", alacakKaynak: "153", kdvHesap: "191") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4348588+03:00">
+        <Text>[xUnit.net 00:00:04.49]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Onayli_faturanin_iptali_kaynaklari_korumak_ve_ters_fis_uretmek_zorundadir(tur: Satis, borcKaynak: "120", alacakKaynak: "600", kdvHesap: "391") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4378706+03:00">
+        <Text>[xUnit.net 00:00:04.49]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetkisiz_veya_kullanici_servissiz_finansal_islem_reddedilir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4741528+03:00">
+        <Text>[xUnit.net 00:00:04.51]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Ayni_faturanin_ikinci_onayi_yeni_finansal_kayit_uretmez [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4748011+03:00">
+        <Text>[xUnit.net 00:00:04.52]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Yetersiz_stok_hatasi_finansal_transactioni_geri_alir [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAPTOP-VLQH8D41" outcome="Error" timestamp="2026-08-27T14:12:42.4754466+03:00">
+        <Text>[xUnit.net 00:00:04.52]     Altyapi.EntegrasyonTestleri.FinancialTransactionIntegrationTests.Eszamanli_onayda_tek_finansal_islem_kalir [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -1,0 +1,93 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Stok.StokIslemPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Manuel Stok Giriş / Çıkış Fişi" Width="550" Height="500"
+        WindowStartupLocation="CenterOwner" Background="White" ResizeMode="NoResize">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- BAŞLIK -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="{Binding BaslikMetni}" Style="{StaticResource SayfaBasligi}" FontSize="18"/>
+            <TextBlock Text="Zorunlu neden ve açıklama belirterek stok hareketi ekleyin" Style="{StaticResource SayfaAltBaslik}"/>
+        </StackPanel>
+
+        <!-- FORM -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Ürün *" Style="{StaticResource EtiketMetin}"/>
+                    <ComboBox ItemsSource="{Binding Urunler}" DisplayMemberPath="Ad" SelectedItem="{Binding SeciliUrun}" Style="{StaticResource FormAcilirKutu}"/>
+                </StackPanel>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Lokasyon / Depo *" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding Depolar}" DisplayMemberPath="Ad" SelectedValuePath="Id" SelectedValue="{Binding SeciliDepoId}" Style="{StaticResource FormAcilirKutu}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="İşlem Nedeni *" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding Nedenler}" SelectedItem="{Binding IslemNedeni}" Style="{StaticResource FormAcilirKutu}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Miktar *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding Miktar, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="Birim Fiyat (₺)" Style="{StaticResource EtiketMetin}"/>
+                        <TextBox Text="{Binding BirimFiyat, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Referans / Belge No" Style="{StaticResource EtiketMetin}"/>
+                    <TextBox Text="{Binding ReferansNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Açıklama" Style="{StaticResource EtiketMetin}"/>
+                    <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- BİLDİRİM & AKSİYONLAR -->
+        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+            <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}" FontWeight="Bold" Margin="0,0,0,8"/>
+            <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}" FontWeight="Bold" Margin="0,0,0,8"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Content="Vazgeç" Width="100"/>
+                <Button Grid.Column="1" Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Content="İşlemi Kaydet" Width="140"/>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,194 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.Hesap360Penceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HESAP 360° GÖRÜNÜMÜ" Height="700" Width="1050" WindowStartupLocation="CenterOwner" Background="#F8FAFC">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header Summary -->
+            <RowDefinition Height="*"/>    <!-- 7 Tabs -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. HEADER SUMMARY BAR -->
+        <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="8" Padding="16" Margin="0,0,0,14" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="{Binding Hesap360.Hesap.HesapKodu}" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,10,0"/>
+                        <TextBlock Text="{Binding Hesap360.Hesap.HesapAdi}" FontSize="20" FontWeight="SemiBold" Foreground="#334155"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Hesap Türü: " Foreground="#64748B"/>
+                        <TextBlock Text="{Binding Hesap360.Hesap.HesapTuru}" FontWeight="Bold" Margin="0,0,16,0"/>
+                        <TextBlock Text="Bakiye Yönü: " Foreground="#64748B"/>
+                        <TextBlock Text="{Binding Hesap360.BakiyeYonu}" FontWeight="Bold" Margin="0,0,16,0"/>
+                        <TextBlock Text="Para Birimi: " Foreground="#64748B"/>
+                        <TextBlock Text="{Binding Hesap360.Hesap.ParaBirimiKodu}" FontWeight="Bold"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- KPI Mini Cards -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Border Background="#F1F5F9" Padding="12,8" CornerRadius="6" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="DEVİR" FontSize="11" Foreground="#64748B"/>
+                            <TextBlock Text="{Binding Hesap360.DevirNetBakiye, StringFormat={}{0:N2} TL}" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#F1F5F9" Padding="12,8" CornerRadius="6" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="DÖNEM BORÇ" FontSize="11" Foreground="#64748B"/>
+                            <TextBlock Text="{Binding Hesap360.DonemBorc, StringFormat={}{0:N2} TL}" FontWeight="Bold" Foreground="#16A34A"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#F1F5F9" Padding="12,8" CornerRadius="6" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="DÖNEM ALACAK" FontSize="11" Foreground="#64748B"/>
+                            <TextBlock Text="{Binding Hesap360.DonemAlacak, StringFormat={}{0:N2} TL}" FontWeight="Bold" Foreground="#DC2626"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#0F172A" Padding="14,8" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Text="NET BAKİYE" FontSize="11" Foreground="#94A3B8"/>
+                            <TextBlock Text="{Binding Hesap360.NetBakiye, StringFormat={}{0:N2} TL}" FontWeight="Bold" Foreground="#FFFFFF" FontSize="15"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. 7 TABS DETAILED VIEW -->
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SeciliSekmeIndeksi}">
+            <!-- 1. GENEL -->
+            <TabItem Header="1. Genel">
+                <Grid Margin="16">
+                    <StackPanel>
+                        <TextBlock Text="Genel Hesap Bilgileri" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="30"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Hesap Kodu:" Grid.Row="0" Grid.Column="0" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Hesap360.Hesap.HesapKodu}" Grid.Row="0" Grid.Column="1"/>
+
+                            <TextBlock Text="Hesap Adı:" Grid.Row="1" Grid.Column="0" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Hesap360.Hesap.HesapAdi}" Grid.Row="1" Grid.Column="1"/>
+
+                            <TextBlock Text="Hesap Seviyesi:" Grid.Row="2" Grid.Column="0" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Hesap360.Hesap.Seviye}" Grid.Row="2" Grid.Column="1"/>
+
+                            <TextBlock Text="Sistem Hesabı:" Grid.Row="3" Grid.Column="0" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Hesap360.Hesap.SistemHesabi}" Grid.Row="3" Grid.Column="1"/>
+
+                            <TextBlock Text="Açıklama:" Grid.Row="4" Grid.Column="0" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Hesap360.Hesap.Aciklama}" Grid.Row="4" Grid.Column="1"/>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- 2. HAREKETLER -->
+            <TabItem Header="2. Hareketler">
+                <DataGrid ItemsSource="{Binding Hesap360.Hareketler}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Width="130"/>
+                        <DataGridTextColumn Header="Fiş No" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                        <DataGridTextColumn Header="Borç" Binding="{Binding Borc, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Alacak" Binding="{Binding Alacak, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Yürüyen Bakiye" Binding="{Binding YuruyenBakiye, StringFormat={}{0:N2} TL}" Width="130" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 3. YEVMİYE -->
+            <TabItem Header="3. Yevmiye">
+                <DataGrid ItemsSource="{Binding Hesap360.Hareketler}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="120"/>
+                        <DataGridTextColumn Header="Fiş No" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                        <DataGridTextColumn Header="Borç" Binding="{Binding Borc, StringFormat={}{0:N2} TL}" Width="130" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Alacak" Binding="{Binding Alacak, StringFormat={}{0:N2} TL}" Width="130" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 4. AYLIK ÖZET -->
+            <TabItem Header="4. Aylık Özet">
+                <DataGrid ItemsSource="{Binding Hesap360.AylikOzetler}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Yıl" Binding="{Binding Yil}" Width="80"/>
+                        <DataGridTextColumn Header="Ay" Binding="{Binding Ay}" Width="60"/>
+                        <DataGridTextColumn Header="Ay Adı" Binding="{Binding AyAdi}" Width="120"/>
+                        <DataGridTextColumn Header="Borç Toplamı" Binding="{Binding BorcToplam, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Alacak Toplamı" Binding="{Binding AlacakToplam, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Net Bakiye" Binding="{Binding NetBakiye, StringFormat={}{0:N2} TL}" Width="150" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 5. MUAVİN -->
+            <TabItem Header="5. Muavin">
+                <DataGrid ItemsSource="{Binding Hesap360.Hareketler}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="120"/>
+                        <DataGridTextColumn Header="Fiş No" Binding="{Binding FisNo}" Width="120"/>
+                        <DataGridTextColumn Header="Belge No" Binding="{Binding BelgeNo}" Width="120"/>
+                        <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                        <DataGridTextColumn Header="Borç" Binding="{Binding Borc, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Alacak" Binding="{Binding Alacak, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="Yürüyen Bakiye" Binding="{Binding YuruyenBakiye, StringFormat={}{0:N2} TL}" Width="130" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 6. BAĞLI BELGELER -->
+            <TabItem Header="6. Bağlı Belgeler">
+                <DataGrid ItemsSource="{Binding Hesap360.BagliBelgeler}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="120"/>
+                        <DataGridTextColumn Header="Belge Tipi" Binding="{Binding BelgeTipi}" Width="140" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Belge No" Binding="{Binding BelgeNo}" Width="140"/>
+                        <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                        <DataGridTextColumn Header="Tutar" Binding="{Binding Tutar, StringFormat={}{0:N2} TL}" Width="130" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 7. AUDIT -->
+            <TabItem Header="7. Audit">
+                <DataGrid ItemsSource="{Binding Hesap360.AuditLogs}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Width="160"/>
+                        <DataGridTextColumn Header="Kullanıcı" Binding="{Binding KullaniciAdi}" Width="140" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="İşlem" Binding="{Binding IslemTuru}" Width="120"/>
+                        <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

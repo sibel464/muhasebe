@@ -1,4 +1,5 @@
 using EtkiAlani.Modeller.Ortak;
+using EtkiAlani.Modeller.Kurumsal;
 
 namespace EtkiAlani.Modeller.Cari;
 
@@ -9,18 +10,18 @@ public enum CariTuru
     MusteriTedarikci
 }
 
-public enum CariTipi
-{
-    Bireysel,
-    Kurumsal
-}
-
 public class CariKart : TemelVarlik
 {
+    public Guid? SirketId { get; set; }
+    public Sirket? Sirket { get; set; }
+    public int? SubeId { get; set; }
+    public Sube? Sube { get; set; }
     public string Kod { get; set; } = string.Empty;
     public CariTuru Tur { get; set; } = CariTuru.Musteri;
-    public CariTipi Tip { get; set; } = CariTipi.Kurumsal;
+    public int CariTipiId { get; set; } = CariTipiTanimi.KurumsalId;
+    public CariTipiTanimi CariTipi { get; set; } = null!;
     public string Unvan { get; set; } = string.Empty;
+    public string? GrupKodu { get; set; } // Örn: ESNAF, TOPTANCI, BİREYSEL
     
     // Bireysel müşteriler için Ad-Soyad (Kurumsal için opsiyonel yetkili bilgisi olarak kullanılabilir)
     public string? Ad { get; set; }
@@ -31,6 +32,8 @@ public class CariKart : TemelVarlik
     public string? TcNo { get; set; }
 
     public string? Telefon { get; set; }
+    public string? EvTelefonu { get; set; }
+    public string? IsTelefonu { get; set; }
     public string? CepTelefonu { get; set; }
     public string? Eposta { get; set; }
     public string? WebSitesi { get; set; }
@@ -40,6 +43,17 @@ public class CariKart : TemelVarlik
     public string? Ilce { get; set; }
     public string? PostaKodu { get; set; }
 
+    public string? FotografYolu { get; set; }
+    
+    // Kullanıcı Takibi
+    public int? OlusturanKullaniciId { get; set; }
+    public Kullanici.Kullanici? OlusturanKullanici { get; set; }
+    public int? GuncelleyenKullaniciId { get; set; }
+    public Kullanici.Kullanici? GuncelleyenKullanici { get; set; }
+
+    public decimal? RiskLimiti { get; set; }
+    public int? VadeGunu { get; set; }
+    public string? Iban { get; set; }
     public string? Aciklama { get; set; }
     public bool Aktif { get; set; } = true;
     

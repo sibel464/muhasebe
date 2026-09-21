@@ -1,0 +1,143 @@
+<Window x:Class="Masaustu.Gorunumler.Pencere.Kasa360Penceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kasa 360°" Height="680" Width="1050" WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık Panel -->
+        <Border Grid.Row="0" Background="#F8FAFC" Padding="14" CornerRadius="8" Margin="0,0,0,12" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding KasaOzet.KasaAdi}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                        <TextBlock Text="{Binding KasaOzet.KasaKodu, StringFormat=' ({0})'}" FontSize="16" Foreground="{StaticResource TextSecondaryFirca}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding KasaOzet.SubeAdi, StringFormat='Şube: {0}'}" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="MEVCUT BAKİYE" FontSize="11" Style="{StaticResource EtiketMetin}" HorizontalAlignment="Right"/>
+                    <TextBlock Text="{Binding KasaOzet.MevcutBakiye, StringFormat={}{0:N2} ₺}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 8 SEKMELİ KASA 360 -->
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SeciliSekmeIndeksi}">
+            <!-- 1. Genel Bakış -->
+            <TabItem Header="1. Genel Bakış">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Kasa Kodu:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.KasaKodu}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Kasa Adı:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.KasaAdi}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Para Birimi:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.ParaBirimi}" Margin="0,0,0,10"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Bugünkü Giriş:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.BugunkiGiris, StringFormat={}{0:N2} ₺}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Bugünkü Çıkış:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.BugunkiCikis, StringFormat={}{0:N2} ₺}" Foreground="{StaticResource DangerDarkFirca}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Son İşlem Tarihi:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding KasaOzet.SonIslemTarihi, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- 2. Hareketler (Yürüyen Bakiye) -->
+            <TabItem Header="2. Hareketler">
+                <DataGrid ItemsSource="{Binding TumHareketler}" AutoGenerateColumns="False" IsReadOnly="True" Margin="8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="95"/>
+                        <DataGridTextColumn Header="SAAT" Binding="{Binding Saat}" Width="65"/>
+                        <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="100"/>
+                        <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="110"/>
+                        <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
+                        <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
+                        <DataGridTextColumn Header="GİRİŞ" Binding="{Binding Giris, StringFormat={}{0:N2} ₺}" Width="100"/>
+                        <DataGridTextColumn Header="ÇIKIŞ" Binding="{Binding Cikis, StringFormat={}{0:N2} ₺}" Width="100"/>
+                        <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="110" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="KULLANICI" Binding="{Binding KullaniciAdi}" Width="90"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 3. Tahsilatlar -->
+            <TabItem Header="3. Tahsilatlar">
+                <DataGrid ItemsSource="{Binding Tahsilatlar}" AutoGenerateColumns="False" IsReadOnly="True" Margin="8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
+                        <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
+                        <DataGridTextColumn Header="GİRİŞ TUTARI" Binding="{Binding Giris, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 4. Ödemeler -->
+            <TabItem Header="4. Ödemeler">
+                <DataGrid ItemsSource="{Binding Odemeler}" AutoGenerateColumns="False" IsReadOnly="True" Margin="8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
+                        <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
+                        <DataGridTextColumn Header="ÇIKIŞ TUTARI" Binding="{Binding Cikis, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 5. Virmanlar -->
+            <TabItem Header="5. Virmanlar">
+                <DataGrid ItemsSource="{Binding Virmanlar}" AutoGenerateColumns="False" IsReadOnly="True" Margin="8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="120"/>
+                        <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="*"/>
+                        <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- 6. Bağlı Belgeler -->
+            <TabItem Header="6. Bağlı Belgeler">
+                <TextBlock Text="Bağlı Belgeler (Tahsilat/Ödeme/Fatura Fişleri)" Margin="16" Style="{StaticResource EtiketMetin}"/>
+            </TabItem>
+
+            <!-- 7. Günlük Özet -->
+            <TabItem Header="7. Günlük Özet">
+                <TextBlock Text="Günlük Finansal Giriş / Çıkış Analizi" Margin="16" Style="{StaticResource EtiketMetin}"/>
+            </TabItem>
+
+            <!-- 8. Kullanıcı / Audit -->
+            <TabItem Header="8. Kullanıcı / Audit">
+                <TextBlock Text="Kasa Değişiklik ve İşlem Günlüğü" Margin="16" Style="{StaticResource EtiketMetin}"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

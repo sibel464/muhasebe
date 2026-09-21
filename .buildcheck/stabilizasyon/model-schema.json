@@ -1,0 +1,272 @@
+﻿{
+  "Host": "127.0.0.1",
+  "Database": "Muhasebe",
+  "Environment": "Production (Release default)",
+  "ConfigSource": "Masaustu/appsettings.json",
+  "PendingModelChanges": false,
+  "PendingMigrations": [],
+  "ModelTables": 48,
+  "ColumnTypeAndNullableDifferences": [
+    "EXTRA OBJECT: INDEX|Urunler|IX_Urunler_Barkod_YeniKayitlar"
+  ],
+  "MigrationMatrix": [
+    {
+      "MigrationId": "20260823182650_InitialCreate",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823182943_SeedData",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823184510_UpdateSeedPassword",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823185424_ConfigureCariKart",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823190024_ConfigureCariHareket",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823190856_UpdateCariHareketConstraint",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260823193250_AddFaturaAndStokHareketi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260824094143_AddKullaniciYetkileri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260824095939_AddCariGruplari",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260824103622_AddUrunDetaylari",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260824144812_AddKasaBankaEntegrasyonu",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260825152838_AddIrsaliyeModule",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260825155611_AddFaz2SecurityAuditSettings",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260826133253_AddKurumsalVeriModeli",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260826134014_AddFinansalIslemCekirdegi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827090235_AddDinamikCariTipleri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827092830_AddMerkeziUrunTanimlari",
+      "Code": false,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827105537_TamProfesyonelStokSistemi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827111022_AddUrunTanimIliskileri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827133031_AddCariKartGelistirmeleri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260827134246_UpdateDepoSeed",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260829120828_Paket41Siparis",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260829130817_Paket42SiparistenIrsaliye",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260829132545_Paket43KaynakFaturalama",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260829133056_Paket43ModelSnapshotDuzeltme",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902174927_Paket51TahsilatOdeme",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902185135_AddUniqueUrunBarkod",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902220847_AddSilmeNedeni",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902223000_Paket6FirmaKodSequence",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902224332_Paket52KasaBanka",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902225211_Paket53Doviz",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902225510_Paket54BelgeKapama",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260902234933_AddCekSenetModule",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260903110338_LogoKasaBankaGelistirmeleri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260903112505_AddMagazaDepoTransferSistemi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260905171539_AddYetkiGelistirmeleri",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260908204725_Paket9CariHesapMerkezi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260908213802_Paket10Stok360OperasyonMerkezi",
+      "Code": false,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260908215740_Paket11Finans360OperasyonMerkezi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260908235241_Paket10StokSayimi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260909020000_Paket13MuhasebeCekirdegi",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260909030000_Paket14DovizKurRevaluasyon",
+      "Code": true,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    },
+    {
+      "MigrationId": "20260914085722_StabilizasyonEksikIliskiIndeksleri",
+      "Code": false,
+      "History": true,
+      "HistoricalSchemaEffect": "NOT VERIFIED individually; final model/catalog comparison recorded"
+    }
+  ]
+}

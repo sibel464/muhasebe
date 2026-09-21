@@ -1,0 +1,126 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.MuhasebeSaglikSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- KPI Health Cards -->
+            <RowDefinition Height="*"/>    <!-- Unposted Documents DataGrid -->
+            <RowDefinition Height="Auto"/> <!-- Footer Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. ÜST BAŞLIK -->
+        <Grid Grid.Row="0" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="🏥" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="MUHASEBE SAĞLIK VE DENETİM PANELİ" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Dengesiz Fiş Kontrolü, Eksik Bağlantı Kodları ve Muhasebeleştirilmeyi Bekleyen Belgeler" Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding MuhasebelestirKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚡" Margin="0,0,6,0"/>
+                        <TextBlock Text="Muhasebeleştir"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔄" Margin="0,0,6,0"/>
+                        <TextBlock Text="Yenile"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- 2. KPI HEALTH CARDS -->
+        <Grid Grid.Row="1" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Card 1: Dengesiz Fişler -->
+            <Border Grid.Column="0" Background="#FFFFFF" CornerRadius="8" Padding="14" Margin="0,0,8,0" BorderBrush="#E2E8F0" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="DENGESİZ FİŞ SAYISI" FontSize="11" Foreground="#64748B" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Saglik.DengesizFisSayisi}" FontSize="22" FontWeight="Bold" Foreground="#DC2626" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 2: Eksik Bağlantı Kodları -->
+            <Border Grid.Column="1" Background="#FFFFFF" CornerRadius="8" Padding="14" Margin="0,0,8,0" BorderBrush="#E2E8F0" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="EKSİK HESAP EŞLEME" FontSize="11" Foreground="#64748B" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Saglik.EksikBaglantiKoduSayisi}" FontSize="22" FontWeight="Bold" Foreground="#D97706" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 3: Muhasebeleştirilmemiş Belgeler -->
+            <Border Grid.Column="2" Background="#FFFFFF" CornerRadius="8" Padding="14" Margin="0,0,8,0" BorderBrush="#E2E8F0" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="MUHASEBELEŞMEMİŞ BELGE" FontSize="11" Foreground="#64748B" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Saglik.MuhasebelesmemisBelgeSayisi}" FontSize="22" FontWeight="Bold" Foreground="#2563EB" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 4: Toplam Yevmiye Hacmi -->
+            <Border Grid.Column="3" Background="#FFFFFF" CornerRadius="8" Padding="14" BorderBrush="#E2E8F0" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="TOPLAM YEVMİYE BORÇ/ALACAK" FontSize="11" Foreground="#64748B" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Saglik.ToplamYevmiyeBorc, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#0F172A" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 3. UNPOSTED DOCUMENTS DATAGRID -->
+        <Border Grid.Row="2" Background="#FFFFFF" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DataGrid ItemsSource="{Binding Belgeler}" 
+                      SelectedItem="{Binding SeciliBelge}"
+                      AutoGenerateColumns="False" 
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      RowHeight="36">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Belge Tipi" Binding="{Binding BelgeTipi}" Width="150" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Belge No" Binding="{Binding BelgeNo}" Width="160" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Width="150"/>
+                    <DataGridTextColumn Header="Cari / Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                    <DataGridTextColumn Header="Tutar" Binding="{Binding Tutar, StringFormat={}{0:N2} TL}" Width="150" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- 4. DURUM BARI -->
+        <StatusBar Grid.Row="3" Background="Transparent" Margin="0,8,0,0">
+            <StatusBarItem>
+                <TextBlock Text="{Binding DurumMesaji}" Foreground="#64748B" FontSize="12"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</UserControl>

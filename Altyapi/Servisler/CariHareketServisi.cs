@@ -35,6 +35,9 @@ public class CariHareketServisi : ICariHareketServisi
         if (hareket.Borc > 0 && hareket.Alacak > 0)
             throw new ArgumentException("Bir hareket aynı anda hem borç hem alacak oluşturamaz.");
 
+        if (hareket.Borc == 0 && hareket.Alacak == 0)
+            throw new ArgumentException("Borç ve Alacak tutarlarının ikisi birden sıfır olamaz.");
+
         if (string.IsNullOrWhiteSpace(hareket.Aciklama))
             throw new ArgumentException("Hareket açıklaması boş bırakılamaz.");
 
@@ -59,13 +62,8 @@ public class CariHareketServisi : ICariHareketServisi
             hareket.OlusturmaTarihi = DateTime.UtcNow;
             _baglam.CariHareketler.Add(hareket);
 
-            // Bakiye alanlarını transaction güvenliğinde güncelle
-            cari.Borc += hareket.Borc;
-            cari.Alacak += hareket.Alacak;
-            cari.GuncellemeTarihi = DateTime.UtcNow;
-            
-            // Versiyon sayacını arttır (Concurrency Check için)
-            cari.Versiyon++;
+            // Bakiye alanları ve versiyon MuhasebeBaglami.SaveChangesAsync tarafından otomatik güncelleniyor.
+
 
             await _baglam.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -109,11 +107,8 @@ public class CariHareketServisi : ICariHareketServisi
             // Soft delete işaretle
             hareket.Silindi = true;
 
-            // Cari kart üzerindeki bakiyeleri güvenle geri çek
-            cari.Borc -= hareket.Borc;
-            cari.Alacak -= hareket.Alacak;
-            cari.GuncellemeTarihi = DateTime.UtcNow;
-            cari.Versiyon++;
+            // Bakiye alanları ve versiyon MuhasebeBaglami.SaveChangesAsync tarafından otomatik güncelleniyor.
+
 
             await _baglam.SaveChangesAsync();
             await transaction.CommitAsync();

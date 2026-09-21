@@ -1,0 +1,596 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.DepoSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+             xmlns:stok="clr-namespace:EtkiAlani.Modeller.Stok;assembly=EtkiAlani"
+             xmlns:kurumsal="clr-namespace:EtkiAlani.Modeller.Kurumsal;assembly=EtkiAlani"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1280"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
+            <yardimci:ParaTutariDonusturucu x:Key="ParaTutariDonusturucu"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- 1. Üst Başlık -->
+            <RowDefinition Height="Auto"/>  <!-- 2. KPI Kartları -->
+            <RowDefinition Height="*"/>     <!-- 3. Sekmeli İçerik (TabControl) -->
+        </Grid.RowDefinitions>
+
+        <!-- ███ 1. ÜST BAŞLIK ███ -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="🏬" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock Text="Mağaza &amp; Depo Yönetim Merkezi" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Mağaza ve depolar arası stok takibi, transfer sevkleri, fiziki sayım ve hareket geçmişi" Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                    <TextBlock Text="Excel / CSV" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding DokumYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🖨️" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Stok Raporu" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔄" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yenile" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ███ 2. KPI ÖZET KARTLARI ███ -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
+            <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="16,14">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="📦 TOPLAM STOK" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding ToplamStokAdedi, StringFormat={}{0:N0} Adet}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding ToplamStokDegeri, StringFormat={}{0:N0} ₺ Değer}" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="16,14" BorderBrush="#BBF7D0" BorderThickness="2">
+                <StackPanel>
+                    <TextBlock Text="🛍️ MERKEZ MAĞAZA" FontSize="11" FontWeight="Bold" Foreground="#16A34A"/>
+                    <TextBlock Text="{Binding MagazaToplamStok, StringFormat={}{0:N0} Adet}" FontSize="20" FontWeight="Bold" Foreground="#15803D" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="16,14" BorderBrush="#FDE68A" BorderThickness="2">
+                <StackPanel>
+                    <TextBlock Text="🏢 DEPO 1 (ANA)" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                    <TextBlock Text="{Binding Depo1ToplamStok, StringFormat={}{0:N0} Adet}" FontSize="20" FontWeight="Bold" Foreground="#B45309" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource KpiKarti}" Padding="16,14" BorderBrush="#DDD6FE" BorderThickness="2">
+                <StackPanel>
+                    <TextBlock Text="🚚 DEPO 2 (YEDEK)" FontSize="11" FontWeight="Bold" Foreground="#7C3AED"/>
+                    <TextBlock Text="{Binding Depo2ToplamStok, StringFormat={}{0:N0} Adet}" FontSize="20" FontWeight="Bold" Foreground="#6D28D9" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- ███ 3. TİCARİ MODÜLER SEKMELER (TABCONTROL) ███ -->
+        <TabControl Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            
+            <!-- SEKME 1: ANLIK STOK & DAĞILIM MATRİSİ -->
+            <TabItem Header="📊 Anlık Stok &amp; Dağılım Matrisi">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Logo tarzı birleşik stok arama ve filtre motoru -->
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1"
+                            CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,8">
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Gelişmiş Stok Arama Motoru" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                                    <TextBlock Text="Kod, ürün adı ve barkod içinde çok kelimeli arama yapar; bütün filtreler birlikte çalışır."
+                                               FontSize="11" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                </StackPanel>
+                                <Button DockPanel.Dock="Right" Command="{Binding FiltreleriTemizleKomutu}"
+                                        Style="{StaticResource IkinciDugme}" Padding="12,6" Content="Filtreleri Temizle"/>
+                            </DockPanel>
+                            <WrapPanel>
+                                <StackPanel Width="310" Margin="0,0,10,8">
+                                    <TextBlock Text="Akıllı Arama (kod / ad / barkod)" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Style="{StaticResource FormGirisKutusu}"
+                                             Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Width="155" Margin="0,0,10,8">
+                                    <TextBlock Text="Stok Durumu" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding StokDurumuSecenekleri}" SelectedItem="{Binding StokDurumuFiltresi}"
+                                              Style="{StaticResource FormAcilirKutu}"/>
+                                </StackPanel>
+                                <StackPanel Width="145" Margin="0,0,10,8">
+                                    <TextBlock Text="Lokasyonda Bulunan" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding LokasyonSecenekleri}" SelectedItem="{Binding LokasyonFiltresi}"
+                                              Style="{StaticResource FormAcilirKutu}"/>
+                                </StackPanel>
+                                <StackPanel Width="100" Margin="0,0,10,8">
+                                    <TextBlock Text="Min. Miktar" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Style="{StaticResource FormGirisKutusu}" Text="{Binding MinimumMiktar, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Width="100" Margin="0,0,10,8">
+                                    <TextBlock Text="Maks. Miktar" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Style="{StaticResource FormGirisKutusu}" Text="{Binding MaksimumMiktar, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Width="210" Margin="0,0,10,8">
+                                    <TextBlock Text="Sıralama" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding SiralamaSecenekleri}" SelectedItem="{Binding SiralamaSecimi}"
+                                              Style="{StaticResource FormAcilirKutu}"/>
+                                </StackPanel>
+                                <CheckBox Content="Yalnız stokta olanlar" IsChecked="{Binding YalnizStoktaOlanlar}"
+                                          VerticalAlignment="Center" Margin="0,12,0,8" FontWeight="SemiBold"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Lokasyon Renk Efsanesi -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                        <Border Background="#F0FDF4" CornerRadius="5" Padding="10,4" Margin="0,0,8,0" BorderBrush="#BBF7D0" BorderThickness="1">
+                            <TextBlock Text="🛍️ Mağaza" FontSize="11" FontWeight="SemiBold" Foreground="#15803D"/>
+                        </Border>
+                        <Border Background="#FFFBEB" CornerRadius="5" Padding="10,4" Margin="0,0,8,0" BorderBrush="#FDE68A" BorderThickness="1">
+                            <TextBlock Text="🏢 Depo 1 (Ana)" FontSize="11" FontWeight="SemiBold" Foreground="#B45309"/>
+                        </Border>
+                        <Border Background="#F5F3FF" CornerRadius="5" Padding="10,4" BorderBrush="#DDD6FE" BorderThickness="1">
+                            <TextBlock Text="🚚 Depo 2 (Yedek)" FontSize="11" FontWeight="SemiBold" Foreground="#6D28D9"/>
+                        </Border>
+                    </StackPanel>
+
+                    <DockPanel Grid.Row="2" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding FiltreSonucOzeti}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                        <TextBlock DockPanel.Dock="Right" Text="Excel/CSV çıktısı ekrandaki filtrelenmiş sonuçları kullanır"
+                                   FontSize="11" Foreground="{StaticResource TextSecondaryFirca}"/>
+                    </DockPanel>
+
+                    <!-- DataGrid Matris -->
+                    <DataGrid Grid.Row="3" ItemsSource="{Binding FiltrelenmisStokMatrisi}"
+                              Style="{StaticResource ModernDataGrid}"
+                              AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ÜRÜN KODU" Binding="{Binding UrunKodu}" Width="120" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding UrunAdi}" Width="2*"/>
+                            <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="120"/>
+
+                            <DataGridTextColumn Header="🛍️ MAĞAZA" Binding="{Binding MagazaMiktar, StringFormat={}{0:N0}}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#15803D"/>
+                                        <Setter Property="Background" Value="#F0FDF4"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="🏢 DEPO 1" Binding="{Binding Depo1Miktar, StringFormat={}{0:N0}}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#B45309"/>
+                                        <Setter Property="Background" Value="#FFFBEB"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="🚚 DEPO 2" Binding="{Binding Depo2Miktar, StringFormat={}{0:N0}}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#6D28D9"/>
+                                        <Setter Property="Background" Value="#F5F3FF"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="TOPLAM MİKTAR" Binding="{Binding ToplamMiktar, StringFormat={}{0:N0}}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{StaticResource PrimaryDarkFirca}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="ALIŞ FİYATI" Binding="{Binding AlisFiyati, StringFormat={}{0:N2} ₺}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="TOPLAM DEĞER" Binding="{Binding ToplamDeger, StringFormat={}{0:N2} ₺}" Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="DURUM" Binding="{Binding DurumMetni}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- SEKME 2: DEPOLAR ARASI TRANSFER (SEVK) -->
+            <TabItem Header="🔄 Depolar Arası Transfer (Sevk)">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="420"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- SOL: Transfer Sevk Formu -->
+                    <Border Grid.Column="0" Background="#F8FAFC" CornerRadius="10" Padding="16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Yeni Transfer Fişi Oluştur" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,12"/>
+
+                                <!-- Kaynak -> Hedef -->
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="KAYNAK (ÇIKIŞ) *" Style="{StaticResource EtiketMetin}" Foreground="#DC2626"/>
+                                        <ComboBox ItemsSource="{Binding Depolar}" SelectedItem="{Binding SeciliKaynakDepo}"
+                                                  DisplayMemberPath="DepoAdi" Style="{StaticResource FormAcilirKutu}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="➔" FontSize="18" FontWeight="Bold" Foreground="#64748B"
+                                               HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="HEDEF (GİRİŞ) *" Style="{StaticResource EtiketMetin}" Foreground="#16A34A"/>
+                                        <ComboBox ItemsSource="{Binding Depolar}" SelectedItem="{Binding SeciliHedefDepo}"
+                                                  DisplayMemberPath="DepoAdi" Style="{StaticResource FormAcilirKutu}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="Sevk Edilecek Ürün *" Style="{StaticResource EtiketMetin}"/>
+                                <ComboBox ItemsSource="{Binding Urunler}" SelectedItem="{Binding SeciliTransferUrun}"
+                                          DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="100"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Sevk Miktarı *" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Style="{StaticResource FormGirisKutusu}" Text="{Binding TransferMiktar, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Command="{Binding TransferKalemEkleKomutu}" Style="{StaticResource IkinciDugme}"
+                                            VerticalAlignment="Bottom" Height="38">
+                                        <TextBlock Text="➕ Ekle"/>
+                                    </Button>
+                                </Grid>
+
+                                <TextBlock Text="Transfer Fiş No (boşsa otomatik)" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,8"
+                                         Text="{Binding TransferFisNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Harici Belge No" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,8"
+                                         Text="{Binding TransferBelgeNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Açıklama" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"
+                                         Text="{Binding TransferAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- Transfer Sepet Mini -->
+                                <Border Background="White" CornerRadius="8" Padding="10" Margin="0,0,0,12"
+                                        Visibility="{Binding TransferKalemleri.Count, Converter={StaticResource BoolToVis}}"
+                                        BorderBrush="#E2E8F0" BorderThickness="1" MaxHeight="140">
+                                    <ListBox ItemsSource="{Binding TransferKalemleri}" BorderThickness="0" Background="Transparent">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,2">
+                                                    <Button DockPanel.Dock="Right"
+                                                            Command="{Binding DataContext.TransferKalemSilKomutu, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Style="{StaticResource MikroSilDugme}"/>
+                                                    <TextBlock VerticalAlignment="Center">
+                                                        <Run Text="{Binding Urun.Ad}" FontWeight="SemiBold"/>
+                                                        <Run Text=" — "/>
+                                                        <Run Text="{Binding Miktar, StringFormat={}{0:N0} Adet}" Foreground="#2563EB" FontWeight="Bold"/>
+                                                    </TextBlock>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Border>
+
+                                <Button Command="{Binding TransferFisiKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="42">
+                                    <TextBlock Text="🚀 Transferi Kaydet ve Stokları Güncelle"/>
+                                </Button>
+
+                                <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}"
+                                           FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding BasariMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                                <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}"
+                                           FontWeight="SemiBold" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding HataMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- SAĞ: Kaydedilmiş Transfer Fişleri -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="Kaydedilmiş Transfer Sevk Fişleri" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                            <TextBlock Text="Gerçekleştirilen depolar arası sevk kayıtları ve detayları" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding TransferFisleri}"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="FİŞ NO" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
+                                <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy HH:mm}" Width="130"/>
+                                <DataGridTextColumn Header="KAYNAK DEPO" Binding="{Binding KaynakDepo.DepoAdi}" Width="1.5*"/>
+                                <DataGridTextColumn Header="HEDEF DEPO" Binding="{Binding HedefDepo.DepoAdi}" Width="1.5*"/>
+                                <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="110"/>
+                                <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- SEKME 3: FİZİKİ SAYIM & SAYIM FARK FİŞİ -->
+            <TabItem Header="📋 Fiziki Sayım &amp; Sayım Fark Fişi">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="Depo Fiziki Sayım İşlemi" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                        <TextBlock Text="Seçilen depodaki fiziki sayım miktarını girin. Sistem stoğu ile arasındaki +/- fark otomatik hesaplanıp fark fişi kesilir." FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Form Girişleri -->
+                    <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="10" Padding="18" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.5*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="1.2*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="SAYILAN DEPO *" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding Depolar}" SelectedItem="{Binding SeciliSayimDepo}"
+                                              DisplayMemberPath="DepoAdi" Style="{StaticResource FormAcilirKutu}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="SAYILAN ÜRÜN *" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding Urunler}" SelectedItem="{Binding SeciliSayimUrun}"
+                                              DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="FİZİKİ SAYILAN MİKTAR *" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Style="{StaticResource FormGirisKutusu}"
+                                             Text="{Binding SayilanMiktar, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                                <TextBlock Text="Sayım Notu / Açıklama" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Height="38"
+                                         Text="{Binding SayimAciklama, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Önizleme Kartları ve Fark Hesaplama -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="18" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="MEVCUT SİSTEM STOĞU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding MevcutSayimDepoStogu, StringFormat={}{0:N0} Adet}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                <TextBlock Text="FİZİKİ SAYILAN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding SayilanMiktar, StringFormat={}{0:N0} Adet}" FontSize="22" FontWeight="Bold" Foreground="#2563EB" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                                <TextBlock Text="SAYIM FARKI (+ / -)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding SayimFarki, StringFormat={}{0:N0} Adet}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="3" Command="{Binding SayimKaydetKomutu}" Style="{StaticResource BirinciDugme}" Width="240" Height="44" VerticalAlignment="Center">
+                                <TextBlock Text="✅ Sayım Farkını İşle ve Güncelle"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- SEKME 4: DEPO HAREKET GEÇMİŞİ (STOK EKSTRESİ) -->
+            <TabItem Header="📜 Depo Hareket Geçmişi">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="Stok Hareket Geçmişi ve İzlenebilirlik" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                        <TextBlock Text="Giriş, çıkış, sevk, satış, alış ve sayım farkı hareketlerinin detaylı dökümü" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,2,0,0"/>
+                        <ComboBox ItemsSource="{Binding Depolar}" SelectedItem="{Binding FiltreDepo}"
+                                  DisplayMemberPath="DepoAdi" Style="{StaticResource FormAcilirKutu}"
+                                  Width="280" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                  ToolTip="Hareketleri seçilen mağaza veya depoya göre filtreler"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Hareketler}"
+                              Style="{StaticResource ModernDataGrid}"
+                              AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy HH:mm}" Width="130"/>
+                            <DataGridTextColumn Header="FİŞ NO" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="110"/>
+                            <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding UrunAdi}" Width="2*"/>
+                            <DataGridTextColumn Header="NEREDEN ➔ NEREYE" Binding="{Binding NeredenNereye}" Width="2*" FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="MİKTAR" Binding="{Binding Miktar, StringFormat={}{0:N0}}" Width="95">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="2.5*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- SEKME 5: MAĞAZA & DEPO KARTLARI -->
+            <TabItem Header="🏢 Mağaza &amp; Depo Kart Tanımları">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="380"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- SOL: Tanımlı Depo ve Mağazalar Listesi -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                            <TextBlock Text="Kayıtlı Mağaza ve Depolar" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                            <TextBlock Text="Sistemde kayıtlı şube ve depolama lokasyonları" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Depolar}" Style="{StaticResource ModernDataGrid}"
+                                  AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="KOD" Binding="{Binding DepoKodu}" Width="90" FontWeight="Bold"/>
+                                <DataGridTextColumn Header="DEPO / MAĞAZA ADI" Binding="{Binding DepoAdi}" Width="2*"/>
+                                <DataGridTextColumn Header="TÜR" Binding="{Binding DepoTuru}" Width="100"/>
+                                <DataGridTextColumn Header="SORUMLU" Binding="{Binding Sorumlu}" Width="130"/>
+                                <DataGridTextColumn Header="TELEFON" Binding="{Binding Telefon}" Width="120"/>
+                                <DataGridTextColumn Header="ADRES" Binding="{Binding Adres}" Width="2*"/>
+                                <DataGridTemplateColumn Header="İŞLEM" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding DataContext.DepoSilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                                    CommandParameter="{Binding}" 
+                                                    Style="{StaticResource TehlikeliDugme}" 
+                                                    Height="26" Width="65" FontSize="11" Padding="0"
+                                                    Content="🗑️ Sil"
+                                                    ToolTip="Ek Depoyu Sil / Pasife Al (Ana Depolar Silinemez)"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
+                    <!-- SAĞ: Yeni Depo / Mağaza Ekleme Formu -->
+                    <Border Grid.Column="2" Background="#F8FAFC" CornerRadius="10" Padding="16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Yeni Depo / Mağaza Ekle" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+
+                                <TextBlock Text="Depo Kodu *" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,10" Text="{Binding YeniDepoKodu, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Text="Depo / Mağaza Adı *" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,10" Text="{Binding YeniDepoAdi, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Text="Lokasyon Türü *" Style="{StaticResource EtiketMetin}"/>
+                                <ComboBox SelectedValue="{Binding YeniDepoTuru}" SelectedValuePath="Tag"
+                                          Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,10">
+                                    <ComboBoxItem Content="Depo" Tag="{x:Static kurumsal:DepoTuru.Depo}"/>
+                                    <ComboBoxItem Content="Mağaza" Tag="{x:Static kurumsal:DepoTuru.Magaza}"/>
+                                </ComboBox>
+
+                                <TextBlock Text="Sorumlu Personel" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,10" Text="{Binding YeniSorumlu, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Text="Telefon" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,10" Text="{Binding YeniTelefon, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Text="Adres" Style="{StaticResource EtiketMetin}"/>
+                                <TextBox Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" Margin="0,0,0,14" Text="{Binding YeniAdres, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <Button Command="{Binding YeniDepoKaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="40">
+                                    <TextBlock Text="➕ Yeni Depo Kaydet"/>
+                                </Button>
+
+                                <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}"
+                                           FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding BasariMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                                <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}"
+                                           FontWeight="SemiBold" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding HataMesaji, Converter={StaticResource BosBoslukDonusturucu}}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

@@ -1,0 +1,22 @@
+<Window x:Class="Masaustu.Gorunumler.Pencere.CariSecimPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cari Seçimi" Width="850" Height="560" MinWidth="720" MinHeight="440"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="#F5F7FB">
+    <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBox x:Name="AramaKutusu" Height="40" Padding="11,7" FontSize="15" Margin="0,0,0,12" VerticalContentAlignment="Center"
+                 ToolTip="Cari kodu, unvan veya telefon" TextChanged="AramaKutusu_TextChanged" KeyDown="AramaKutusu_KeyDown"/>
+        <DataGrid x:Name="CariGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" RowHeight="42"
+                  AlternatingRowBackground="#F8FAFC" GridLinesVisibility="Horizontal" MouseDoubleClick="CariGrid_MouseDoubleClick" KeyDown="CariGrid_KeyDown">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Cari Kod" Binding="{Binding Kod}" Width="130"/>
+                <DataGridTextColumn Header="Ad / Ünvan" Binding="{Binding Unvan}" Width="2*"/>
+                <DataGridTextColumn Header="Telefon" Binding="{Binding Telefon}" Width="140"/>
+                <DataGridTextColumn Header="Cari Tipi" Binding="{Binding Tur}" Width="130"/>
+                <DataGridTextColumn Header="Bakiye" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="130"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Grid Grid.Row="2" Margin="0,12,0,0"><TextBlock Text="Enter veya çift tıklama ile seçin.  Esc: Kapat" Foreground="#64748B" VerticalAlignment="Center"/>
+            <Button Content="Cariyi Seç" Width="120" Height="36" HorizontalAlignment="Right" Click="Sec_Click" Background="#1D4ED8" Foreground="White" BorderThickness="0"/>
+        </Grid>
+    </Grid>
+</Window>

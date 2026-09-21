@@ -1,4 +1,5 @@
 using EtkiAlani.Modeller.Stok;
+using EtkiAlani.Modeller.Kurumsal;
 
 namespace Uygulama.Arayuzler;
 
@@ -9,7 +10,26 @@ public interface IUrunServisi
     Task<Urun?> KodIleGetirAsync(string kod);
     Task<Urun> EkleAsync(Urun urun);
     Task<Urun> GuncelleAsync(Urun urun);
-    Task<bool> SilAsync(int id);
+    Task<bool> SilAsync(int id, string? silmeNedeni = null);
     Task<List<Urun>> AraAsync(string aramaMetni);
+    Task<List<Urun>> FiltreliAraAsync(UrunFiltre filtre);
     Task<bool> KodMevcutMuAsync(string kod, int? haricId = null);
+    Task<bool> BarkodMevcutMuAsync(string barkod, int? haricId = null);
+    Task<Urun?> BarkodIleGetirAsync(string barkod);
+    Task<string> OtomatikKodOnizleAsync();
+    Task<string> OtomatikBarkodOnizleAsync();
+    Task<Urun> GuvenliEkleAsync(Urun urun, bool otomatikKod, bool otomatikBarkod);
+    Task<List<string>> KullanilanKodlariGetirAsync();
+    Task<List<string>> KullanilanBarkodlariGetirAsync();
+
+    // ── Taksitli Fiyat Yönetimi ──
+    Task<List<UrunSatisFiyati>> FiyatlariGetirAsync(int urunId);
+    Task FiyatlariKaydetAsync(int urunId, List<UrunSatisFiyati> fiyatlar);
+
+    // ── Lokasyon Stok Yönetimi ──
+    Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(int urunId);
+    Task LokasyonStoklariniKaydetAsync(int urunId, List<UrunLokasyonStogu> stoklar);
+
+    // ── Depo Listesi ──
+    Task<List<Depo>> DepolariGetirAsync();
 }

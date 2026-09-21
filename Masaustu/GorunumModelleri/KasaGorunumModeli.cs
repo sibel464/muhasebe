@@ -1,2 +1,576 @@
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using EtkiAlani.Modeller.Finans;
+using EtkiAlani.Modeller.Cari;
+using Uygulama.Arayuzler;
+using Masaustu.Yardimcilar;
+
 namespace Masaustu.GorunumModelleri;
-public class KasaGorunumModeli : TemelGorunumModeli { }
+
+public class KasaGorunumModeli : TemelGorunumModeli
+{
+    private readonly IKasaServisi _kasaServisi;
+    private readonly ICariServisi? _cariServisi;
+    private readonly IBankaServisi? _bankaServisi;
+    private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
+
+    private ObservableCollection<Kasa> _kasalar = new();
+    private Kasa? _seciliKasa;
+
+    private ObservableCollection<CariKart> _cariKartlar = new();
+    private CariKart? _seciliCariKart;
+
+    private ObservableCollection<BankaHesabi> _bankaHesaplari = new();
+    private BankaHesabi? _seciliTargetBankaHesabi;
+
+    private ObservableCollection<KasaHareketi> _hareketler = new();
+    private List<KasaHareketi> _tumHareketler = new();
+    private string _aramaMetni = string.Empty;
+    private decimal _toplamBakiye;
+    private decimal _buAyGelir;
+    private decimal _buAyGider;
+    private string _durumMesaji = "Yükleniyor...";
+    private bool _yukleniyor;
+
+    // Fiş Giriş Formu (Logo ERP Style)
+    private KasaFisTuru _seciliFisTuru = KasaFisTuru.Tahsilat;
+    private decimal _yeniTutar;
+    private string _yeniAciklama = string.Empty;
+    private string _yeniMakbuzNo = string.Empty;
+    private string _yeniMasrafKodu = string.Empty;
+    private DateTime _yeniTarih = DateTime.Today;
+
+    // Virman Formu
+    private Kasa? _seciliTargetKasa;
+    private decimal _virmanTutari;
+    private string _virmanAciklama = string.Empty;
+
+    // Mutabakat / Sayım Formu
+    private int _adet200;
+    private int _adet100;
+    private int _adet50;
+    private int _adet20;
+    private int _adet10;
+    private int _adet5;
+    private decimal _bozukParaToplam;
+    private string _mutabakatAciklama = string.Empty;
+
+    // Kasa Ekle Formu
+    private string _yeniKasaKodu = string.Empty;
+    private string _yeniKasaAd = string.Empty;
+    private string _yeniKasaMuhasebeKodu = "100.01.001";
+
+    private string _hataMesaji = string.Empty;
+    private string _basariMesaji = string.Empty;
+
+    public ObservableCollection<Kasa> Kasalar
+    {
+        get => _kasalar;
+        set => OzellikAyarla(ref _kasalar, value);
+    }
+
+    public Kasa? SeciliKasa
+    {
+        get => _seciliKasa;
+        set
+        {
+            if (OzellikAyarla(ref _seciliKasa, value))
+            {
+                _ = VerileriYukleAsync();
+            }
+        }
+    }
+
+    public ObservableCollection<CariKart> CariKartlar
+    {
+        get => _cariKartlar;
+        set => OzellikAyarla(ref _cariKartlar, value);
+    }
+
+    public CariKart? SeciliCariKart
+    {
+        get => _seciliCariKart;
+        set => OzellikAyarla(ref _seciliCariKart, value);
+    }
+
+    public ObservableCollection<BankaHesabi> BankaHesaplari
+    {
+        get => _bankaHesaplari;
+        set => OzellikAyarla(ref _bankaHesaplari, value);
+    }
+
+    public BankaHesabi? SeciliTargetBankaHesabi
+    {
+        get => _seciliTargetBankaHesabi;
+        set => OzellikAyarla(ref _seciliTargetBankaHesabi, value);
+    }
+
+    public Kasa? SeciliTargetKasa
+    {
+        get => _seciliTargetKasa;
+        set => OzellikAyarla(ref _seciliTargetKasa, value);
+    }
+
+    public ObservableCollection<KasaHareketi> Hareketler
+    {
+        get => _hareketler;
+        set => OzellikAyarla(ref _hareketler, value);
+    }
+
+    public string AramaMetni
+    {
+        get => _aramaMetni;
+        set
+        {
+            if (OzellikAyarla(ref _aramaMetni, value ?? string.Empty))
+                Filtrele();
+        }
+    }
+
+    public decimal ToplamBakiye
+    {
+        get => _toplamBakiye;
+        set => OzellikAyarla(ref _toplamBakiye, value);
+    }
+
+    public decimal BuAyGelir
+    {
+        get => _buAyGelir;
+        set => OzellikAyarla(ref _buAyGelir, value);
+    }
+
+    public decimal BuAyGider
+    {
+        get => _buAyGider;
+        set => OzellikAyarla(ref _buAyGider, value);
+    }
+
+    public string DurumMesaji
+    {
+        get => _durumMesaji;
+        set => OzellikAyarla(ref _durumMesaji, value);
+    }
+
+    public bool Yukleniyor
+    {
+        get => _yukleniyor;
+        set => OzellikAyarla(ref _yukleniyor, value);
+    }
+
+    // Fiş Form Özellikleri
+    public KasaFisTuru SeciliFisTuru
+    {
+        get => _seciliFisTuru;
+        set => OzellikAyarla(ref _seciliFisTuru, value);
+    }
+
+    public Array FisTurleri => Enum.GetValues(typeof(KasaFisTuru));
+
+    public decimal YeniTutar
+    {
+        get => _yeniTutar;
+        set => OzellikAyarla(ref _yeniTutar, value);
+    }
+
+    public string YeniAciklama
+    {
+        get => _yeniAciklama;
+        set => OzellikAyarla(ref _yeniAciklama, value);
+    }
+
+    public string YeniMakbuzNo
+    {
+        get => _yeniMakbuzNo;
+        set => OzellikAyarla(ref _yeniMakbuzNo, value);
+    }
+
+    public string YeniMasrafKodu
+    {
+        get => _yeniMasrafKodu;
+        set => OzellikAyarla(ref _yeniMasrafKodu, value);
+    }
+
+    public DateTime YeniTarih
+    {
+        get => _yeniTarih;
+        set => OzellikAyarla(ref _yeniTarih, value);
+    }
+
+    // Virman Özellikleri
+    public decimal VirmanTutari
+    {
+        get => _virmanTutari;
+        set => OzellikAyarla(ref _virmanTutari, value);
+    }
+
+    public string VirmanAciklama
+    {
+        get => _virmanAciklama;
+        set => OzellikAyarla(ref _virmanAciklama, value);
+    }
+
+    // Mutabakat Sayım Kırılımları
+    public int Adet200 { get => _adet200; set { if (OzellikAyarla(ref _adet200, value)) GuncelleSayimToplam(); } }
+    public int Adet100 { get => _adet100; set { if (OzellikAyarla(ref _adet100, value)) GuncelleSayimToplam(); } }
+    public int Adet50 { get => _adet50; set { if (OzellikAyarla(ref _adet50, value)) GuncelleSayimToplam(); } }
+    public int Adet20 { get => _adet20; set { if (OzellikAyarla(ref _adet20, value)) GuncelleSayimToplam(); } }
+    public int Adet10 { get => _adet10; set { if (OzellikAyarla(ref _adet10, value)) GuncelleSayimToplam(); } }
+    public int Adet5 { get => _adet5; set { if (OzellikAyarla(ref _adet5, value)) GuncelleSayimToplam(); } }
+    public decimal BozukParaToplam { get => _bozukParaToplam; set { if (OzellikAyarla(ref _bozukParaToplam, value)) GuncelleSayimToplam(); } }
+    public string MutabakatAciklama { get => _mutabakatAciklama; set => OzellikAyarla(ref _mutabakatAciklama, value); }
+
+    public decimal SayimFizikiToplam => (Adet200 * 200) + (Adet100 * 100) + (Adet50 * 50) + (Adet20 * 20) + (Adet10 * 10) + (Adet5 * 5) + BozukParaToplam;
+    public decimal SayimFark => SayimFizikiToplam - ToplamBakiye;
+
+    // Kasa Ekle Form Özellikleri
+    public string YeniKasaKodu { get => _yeniKasaKodu; set => OzellikAyarla(ref _yeniKasaKodu, value); }
+    public string YeniKasaAd { get => _yeniKasaAd; set => OzellikAyarla(ref _yeniKasaAd, value); }
+    public string YeniKasaMuhasebeKodu { get => _yeniKasaMuhasebeKodu; set => OzellikAyarla(ref _yeniKasaMuhasebeKodu, value); }
+
+    public string HataMesaji
+    {
+        get => _hataMesaji;
+        set => OzellikAyarla(ref _hataMesaji, value);
+    }
+
+    public string BasariMesaji
+    {
+        get => _basariMesaji;
+        set => OzellikAyarla(ref _basariMesaji, value);
+    }
+
+    public bool BakiyePositif => ToplamBakiye >= 0;
+
+    // Komutlar
+    public ICommand FisKaydetKomutu { get; }
+    public ICommand KasaVirmanKaydetKomutu { get; }
+    public ICommand BankayaYatirKaydetKomutu { get; }
+    public ICommand MutabakatKaydetKomutu { get; }
+    public ICommand KasaEkleKomutu { get; }
+    public ICommand SilKomutu { get; }
+    public ICommand YenileKomutu { get; }
+    public ICommand DokumYazdirKomutu { get; }
+    public ICommand ExcelAktarKomutu { get; }
+
+    public KasaGorunumModeli(
+        IKasaServisi kasaServisi,
+        IBelgeYazdirmaServisi? yazdirmaServisi = null,
+        ICariServisi? cariServisi = null,
+        IBankaServisi? bankaServisi = null)
+    {
+        _kasaServisi = kasaServisi;
+        _yazdirmaServisi = yazdirmaServisi;
+        _cariServisi = cariServisi;
+        _bankaServisi = bankaServisi;
+
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Hareketler, "Kasa_Hareketleri_Listesi"));
+
+        FisKaydetKomutu = new KomutSarici(async () => await FisKaydetAsync());
+        KasaVirmanKaydetKomutu = new KomutSarici(async () => await KasaVirmanKaydetAsync());
+        BankayaYatirKaydetKomutu = new KomutSarici(async () => await BankayaYatirKaydetAsync());
+        MutabakatKaydetKomutu = new KomutSarici(async () => await MutabakatKaydetAsync());
+        KasaEkleKomutu = new KomutSarici(async () => await KasaEkleAsync());
+        SilKomutu = new KomutSarici(async param => { if (param is KasaHareketi h) await SilAsync(h); });
+        YenileKomutu = new KomutSarici(async () => await VerileriYukleAsync());
+        DokumYazdirKomutu = new KomutSarici(async () =>
+        {
+            if (_yazdirmaServisi != null)
+                await _yazdirmaServisi.KasaDokumuYazdirAsync(Hareketler.ToList(), ToplamBakiye);
+        });
+
+        _ = IlkYuklemeAsync();
+    }
+
+    private void GuncelleSayimToplam()
+    {
+        BildirimGonder(nameof(SayimFizikiToplam));
+        BildirimGonder(nameof(SayimFark));
+    }
+
+    private readonly SemaphoreSlim _yuklemeKilidi = new(1, 1);
+
+    private async Task IlkYuklemeAsync()
+    {
+        await _yuklemeKilidi.WaitAsync();
+        Yukleniyor = true;
+        try
+        {
+            var kList = await _kasaServisi.KasalariGetirAsync();
+            Kasalar = new ObservableCollection<Kasa>(kList);
+            _seciliKasa = Kasalar.FirstOrDefault();
+            BildirimGonder(nameof(SeciliKasa));
+
+            if (_cariServisi != null)
+            {
+                var cList = await _cariServisi.TumunuGetirAsync();
+                CariKartlar = new ObservableCollection<CariKart>(cList);
+            }
+
+            if (_bankaServisi != null)
+            {
+                var bList = await _bankaServisi.BankaHesaplariGetirAsync();
+                BankaHesaplari = new ObservableCollection<BankaHesabi>(bList);
+                SeciliTargetBankaHesabi = BankaHesaplari.FirstOrDefault();
+            }
+
+            await VerileriYukleKilitsizAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Kasa verileri yüklenirken hata: {ex.Message}";
+        }
+        finally
+        {
+            Yukleniyor = false;
+            _yuklemeKilidi.Release();
+        }
+    }
+
+    private async Task VerileriYukleAsync()
+    {
+        await _yuklemeKilidi.WaitAsync();
+        Yukleniyor = true;
+        try
+        {
+            await VerileriYukleKilitsizAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Kasa verileri yüklenirken hata: {ex.Message}";
+        }
+        finally
+        {
+            Yukleniyor = false;
+            _yuklemeKilidi.Release();
+        }
+    }
+
+    private async Task VerileriYukleKilitsizAsync()
+    {
+        List<KasaHareketi> liste;
+        if (SeciliKasa != null)
+        {
+            liste = await _kasaServisi.KasaHareketleriGetirAsync(SeciliKasa.Id);
+            ToplamBakiye = await _kasaServisi.KasaBakiyeHesaplaAsync(SeciliKasa.Id);
+        }
+        else
+        {
+            liste = await _kasaServisi.TumunuGetirAsync();
+            ToplamBakiye = await _kasaServisi.BakiyeHesaplaAsync();
+        }
+
+        _tumHareketler = liste;
+        Filtrele();
+
+        BildirimGonder(nameof(BakiyePositif));
+        GuncelleSayimToplam();
+
+        var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        BuAyGelir = liste.Where(h => h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar);
+        BuAyGider = liste.Where(h => h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar);
+
+        DurumMesaji = $"{liste.Count} kasa hareketi listeleniyor.";
+    }
+
+    private void Filtrele()
+    {
+        var arama = AramaMetni.Trim();
+        var filtrelenmis = string.IsNullOrWhiteSpace(arama)
+            ? _tumHareketler
+            : _tumHareketler.Where(h =>
+                h.Aciklama.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ||
+                (h.FisNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                (h.MakbuzNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                (h.CariKart?.Unvan.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false));
+        Hareketler = new ObservableCollection<KasaHareketi>(filtrelenmis);
+    }
+
+    private async Task FisKaydetAsync()
+    {
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        if (YeniTutar <= 0) { HataMesaji = "Geçerli bir tutar giriniz."; return; }
+        if (string.IsNullOrWhiteSpace(YeniAciklama)) { HataMesaji = "Açıklama boş bırakılamaz."; return; }
+
+        var kasaId = SeciliKasa?.Id ?? 0;
+
+        try
+        {
+            if (SeciliFisTuru == KasaFisTuru.Tahsilat && SeciliCariKart != null)
+            {
+                await _kasaServisi.TahsilatEkleAsync(kasaId, SeciliCariKart.Id, YeniTutar, YeniAciklama, YeniMakbuzNo, YeniTarih);
+                BasariMesaji = $"✅ Cari Tahsilat kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+            }
+            else if (SeciliFisTuru == KasaFisTuru.Odeme && SeciliCariKart != null)
+            {
+                await _kasaServisi.OdemeEkleAsync(kasaId, SeciliCariKart.Id, YeniTutar, YeniAciklama, YeniMakbuzNo, YeniTarih);
+                BasariMesaji = $"✅ Cari Ödeme kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+            }
+            else
+            {
+                var tur = (SeciliFisTuru == KasaFisTuru.Tahsilat || SeciliFisTuru == KasaFisTuru.Gelir || SeciliFisTuru == KasaFisTuru.AcilisDevir)
+                    ? HareketTuru.Gelir
+                    : HareketTuru.Gider;
+
+                var hareket = new KasaHareketi
+                {
+                    KasaId = kasaId,
+                    Tarih = YeniTarih,
+                    Tur = tur,
+                    FisTuru = SeciliFisTuru,
+                    Tutar = YeniTutar,
+                    Aciklama = YeniAciklama,
+                    MakbuzNo = YeniMakbuzNo,
+                    MasrafKodu = YeniMasrafKodu,
+                    CariKartId = SeciliCariKart?.Id
+                };
+
+                await _kasaServisi.EkleAsync(hareket);
+                BasariMesaji = $"✅ {SeciliFisTuru} fişi kaydedildi: {YeniTutar:N2} ₺";
+            }
+
+            YeniTutar = 0;
+            YeniAciklama = string.Empty;
+            YeniMakbuzNo = string.Empty;
+
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"İşlem kaydedilemedi: {ex.Message}";
+        }
+    }
+
+    private async Task KasaVirmanKaydetAsync()
+    {
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        if (SeciliKasa == null || SeciliTargetKasa == null) { HataMesaji = "Kaynak ve Hedef kasa seçiniz."; return; }
+        if (VirmanTutari <= 0) { HataMesaji = "Geçerli virman tutarı giriniz."; return; }
+
+        try
+        {
+            await _kasaServisi.KasaVirmanYapAsync(SeciliKasa.Id, SeciliTargetKasa.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
+            BasariMesaji = $"✅ Virman tamamlandı: {VirmanTutari:N2} ₺ ({SeciliKasa.Ad} -> {SeciliTargetKasa.Ad})";
+            VirmanTutari = 0;
+            VirmanAciklama = string.Empty;
+
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Virman başarısız: {ex.Message}";
+        }
+    }
+
+    private async Task BankayaYatirKaydetAsync()
+    {
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        if (SeciliKasa == null || SeciliTargetBankaHesabi == null) { HataMesaji = "Kasa ve Banka Hesabı seçiniz."; return; }
+        if (VirmanTutari <= 0) { HataMesaji = "Geçerli yatırma tutarı giriniz."; return; }
+
+        try
+        {
+            await _kasaServisi.BankayaParaYatirAsync(SeciliKasa.Id, SeciliTargetBankaHesabi.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
+            BasariMesaji = $"✅ Bankaya yatırma kaydedildi: {VirmanTutari:N2} ₺ ({SeciliTargetBankaHesabi.Ad})";
+            VirmanTutari = 0;
+            VirmanAciklama = string.Empty;
+
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Bankaya yatırma başarısız: {ex.Message}";
+        }
+    }
+
+    private async Task MutabakatKaydetAsync()
+    {
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        if (SeciliKasa == null) { HataMesaji = "Kasa seçiniz."; return; }
+
+        try
+        {
+            var m = new KasaSayimMutabakat
+            {
+                KasaId = SeciliKasa.Id,
+                Tarih = DateTime.Today,
+                Adet200 = Adet200,
+                Adet100 = Adet100,
+                Adet50 = Adet50,
+                Adet20 = Adet20,
+                Adet10 = Adet10,
+                Adet5 = Adet5,
+                BozukParaToplam = BozukParaToplam,
+                Aciklama = MutabakatAciklama
+            };
+
+            await _kasaServisi.KasaSayimMutabakatKaydetAsync(m);
+            BasariMesaji = $"✅ Kasa Mutabakatı kaydedildi. (Fark: {m.Fark:N2} ₺)";
+
+            Adet200 = 0; Adet100 = 0; Adet50 = 0; Adet20 = 0; Adet10 = 0; Adet5 = 0; BozukParaToplam = 0;
+            MutabakatAciklama = string.Empty;
+
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Mutabakat kaydedilemedi: {ex.Message}";
+        }
+    }
+
+    private async Task KasaEkleAsync()
+    {
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(YeniKasaAd)) { HataMesaji = "Kasa adı boş girilemez."; return; }
+
+        try
+        {
+            var k = new Kasa
+            {
+                Kod = string.IsNullOrWhiteSpace(YeniKasaKodu) ? $"KSA-0{Kasalar.Count + 1}" : YeniKasaKodu.Trim(),
+                Ad = YeniKasaAd.Trim(),
+                MuhasebeKodu = string.IsNullOrWhiteSpace(YeniKasaMuhasebeKodu) ? "100.01.001" : YeniKasaMuhasebeKodu.Trim(),
+                ParaBirimi = "TRY",
+                AktifMi = true
+            };
+
+            await _kasaServisi.KasaEkleAsync(k);
+            BasariMesaji = $"✅ Yeni kasa eklendi: {k.Ad}";
+
+            YeniKasaKodu = string.Empty;
+            YeniKasaAd = string.Empty;
+
+            var list = await _kasaServisi.KasalariGetirAsync();
+            Kasalar = new ObservableCollection<Kasa>(list);
+            SeciliKasa = k;
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Kasa eklenemedi: {ex.Message}";
+        }
+    }
+
+    private async Task SilAsync(KasaHareketi hareket)
+    {
+        var onay = System.Windows.MessageBox.Show(
+            $"{hareket.Aciklama} — {hareket.Tutar:N2} ₺ kaydını silmek istiyor musunuz?",
+            "Silme Onayı",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (onay != System.Windows.MessageBoxResult.Yes) return;
+
+        await _kasaServisi.SilAsync(hareket.Id);
+        await VerileriYukleAsync();
+    }
+}
+

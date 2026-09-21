@@ -1,0 +1,276 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.SatisSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="768" d:DesignWidth="1200"
+             Background="#F8FAFC"
+             Focusable="True">
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="F2" Command="{Binding UrunAraKomutu}"/>
+        <KeyBinding Key="F3" Command="{Binding CariSecKomutu}"/>
+        <KeyBinding Key="F4" Command="{Binding StokDagilimiAcKomutu}"/>
+        <KeyBinding Key="F5" Command="{Binding SatisiBekletKomutu}"/>
+        <KeyBinding Key="F6" Command="{Binding BekleyenSatisGetirKomutu}"/>
+        <KeyBinding Key="F8" Command="{Binding SatirSilKomutu}"/>
+        <KeyBinding Key="F9" Command="{Binding OdemeEkraniAcKomutu}"/>
+        <KeyBinding Key="F10" Command="{Binding SatisTamamlaKomutu}"/>
+        <KeyBinding Key="Escape" Command="{Binding IptalKomutu}"/>
+    </UserControl.InputBindings>
+
+    <UserControl.Resources>
+        <!-- Modern Buton Stili -->
+        <Style x:Key="BuyukButonStili" TargetType="Button">
+            <Setter Property="Height" Value="75"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="12"
+                                BorderBrush="#20FFFFFF" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.75"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98" CenterX="100" CenterY="35"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ÜST PANEL: Sadeleştirilmiş Barkod Girişi -->
+        <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="15" Margin="0,0,0,15">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.03"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="BARKOD:" VerticalAlignment="Center" FontSize="24" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,15,0"/>
+                    <TextBox x:Name="txtBarkod" Text="{Binding Barkod, UpdateSourceTrigger=PropertyChanged}" 
+                             FontSize="28" FontWeight="SemiBold" Width="400" Padding="15" Background="#F1F5F9" BorderBrush="#E2E8F0" 
+                             BorderThickness="2" Foreground="#0F172A" VerticalContentAlignment="Center"
+                             ToolTip="Barkod okutun veya kod yazın">
+                        <TextBox.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="10"/>
+                            </Style>
+                        </TextBox.Resources>
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Return" Command="{Binding BarkodOkunduKomutu}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <Button Command="{Binding UrunAraKomutu}" Content="🔍 Bul (F2)" 
+                            Background="#3B82F6" Foreground="White" FontWeight="Bold" FontSize="18"
+                            Padding="25,0" Margin="10,0,0,0" Cursor="Hand">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="10"/></Style></Button.Resources>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0,0,0">
+                    <Button Command="{Binding SatisiBekletKomutu}" Content="Satışı Beklet (F5)" Background="#F59E0B" Foreground="White" Padding="20,10" Margin="0,0,10,0" FontWeight="Bold" FontSize="16">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                    </Button>
+                    <Button Command="{Binding BekleyenSatisGetirKomutu}" Content="Bekleyenleri Aç (F6)" Background="#6366F1" Foreground="White" Padding="20,10" FontWeight="Bold" FontSize="16">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ORTA PANEL: Çok Daha Sade Sepet Tablosu -->
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="0" Margin="0,0,0,15">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.03"/>
+            </Border.Effect>
+            <DataGrid ItemsSource="{Binding Sepet}" SelectedItem="{Binding SeciliKalem}"
+                      AutoGenerateColumns="False" IsReadOnly="False" HeadersVisibility="Column" SelectionMode="Single"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                      BorderThickness="0" RowHeight="60" Background="Transparent" AlternatingRowBackground="#FAFAF9">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F8FAFC"/>
+                        <Setter Property="Foreground" Value="#64748B"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="Padding" Value="15,12"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                
+                <DataGrid.Columns>
+                    <!-- Yalnızca Ürün Adı, Miktar, Fiyat, Tutar, Dağılım ve Sil -->
+                    <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding Ad}" IsReadOnly="True" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="18"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="15,0,0,0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    
+                    <DataGridTemplateColumn Header="MİKTAR" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding MiktarMetni, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', FallbackValue=''}" 
+                                         FontSize="20" FontWeight="Bold" TextAlignment="Center" VerticalContentAlignment="Center" Margin="5"
+                                         Background="#F1F5F9" BorderThickness="0" Foreground="#2563EB">
+                                    <TextBox.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></TextBox.Resources>
+                                </TextBox>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="BİRİM FİYAT" Width="130">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding BirimFiyatMetni, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', FallbackValue=''}" 
+                                         FontSize="18" TextAlignment="Right" VerticalContentAlignment="Center" Margin="5"
+                                         Background="Transparent" BorderThickness="0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding SatirToplami, StringFormat={}{0:N2} ₺}" IsReadOnly="True" Width="160">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="20"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="FontWeight" Value="Black"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="0,0,15,0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn Header="STOK SEÇİMİ" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid Margin="5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding StokDagilimiOzeti}" VerticalAlignment="Center" FontSize="13" TextWrapping="Wrap" Foreground="#64748B" FontWeight="Medium"/>
+                                    <Button Grid.Column="1" Command="{Binding DataContext.StokDagilimiAcKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}" Content="Değiştir (F4)" Padding="10,5" Margin="10,0,0,0"
+                                            Background="#E2E8F0" Foreground="#334155" FontWeight="Bold" BorderThickness="0">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.SatirSilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        Content="✕" FontSize="18" FontWeight="Bold" Background="#FEE2E2" Foreground="#EF4444" BorderThickness="0" Margin="10" Cursor="Hand">
+                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- ALT PANEL: Net, Okunaklı Tasarım -->
+        <Grid Grid.Row="2" Height="170">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sol: Cari Seçimi (Daha Büyük) -->
+            <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,15,0">
+                <Border.Effect><DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.03"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                        <TextBlock Text="Müşteri (Cari) Seçimi" VerticalAlignment="Center" FontSize="16" FontWeight="Bold" Foreground="#64748B"/>
+                    </StackPanel>
+                    
+                    <Button Grid.Row="1" Command="{Binding CariSecKomutu}" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="2" Padding="15" HorizontalContentAlignment="Left" Cursor="Hand">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="10"/></Style></Button.Resources>
+                        <StackPanel>
+                            <TextBlock Text="{Binding SeciliCariAd}" FontWeight="Black" FontSize="20" Foreground="#0F172A" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding CariBilgiGoster}">
+                                <TextBlock Text="Tahmini Kalan Bakiye:" FontSize="14" Foreground="#64748B" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding TahminiBakiye, StringFormat={}{0:N2} ₺}" FontWeight="Bold" FontSize="16" Foreground="{Binding TahminiBakiyeRenk}"/>
+                            </StackPanel>
+                            <TextBlock Text="Değiştirmek için tıkla (F3)" FontSize="12" Foreground="#94A3B8" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Orta: Devasa Toplam Ekranı -->
+            <Border Grid.Column="1" Background="#0F172A" CornerRadius="12" Padding="30" Margin="0,0,15,0">
+                <Border.Effect><DropShadowEffect Color="#000000" BlurRadius="15" ShadowDepth="5" Opacity="0.2"/></Border.Effect>
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="ÖDENECEK NET TUTAR" Foreground="#94A3B8" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                        <TextBlock Text="{Binding GenelToplam, StringFormat={}{0:N2} ₺}" Foreground="#38BDF8" FontSize="64" FontWeight="Black" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Taksit Combobox'ı Buraya Alındı, Daha Dikkat Çekici -->
+                    <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Right" Orientation="Horizontal">
+                        <TextBlock Text="Taksit:" Foreground="#94A3B8" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox ItemsSource="{Binding TaksitSecenekleri}" SelectedItem="{Binding SeciliTaksit}" Width="150" Height="35" FontSize="14" FontWeight="Bold" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Sağ: Ödeme yöntemleri -->
+            <UniformGrid Grid.Column="2" Rows="2" Columns="2">
+                <Button Command="{Binding SatisTamamlaKomutu}" CommandParameter="Nakit" Content="NAKİT (F10)" Style="{StaticResource BuyukButonStili}" Background="#10B981" Height="75" Margin="0,0,5,5"/>
+                <Button Command="{Binding SatisTamamlaKomutu}" CommandParameter="Kredi Kartı" Content="KREDİ KARTI" Style="{StaticResource BuyukButonStili}" Background="#3B82F6" Height="75" Margin="5,0,0,5"/>
+                <Button Command="{Binding SatisTamamlaKomutu}" CommandParameter="Banka" Content="BANKA" Style="{StaticResource BuyukButonStili}" Background="#0891B2" Height="75" Margin="0,5,5,0"/>
+                <Button Command="{Binding SatisTamamlaKomutu}" CommandParameter="Açık Hesap" Content="AÇIK HESAP" Style="{StaticResource BuyukButonStili}" Background="#7C3AED" Height="75" Margin="5,5,0,0"/>
+            </UniformGrid>
+        </Grid>
+    </Grid>
+</UserControl>

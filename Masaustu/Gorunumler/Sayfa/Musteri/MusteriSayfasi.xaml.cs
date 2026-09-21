@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using EtkiAlani.Modeller.Cari;
 using Masaustu.GorunumModelleri;
 using Uygulama.Arayuzler;
+using Masaustu.Gorunumler.Sayfa.Musteri;
 
 namespace Masaustu.Gorunumler.Sayfa;
 
@@ -12,16 +13,23 @@ public partial class MusteriSayfasi : UserControl
     {
         InitializeComponent();
 
-        Loaded += (_, _) =>
+        DataContextChanged += (_, _) =>
         {
             if (DataContext is MusteriGorunumModeli vm)
             {
+                // Data bağlamındaki komutu tetikle
+                if (vm.YenileKomutu.CanExecute(null))
+                {
+                    vm.YenileKomutu.Execute(null);
+                }
+
                 vm.MusteriDuzenleFormAc = async (cari) =>
                 {
                     var cariServisi = App.HizmetSaglayici.GetService(typeof(ICariServisi)) as ICariServisi;
-                    if (cariServisi == null) return false;
+                    var cariTipiServisi = App.HizmetSaglayici.GetService(typeof(ICariTipiTanimiServisi)) as ICariTipiTanimiServisi;
+                    if (cariServisi == null || cariTipiServisi == null) return false;
 
-                    var pencere = new Musteri.MusteriDuzenlePenceresi(cariServisi, cari)
+                    var pencere = new Musteri.MusteriDuzenlePenceresi(cariServisi, cariTipiServisi, cari)
                     {
                         Owner = Window.GetWindow(this)
                     };
@@ -40,7 +48,63 @@ public partial class MusteriSayfasi : UserControl
                         Owner = Window.GetWindow(this)
                     };
                     pencere.ShowDialog();
-                    await vm.VerileriYukleAsync();
+                    if (vm.YenileKomutu.CanExecute(null))
+                        vm.YenileKomutu.Execute(null);
+                };
+
+                vm.CariDetayAc = async cari =>
+                {
+                    var pencere = new CariDetayPenceresi(cari.Id) { Owner = Window.GetWindow(this) };
+                    pencere.ShowDialog();
+                    await vm.AraAsyncPublic();
+                };
+
+                vm.TahsilatAc = cari =>
+                {
+                    var cariServisi = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ICariServisi>(App.HizmetSaglayici);
+                    var tModel = new TahsilatOdemeGorunumModeli(
+                        Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ITahsilatOdemeServisi>(App.HizmetSaglayici),
+                        cariServisi,
+                        Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IBelgeKapamaServisi>(App.HizmetSaglayici),
+                        EtkiAlani.Modeller.Finans.FinansIslemTuru.Tahsilat);
+                    tModel.IsCariKilitli = true;
+                    tModel.SecilenCari = cari;
+                    var p = new Window
+                    {
+                        Title = $"Yeni Tahsilat - {cari.Unvan}",
+                        Width = 1100,
+                        Height = 700,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = Window.GetWindow(this),
+                        Background = System.Windows.Media.Brushes.White,
+                        Content = new TahsilatOdemeSayfasi { DataContext = tModel }
+                    };
+                    p.ShowDialog();
+                    _ = vm.AraAsyncPublic();
+                };
+
+                vm.OdemeAc = cari =>
+                {
+                    var cariServisi = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ICariServisi>(App.HizmetSaglayici);
+                    var tModel = new TahsilatOdemeGorunumModeli(
+                        Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ITahsilatOdemeServisi>(App.HizmetSaglayici),
+                        cariServisi,
+                        Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IBelgeKapamaServisi>(App.HizmetSaglayici),
+                        EtkiAlani.Modeller.Finans.FinansIslemTuru.Odeme);
+                    tModel.IsCariKilitli = true;
+                    tModel.SecilenCari = cari;
+                    var p = new Window
+                    {
+                        Title = $"Yeni Ödeme - {cari.Unvan}",
+                        Width = 1100,
+                        Height = 700,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = Window.GetWindow(this),
+                        Background = System.Windows.Media.Brushes.White,
+                        Content = new TahsilatOdemeSayfasi { DataContext = tModel }
+                    };
+                    p.ShowDialog();
+                    _ = vm.AraAsyncPublic();
                 };
             }
         };
@@ -50,8 +114,8 @@ public partial class MusteriSayfasi : UserControl
     {
         if (DataContext is MusteriGorunumModeli vm && vm.SeciliMusteri != null)
         {
-            if (vm.DuzenleKomutu.CanExecute(null))
-                vm.DuzenleKomutu.Execute(null);
+            if (vm.DetayKomutu.CanExecute(null))
+                vm.DetayKomutu.Execute(null);
         }
     }
 }
