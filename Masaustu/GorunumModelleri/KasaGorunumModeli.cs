@@ -393,7 +393,14 @@ public class KasaGorunumModeli : TemelGorunumModeli
         if (YeniTutar <= 0) { HataMesaji = "Geçerli bir tutar giriniz."; return; }
         if (string.IsNullOrWhiteSpace(YeniAciklama)) { HataMesaji = "Açıklama boş bırakılamaz."; return; }
 
-        var kasaId = SeciliKasa?.Id ?? 0;
+        if (SeciliKasa == null) { HataMesaji = "İşlem yapılacak kasayı seçiniz."; return; }
+        if (SeciliFisTuru is KasaFisTuru.Tahsilat or KasaFisTuru.Odeme && SeciliCariKart == null)
+        {
+            HataMesaji = "Cari tahsilat / ödeme için cari kart seçiniz.";
+            return;
+        }
+
+        var kasaId = SeciliKasa.Id;
 
         try
         {
@@ -422,8 +429,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
                     Tutar = YeniTutar,
                     Aciklama = YeniAciklama,
                     MakbuzNo = YeniMakbuzNo,
-                    MasrafKodu = YeniMasrafKodu,
-                    CariKartId = SeciliCariKart?.Id
+                    MasrafKodu = YeniMasrafKodu
                 };
 
                 await _kasaServisi.EkleAsync(hareket);
@@ -569,8 +575,18 @@ public class KasaGorunumModeli : TemelGorunumModeli
 
         if (onay != System.Windows.MessageBoxResult.Yes) return;
 
-        await _kasaServisi.SilAsync(hareket.Id);
-        await VerileriYukleAsync();
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+        try
+        {
+            await _kasaServisi.SilAsync(hareket.Id);
+            BasariMesaji = "✅ Hareket silindi.";
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Hareket silinemedi: {ex.Message}";
+        }
     }
 }
 

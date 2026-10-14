@@ -21,6 +21,12 @@ public partial class GirisEkrani : Window
         // Şifreyi açık/gizli duruma göre al
         _gorunumModeli.SifreAl = () => _sifreGosteriliyor ? AcikSifreKutusu.Text : SifreKutusu.Password;
 
+        _gorunumModeli.SifreDegistirmeIste = () =>
+        {
+            var pencere = new Ortak.SifreDegistirPenceresi(App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>(), zorunlu: true) { Owner = this };
+            return pencere.ShowDialog() == true;
+        };
+
         _gorunumModeli.GirisBasarili = async () =>
         {
             try

@@ -12,6 +12,12 @@ public class Kullanici : TemelVarlik
     public bool Aktif { get; set; } = true;
     public string Rol { get; set; } = "Kullanici";
     public DateTime? SonGirisTarihi { get; set; }
+
+    // Giriş güvenliği
+    public int HataliGirisSayisi { get; set; }
+    public DateTime? KilitBitisTarihi { get; set; }
+    public bool SifreDegistirmeli { get; set; }
+    public DateTime? SifreDegistirmeTarihi { get; set; }
     
     // İlişkiler
     public KullaniciYetkileri? Yetkiler { get; set; }

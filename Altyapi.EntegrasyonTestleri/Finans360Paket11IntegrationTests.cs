@@ -18,6 +18,16 @@ public sealed class Finans360Paket11IntegrationTests
     private readonly IsolatedPostgreSqlFixture _fixture;
     public Finans360Paket11IntegrationTests(IsolatedPostgreSqlFixture fixture) => _fixture = fixture;
 
+    // Para çıkışı testleri boş kasa/hesapla başlayamaz; açılış bakiyesi devir fişiyle verilir.
+    private static async Task AcilisBakiyesiEkleAsync(MuhasebeBaglami db, Guid sirketId, Kasa? kasa = null, BankaHesabi? banka = null, decimal tutar = 100000m)
+    {
+        if (kasa != null)
+            db.KasaHareketleri.Add(new KasaHareketi { SirketId = sirketId, KasaId = kasa.Id, Tarih = DateTime.UtcNow.AddDays(-1), Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.AcilisDevir, Tutar = tutar, Aciklama = "Açılış devri" });
+        if (banka != null)
+            db.BankaHareketleri.Add(new BankaHareketi { SirketId = sirketId, BankaHesabiId = banka.Id, Tarih = DateTime.UtcNow.AddDays(-1), Tur = HareketTuru.Gelir, FisTuru = BankaFisTuru.BankaGelir, Tutar = tutar, Aciklama = "Açılış devri" });
+        await db.SaveChangesAsync();
+    }
+
     private async Task<(Guid SirketId, CariKart Cari, Kasa Kasa, BankaHesabi Banka)> SeedTemelVeriAsync(MuhasebeBaglami db)
     {
         var sirket = new EtkiAlani.Modeller.Kurumsal.Sirket { Id = Guid.NewGuid(), Unvan = "Test Sirket", SirketKodu = $"ST-{Guid.NewGuid():N}"[..10] };
@@ -128,6 +138,7 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, kasa: kasa);
         var service = new TahsilatOdemeServisi(db, AuthorizedUser());
 
         var result = await service.KaydetAsync(new TahsilatOdemeTalebi(
@@ -143,6 +154,7 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, cari, _, banka) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, banka: banka);
         var service = new TahsilatOdemeServisi(db, AuthorizedUser());
 
         var result = await service.KaydetAsync(new TahsilatOdemeTalebi(
@@ -174,6 +186,7 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, kasa: kasa);
         var service = new TahsilatOdemeServisi(db, AuthorizedUser());
 
         await service.KaydetAsync(new TahsilatOdemeTalebi(
@@ -268,6 +281,7 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, _, kasa1, banka) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, kasa: kasa1);
         var kasa2 = new Kasa { SirketId = sirketId, Kod = "K2", Ad = "Kasa B", Bakiye = 0m, AktifMi = true };
         db.Kasalar.Add(kasa2);
         await db.SaveChangesAsync();
@@ -286,6 +300,7 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, _, _, banka1) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, banka: banka1);
         var banka2 = new BankaHesabi { SirketId = sirketId, Kod = "B2", Ad = "İş Bankası", Iban = "TR999", Bakiye = 0m, AktifMi = true };
         db.BankaHesaplari.Add(banka2);
         await db.SaveChangesAsync();
@@ -307,11 +322,12 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, _, kasa, banka) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, kasa: kasa);
 
         var finansServis = new FinansMerkeziServisi(db, AuthorizedUser());
         await finansServis.KasaBankaTransferiYapAsync(new KasaBankaTransferIstegiDto(kasa.Id, banka.Id, 2000m, "Kasa -> Banka Yatırma"), sirketId, 1);
 
-        var kh = await db.KasaHareketleri.SingleAsync(x => x.KasaId == kasa.Id);
+        var kh = await db.KasaHareketleri.SingleAsync(x => x.KasaId == kasa.Id && x.FisTuru == KasaFisTuru.BankayaYatirma);
         var bh = await db.BankaHareketleri.SingleAsync(x => x.BankaHesabiId == banka.Id);
 
         Assert.Equal(HareketTuru.Gider, kh.Tur);
@@ -326,11 +342,12 @@ public sealed class Finans360Paket11IntegrationTests
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, _, kasa, banka) = await SeedTemelVeriAsync(db);
+        await AcilisBakiyesiEkleAsync(db, sirketId, banka: banka);
 
         var finansServis = new FinansMerkeziServisi(db, AuthorizedUser());
         await finansServis.BankaKasaTransferiYapAsync(new BankaKasaTransferIstegiDto(banka.Id, kasa.Id, 3000m, "Bankadan Para Çekme"), sirketId, 1);
 
-        var bh = await db.BankaHareketleri.SingleAsync(x => x.BankaHesabiId == banka.Id);
+        var bh = await db.BankaHareketleri.SingleAsync(x => x.BankaHesabiId == banka.Id && x.FisTuru == BankaFisTuru.KasadanCekme);
         var kh = await db.KasaHareketleri.SingleAsync(x => x.KasaId == kasa.Id);
 
         Assert.Equal(HareketTuru.Gider, bh.Tur);

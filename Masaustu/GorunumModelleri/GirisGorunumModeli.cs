@@ -33,6 +33,8 @@ public class GirisGorunumModeli : TemelGorunumModeli
     // Şifreyi view'dan alacağız (PasswordBox binding sorunu)
     public Func<string>? SifreAl { get; set; }
     public Func<Task>? GirisBasarili { get; set; }
+    // Zorunlu şifre değişikliğinde view diyaloğu açar; kullanıcı şifresini değiştirdiyse true döner.
+    public Func<bool>? SifreDegistirmeIste { get; set; }
 
     public ICommand GirisKomutu { get; }
 
@@ -65,19 +67,35 @@ public class GirisGorunumModeli : TemelGorunumModeli
         try
         {
             await GirisAsamasiniLoglaAsync("Authentication başladı");
-            var basarili = await _kullaniciServisi
-            .GirisYapAsync(KullaniciAdi, sifre, girisIptal.Token);
-            await GirisAsamasiniLoglaAsync($"Authentication tamamlandı: {basarili}");
+            var sonuc = await _kullaniciServisi
+            .GirisDeneAsync(KullaniciAdi, sifre, girisIptal.Token);
+            await GirisAsamasiniLoglaAsync($"Authentication tamamlandı: {sonuc.Durum}");
 
-            if (basarili)
+            if (sonuc.Basarili && sonuc.SifreDegistirmeli && SifreDegistirmeIste?.Invoke() != true)
+            {
+                _kullaniciServisi.CikisYap();
+                HataMesaji = "Devam etmek için şifrenizi değiştirmeniz gerekiyor.";
+                return;
+            }
+
+            if (sonuc.Basarili)
             {
                 await GirisAsamasiniLoglaAsync("Başarılı giriş callback'i çağrılıyor");
                 if (GirisBasarili != null)
                     await GirisBasarili();
             }
+            else if (sonuc.Durum == GirisDurumu.HesapKilitli)
+            {
+                var kalanDakika = sonuc.KilitBitisTarihi.HasValue
+                    ? Math.Max(1, (int)Math.Ceiling((sonuc.KilitBitisTarihi.Value - DateTime.UtcNow).TotalMinutes))
+                    : 15;
+                HataMesaji = $"Çok sayıda hatalı deneme nedeniyle hesap kilitlendi. {kalanDakika} dakika sonra tekrar deneyin veya yöneticinize başvurun.";
+            }
             else
             {
-                HataMesaji = "Kullanıcı adı veya şifre hatalı.";
+                HataMesaji = sonuc.KalanDeneme is > 0 and <= 2
+                    ? $"Kullanıcı adı veya şifre hatalı. Hesap kilitlenmeden önce {sonuc.KalanDeneme} deneme hakkınız kaldı."
+                    : "Kullanıcı adı veya şifre hatalı.";
             }
         }
         catch (OperationCanceledException) when (girisIptal.IsCancellationRequested)

@@ -422,49 +422,33 @@ public class BankaGorunumModeli : TemelGorunumModeli
         if (YeniTutar <= 0) { HataMesaji = "Geçerli bir tutar giriniz."; return; }
         if (string.IsNullOrWhiteSpace(YeniAciklama)) { HataMesaji = "Açıklama giriniz."; return; }
 
-        var bankaAdi = string.IsNullOrWhiteSpace(YeniBankaAdi) ? (SeciliBankaHesabi?.Ad ?? "Ziraat Bankası") : YeniBankaAdi;
-        var hesapNo = string.IsNullOrWhiteSpace(YeniHesapNo) ? (SeciliBankaHesabi?.Iban ?? string.Empty) : YeniHesapNo.Trim();
-
-        if (hesapNo.StartsWith("TR", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!IbanDogrulayici.Gecerlidir(hesapNo, out hesapNo))
-            {
-                HataMesaji = "Geçerli bir IBAN giriniz.";
-                return;
-            }
-            YeniHesapNo = hesapNo;
-        }
+        if (SeciliBankaHesabi == null) { HataMesaji = "İşlem yapılacak banka hesabını seçiniz."; return; }
 
         try
         {
-            if (SeciliFisTuru == BankaFisTuru.GelenHavale && SeciliCariKart != null)
+            var cariliHavale = SeciliFisTuru is BankaFisTuru.GelenHavale or BankaFisTuru.GidenHavale;
+            if (cariliHavale && SeciliCariKart == null) { HataMesaji = "Gelen/giden havale için cari kart seçiniz."; return; }
+
+            if (SeciliFisTuru == BankaFisTuru.GelenHavale)
             {
-                await _bankaServisi.TahsilatEkleAsync(SeciliCariKart.Id, bankaAdi, hesapNo, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Gelen Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+                await _bankaServisi.HesabaTahsilatEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
+                BasariMesaji = $"✅ Cari Gelen Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan} → {SeciliBankaHesabi.Ad})";
             }
-            else if (SeciliFisTuru == BankaFisTuru.GidenHavale && SeciliCariKart != null)
+            else if (SeciliFisTuru == BankaFisTuru.GidenHavale)
             {
-                await _bankaServisi.OdemeEkleAsync(SeciliCariKart.Id, bankaAdi, hesapNo, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Giden Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+                await _bankaServisi.HesaptanOdemeEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
+                BasariMesaji = $"✅ Cari Giden Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliBankaHesabi.Ad} → {SeciliCariKart.Unvan})";
             }
             else
             {
-                var tur = (SeciliFisTuru == BankaFisTuru.GelenHavale || SeciliFisTuru == BankaFisTuru.BankaGelir || SeciliFisTuru == BankaFisTuru.PosHesabaGecis)
-                    ? HareketTuru.Gelir
-                    : HareketTuru.Gider;
-
                 var hareket = new BankaHareketi
                 {
-                    BankaHesabiId = SeciliBankaHesabi?.Id,
-                    BankaAdi = bankaAdi,
-                    HesapNo = hesapNo,
+                    BankaHesabiId = SeciliBankaHesabi.Id,
                     Tarih = YeniTarih,
-                    Tur = tur,
                     FisTuru = SeciliFisTuru,
                     Tutar = YeniTutar,
                     Aciklama = YeniAciklama,
-                    DekontNo = YeniDekontNo,
-                    CariKartId = SeciliCariKart?.Id
+                    DekontNo = YeniDekontNo
                 };
 
                 await _bankaServisi.EkleAsync(hareket);
@@ -614,8 +598,18 @@ public class BankaGorunumModeli : TemelGorunumModeli
 
         if (onay != System.Windows.MessageBoxResult.Yes) return;
 
-        await _bankaServisi.SilAsync(hareket.Id);
-        await VerileriYukleAsync();
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+        try
+        {
+            await _bankaServisi.SilAsync(hareket.Id);
+            BasariMesaji = "✅ Hareket silindi.";
+            await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Hareket silinemedi: {ex.Message}";
+        }
     }
 }
 

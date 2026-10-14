@@ -59,6 +59,13 @@ public partial class AnaPencere : Window
         }
     }
 
+    private void SifreDegistirTiklandi(object sender, RoutedEventArgs e)
+    {
+        var pencere = new Gorunumler.Ortak.SifreDegistirPenceresi(
+            App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>(), zorunlu: false) { Owner = this };
+        pencere.ShowDialog();
+    }
+
     private void KapatDugmeTiklandi(object sender, RoutedEventArgs e)
         => Application.Current.Shutdown();
 

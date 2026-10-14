@@ -31,3 +31,6 @@ scratch/
 
 # Test ve derleme kontrol çıktıları
 .buildcheck/
+
+# Veritabanı yedekleri (şirket verisi içerir)
+yedekler/

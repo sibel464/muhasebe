@@ -12,6 +12,8 @@ public interface IBankaServisi
     Task<BankaHareketi> EkleAsync(BankaHareketi hareket);
     Task<BankaHareketi> TahsilatEkleAsync(int cariKartId, string bankaAdi, string hesapNo, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null);
     Task<BankaHareketi> OdemeEkleAsync(int cariKartId, string bankaAdi, string hesapNo, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null);
+    Task<BankaHareketi> HesabaTahsilatEkleAsync(int bankaHesabiId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null);
+    Task<BankaHareketi> HesaptanOdemeEkleAsync(int bankaHesabiId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null);
     Task<bool> BankaVirmanYapAsync(int kaynakBankaHesabiId, int hedefBankaHesabiId, decimal tutar, string aciklama, DateTime? tarih = null);
     Task<bool> BankadanKasaCekAsync(int bankaHesabiId, int kasaId, decimal tutar, string aciklama, DateTime? tarih = null);
     Task<bool> PosBlokeHesabaGecirAsync(int posHesapId, int vadesizHesapId, decimal tutar, decimal komisyonTutari, string aciklama, DateTime? tarih = null);

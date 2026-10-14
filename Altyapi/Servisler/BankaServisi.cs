@@ -9,7 +9,6 @@ namespace Altyapi.Servisler;
 
 public class BankaServisi : IBankaServisi
 {
-    private const decimal EnBuyukTutar = 99999999999999.9999m;
     private readonly MuhasebeBaglami _baglam;
     private readonly IKullaniciServisi? _kullaniciServisi;
 
@@ -19,9 +18,16 @@ public class BankaServisi : IBankaServisi
         _kullaniciServisi = kullaniciServisi;
     }
 
+    private IKullaniciServisi Oturum => _kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama");
+
+    private void GoruntulemeYetkisi() =>
+        Oturum.YetkiKontrolEt(y => y.BankaGoruntule || y.BankaEkle || y.BankaDuzenle, "Banka Görüntüleme");
+
     public async Task<List<BankaHareketi>> TumunuGetirAsync()
     {
+        GoruntulemeYetkisi();
         return await _baglam.BankaHareketleri
+            .AsNoTracking()
             .Include(b => b.CariKart)
             .Include(b => b.BankaHesabi)
             .OrderByDescending(b => b.Tarih)
@@ -31,10 +37,12 @@ public class BankaServisi : IBankaServisi
 
     public async Task<List<BankaHareketi>> TarihAraligindaGetirAsync(DateTime baslangic, DateTime bitis)
     {
+        GoruntulemeYetkisi();
         var basUtc = DateTime.SpecifyKind(baslangic.Date, DateTimeKind.Utc);
         var bitUtc = DateTime.SpecifyKind(bitis.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         return await _baglam.BankaHareketleri
+            .AsNoTracking()
             .Include(b => b.CariKart)
             .Include(b => b.BankaHesabi)
             .Where(b => b.Tarih >= basUtc && b.Tarih <= bitUtc)
@@ -45,7 +53,9 @@ public class BankaServisi : IBankaServisi
 
     public async Task<List<BankaHareketi>> HesapHareketleriGetirAsync(int bankaHesabiId)
     {
+        GoruntulemeYetkisi();
         return await _baglam.BankaHareketleri
+            .AsNoTracking()
             .Include(b => b.CariKart)
             .Include(b => b.BankaHesabi)
             .Where(b => b.BankaHesabiId == bankaHesabiId)
@@ -56,7 +66,9 @@ public class BankaServisi : IBankaServisi
 
     public async Task<List<BankaHareketi>> CariHareketleriGetirAsync(int cariKartId)
     {
+        GoruntulemeYetkisi();
         return await _baglam.BankaHareketleri
+            .AsNoTracking()
             .Include(b => b.CariKart)
             .Include(b => b.BankaHesabi)
             .Where(b => b.CariKartId == cariKartId)
@@ -67,121 +79,68 @@ public class BankaServisi : IBankaServisi
 
     public async Task<BankaHareketi?> GetirByIdAsync(int id)
     {
+        GoruntulemeYetkisi();
         return await _baglam.BankaHareketleri
+            .AsNoTracking()
             .Include(b => b.CariKart)
             .Include(b => b.BankaHesabi)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
 
+    // Serbest banka fişi: faiz/gelir, masraf ve kredi ödemesi. Cari havaleleri cari hareketiyle birlikte,
+    // transferler ise kendi metotlarıyla oluşturulur.
     public async Task<BankaHareketi> EkleAsync(BankaHareketi hareket)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "Banka Hareketi Ekleme");
-
-        if (hareket.Tutar <= 0 || hareket.Tutar > EnBuyukTutar)
-            throw new ArgumentException("Banka hareket tutarı sıfırdan büyük olmalıdır.");
-
-        if (string.IsNullOrWhiteSpace(hareket.Aciklama))
-            throw new ArgumentException("Açıklama boş bırakılamaz.");
-
-        if (!hareket.BankaHesabiId.HasValue || hareket.BankaHesabiId <= 0)
+        if (hareket.CariKartId is > 0 && hareket.FisTuru is BankaFisTuru.GelenHavale or BankaFisTuru.GidenHavale)
         {
-            var varsayilan = await VarsayilanBankaHesabiGetirVeyaOlusturAsync();
-            hareket.BankaHesabiId = varsayilan.Id;
-            hareket.BankaAdi ??= varsayilan.Ad;
-            hareket.HesapNo ??= varsayilan.Iban;
+            var hesapId = hareket.BankaHesabiId ?? 0;
+            var belgeNo = hareket.DekontNo;
+            return hareket.FisTuru == BankaFisTuru.GelenHavale
+                ? await HesabaTahsilatEkleAsync(hesapId, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, belgeNo, hareket.Tarih)
+                : await HesaptanOdemeEkleAsync(hesapId, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, belgeNo, hareket.Tarih);
         }
 
-        hareket.Tarih = DateTime.SpecifyKind(hareket.Tarih, DateTimeKind.Utc);
-        hareket.OlusturmaTarihi = DateTime.UtcNow;
-        hareket.Aciklama = hareket.Aciklama.Trim();
-        if (string.IsNullOrWhiteSpace(hareket.FisNo))
+        Oturum.YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "Banka Hareketi Ekleme");
+        hareket.Tur = hareket.FisTuru switch
         {
-            hareket.FisNo = $"BNK-{DateTime.UtcNow:yyyyMMddHHmmss}";
-        }
+            BankaFisTuru.BankaGelir => HareketTuru.Gelir,
+            BankaFisTuru.BankaGiderMasraf or BankaFisTuru.KrediOdemesi => HareketTuru.Gider,
+            BankaFisTuru.GelenHavale or BankaFisTuru.GidenHavale =>
+                throw new ArgumentException("Gelen/giden havale fişleri için cari kart seçilmelidir."),
+            _ => throw new ArgumentException("Virman, kasa transferi ve POS geçiş fişleri ilgili işlem ekranından yapılmalıdır.")
+        };
 
-        if (hareket.BankaAdi != null) hareket.BankaAdi = hareket.BankaAdi.Trim();
-        if (hareket.HesapNo != null)
-        {
-            hareket.HesapNo = hareket.HesapNo.Trim();
-            if (hareket.HesapNo.StartsWith("TR", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!IbanDogrulayici.Gecerlidir(hareket.HesapNo, out var iban))
-                    throw new ArgumentException("Geçerli bir IBAN giriniz.");
-                hareket.HesapNo = iban;
-            }
-        }
+        if (hareket.CariKartId.HasValue)
+            throw new ArgumentException("Cari kart yalnızca gelen/giden havale fişlerinde seçilebilir.");
 
-        _baglam.BankaHareketleri.Add(hareket);
-        await _baglam.SaveChangesAsync();
+        FinansKurallari.TutarDogrula(hareket.Tutar, "Banka hareket");
+        hareket.Aciklama = FinansKurallari.AciklamaDogrula(hareket.Aciklama);
+        hareket.Tarih = FinansKurallari.TarihNormalizeEt(hareket.Tarih);
 
-        return hareket;
-    }
-
-    public async Task<BankaHareketi> TahsilatEkleAsync(int cariKartId, string bankaAdi, string hesapNo, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
-    {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.TahsilatYap || y.BankaEkle, "Banka Tahsilat Girişi");
-
-        if (tutar <= 0 || tutar > EnBuyukTutar)
-            throw new ArgumentException("Tahsilat tutarı sıfırdan büyük olmalıdır.");
-
-        if (cariKartId <= 0)
-            throw new ArgumentException("Geçerli bir cari kart seçilmelidir.");
-
-        hesapNo = HesapNoNormalizeEt(hesapNo);
-        var islemTarihi = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == cariKartId);
-            if (cari == null)
-                throw new KeyNotFoundException("Cari kart bulunamadı.");
+            var hesap = await AktifHesapGetirVeKilitleAsync(hareket.BankaHesabiId ?? 0);
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, hareket.Tarih, hesap.SirketId);
+            if (hareket.Tur == HareketTuru.Gider)
+                await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, hareket.Tutar);
 
-            if (!cari.Aktif)
-                throw new InvalidOperationException("Pasif durumdaki cari karta tahsilat girilemez.");
+            hareket.Id = 0;
+            hareket.BankaHesabiId = hesap.Id;
+            hareket.SirketId ??= hesap.SirketId;
+            hareket.BankaAdi = hesap.Ad;
+            hareket.HesapNo = string.IsNullOrWhiteSpace(hesap.Iban) ? hesap.HesapNo : hesap.Iban;
+            hareket.IlgiliBelgeId = null;
+            hareket.TersKayitId = null;
+            hareket.IslemDurumu = FinansIslemDurumu.Tamamlandi;
+            hareket.DekontNo = string.IsNullOrWhiteSpace(hareket.DekontNo) ? null : hareket.DekontNo.Trim();
+            hareket.OlusturmaTarihi = DateTime.UtcNow;
+            hareket.FisNo = string.IsNullOrWhiteSpace(hareket.FisNo) ? FinansKurallari.FisNoUret("BNK") : hareket.FisNo.Trim();
 
-            var varsayilanBanka = await VarsayilanBankaHesabiGetirVeyaOlusturAsync();
-
-            // 1. Banka Gelen Havale/EFT Hareketi (Gelir)
-            var bankaHareketi = new BankaHareketi
-            {
-                BankaHesabiId = varsayilanBanka.Id,
-                Tarih = islemTarihi,
-                Tur = HareketTuru.Gelir,
-                FisTuru = BankaFisTuru.GelenHavale,
-                FisNo = $"BNK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
-                DekontNo = belgeNo,
-                Tutar = tutar,
-                BankaAdi = string.IsNullOrWhiteSpace(bankaAdi) ? varsayilanBanka.Ad : bankaAdi.Trim(),
-                HesapNo = string.IsNullOrWhiteSpace(hesapNo) ? varsayilanBanka.Iban : hesapNo.Trim(),
-                Aciklama = aciklama.Trim(),
-                CariKartId = cariKartId,
-                OlusturmaTarihi = DateTime.UtcNow
-            };
-            _baglam.BankaHareketleri.Add(bankaHareketi);
+            _baglam.BankaHareketleri.Add(hareket);
             await _baglam.SaveChangesAsync();
-
-            // 2. Cari Tahsilat Hareketi (Müşterinin Alacağı artar -> Borcu kapanır)
-            var cariHareket = new CariHareket
-            {
-                CariKartId = cariKartId,
-                Tarih = islemTarihi,
-                HareketTuru = CariHareketTuru.Tahsilat,
-                Aciklama = aciklama.Trim(),
-                BelgeNo = belgeNo?.Trim(),
-                Borc = 0,
-                Alacak = tutar,
-                IlgiliBelgeId = bankaHareketi.Id,
-                OlusturmaTarihi = DateTime.UtcNow
-            };
-            _baglam.CariHareketler.Add(cariHareket);
-            await _baglam.SaveChangesAsync();
-
-            bankaHareketi.IlgiliBelgeId = cariHareket.Id;
-            await _baglam.SaveChangesAsync();
-
             await transaction.CommitAsync();
-            return bankaHareketi;
+            return hareket;
         }
         catch
         {
@@ -190,60 +149,82 @@ public class BankaServisi : IBankaServisi
         }
     }
 
+    // Geriye dönük uyumluluk: hesap, verilen IBAN/hesap no veya banka adına göre bulunur.
+    public async Task<BankaHareketi> TahsilatEkleAsync(int cariKartId, string bankaAdi, string hesapNo, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
+    {
+        var hesapId = await HesapIdBulAsync(bankaAdi, hesapNo);
+        return await HesabaTahsilatEkleAsync(hesapId, cariKartId, tutar, aciklama, belgeNo, tarih);
+    }
+
     public async Task<BankaHareketi> OdemeEkleAsync(int cariKartId, string bankaAdi, string hesapNo, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.OdemeYap || y.BankaEkle, "Banka Ödeme Çıkışı");
+        var hesapId = await HesapIdBulAsync(bankaAdi, hesapNo);
+        return await HesaptanOdemeEkleAsync(hesapId, cariKartId, tutar, aciklama, belgeNo, tarih);
+    }
 
-        if (tutar <= 0 || tutar > EnBuyukTutar)
-            throw new ArgumentException("Ödeme tutarı sıfırdan büyük olmalıdır.");
+    public Task<BankaHareketi> HesabaTahsilatEkleAsync(int bankaHesabiId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
+    {
+        Oturum.YetkiKontrolEt(y => y.TahsilatYap || y.BankaEkle, "Banka Tahsilat Girişi");
+        return CariIslemEkleAsync(bankaHesabiId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: true);
+    }
 
+    public Task<BankaHareketi> HesaptanOdemeEkleAsync(int bankaHesabiId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
+    {
+        Oturum.YetkiKontrolEt(y => y.OdemeYap || y.BankaEkle, "Banka Ödeme Çıkışı");
+        return CariIslemEkleAsync(bankaHesabiId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: false);
+    }
+
+    private async Task<BankaHareketi> CariIslemEkleAsync(int bankaHesabiId, int cariKartId, decimal tutar, string aciklama, string? belgeNo, DateTime? tarih, bool tahsilat)
+    {
+        FinansKurallari.TutarDogrula(tutar, tahsilat ? "Tahsilat" : "Ödeme");
         if (cariKartId <= 0)
             throw new ArgumentException("Geçerli bir cari kart seçilmelidir.");
+        var temizAciklama = FinansKurallari.AciklamaDogrula(aciklama);
+        var temizBelgeNo = string.IsNullOrWhiteSpace(belgeNo) ? null : belgeNo.Trim();
+        var islemTarihi = FinansKurallari.TarihNormalizeEt(tarih);
 
-        hesapNo = HesapNoNormalizeEt(hesapNo);
-        var islemTarihi = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == cariKartId);
-            if (cari == null)
-                throw new KeyNotFoundException("Cari kart bulunamadı.");
+            var hesap = await AktifHesapGetirVeKilitleAsync(bankaHesabiId);
 
+            var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == cariKartId)
+                ?? throw new KeyNotFoundException("Cari kart bulunamadı.");
             if (!cari.Aktif)
-                throw new InvalidOperationException("Pasif durumdaki cari karta banka ödemesi girilemez.");
+                throw new InvalidOperationException($"Pasif durumdaki cari karta banka {(tahsilat ? "tahsilatı" : "ödemesi")} girilemez.");
 
-            var varsayilanBanka = await VarsayilanBankaHesabiGetirVeyaOlusturAsync();
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, hesap.SirketId ?? cari.SirketId);
+            if (!tahsilat)
+                await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, tutar);
 
-            // 1. Banka Giden Havale/EFT Hareketi (Gider)
             var bankaHareketi = new BankaHareketi
             {
-                BankaHesabiId = varsayilanBanka.Id,
+                SirketId = hesap.SirketId ?? cari.SirketId,
+                BankaHesabiId = hesap.Id,
                 Tarih = islemTarihi,
-                Tur = HareketTuru.Gider,
-                FisTuru = BankaFisTuru.GidenHavale,
-                FisNo = $"BNK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
-                DekontNo = belgeNo,
+                Tur = tahsilat ? HareketTuru.Gelir : HareketTuru.Gider,
+                FisTuru = tahsilat ? BankaFisTuru.GelenHavale : BankaFisTuru.GidenHavale,
+                FisNo = FinansKurallari.FisNoUret("BNK"),
+                DekontNo = temizBelgeNo,
                 Tutar = tutar,
-                BankaAdi = string.IsNullOrWhiteSpace(bankaAdi) ? varsayilanBanka.Ad : bankaAdi.Trim(),
-                HesapNo = string.IsNullOrWhiteSpace(hesapNo) ? varsayilanBanka.Iban : hesapNo.Trim(),
-                Aciklama = aciklama.Trim(),
+                BankaAdi = hesap.Ad,
+                HesapNo = string.IsNullOrWhiteSpace(hesap.Iban) ? hesap.HesapNo : hesap.Iban,
+                Aciklama = temizAciklama,
                 CariKartId = cariKartId,
                 OlusturmaTarihi = DateTime.UtcNow
             };
             _baglam.BankaHareketleri.Add(bankaHareketi);
             await _baglam.SaveChangesAsync();
 
-            // 2. Cari Ödeme Hareketi (Tedarikçiye Borcumuz artar -> Borç kapanır)
             var cariHareket = new CariHareket
             {
                 CariKartId = cariKartId,
                 Tarih = islemTarihi,
-                HareketTuru = CariHareketTuru.Odeme,
-                Aciklama = aciklama.Trim(),
-                BelgeNo = belgeNo?.Trim(),
-                Borc = tutar,
-                Alacak = 0,
+                HareketTuru = tahsilat ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
+                Aciklama = temizAciklama,
+                BelgeNo = temizBelgeNo,
+                Borc = tahsilat ? 0 : tutar,
+                Alacak = tahsilat ? tutar : 0,
                 IlgiliBelgeId = bankaHareketi.Id,
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -265,55 +246,61 @@ public class BankaServisi : IBankaServisi
 
     public async Task<bool> BankaVirmanYapAsync(int kaynakBankaHesabiId, int hedefBankaHesabiId, decimal tutar, string aciklama, DateTime? tarih = null)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "Bankalar Arası Virman");
+        Oturum.YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "Bankalar Arası Virman");
 
         if (kaynakBankaHesabiId == hedefBankaHesabiId)
             throw new ArgumentException("Kaynak banka hesabı ile hedef banka hesabı aynı olamaz.");
+        FinansKurallari.TutarDogrula(tutar, "Virman");
+        var temizAciklama = string.IsNullOrWhiteSpace(aciklama) ? "Bankalar arası virman" : FinansKurallari.AciklamaDogrula(aciklama);
+        var islemTarihi = FinansKurallari.TarihNormalizeEt(tarih);
 
-        if (tutar <= 0)
-            throw new ArgumentException("Virman tutarı sıfırdan büyük olmalıdır.");
-
-        var islemTarihi = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var kaynak = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == kaynakBankaHesabiId);
-            var hedef = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == hedefBankaHesabiId);
+            foreach (var id in new[] { kaynakBankaHesabiId, hedefBankaHesabiId }.Order())
+                await FinansKurallari.BankaHesabiKilitleAsync(_baglam, id);
 
-            if (kaynak == null || hedef == null)
-                throw new KeyNotFoundException("Banka hesapları bulunamadı.");
+            var kaynak = await AktifHesapGetirAsync(kaynakBankaHesabiId);
+            var hedef = await AktifHesapGetirAsync(hedefBankaHesabiId);
+            if (!string.Equals(kaynak.ParaBirimi, hedef.ParaBirimi, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Farklı para birimindeki banka hesapları arasında virman yapılamaz.");
 
-            var fisNo = $"BNK-VRM-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, kaynak.SirketId);
+            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, kaynak, tutar);
 
-            // 1. Kaynak Banka Çıkışı (Gider)
+            var fisNo = FinansKurallari.FisNoUret("BNK-VRM");
+
             var cikis = new BankaHareketi
             {
+                SirketId = kaynak.SirketId,
                 BankaHesabiId = kaynakBankaHesabiId,
                 BankaAdi = kaynak.Ad,
                 HesapNo = kaynak.Iban,
                 Tarih = islemTarihi,
                 Tur = HareketTuru.Gider,
                 FisTuru = BankaFisTuru.BankaVirman,
+                OdemeYontemi = OdemeYontemi.Virman,
                 FisNo = fisNo,
                 Tutar = tutar,
-                Aciklama = $"Virman Çıkış -> {hedef.Ad}: {aciklama}",
+                Aciklama = $"Virman Çıkış -> {hedef.Ad}: {temizAciklama}",
                 OlusturmaTarihi = DateTime.UtcNow
             };
             _baglam.BankaHareketleri.Add(cikis);
             await _baglam.SaveChangesAsync();
 
-            // 2. Hedef Banka Girişi (Gelir)
             var giris = new BankaHareketi
             {
+                SirketId = hedef.SirketId,
                 BankaHesabiId = hedefBankaHesabiId,
                 BankaAdi = hedef.Ad,
                 HesapNo = hedef.Iban,
                 Tarih = islemTarihi,
                 Tur = HareketTuru.Gelir,
                 FisTuru = BankaFisTuru.BankaVirman,
+                OdemeYontemi = OdemeYontemi.Virman,
                 FisNo = fisNo,
                 Tutar = tutar,
-                Aciklama = $"Virman Giriş <- {kaynak.Ad}: {aciklama}",
+                Aciklama = $"Virman Giriş <- {kaynak.Ad}: {temizAciklama}",
                 TersKayitId = cikis.Id,
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -335,26 +322,32 @@ public class BankaServisi : IBankaServisi
 
     public async Task<bool> BankadanKasaCekAsync(int bankaHesabiId, int kasaId, decimal tutar, string aciklama, DateTime? tarih = null)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.BankaEkle || y.KasaYonet, "Bankadan Kasaya Para Çekme");
+        Oturum.YetkiKontrolEt(y => y.KasaYonet && (y.BankaEkle || y.BankaDuzenle), "Bankadan Kasaya Para Çekme");
 
-        if (tutar <= 0)
-            throw new ArgumentException("Tutar sıfırdan büyük olmalıdır.");
+        FinansKurallari.TutarDogrula(tutar, "Para çekme");
+        var temizAciklama = string.IsNullOrWhiteSpace(aciklama) ? "Bankadan kasaya para çekme" : FinansKurallari.AciklamaDogrula(aciklama);
+        var islemTarihi = FinansKurallari.TarihNormalizeEt(tarih);
 
-        var islemTarihi = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var banka = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == bankaHesabiId);
-            var kasa = await _baglam.Kasalar.FirstOrDefaultAsync(k => k.Id == kasaId);
+            var banka = await AktifHesapGetirVeKilitleAsync(bankaHesabiId);
+            await FinansKurallari.KasaKilitleAsync(_baglam, kasaId);
+            var kasa = await _baglam.Kasalar.FirstOrDefaultAsync(k => k.Id == kasaId)
+                ?? throw new KeyNotFoundException("Kasa bulunamadı.");
+            if (!kasa.AktifMi)
+                throw new InvalidOperationException($"'{kasa.Ad}' kasası pasif durumda.");
+            if (!string.Equals(kasa.ParaBirimi, banka.ParaBirimi, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Kasa ile banka hesabının para birimi aynı olmalıdır.");
 
-            if (banka == null || kasa == null)
-                throw new KeyNotFoundException("Banka Hesabı veya Kasa bulunamadı.");
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, banka.SirketId);
+            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, banka, tutar);
 
-            var fisNo = $"BNK-CEK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+            var fisNo = FinansKurallari.FisNoUret("BNK-CEK");
 
-            // 1. Banka Çıkışı (Gider)
             var bankaCikis = new BankaHareketi
             {
+                SirketId = banka.SirketId,
                 BankaHesabiId = bankaHesabiId,
                 BankaAdi = banka.Ad,
                 HesapNo = banka.Iban,
@@ -363,22 +356,22 @@ public class BankaServisi : IBankaServisi
                 FisTuru = BankaFisTuru.KasadanCekme,
                 FisNo = fisNo,
                 Tutar = tutar,
-                Aciklama = $"Kasaya Para Çekme -> {kasa.Ad}: {aciklama}",
+                Aciklama = $"Kasaya Para Çekme -> {kasa.Ad}: {temizAciklama}",
                 OlusturmaTarihi = DateTime.UtcNow
             };
             _baglam.BankaHareketleri.Add(bankaCikis);
             await _baglam.SaveChangesAsync();
 
-            // 2. Kasa Girişi (Gelir)
             var kasaGiris = new KasaHareketi
             {
+                SirketId = kasa.SirketId,
                 KasaId = kasaId,
                 Tarih = islemTarihi,
                 Tur = HareketTuru.Gelir,
                 FisTuru = KasaFisTuru.BankadanCekme,
                 FisNo = fisNo,
                 Tutar = tutar,
-                Aciklama = $"Bankadan Para Çekme <- {banka.Ad}: {aciklama}",
+                Aciklama = $"Bankadan Para Çekme <- {banka.Ad}: {temizAciklama}",
                 TersKayitId = bankaCikis.Id,
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -400,30 +393,46 @@ public class BankaServisi : IBankaServisi
 
     public async Task<bool> PosBlokeHesabaGecirAsync(int posHesapId, int vadesizHesapId, decimal tutar, decimal komisyonTutari, string aciklama, DateTime? tarih = null)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "POS Hesaba Geçiş İşlemi");
+        Oturum.YetkiKontrolEt(y => y.BankaEkle || y.BankaDuzenle, "POS Hesaba Geçiş İşlemi");
 
-        if (tutar <= 0)
-            throw new ArgumentException("Tutar sıfırdan büyük olmalıdır.");
+        if (posHesapId == vadesizHesapId)
+            throw new ArgumentException("POS hesabı ile vadesiz hesap aynı olamaz.");
+        FinansKurallari.TutarDogrula(tutar, "POS geçiş");
+        if (komisyonTutari < 0)
+            throw new ArgumentException("Komisyon tutarı negatif olamaz.");
+        if (decimal.Round(komisyonTutari, 2) != komisyonTutari)
+            throw new ArgumentException("Komisyon tutarı en fazla 2 ondalık basamak içerebilir.");
 
         var netTutar = tutar - komisyonTutari;
-        if (netTutar < 0)
-            throw new ArgumentException("Komisyon tutarı toplam tutardan büyük olamaz.");
+        if (netTutar <= 0)
+            throw new ArgumentException("Komisyon tutarı toplam tutara eşit veya ondan büyük olamaz.");
 
-        var islemTarihi = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        var temizAciklama = string.IsNullOrWhiteSpace(aciklama) ? "POS bloke çözümü" : FinansKurallari.AciklamaDogrula(aciklama);
+        var islemTarihi = FinansKurallari.TarihNormalizeEt(tarih);
+
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var posHesap = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == posHesapId);
-            var vadesizHesap = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == vadesizHesapId);
+            foreach (var id in new[] { posHesapId, vadesizHesapId }.Order())
+                await FinansKurallari.BankaHesabiKilitleAsync(_baglam, id);
 
-            if (posHesap == null || vadesizHesap == null)
-                throw new KeyNotFoundException("POS veya Vadesiz Banka Hesabı bulunamadı.");
+            var posHesap = await AktifHesapGetirAsync(posHesapId);
+            var vadesizHesap = await AktifHesapGetirAsync(vadesizHesapId);
+            if (posHesap.HesapTuru != BankaHesapTuru.POSHesabi)
+                throw new InvalidOperationException($"'{posHesap.Ad}' bir POS hesabı değil.");
+            if (vadesizHesap.HesapTuru == BankaHesapTuru.POSHesabi)
+                throw new InvalidOperationException("Hedef hesap vadesiz bir banka hesabı olmalıdır.");
+            if (!string.Equals(posHesap.ParaBirimi, vadesizHesap.ParaBirimi, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("POS hesabı ile vadesiz hesabın para birimi aynı olmalıdır.");
 
-            var fisNo = $"POS-GEC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, posHesap.SirketId);
+            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, posHesap, tutar);
 
-            // 1. POS Hesabından Çıkış (Gider)
+            var fisNo = FinansKurallari.FisNoUret("POS-GEC");
+
             var posCikis = new BankaHareketi
             {
+                SirketId = posHesap.SirketId,
                 BankaHesabiId = posHesapId,
                 BankaAdi = posHesap.Ad,
                 HesapNo = posHesap.Iban,
@@ -433,15 +442,15 @@ public class BankaServisi : IBankaServisi
                 FisNo = fisNo,
                 Tutar = tutar,
                 KomisyonTutari = komisyonTutari,
-                Aciklama = $"POS Bloke Çözümü Vadesiz Hesaba Transfer -> {vadesizHesap.Ad}: {aciklama}",
+                Aciklama = $"POS Bloke Çözümü Vadesiz Hesaba Transfer -> {vadesizHesap.Ad}: {temizAciklama}",
                 OlusturmaTarihi = DateTime.UtcNow
             };
             _baglam.BankaHareketleri.Add(posCikis);
             await _baglam.SaveChangesAsync();
 
-            // 2. Vadesiz Hesaba Net Giriş (Gelir)
             var vadesizGiris = new BankaHareketi
             {
+                SirketId = vadesizHesap.SirketId,
                 BankaHesabiId = vadesizHesapId,
                 BankaAdi = vadesizHesap.Ad,
                 HesapNo = vadesizHesap.Iban,
@@ -451,7 +460,7 @@ public class BankaServisi : IBankaServisi
                 FisNo = fisNo,
                 Tutar = netTutar,
                 KomisyonTutari = komisyonTutari,
-                Aciklama = $"POS Bloke Hesabından Geçiş <- {posHesap.Ad} (Net: {netTutar:N2} ₺, Komisyon: {komisyonTutari:N2} ₺): {aciklama}",
+                Aciklama = $"POS Bloke Hesabından Geçiş <- {posHesap.Ad} (Net: {netTutar:N2} ₺, Komisyon: {komisyonTutari:N2} ₺): {temizAciklama}",
                 TersKayitId = posCikis.Id,
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -473,37 +482,87 @@ public class BankaServisi : IBankaServisi
 
     public async Task<bool> SilAsync(int id)
     {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.BankaSil, "Banka Hareketi Silme");
-        using var transaction = await _baglam.Database.BeginTransactionAsync();
+        Oturum.YetkiKontrolEt(y => y.BankaSil, "Banka Hareketi Silme");
+        await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
             var hareket = await _baglam.BankaHareketleri.FirstOrDefaultAsync(b => b.Id == id);
             if (hareket == null) return false;
 
-            hareket.Silindi = true;
-            hareket.GuncellemeTarihi = DateTime.UtcNow;
+            if (hareket.IslemDurumu != FinansIslemDurumu.Tamamlandi)
+                throw new InvalidOperationException("İptal edilmiş veya ters kayıt niteliğindeki hareket silinemez.");
 
-            if (hareket.IlgiliBelgeId.HasValue)
+            var simdi = DateTime.UtcNow;
+            var neden = $"Banka hareketi silindi ({Oturum.AktifKullanici?.KullaniciAdi ?? "bilinmeyen kullanıcı"})";
+            var kontrolEdilecekBankalar = new HashSet<int>();
+            var kontrolEdilecekKasalar = new HashSet<int>();
+
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, hareket.Tarih, hareket.SirketId);
+            if (hareket.BankaHesabiId.HasValue)
             {
-                var cariHareket = await _baglam.CariHareketler.FirstOrDefaultAsync(c => c.Id == hareket.IlgiliBelgeId.Value);
+                await FinansKurallari.BankaHesabiKilitleAsync(_baglam, hareket.BankaHesabiId.Value);
+                kontrolEdilecekBankalar.Add(hareket.BankaHesabiId.Value);
+            }
+            SoftSil(hareket, simdi, neden);
+
+            if (hareket.CariKartId.HasValue && hareket.IlgiliBelgeId.HasValue &&
+                hareket.FisTuru is BankaFisTuru.GelenHavale or BankaFisTuru.GidenHavale)
+            {
+                var cariHareket = await _baglam.CariHareketler.FirstOrDefaultAsync(c =>
+                    c.Id == hareket.IlgiliBelgeId.Value && c.CariKartId == hareket.CariKartId.Value);
                 if (cariHareket != null)
                 {
-                    cariHareket.Silindi = true;
-                    cariHareket.GuncellemeTarihi = DateTime.UtcNow;
+                    if (cariHareket.KapaliTutar > 0)
+                        throw new InvalidOperationException("Bu havale bir faturayla kapatılmış. Önce belge kapama eşleştirmesini kaldırın.");
+                    SoftSil(cariHareket, simdi, neden);
                 }
             }
 
+            // Transferin karşı bacağı: banka virmanı ve POS geçişi bankada, kasa transferleri kasada.
             if (hareket.TersKayitId.HasValue)
             {
-                var ters = await _baglam.BankaHareketleri.FirstOrDefaultAsync(b => b.Id == hareket.TersKayitId.Value);
-                if (ters != null)
+                if (hareket.FisTuru is BankaFisTuru.BankaVirman or BankaFisTuru.PosHesabaGecis)
                 {
-                    ters.Silindi = true;
-                    ters.GuncellemeTarihi = DateTime.UtcNow;
+                    var ters = await _baglam.BankaHareketleri.FirstOrDefaultAsync(b => b.Id == hareket.TersKayitId.Value && b.TersKayitId == hareket.Id);
+                    if (ters != null)
+                    {
+                        if (ters.BankaHesabiId.HasValue)
+                        {
+                            await FinansKurallari.BankaHesabiKilitleAsync(_baglam, ters.BankaHesabiId.Value);
+                            kontrolEdilecekBankalar.Add(ters.BankaHesabiId.Value);
+                        }
+                        SoftSil(ters, simdi, neden);
+                    }
+                }
+                else if (hareket.FisTuru is BankaFisTuru.KasadanCekme or BankaFisTuru.BankayaYatirma)
+                {
+                    var ters = await _baglam.KasaHareketleri.FirstOrDefaultAsync(k => k.Id == hareket.TersKayitId.Value && k.TersKayitId == hareket.Id);
+                    if (ters != null)
+                    {
+                        if (ters.KasaId.HasValue)
+                        {
+                            await FinansKurallari.KasaKilitleAsync(_baglam, ters.KasaId.Value);
+                            kontrolEdilecekKasalar.Add(ters.KasaId.Value);
+                        }
+                        SoftSil(ters, simdi, neden);
+                    }
                 }
             }
 
             await _baglam.SaveChangesAsync();
+
+            foreach (var bankaId in kontrolEdilecekBankalar)
+            {
+                var hesap = await _baglam.BankaHesaplari.FirstAsync(b => b.Id == bankaId);
+                if (await FinansKurallari.BankaBakiyesiAsync(_baglam, bankaId) < -Math.Max(0, hesap.KrediLimiti))
+                    throw new InvalidOperationException("Bu hareket silinirse banka hesabı bakiyesi eksiye düşer. Önce sonraki çıkış hareketlerini düzeltin.");
+            }
+            foreach (var kasaId in kontrolEdilecekKasalar)
+            {
+                if (await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
+                    throw new InvalidOperationException("Bu hareket silinirse kasa bakiyesi eksiye düşer.");
+            }
+
             await transaction.CommitAsync();
             return true;
         }
@@ -514,14 +573,23 @@ public class BankaServisi : IBankaServisi
         }
     }
 
+    private static void SoftSil(EtkiAlani.Modeller.Ortak.TemelVarlik kayit, DateTime simdi, string neden)
+    {
+        kayit.Silindi = true;
+        kayit.SilinmeTarihi = simdi;
+        kayit.SilinmeNedeni = neden;
+        kayit.GuncellemeTarihi = simdi;
+    }
+
     public async Task<decimal> BakiyeHesaplaAsync()
     {
+        GoruntulemeYetkisi();
         var gelir = await _baglam.BankaHareketleri
-            .Where(b => b.Tur == HareketTuru.Gelir)
+            .Where(b => b.IslemDurumu == FinansIslemDurumu.Tamamlandi && b.Tur == HareketTuru.Gelir)
             .SumAsync(b => (decimal?)b.Tutar) ?? 0;
 
         var gider = await _baglam.BankaHareketleri
-            .Where(b => b.Tur == HareketTuru.Gider)
+            .Where(b => b.IslemDurumu == FinansIslemDurumu.Tamamlandi && b.Tur == HareketTuru.Gider)
             .SumAsync(b => (decimal?)b.Tutar) ?? 0;
 
         return gelir - gider;
@@ -529,6 +597,7 @@ public class BankaServisi : IBankaServisi
 
     public async Task<decimal> HesapBakiyeHesaplaAsync(string bankaAdi, string? hesapNo = null)
     {
+        GoruntulemeYetkisi();
         var query = _baglam.BankaHareketleri.Where(b => b.BankaAdi == bankaAdi);
         if (!string.IsNullOrWhiteSpace(hesapNo))
         {
@@ -541,21 +610,27 @@ public class BankaServisi : IBankaServisi
         return gelir - gider;
     }
 
-    public async Task<decimal> HesapBakiyeHesaplaAsync(int bankaHesabiId)
+    public Task<decimal> HesapBakiyeHesaplaAsync(int bankaHesabiId)
     {
-        var gelir = await _baglam.BankaHareketleri
-            .Where(b => b.BankaHesabiId == bankaHesabiId && b.Tur == HareketTuru.Gelir)
-            .SumAsync(b => (decimal?)b.Tutar) ?? 0;
-
-        var gider = await _baglam.BankaHareketleri
-            .Where(b => b.BankaHesabiId == bankaHesabiId && b.Tur == HareketTuru.Gider)
-            .SumAsync(b => (decimal?)b.Tutar) ?? 0;
-
-        return gelir - gider;
+        GoruntulemeYetkisi();
+        return FinansKurallari.BankaBakiyesiAsync(_baglam, bankaHesabiId);
     }
 
     public async Task<BankaHesabi> BankaHesabiEkleAsync(BankaHesabi hesap)
     {
+        Oturum.YetkiKontrolEt(y => y.BankaEkle, "Banka Hesabı Tanımlama");
+        BankaHesabiDogrula(hesap);
+
+        if (await _baglam.BankaHesaplari.AnyAsync(b => b.Kod == hesap.Kod))
+            throw new InvalidOperationException($"'{hesap.Kod}' kodlu bir banka hesabı zaten var.");
+        if (!string.IsNullOrEmpty(hesap.Iban) && await _baglam.BankaHesaplari.AnyAsync(b => b.Iban == hesap.Iban))
+            throw new InvalidOperationException("Bu IBAN başka bir banka hesabında kayıtlı.");
+
+        hesap.Id = 0;
+        hesap.Bakiye = 0;
+        hesap.BlokeBakiye = 0;
+        hesap.AktifMi = true;
+        hesap.OlusturmaTarihi = DateTime.UtcNow;
         _baglam.BankaHesaplari.Add(hesap);
         await _baglam.SaveChangesAsync();
         return hesap;
@@ -563,72 +638,148 @@ public class BankaServisi : IBankaServisi
 
     public async Task<BankaHesabi> BankaHesabiGuncelleAsync(BankaHesabi hesap)
     {
-        _baglam.BankaHesaplari.Update(hesap);
+        Oturum.YetkiKontrolEt(y => y.BankaDuzenle, "Banka Hesabı Güncelleme");
+        BankaHesabiDogrula(hesap);
+
+        var mevcut = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == hesap.Id)
+            ?? throw new KeyNotFoundException("Banka hesabı bulunamadı.");
+        if (await _baglam.BankaHesaplari.AnyAsync(b => b.Kod == hesap.Kod && b.Id != hesap.Id))
+            throw new InvalidOperationException($"'{hesap.Kod}' kodlu bir banka hesabı zaten var.");
+        if (!string.IsNullOrEmpty(hesap.Iban) && await _baglam.BankaHesaplari.AnyAsync(b => b.Iban == hesap.Iban && b.Id != hesap.Id))
+            throw new InvalidOperationException("Bu IBAN başka bir banka hesabında kayıtlı.");
+
+        var kayitli = _baglam.Entry(mevcut).OriginalValues;
+        var kayitliParaBirimi = kayitli.GetValue<string>(nameof(BankaHesabi.ParaBirimi));
+        var kayitliAktif = kayitli.GetValue<bool>(nameof(BankaHesabi.AktifMi));
+
+        var hareketVar = await _baglam.BankaHareketleri.AnyAsync(h => h.BankaHesabiId == mevcut.Id);
+        if (hareketVar && !string.Equals(kayitliParaBirimi, hesap.ParaBirimi, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Hareket görmüş bir banka hesabının para birimi değiştirilemez.");
+        if (kayitliAktif && !hesap.AktifMi && await FinansKurallari.BankaBakiyesiAsync(_baglam, mevcut.Id) != 0)
+            throw new InvalidOperationException("Bakiyesi sıfır olmayan banka hesabı pasife alınamaz.");
+
+        mevcut.Kod = hesap.Kod;
+        mevcut.Ad = hesap.Ad;
+        mevcut.HesapTuru = hesap.HesapTuru;
+        mevcut.Sube = hesap.Sube;
+        mevcut.HesapNo = hesap.HesapNo;
+        mevcut.Iban = hesap.Iban;
+        mevcut.ParaBirimi = hesap.ParaBirimi;
+        mevcut.PosKomisyonOrani = hesap.PosKomisyonOrani;
+        mevcut.ValorGunu = hesap.ValorGunu;
+        mevcut.KrediLimiti = hesap.KrediLimiti;
+        mevcut.MuhasebeKodu = hesap.MuhasebeKodu;
+        mevcut.AktifMi = hesap.AktifMi;
+        mevcut.GuncellemeTarihi = DateTime.UtcNow;
         await _baglam.SaveChangesAsync();
-        return hesap;
+        return mevcut;
+    }
+
+    private static void BankaHesabiDogrula(BankaHesabi hesap)
+    {
+        hesap.Kod = hesap.Kod?.Trim().ToUpperInvariant() ?? string.Empty;
+        hesap.Ad = hesap.Ad?.Trim() ?? string.Empty;
+        hesap.Sube = hesap.Sube?.Trim() ?? string.Empty;
+        hesap.HesapNo = hesap.HesapNo?.Trim() ?? string.Empty;
+        hesap.ParaBirimi = string.IsNullOrWhiteSpace(hesap.ParaBirimi) ? "TRY" : hesap.ParaBirimi.Trim().ToUpperInvariant();
+        hesap.MuhasebeKodu = string.IsNullOrWhiteSpace(hesap.MuhasebeKodu) ? "102.01.001" : hesap.MuhasebeKodu.Trim();
+
+        if (string.IsNullOrWhiteSpace(hesap.Kod) || hesap.Kod.Length > 30)
+            throw new ArgumentException("Banka hesap kodu boş olamaz ve en fazla 30 karakter olabilir.");
+        if (string.IsNullOrWhiteSpace(hesap.Ad) || hesap.Ad.Length > 100)
+            throw new ArgumentException("Banka / hesap adı boş olamaz ve en fazla 100 karakter olabilir.");
+        if (hesap.ParaBirimi.Length != 3 || !hesap.ParaBirimi.All(char.IsLetter))
+            throw new ArgumentException("Para birimi 3 harfli ISO kodu olmalıdır (örn. TRY).");
+
+        var iban = hesap.Iban?.Trim() ?? string.Empty;
+        if (iban.Length > 0)
+        {
+            if (!IbanDogrulayici.Gecerlidir(iban, out var gecerliIban))
+                throw new ArgumentException("Geçerli bir IBAN giriniz.");
+            iban = gecerliIban;
+        }
+        else if (hesap.HesapTuru is BankaHesapTuru.VadesizTL or BankaHesapTuru.VadesizDoviz)
+        {
+            throw new ArgumentException("Vadesiz banka hesapları için IBAN zorunludur.");
+        }
+        hesap.Iban = iban;
+        if (string.IsNullOrWhiteSpace(hesap.HesapNo))
+            hesap.HesapNo = iban;
+
+        if (hesap.KrediLimiti < 0)
+            throw new ArgumentException("Kredi limiti negatif olamaz.");
+        if (hesap.HesapTuru != BankaHesapTuru.KrediHesabi && hesap.KrediLimiti > 0)
+            throw new ArgumentException("Kredi limiti yalnızca kredi hesaplarında tanımlanabilir.");
+        if (hesap.PosKomisyonOrani < 0 || hesap.PosKomisyonOrani > 100)
+            throw new ArgumentException("POS komisyon oranı 0 ile 100 arasında olmalıdır.");
+        if (hesap.ValorGunu < 0 || hesap.ValorGunu > 365)
+            throw new ArgumentException("Valör günü 0 ile 365 arasında olmalıdır.");
+        if (!hesap.MuhasebeKodu.StartsWith("102", StringComparison.Ordinal) &&
+            !hesap.MuhasebeKodu.StartsWith("108", StringComparison.Ordinal) &&
+            !hesap.MuhasebeKodu.StartsWith("300", StringComparison.Ordinal))
+            throw new ArgumentException("Banka muhasebe kodu 102, 108 veya 300 hesap grubu altında olmalıdır.");
     }
 
     public async Task<BankaHesabi?> BankaHesabiGetirIdAsync(int id)
     {
-        return await _baglam.BankaHesaplari.FirstOrDefaultAsync(k => k.Id == id);
+        GoruntulemeYetkisi();
+        return await _baglam.BankaHesaplari.AsNoTracking().FirstOrDefaultAsync(k => k.Id == id);
     }
 
+    // Banka hesabı otomatik uydurulmaz; kullanıcı gerçek hesabını tanımlamalıdır.
     public async Task<IReadOnlyList<BankaHesabi>> BankaHesaplariGetirAsync(bool sadeceAktifler = true)
     {
+        GoruntulemeYetkisi();
         var query = _baglam.BankaHesaplari.AsQueryable();
         if (sadeceAktifler)
             query = query.Where(k => k.AktifMi);
 
-        var list = await query.ToListAsync();
-        if (list.Count == 0)
-        {
-            var varsayilan = await VarsayilanBankaHesabiGetirVeyaOlusturAsync();
-            list = new List<BankaHesabi> { varsayilan };
-        }
-        return list;
+        return await query.OrderBy(k => k.Kod).ToListAsync();
     }
 
-    private async Task<BankaHesabi> VarsayilanBankaHesabiGetirVeyaOlusturAsync()
+    private async Task<int> HesapIdBulAsync(string? bankaAdi, string? hesapNo)
     {
-        var ilk = await _baglam.BankaHesaplari.FirstOrDefaultAsync();
-        if (ilk != null)
+        var no = hesapNo?.Trim() ?? string.Empty;
+        if (no.StartsWith("TR", StringComparison.OrdinalIgnoreCase))
         {
-            if (!IbanDogrulayici.Gecerlidir(ilk.Iban, out var gecerliIban))
-            {
-                ilk.Iban = "TR2600061000123456789005001";
-                await _baglam.SaveChangesAsync();
-            }
-            return ilk;
+            if (!IbanDogrulayici.Gecerlidir(no, out var iban))
+                throw new ArgumentException("Geçerli bir IBAN giriniz.");
+            no = iban;
         }
 
-        var yeni = new BankaHesabi
+        var aktifler = _baglam.BankaHesaplari.Where(b => b.AktifMi);
+        BankaHesabi? hesap = null;
+        if (no.Length > 0)
+            hesap = await aktifler.FirstOrDefaultAsync(b => b.Iban == no || b.HesapNo == no);
+        if (hesap == null && !string.IsNullOrWhiteSpace(bankaAdi))
         {
-            Kod = "BNK-01",
-            Ad = "Ziraat Bankası Vadesiz TL",
-            HesapTuru = BankaHesapTuru.VadesizTL,
-            Sube = "Kadıköy Şubesi",
-            HesapNo = "12345678-5001",
-            Iban = "TR2600061000123456789005001",
-            MuhasebeKodu = "102.01.001",
-            ParaBirimi = "TRY",
-            AktifMi = true,
-            OlusturmaTarihi = DateTime.UtcNow
-        };
-        _baglam.BankaHesaplari.Add(yeni);
-        await _baglam.SaveChangesAsync();
-        return yeni;
+            var ad = bankaAdi.Trim();
+            var adaGore = await aktifler.Where(b => b.Ad == ad).Take(2).ToListAsync();
+            if (adaGore.Count == 1) hesap = adaGore[0];
+        }
+        if (hesap == null)
+        {
+            var tumAktifler = await aktifler.Take(2).ToListAsync();
+            if (tumAktifler.Count == 1) hesap = tumAktifler[0];
+        }
+        return hesap?.Id ?? throw new InvalidOperationException("İşlem yapılacak banka hesabı belirlenemedi. Lütfen bir banka hesabı seçin.");
     }
 
-    private static string HesapNoNormalizeEt(string hesapNo)
+    private async Task<BankaHesabi> AktifHesapGetirAsync(int bankaHesabiId)
     {
-        var normalizeEdilmis = hesapNo?.Trim() ?? string.Empty;
-        if (!normalizeEdilmis.StartsWith("TR", StringComparison.OrdinalIgnoreCase))
-            return normalizeEdilmis;
+        if (bankaHesabiId <= 0)
+            throw new ArgumentException("Lütfen bir banka hesabı seçin.");
+        var hesap = await _baglam.BankaHesaplari.FirstOrDefaultAsync(b => b.Id == bankaHesabiId)
+            ?? throw new KeyNotFoundException("Banka hesabı bulunamadı.");
+        if (!hesap.AktifMi)
+            throw new InvalidOperationException($"'{hesap.Ad}' banka hesabı pasif durumda. Pasif hesaba işlem yapılamaz.");
+        return hesap;
+    }
 
-        if (!IbanDogrulayici.Gecerlidir(normalizeEdilmis, out var iban))
-            throw new ArgumentException("Geçerli bir IBAN giriniz.");
-
-        return iban;
+    private async Task<BankaHesabi> AktifHesapGetirVeKilitleAsync(int bankaHesabiId)
+    {
+        if (bankaHesabiId > 0)
+            await FinansKurallari.BankaHesabiKilitleAsync(_baglam, bankaHesabiId);
+        return await AktifHesapGetirAsync(bankaHesabiId);
     }
 }
-

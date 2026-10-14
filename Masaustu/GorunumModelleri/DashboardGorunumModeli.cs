@@ -83,7 +83,9 @@ public class DashboardGorunumModeli : TemelGorunumModeli
 
             if (_kasaServisi != null)
             {
-                KasaBakiyesi = await _kasaServisi.BakiyeHesaplaAsync();
+                // Kasa görüntüleme yetkisi olmayan kullanıcıda panelin geri kalanı yine yüklenmeli.
+                try { KasaBakiyesi = await _kasaServisi.BakiyeHesaplaAsync(); }
+                catch (Uygulama.Arayuzler.YetkisizErisimException) { KasaBakiyesi = 0; }
             }
 
             if (_faturaServisi != null)

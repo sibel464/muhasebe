@@ -1820,6 +1820,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("GuncellemeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HataliGirisSayisi")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("KilitBitisTarihi")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("KullaniciAdi")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1830,6 +1836,12 @@ namespace Altyapi.Migrations
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SifreDegistirmeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("SifreDegistirmeli")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SifreHash")
                         .IsRequired()
@@ -1864,9 +1876,11 @@ namespace Altyapi.Migrations
                             Id = 1,
                             Ad = "Sistem",
                             Aktif = true,
+                            HataliGirisSayisi = 0,
                             KullaniciAdi = "admin",
                             OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, 0, DateTimeKind.Utc),
                             Rol = "Yonetici",
+                            SifreDegistirmeli = false,
                             SifreHash = "$2a$11$bFJTJsZZdqJQwi75rB4wM.DQgaRKmvwOSvi0VYrjuKdFj1/QC2UfS",
                             Silindi = false,
                             Soyad = "Yöneticisi"

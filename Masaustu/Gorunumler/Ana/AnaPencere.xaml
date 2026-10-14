@@ -503,11 +503,17 @@
                                 <TextBlock Text="{Binding RolAd}" FontSize="10" Foreground="#70FFFFFF"/>
                             </StackPanel>
 
-                            <Button Grid.Column="2" Content="⏻"
-                                    Command="{Binding CikisKomutu}"
-                                    Background="Transparent" BorderThickness="0"
-                                    Foreground="#70FFFFFF" FontSize="16" Cursor="Hand"
-                                    ToolTip="Çıkış Yap"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Content="🔑" Click="SifreDegistirTiklandi"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="#70FFFFFF" FontSize="14" Cursor="Hand" Margin="0,0,8,0"
+                                        ToolTip="Şifremi Değiştir"/>
+                                <Button Content="⏻"
+                                        Command="{Binding CikisKomutu}"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="#70FFFFFF" FontSize="16" Cursor="Hand"
+                                        ToolTip="Çıkış Yap"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
