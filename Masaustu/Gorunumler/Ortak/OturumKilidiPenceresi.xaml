@@ -1,0 +1,27 @@
+<Window x:Class="Masaustu.Gorunumler.Ortak.OturumKilidiPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Oturum Kilitlendi" Width="400" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        WindowStyle="ToolWindow" Background="#F8F9FA" ShowInTaskbar="False">
+
+    <StackPanel Margin="24">
+        <TextBlock Text="🔒 Oturum kilitlendi" FontSize="16" FontWeight="SemiBold" Foreground="#212529" Margin="0,0,0,6"/>
+        <TextBlock x:Name="AciklamaMetni" TextWrapping="Wrap" FontSize="12" Foreground="#6C757D" Margin="0,0,0,16"/>
+
+        <TextBlock Text="Şifre" FontSize="12" Foreground="#495057" Margin="0,0,0,4"/>
+        <PasswordBox x:Name="SifreKutusu" Height="34" Padding="8,6" FontSize="13"/>
+
+        <TextBlock x:Name="HataMetni" TextWrapping="Wrap" Foreground="#DC3545" FontSize="12"
+                   Visibility="Collapsed" Margin="0,8,0,0"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="Çıkış Yap" Width="100" Height="35" Margin="0,0,10,0"
+                    Background="#E9ECEF" Foreground="#495057" BorderThickness="0"
+                    Click="CikisTiklandi" Cursor="Hand" FontWeight="SemiBold"/>
+            <Button x:Name="KilidiAcDugmesi" Content="Kilidi Aç" Width="100" Height="35" IsDefault="True"
+                    Background="#0D6EFD" Foreground="White" BorderThickness="0"
+                    Click="KilidiAcTiklandi" Cursor="Hand" FontWeight="SemiBold"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

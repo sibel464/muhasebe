@@ -42,6 +42,13 @@ Geliştirme ortamında uygulama açılışta bekleyen EF Core migration dosyalar
 uygular. Üretim ortamında migration otomatik uygulanmaz; eksik migration varsa
 uygulama açılmadan önce veritabanı güncellenmelidir.
 
+## Oturum zaman aşımı
+
+Program `UygulamaAyarlari:OturumZamanAsimiDakika` (varsayılan 15) dakika boyunca klavye
+veya fare hareketi görmezse açık pencereleri bulanıklaştırıp kilitler. Devam etmek için
+oturum sahibinin şifresi gerekir; "Çıkış Yap" ile giriş ekranına dönülür. Hatalı şifre
+denemeleri giriş ekranındaki kilitleme kuralına tabidir. Değeri `0` yapmak özelliği kapatır.
+
 ## Otomatik yedekleme ve geri yükleme
 
 Uygulama her açılışta son yedek 24 saatten eskiyse arka planda `pg_dump` ile tam yedek

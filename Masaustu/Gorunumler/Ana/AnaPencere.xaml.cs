@@ -1,5 +1,9 @@
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media.Effects;
+using System.Windows.Threading;
 using Masaustu.GorunumModelleri;
+using Microsoft.Extensions.Configuration;
 using Masaustu.Servisler;
 using Microsoft.Extensions.DependencyInjection;
 using Uygulama.Arayuzler;
@@ -10,6 +14,12 @@ namespace Masaustu.Gorunumler.Ana;
 public partial class AnaPencere : Window
 {
     private readonly AnaGorunumModeli _gorunumModeli;
+
+    // Oturum zaman aşımı: belirtilen süre klavye/fare hareketi olmazsa ekran kilitlenir (0 = kapalı).
+    private readonly int _zamanAsimiDakika;
+    private readonly DispatcherTimer? _bostaKalmaZamanlayicisi;
+    private DateTime _sonEtkinlik = DateTime.UtcNow;
+    private bool _kilitli;
 
     public AnaPencere(AnaGorunumModeli gorunumModeli)
     {
@@ -41,6 +51,16 @@ public partial class AnaPencere : Window
             }
         };
 
+        var ayar = App.HizmetSaglayici.GetRequiredService<IConfiguration>()["UygulamaAyarlari:OturumZamanAsimiDakika"];
+        _zamanAsimiDakika = int.TryParse(ayar, out var dakika) ? Math.Max(0, dakika) : 15;
+        if (_zamanAsimiDakika > 0)
+        {
+            InputManager.Current.PreProcessInput += GirdiAlgilandi;
+            _bostaKalmaZamanlayicisi = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+            _bostaKalmaZamanlayicisi.Tick += (_, _) => ZamanAsiminiDenetle();
+            _bostaKalmaZamanlayicisi.Start();
+        }
+
         // Pencere sürükleme (üst bar ile)
         MouseLeftButtonDown += (_, e) =>
         {
@@ -49,8 +69,60 @@ public partial class AnaPencere : Window
         };
     }
 
+    private void GirdiAlgilandi(object sender, PreProcessInputEventArgs e)
+    {
+        if (e.StagingItem.Input is KeyboardEventArgs or MouseButtonEventArgs or MouseWheelEventArgs or TouchEventArgs ||
+            e.StagingItem.Input.RoutedEvent == Mouse.MouseMoveEvent)
+            _sonEtkinlik = DateTime.UtcNow;
+    }
+
+    private void ZamanAsiminiDenetle()
+    {
+        if (_kilitli || DateTime.UtcNow - _sonEtkinlik < TimeSpan.FromMinutes(_zamanAsimiDakika))
+            return;
+        OturumuKilitle();
+    }
+
+    private void OturumuKilitle()
+    {
+        _kilitli = true;
+        // Kilit sırasında ekrandaki veriler okunmasın diye açık pencereler bulanıklaştırılır.
+        var pencereler = Application.Current.Windows.OfType<Window>().Where(w => w.IsVisible).ToList();
+        foreach (var w in pencereler)
+            w.Effect = new BlurEffect { Radius = 25 };
+
+        bool? sonuc;
+        try
+        {
+            var kilit = new Gorunumler.Ortak.OturumKilidiPenceresi(App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>(), _zamanAsimiDakika)
+            {
+                Owner = pencereler.LastOrDefault(w => w.IsActive) ?? this,
+                Topmost = true
+            };
+            sonuc = kilit.ShowDialog();
+        }
+        finally
+        {
+            foreach (var w in pencereler)
+                w.Effect = null;
+            _sonEtkinlik = DateTime.UtcNow;
+            _kilitli = false;
+        }
+
+        if (sonuc != true)
+        {
+            // Ana pencerenin üstünde açık kalan alt pencereler de oturumla birlikte kapanır.
+            foreach (var w in pencereler.Where(w => w != this))
+                w.Close();
+            _gorunumModeli.CikisYapildi?.Invoke();
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
+        _bostaKalmaZamanlayicisi?.Stop();
+        if (_zamanAsimiDakika > 0)
+            InputManager.Current.PreProcessInput -= GirdiAlgilandi;
         base.OnClosed(e);
         // Ana pencere kapatıldığında ve başka pencere yoksa uygulamayı sonlandır
         if (Application.Current.MainWindow == this || Application.Current.Windows.Count == 0)
