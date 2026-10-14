@@ -3,6 +3,7 @@ using EtkiAlani.Modeller.Finans;
 using EtkiAlani.Modeller.Cari;
 using Uygulama.Arayuzler;
 using Altyapi.Veri;
+using Satir = Altyapi.Servisler.FinansMuhasebeKaydi.Satir;
 
 namespace Altyapi.Servisler;
 
@@ -149,6 +150,19 @@ public class KasaServisi : IKasaServisi
 
             _baglam.KasaHareketleri.Add(hareket);
             await _baglam.SaveChangesAsync();
+
+            // Gelir: 100 / 649, Gider: 770 / 100, Açılış: 100 / 500
+            var kasaKodu = await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa);
+            var (karsiKod, kasaBorclu) = hareket.FisTuru switch
+            {
+                KasaFisTuru.Gider => ("770", false),
+                KasaFisTuru.AcilisDevir => ("500", true),
+                _ => ("649", true)
+            };
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, hareket.SirketId, FinansMuhasebeKaydi.KasaBelgeTipi, hareket.Id, hareket.Tarih, hareket.Aciklama, hareket.MakbuzNo ?? hareket.FisNo,
+                kasaBorclu ? new Satir(kasaKodu, hareket.Tutar, 0) : new Satir(karsiKod, hareket.Tutar, 0),
+                kasaBorclu ? new Satir(karsiKod, 0, hareket.Tutar) : new Satir(kasaKodu, 0, hareket.Tutar));
+
             await transaction.CommitAsync();
             return hareket;
         }
@@ -242,6 +256,12 @@ public class KasaServisi : IKasaServisi
             _baglam.CariHareketler.Add(cariHareket);
             await _baglam.SaveChangesAsync();
 
+            // Tahsilat: 100 / 120, Ödeme: 320 / 100
+            var kasaKodu = await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa);
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, kasaHareketi.SirketId, FinansMuhasebeKaydi.KasaBelgeTipi, kasaHareketi.Id, islemTarihi, temizAciklama, temizBelgeNo ?? kasaHareketi.FisNo,
+                tahsilat ? new Satir(kasaKodu, tutar, 0) : new Satir("320", tutar, 0, cariKartId),
+                tahsilat ? new Satir("120", 0, tutar, cariKartId) : new Satir(kasaKodu, 0, tutar));
+
             kasaHareketi.IlgiliBelgeId = cariHareket.Id;
             await _baglam.SaveChangesAsync();
 
@@ -316,6 +336,10 @@ public class KasaServisi : IKasaServisi
             cikis.TersKayitId = giris.Id;
             await _baglam.SaveChangesAsync();
 
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, kaynakKasa.SirketId, FinansMuhasebeKaydi.KasaBelgeTipi, cikis.Id, islemTarihi, cikis.Aciklama, fisNo,
+                new Satir(await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, hedefKasa), tutar, 0),
+                new Satir(await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kaynakKasa), 0, tutar));
+
             await transaction.CommitAsync();
             return true;
         }
@@ -387,6 +411,11 @@ public class KasaServisi : IKasaServisi
             kasaCikis.TersKayitId = bankaGiris.Id;
             await _baglam.SaveChangesAsync();
 
+            // 102 Bankalar / 100 Kasa
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, kasa.SirketId, FinansMuhasebeKaydi.KasaBelgeTipi, kasaCikis.Id, islemTarihi, kasaCikis.Aciklama, fisNo,
+                new Satir(await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, banka), tutar, 0),
+                new Satir(await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa), 0, tutar));
+
             await transaction.CommitAsync();
             return true;
         }
@@ -442,6 +471,13 @@ public class KasaServisi : IKasaServisi
                 };
                 _baglam.KasaHareketleri.Add(farkHareket);
                 await _baglam.SaveChangesAsync();
+
+                // Kasa fazlası: 100 / 397, Kasa noksanı: 197 / 100
+                var kasaKodu = await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa);
+                var fazla = mutabakat.Fark > 0;
+                await FinansMuhasebeKaydi.FisEkleAsync(_baglam, farkHareket.SirketId, FinansMuhasebeKaydi.KasaBelgeTipi, farkHareket.Id, farkHareket.Tarih, farkHareket.Aciklama, farkHareket.FisNo,
+                    fazla ? new Satir(kasaKodu, farkHareket.Tutar, 0) : new Satir("197", farkHareket.Tutar, 0),
+                    fazla ? new Satir("397", 0, farkHareket.Tutar) : new Satir(kasaKodu, 0, farkHareket.Tutar));
             }
 
             await transaction.CommitAsync();
@@ -527,6 +563,10 @@ public class KasaServisi : IKasaServisi
                 }
             }
 
+            await FinansMuhasebeKaydi.FisleriSilAsync(_baglam,
+                _baglam.ChangeTracker.Entries<KasaHareketi>().Where(e => e.Entity.Silindi).Select(e => e.Entity.Id),
+                _baglam.ChangeTracker.Entries<BankaHareketi>().Where(e => e.Entity.Silindi).Select(e => e.Entity.Id),
+                simdi, neden);
             await _baglam.SaveChangesAsync();
 
             // Silinen bir giriş, sonradan yapılmış çıkışlar nedeniyle bakiyeyi eksiye düşürmemeli.
