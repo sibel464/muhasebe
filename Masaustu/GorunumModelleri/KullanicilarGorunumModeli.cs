@@ -192,6 +192,53 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
     public ICommand ExcelAktarKomutu { get; }
     public ICommand AuditLogYenileKomutu { get; }
     public ICommand AuditLogExcelAktarKomutu { get; }
+    public ICommand SablonUygulaKomutu { get; }
+
+    // Rol şablonları: yeni kullanıcı yetkisiz başlar; yönetici uygun şablonu uygulayıp ince ayar yapar.
+    private static readonly Dictionary<string, string[]> Sablonlar = new()
+    {
+        ["Kasiyer / Satış"] = ["SatisYap", "SatisGecmisiGoruntule", "CariGoruntule", "CariEkle", "StokGoruntule", "FaturaGoruntule", "FaturaOlustur", "KasaGoruntule", "TahsilatYap"],
+        ["Depo / Stok"] = ["StokGoruntule", "StokEkle", "StokDuzenle", "DepoGoruntule", "DepoTransferYap", "IrsaliyeGoruntule", "IrsaliyeOlustur", "IrsaliyeOnayla", "CariGoruntule"],
+        ["Ön Muhasebe / Finans"] = ["CariGoruntule", "CariEkle", "CariDuzenle", "StokGoruntule", "FaturaGoruntule", "FaturaOlustur", "FaturaOnayla", "IrsaliyeGoruntule",
+            "KasaGoruntule", "KasaYonet", "GelirEkle", "GiderEkle", "BankaGoruntule", "BankaEkle", "BankaDuzenle", "TahsilatYap", "OdemeYap", "FinansGoruntule",
+            "VirmanYap", "Mutabakat", "POSYonet", "CekSenetGoruntule", "CekSenetIslemYap", "RaporGoruntule", "FinansRaporuGoruntule"],
+        ["Muhasebe"] = ["MuhasebeFisGoruntule", "MuhasebeFisEkle", "MuhasebeFisOnayla", "MuhasebeFisIptal", "HesapPlaniYonet", "MizanGoruntule", "MaliyetHesaplariGoruntule",
+            "CariGoruntule", "FaturaGoruntule", "IrsaliyeGoruntule", "KasaGoruntule", "BankaGoruntule", "FinansGoruntule", "CekSenetGoruntule", "RaporGoruntule", "FinansRaporuGoruntule"],
+        ["Yetkileri Temizle"] = [],
+    };
+
+    public IReadOnlyList<string> YetkiSablonlari { get; } = Sablonlar.Keys.ToList();
+
+    private string? _seciliYetkiSablonu;
+    public string? SeciliYetkiSablonu
+    {
+        get => _seciliYetkiSablonu;
+        set => OzellikAyarla(ref _seciliYetkiSablonu, value);
+    }
+
+    // Şablon önceki işaretleri temizleyip yalnızca kendi yetkilerini açar; kayıt Kaydet ile yapılır.
+    private void SablonUygula()
+    {
+        if (SeciliYetkiSablonu == null || !Sablonlar.TryGetValue(SeciliYetkiSablonu, out var acilacaklar))
+            return;
+
+        var mevcut = IslemKullanicisi.Yetkiler;
+        var yeni = new KullaniciYetkileri { Id = mevcut?.Id ?? 0, KullaniciId = mevcut?.KullaniciId ?? IslemKullanicisi.Id };
+        foreach (var ad in acilacaklar)
+            typeof(KullaniciYetkileri).GetProperty(ad)!.SetValue(yeni, true);
+
+        IslemKullanicisi = new Kullanici
+        {
+            Id = IslemKullanicisi.Id,
+            KullaniciAdi = IslemKullanicisi.KullaniciAdi,
+            Ad = IslemKullanicisi.Ad,
+            Soyad = IslemKullanicisi.Soyad,
+            Eposta = IslemKullanicisi.Eposta,
+            Aktif = IslemKullanicisi.Aktif,
+            Rol = IslemKullanicisi.Rol,
+            Yetkiler = yeni
+        };
+    }
 
     public KullanicilarGorunumModeli(IKullaniciServisi kullaniciServisi, IAuditLogServisi? auditLogServisi = null)
     {
@@ -209,6 +256,7 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         
         AuditLogYenileKomutu = new KomutSarici(async _ => await AuditLoglariYukleAsync());
         AuditLogExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(AuditLoglar, "Islem_Gecmisi_Audit_Logs"));
+        SablonUygulaKomutu = new KomutSarici(_ => SablonUygula(), _ => SeciliYetkiSablonu != null);
 
         _ = IlkYuklemeAsync();
     }

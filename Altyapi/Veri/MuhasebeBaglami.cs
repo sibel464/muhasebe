@@ -893,6 +893,8 @@ public class MuhasebeBaglami : DbContext
                 IrsaliyeGoruntule = true, IrsaliyeOlustur = true, IrsaliyeOnayla = true, IrsaliyeIptal = true,
                 MuhasebeFisGoruntule = true, MuhasebeFisEkle = true, MuhasebeFisDuzenle = true, MuhasebeFisOnayla = true, MuhasebeFisIptal = true, HesapPlaniYonet = true, MizanGoruntule = true, MaliyetHesaplariGoruntule = true,
                 AyarlariYonet = true, KullaniciYonet = true, AuditLogGoruntule = true,
+                                // Finans, depo ve çek/senet yetkileri (önceden varsayılan olarak açıktı)
+                FinansGoruntule = true, KasaGoruntule = true, KasaIslem = true, BankaIslem = true, VirmanYap = true, FinansIptal = true, Mutabakat = true, POSYonet = true, FinansRaporlari = true, DepoGoruntule = true, DepoTransferYap = true, CekSenetGoruntule = true, CekSenetIslemYap = true,
                 OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
             }
         );

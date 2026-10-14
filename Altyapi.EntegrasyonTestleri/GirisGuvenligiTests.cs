@@ -145,6 +145,17 @@ public sealed class GirisGuvenligiTests(IsolatedPostgreSqlFixture fixture)
         Assert.True(sonuc.SifreDegistirmeli);
     }
 
+    [Fact]
+    public void Yeni_kullanici_hicbir_yetkiyle_baslamaz()
+    {
+        var acikYetkiler = typeof(KullaniciYetkileri).GetProperties()
+            .Where(p => p.PropertyType == typeof(bool) && p.DeclaringType == typeof(KullaniciYetkileri))
+            .Where(p => (bool)p.GetValue(new KullaniciYetkileri())!)
+            .Select(p => p.Name)
+            .ToList();
+        Assert.Empty(acikYetkiler);
+    }
+
     private sealed class BaglamFabrikasi(DbContextOptions<MuhasebeBaglami> options) : IDbContextFactory<MuhasebeBaglami>
     {
         public MuhasebeBaglami CreateDbContext() => new(options);

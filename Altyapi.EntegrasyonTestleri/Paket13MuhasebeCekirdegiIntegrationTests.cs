@@ -42,6 +42,11 @@ public sealed class Paket13MuhasebeCekirdegiIntegrationTests
         var yetki = new KullaniciYetkileri
         {
             KullaniciId = kullanici.Id,
+            // Yetkiler artık varsayılan olarak kapalı; testin kullandığı fatura yetkileri açıkça verilir.
+            FaturaGoruntule = yetkili,
+            FaturaOlustur = yetkili,
+            FaturaOnayla = yetkili,
+            FaturaIptal = yetkili,
             MuhasebeFisGoruntule = yetkili,
             MuhasebeFisEkle = yetkili,
             MuhasebeFisDuzenle = yetkili,

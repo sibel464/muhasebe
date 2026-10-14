@@ -231,60 +231,90 @@
                                     
                                     <TextBlock Text="Modül Erişim ve İşlem İzinleri" FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryFirca}" Margin="0,0,0,6"/>
 
-                                    <!-- Yetki Checkbox'ları -->
+                                    <!-- Yetki şablonu: seçilen role uygun yetkileri tek tıkla işaretler; sonra tek tek düzenlenebilir -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="Hazır şablon:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                        <ComboBox ItemsSource="{Binding YetkiSablonlari}" SelectedItem="{Binding SeciliYetkiSablonu}" Width="220" Style="{StaticResource FormAcilirKutu}"/>
+                                        <Button Content="Uygula" Command="{Binding SablonUygulaKomutu}" Width="80" Margin="8,0,0,0" Style="{StaticResource IkinciDugme}"/>
+                                    </StackPanel>
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Sütun 1 -->
                                         <StackPanel Grid.Column="0" Margin="0,0,6,0">
                                             <TextBlock Text="Cari / Müşteri / Tedarikçi" Style="{StaticResource ModulYetkiBaslik}"/>
                                             <CheckBox Content="Cari Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.CariGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Cari Ekle" IsChecked="{Binding IslemKullanicisi.Yetkiler.CariEkle}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Cari Düzenle" IsChecked="{Binding IslemKullanicisi.Yetkiler.CariDuzenle}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Cari Sil" IsChecked="{Binding IslemKullanicisi.Yetkiler.CariSil}" Style="{StaticResource YetkiCheckBox}"/>
-
-                                            <TextBlock Text="Stok &amp; Depo Yönetimi" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <TextBlock Text="Stok &amp; Depo" Style="{StaticResource ModulYetkiBaslik}"/>
                                             <CheckBox Content="Stok Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.StokGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Stok Ekle" IsChecked="{Binding IslemKullanicisi.Yetkiler.StokEkle}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Stok Düzenle" IsChecked="{Binding IslemKullanicisi.Yetkiler.StokDuzenle}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Stok Sil" IsChecked="{Binding IslemKullanicisi.Yetkiler.StokSil}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Depo / Lokasyon İzle" IsChecked="{Binding IslemKullanicisi.Yetkiler.DepoGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Depo Transferi Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.DepoTransferYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <TextBlock Text="Hızlı Satış (POS)" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Satış Ekranı Kullan" IsChecked="{Binding IslemKullanicisi.Yetkiler.SatisYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Satış Geçmişini Gör" IsChecked="{Binding IslemKullanicisi.Yetkiler.SatisGecmisiGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                         </StackPanel>
 
-                                        <!-- Sütun 2 -->
                                         <StackPanel Grid.Column="1" Margin="6,0,6,0">
-                                            <TextBlock Text="Fatura &amp; Sipariş &amp; İrsaliye" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <TextBlock Text="Fatura &amp; İrsaliye" Style="{StaticResource ModulYetkiBaslik}"/>
                                             <CheckBox Content="Fatura Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.FaturaGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Fatura Oluştur" IsChecked="{Binding IslemKullanicisi.Yetkiler.FaturaOlustur}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Fatura Onayla" IsChecked="{Binding IslemKullanicisi.Yetkiler.FaturaOnayla}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Fatura İptal Et" IsChecked="{Binding IslemKullanicisi.Yetkiler.FaturaIptal}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="İrsaliye Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.IrsaliyeGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="İrsaliye Oluştur" IsChecked="{Binding IslemKullanicisi.Yetkiler.IrsaliyeOlustur}" Style="{StaticResource YetkiCheckBox}"/>
-
-                                            <TextBlock Text="Hızlı Satış (POS)" Style="{StaticResource ModulYetkiBaslik}"/>
-                                            <CheckBox Content="Satış Ekranı Kullan" IsChecked="{Binding IslemKullanicisi.Yetkiler.SatisYap}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Satış Beklet / Fiş İptal" IsChecked="{Binding IslemKullanicisi.Yetkiler.SatisBeklet}" Style="{StaticResource YetkiCheckBox}"/>
-                                        </StackPanel>
-
-                                        <!-- Sütun 3 -->
-                                        <StackPanel Grid.Column="2" Margin="6,0,0,0">
-                                            <TextBlock Text="Kasa / Banka / Çek-Senet" Style="{StaticResource ModulYetkiBaslik}"/>
-                                            <CheckBox Content="Kasa İşlemleri" IsChecked="{Binding IslemKullanicisi.Yetkiler.KasaYonet}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Banka İşlemleri" IsChecked="{Binding IslemKullanicisi.Yetkiler.BankaGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Çek / Senet İzle" IsChecked="{Binding IslemKullanicisi.Yetkiler.CekSenetGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Çek / Senet İşlem Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.CekSenetIslemYap}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Tahsilat / Ödeme Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.TahsilatYap}" Style="{StaticResource YetkiCheckBox}"/>
-                                            
-                                            <TextBlock Text="Sistem &amp; Raporlar" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="İrsaliye Onayla" IsChecked="{Binding IslemKullanicisi.Yetkiler.IrsaliyeOnayla}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="İrsaliye İptal Et" IsChecked="{Binding IslemKullanicisi.Yetkiler.IrsaliyeIptal}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <TextBlock Text="Raporlar" Style="{StaticResource ModulYetkiBaslik}"/>
                                             <CheckBox Content="Genel Raporlar" IsChecked="{Binding IslemKullanicisi.Yetkiler.RaporGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                             <CheckBox Content="Finansal Raporlar" IsChecked="{Binding IslemKullanicisi.Yetkiler.FinansRaporuGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Sistem Ayarları" IsChecked="{Binding IslemKullanicisi.Yetkiler.AyarlariYonet}" Style="{StaticResource YetkiCheckBox}"/>
-                                            <CheckBox Content="Yönetici Paneli" IsChecked="{Binding IslemKullanicisi.Yetkiler.KullaniciYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2" Margin="6,0,6,0">
+                                            <TextBlock Text="Kasa" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Kasa Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.KasaGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Kasa Yönetimi (virman, sayım, tanım)" IsChecked="{Binding IslemKullanicisi.Yetkiler.KasaYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Kasa Gelir Fişi" IsChecked="{Binding IslemKullanicisi.Yetkiler.GelirEkle}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Kasa Gider Fişi" IsChecked="{Binding IslemKullanicisi.Yetkiler.GiderEkle}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <TextBlock Text="Banka" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Banka Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.BankaGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Banka İşlemi Ekle" IsChecked="{Binding IslemKullanicisi.Yetkiler.BankaEkle}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Banka İşlemi / Hesap Düzenle" IsChecked="{Binding IslemKullanicisi.Yetkiler.BankaDuzenle}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Banka Hareketi Sil" IsChecked="{Binding IslemKullanicisi.Yetkiler.BankaSil}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <TextBlock Text="Tahsilat &amp; Finans" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Tahsilat Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.TahsilatYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Ödeme Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.OdemeYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Finans Merkezi Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.FinansGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Virman / Transfer Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.VirmanYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Finans İşlemi İptal Et" IsChecked="{Binding IslemKullanicisi.Yetkiler.FinansIptal}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Kasa Mutabakatı" IsChecked="{Binding IslemKullanicisi.Yetkiler.Mutabakat}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="POS Yönetimi" IsChecked="{Binding IslemKullanicisi.Yetkiler.POSYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Çek / Senet Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.CekSenetGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Çek / Senet İşlem Yap" IsChecked="{Binding IslemKullanicisi.Yetkiler.CekSenetIslemYap}" Style="{StaticResource YetkiCheckBox}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="3" Margin="6,0,0,0">
+                                            <TextBlock Text="Muhasebe" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Yevmiye Fişlerini Gör" IsChecked="{Binding IslemKullanicisi.Yetkiler.MuhasebeFisGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Yevmiye Fişi Ekle" IsChecked="{Binding IslemKullanicisi.Yetkiler.MuhasebeFisEkle}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Yevmiye Fişi Onayla" IsChecked="{Binding IslemKullanicisi.Yetkiler.MuhasebeFisOnayla}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Yevmiye Fişi İptal Et" IsChecked="{Binding IslemKullanicisi.Yetkiler.MuhasebeFisIptal}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Hesap Planı Yönetimi" IsChecked="{Binding IslemKullanicisi.Yetkiler.HesapPlaniYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Mizan Görüntüle" IsChecked="{Binding IslemKullanicisi.Yetkiler.MizanGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Maliyet Hesaplarını Gör" IsChecked="{Binding IslemKullanicisi.Yetkiler.MaliyetHesaplariGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <TextBlock Text="Sistem" Style="{StaticResource ModulYetkiBaslik}"/>
+                                            <CheckBox Content="Sistem Ayarları &amp; Yedek" IsChecked="{Binding IslemKullanicisi.Yetkiler.AyarlariYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Kullanıcı Yönetimi" IsChecked="{Binding IslemKullanicisi.Yetkiler.KullaniciYonet}" Style="{StaticResource YetkiCheckBox}"/>
+                                            <CheckBox Content="Güvenlik Kayıtlarını Gör" IsChecked="{Binding IslemKullanicisi.Yetkiler.AuditLogGoruntule}" Style="{StaticResource YetkiCheckBox}"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
