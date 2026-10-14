@@ -106,18 +106,21 @@ public class KullaniciServisi : IKullaniciServisi
 
     public async Task<List<Kullanici>> TumunuGetirAsync()
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcıları Görüntüleme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
         return await baglam.Kullanicilar.Include(k => k.Yetkiler).ToListAsync();
     }
 
     public async Task<Kullanici?> GetirAsync(int id)
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Görüntüleme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
         return await baglam.Kullanicilar.Include(k => k.Yetkiler).FirstOrDefaultAsync(k => k.Id == id);
     }
 
     public async Task<Kullanici> EkleAsync(Kullanici kullanici, string acikSifre)
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Ekleme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
 
         kullanici.KullaniciAdi = kullanici.KullaniciAdi.Trim().ToLowerInvariant();
@@ -137,6 +140,7 @@ public class KullaniciServisi : IKullaniciServisi
 
     public async Task GuncelleAsync(Kullanici kullanici)
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Güncelleme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
 
         kullanici.KullaniciAdi = kullanici.KullaniciAdi.Trim().ToLowerInvariant();
@@ -144,12 +148,35 @@ public class KullaniciServisi : IKullaniciServisi
         if (await baglam.Kullanicilar.AnyAsync(k => k.KullaniciAdi == kullanici.KullaniciAdi && k.Id != kullanici.Id))
             throw new InvalidOperationException("Bu kullanıcı adı zaten kullanılıyor.");
 
-        baglam.Kullanicilar.Update(kullanici);
+        var mevcut = await baglam.Kullanicilar.Include(k => k.Yetkiler)
+            .FirstOrDefaultAsync(k => k.Id == kullanici.Id)
+            ?? throw new KeyNotFoundException("Kullanıcı bulunamadı.");
+
+        mevcut.KullaniciAdi = kullanici.KullaniciAdi;
+        mevcut.Ad = kullanici.Ad;
+        mevcut.Soyad = kullanici.Soyad;
+        mevcut.Eposta = kullanici.Eposta;
+        mevcut.Aktif = kullanici.Aktif;
+        mevcut.Rol = kullanici.Rol;
+        mevcut.GuncellemeTarihi = DateTime.UtcNow;
+
+        if (kullanici.Yetkiler != null)
+        {
+            mevcut.Yetkiler ??= new KullaniciYetkileri();
+            foreach (var ozellik in typeof(KullaniciYetkileri).GetProperties()
+                         .Where(p => p.DeclaringType == typeof(KullaniciYetkileri) && p.PropertyType == typeof(bool)))
+                ozellik.SetValue(mevcut.Yetkiler, ozellik.GetValue(kullanici.Yetkiler));
+        }
+
         await baglam.SaveChangesAsync();
+
+        if (AktifKullanici?.Id == mevcut.Id)
+            AktifKullanici = mevcut.Aktif ? mevcut : null;
     }
 
     public async Task SifreDegistirAsync(int kullaniciId, string yeniAcikSifre)
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Şifresi Değiştirme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
         var kullanici = await baglam.Kullanicilar.FindAsync(kullaniciId);
         if (kullanici == null) throw new InvalidOperationException("Kullanıcı bulunamadı.");
@@ -160,6 +187,7 @@ public class KullaniciServisi : IKullaniciServisi
 
     public async Task SilAsync(int id)
     {
+        YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Silme");
         if (AktifKullanici != null && AktifKullanici.Id == id)
             throw new InvalidOperationException("Aktif oturum açmış kullanıcı silinemez.");
 

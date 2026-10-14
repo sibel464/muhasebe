@@ -169,7 +169,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("UrunEkle", () => new UrunEkleGorunumModeli(_urunServisi, _merkeziTanimServisi, _navigasyon));
         _navigasyon.Kaydet("UrunSil", () => new UrunSilGorunumModeli(_urunServisi));
         _navigasyon.Kaydet("Urun", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<StokOperasyonMerkeziGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Depo", () => new DepoGorunumModeli(_depoServisi ?? new Altyapi.Servisler.DepoServisi(null!), _urunServisi, _yazdirmaServisi ?? new Altyapi.Servisler.BelgeYazdirmaServisi()));
+        _navigasyon.Kaydet("Depo", () => new DepoGorunumModeli(_depoServisi ?? throw new InvalidOperationException("Depo servisi yapılandırılmamış."), _urunServisi, _yazdirmaServisi ?? new Altyapi.Servisler.BelgeYazdirmaServisi()));
         _navigasyon.Kaydet("Satis", () => new SatisGorunumModeli(_urunServisi, _cariServisi, _faturaServisi, _cariHareketServisi));
         _navigasyon.Kaydet("Irsaliye", () => new IrsaliyeGorunumModeli(_irsaliyeServisi, _cariServisi, _urunServisi, _faturaServisi, _navigasyon, _yazdirmaServisi));
         _navigasyon.Kaydet("FaturaEkle", () => new FaturaEkleGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon));
@@ -248,4 +248,3 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Git(sayfa);
     }
 }
-

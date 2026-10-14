@@ -8,7 +8,12 @@ namespace Altyapi.Servisler;
 public class MerkeziTanimServisi : IMerkeziTanimServisi
 {
     private readonly MuhasebeBaglami _baglam;
-    public MerkeziTanimServisi(MuhasebeBaglami baglam) => _baglam = baglam;
+    private readonly IKullaniciServisi _kullaniciServisi;
+    public MerkeziTanimServisi(MuhasebeBaglami baglam, IKullaniciServisi kullaniciServisi)
+    {
+        _baglam = baglam;
+        _kullaniciServisi = kullaniciServisi;
+    }
 
     public Task<List<MerkeziTanim>> ListeleAsync(string grup, bool sadeceAktif = true, int? dahilEdilecekId = null) =>
         _baglam.MerkeziTanimlar.Where(x => x.Grup == grup && (!sadeceAktif || x.AktifMi || x.Id == dahilEdilecekId))
@@ -16,6 +21,7 @@ public class MerkeziTanimServisi : IMerkeziTanimServisi
 
     public async Task<MerkeziTanim> KaydetAsync(MerkeziTanim tanim)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Merkezi Tanım Kaydetme");
         tanim.Grup = tanim.Grup.Trim().ToUpperInvariant();
         tanim.Kod = tanim.Kod.Trim().ToUpperInvariant();
         tanim.Ad = tanim.Ad.Trim();
@@ -49,6 +55,7 @@ public class MerkeziTanimServisi : IMerkeziTanimServisi
 
     public async Task AktiflikDegistirAsync(int id, bool aktifMi)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Merkezi Tanım Durumu Değiştirme");
         var kayit = await _baglam.MerkeziTanimlar.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException("Tanım bulunamadı.");
         kayit.AktifMi = aktifMi; kayit.GuncellemeTarihi = DateTime.UtcNow;
         await _baglam.SaveChangesAsync();

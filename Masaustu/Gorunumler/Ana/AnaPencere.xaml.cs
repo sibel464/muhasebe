@@ -2,6 +2,7 @@ using System.Windows;
 using Masaustu.GorunumModelleri;
 using Masaustu.Servisler;
 using Microsoft.Extensions.DependencyInjection;
+using Uygulama.Arayuzler;
 
 
 namespace Masaustu.Gorunumler.Ana;
@@ -23,6 +24,10 @@ public partial class AnaPencere : Window
                 var kapsam = App.HizmetSaglayici.CreateScope();
                 var girisEkrani = kapsam.ServiceProvider.GetRequiredService<Gorunumler.Giris.GirisEkrani>();
                 girisEkrani.Closed += (_, _) => kapsam.Dispose();
+
+                App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>().CikisYap();
+                var aktifBaglam = App.HizmetSaglayici.GetRequiredService<IAktifFirmaBaglami>();
+                aktifBaglam.Degistir(aktifBaglam.SirketId, aktifBaglam.SubeId, aktifBaglam.MaliDonemId, null);
 
                 Application.Current.MainWindow = girisEkrani;
                 girisEkrani.Show();

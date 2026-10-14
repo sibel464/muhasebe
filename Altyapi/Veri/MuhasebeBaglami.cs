@@ -11,6 +11,7 @@ using EtkiAlani.Modeller.Kurumsal;
 using EtkiAlani.Modeller.Muhasebe;
 using EtkiAlani.Modeller.Tanimlar;
 using EtkiAlani.Modeller.Siparis;
+using Uygulama.Arayuzler;
 
 namespace Altyapi.Veri;
 
@@ -18,7 +19,10 @@ public class MuhasebeBaglami : DbContext
 {
     public static readonly Guid VarsayilanSirketId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
-    public MuhasebeBaglami(DbContextOptions<MuhasebeBaglami> options) : base(options) { }
+    private readonly IAktifFirmaBaglami? _aktifFirmaBaglami;
+
+    public MuhasebeBaglami(DbContextOptions<MuhasebeBaglami> options, IAktifFirmaBaglami? aktifFirmaBaglami = null) : base(options)
+        => _aktifFirmaBaglami = aktifFirmaBaglami;
 
     // Kullanici & Guvenlik
     public DbSet<Kullanici> Kullanicilar => Set<Kullanici>();
@@ -1276,20 +1280,25 @@ public class MuhasebeBaglami : DbContext
                 TabloAdi = tabloAdi,
                 KayitId = kayitId,
                 Tarih = DateTime.UtcNow,
-                KullaniciAdi = "Sistem", // Varsayılan oturum
+                KullaniciId = _aktifFirmaBaglami?.KullaniciId,
+                KullaniciAdi = _aktifFirmaBaglami?.KullaniciId is null ? "Sistem" : _aktifFirmaBaglami.KullaniciAdi,
                 IstemciBilgisi = Environment.MachineName
             };
 
             if (entry.State == EntityState.Added)
             {
                 auditLog.IslemTuru = AuditIslemTuru.Ekleme;
-                var yeniDegerler = entry.Properties.ToDictionary(p => p.Metadata.Name, p => p.CurrentValue);
+                var yeniDegerler = entry.Properties
+                    .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
+                    .ToDictionary(p => p.Metadata.Name, p => p.CurrentValue);
                 auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(yeniDegerler);
             }
             else if (entry.State == EntityState.Deleted)
             {
                 auditLog.IslemTuru = AuditIslemTuru.Silme;
-                var eskiDegerler = entry.Properties.ToDictionary(p => p.Metadata.Name, p => p.OriginalValue);
+                var eskiDegerler = entry.Properties
+                    .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
+                    .ToDictionary(p => p.Metadata.Name, p => p.OriginalValue);
                 auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(eskiDegerler);
             }
             else if (entry.State == EntityState.Modified)
@@ -1305,7 +1314,7 @@ public class MuhasebeBaglami : DbContext
                 var degisenEski = new Dictionary<string, object?>();
                 var degisenYeni = new Dictionary<string, object?>();
 
-                foreach (var prop in entry.Properties.Where(p => p.IsModified))
+                foreach (var prop in entry.Properties.Where(p => p.IsModified && DenetimAlaninaDahilEt(p.Metadata.Name)))
                 {
                     degisenEski[prop.Metadata.Name] = prop.OriginalValue;
                     degisenYeni[prop.Metadata.Name] = prop.CurrentValue;
@@ -1317,6 +1326,12 @@ public class MuhasebeBaglami : DbContext
 
             auditKayitlari.Add((auditLog, entry));
         }
+
+        // Yeni kimlik değerleri için iki SaveChanges gerekir; ikisi de aynı işlemde kalmalı.
+        // Çağıran servis bir işlem açtıysa onun sahipliğini burada devralmayız.
+        await using var auditTransaction = auditKayitlari.Count > 0 && Database.CurrentTransaction == null
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
 
         var sonuc = await base.SaveChangesAsync(cancellationToken);
 
@@ -1339,6 +1354,12 @@ public class MuhasebeBaglami : DbContext
             await base.SaveChangesAsync(cancellationToken);
         }
 
+        if (auditTransaction != null)
+            await auditTransaction.CommitAsync(cancellationToken);
+
         return sonuc;
     }
+
+    private static bool DenetimAlaninaDahilEt(string alanAdi) =>
+        !string.Equals(alanAdi, nameof(Kullanici.SifreHash), StringComparison.Ordinal);
 }

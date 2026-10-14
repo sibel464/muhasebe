@@ -10,34 +10,19 @@ namespace Altyapi.Servisler;
 public class DepoServisi : IDepoServisi
 {
     private readonly IDbContextFactory<MuhasebeBaglami> _contextFactory;
+    private readonly IKullaniciServisi _kullaniciServisi;
 
-    public DepoServisi(IDbContextFactory<MuhasebeBaglami> contextFactory)
+    public DepoServisi(IDbContextFactory<MuhasebeBaglami> contextFactory, IKullaniciServisi kullaniciServisi)
     {
         _contextFactory = contextFactory;
+        _kullaniciServisi = kullaniciServisi;
     }
 
     public async Task<List<Depo>> DepolariGetirAsync()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        var depolar = await context.Depolar.Where(d => d.AktifMi).OrderBy(d => d.Id).ToListAsync();
-
-        if (!depolar.Any())
-        {
-            var sube = await context.Subeler.FirstOrDefaultAsync();
-            var subeId = sube?.Id ?? 1;
-
-            var dMagaza = new Depo { SubeId = subeId, DepoKodu = "MAG-01", DepoAdi = "Merkez Mağaza", DepoTuru = DepoTuru.Magaza, Sorumlu = "Mağaza Müdürü", MuhasebeKodu = "153.01.001" };
-            var d1 = new Depo { SubeId = subeId, DepoKodu = "DEP-01", DepoAdi = "Depo 1 (Ana Depo)", DepoTuru = DepoTuru.Depo, Sorumlu = "Depo Şefi", MuhasebeKodu = "153.01.002" };
-            var d2 = new Depo { SubeId = subeId, DepoKodu = "DEP-02", DepoAdi = "Depo 2 (Yedek Depo)", DepoTuru = DepoTuru.Depo, Sorumlu = "Sevkiyat Amiri", MuhasebeKodu = "153.01.003" };
-
-            context.Depolar.AddRange(dMagaza, d1, d2);
-            await context.SaveChangesAsync();
-
-            depolar = new List<Depo> { dMagaza, d1, d2 };
-        }
-
-        return depolar;
+        return await context.Depolar.Where(d => d.AktifMi).OrderBy(d => d.Id).ToListAsync();
     }
 
     public async Task<Depo?> DepoGetirByIdAsync(int id)
@@ -48,6 +33,7 @@ public class DepoServisi : IDepoServisi
 
     public async Task<Depo> DepoEkleAsync(Depo depo)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Depo Ekleme");
         ArgumentNullException.ThrowIfNull(depo);
         await using var context = await _contextFactory.CreateDbContextAsync();
         depo.DepoKodu = depo.DepoKodu?.Trim().ToUpperInvariant() ?? string.Empty;
@@ -67,6 +53,7 @@ public class DepoServisi : IDepoServisi
 
     public async Task DepoGuncelleAsync(Depo depo)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Depo Güncelleme");
         ArgumentNullException.ThrowIfNull(depo);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var mevcut = await context.Depolar.FirstOrDefaultAsync(d => d.Id == depo.Id)
@@ -92,6 +79,7 @@ public class DepoServisi : IDepoServisi
 
     public async Task<bool> DepoSilAsync(int id)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Depo Silme");
         await using var context = await _contextFactory.CreateDbContextAsync();
         var depo = await context.Depolar.FirstOrDefaultAsync(d => d.Id == id);
         if (depo == null) return false;
@@ -226,6 +214,7 @@ public class DepoServisi : IDepoServisi
 
     public async Task<DepoTransferFisi> TransferFisiKaydetAsync(DepoTransferFisi transferFisi)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.DepoTransferYap, "Depo Transferi");
         ArgumentNullException.ThrowIfNull(transferFisi);
         if (transferFisi.KaynakDepoId <= 0 || transferFisi.HedefDepoId <= 0)
             throw new ArgumentException("Kaynak ve hedef depo seçilmelidir.");
@@ -362,6 +351,7 @@ public class DepoServisi : IDepoServisi
 
     public async Task DepoSayimFarkiKaydetAsync(int depoId, int urunId, decimal sayilanMiktar, string aciklama)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.StokDuzenle, "Depo Sayım Farkı Kaydetme");
         if (depoId <= 0 || urunId <= 0)
             throw new ArgumentException("Depo ve ürün seçilmelidir.");
         if (sayilanMiktar < 0)

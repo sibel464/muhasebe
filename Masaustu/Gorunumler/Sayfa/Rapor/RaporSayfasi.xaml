@@ -70,6 +70,62 @@
             <Setter Property="CanUserResizeColumns" Value="True"/>
             <Setter Property="SelectionMode" Value="Single"/>
         </Style>
+        <Style x:Key="DonemBugun" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="Bugun">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemDun" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="Dun">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemBuHafta" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="BuHafta">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemBuAy" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="BuAy">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemGecenAy" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="GecenAy">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemBuYil" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="BuYil">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DonemGecenYil" TargetType="Button" BasedOn="{StaticResource FilterBtn}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filtre.PresetKey}" Value="GecenYil">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="#F8FAFC">
@@ -98,7 +154,7 @@
 
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="📊 RAPOR MERKEZİ &amp; YÖNETİCİ ANALİZ PANELİ" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
-                    <TextBlock Text="Gerçek ticari veriler üzerinden sunucu tarafı server-side analiz ve raporlama" FontSize="12" Foreground="#64748B"/>
+                    <TextBlock Text="Satış, alış, stok ve finans raporları" FontSize="12" Foreground="#64748B"/>
                 </StackPanel>
 
                 <!-- Action Buttons -->
@@ -115,13 +171,13 @@
         <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,10">
             <WrapPanel VerticalAlignment="Center">
                 <TextBlock Text="Dönem:" VerticalAlignment="Center" FontWeight="Bold" Foreground="#475569" Margin="0,0,10,0"/>
-                <Button Content="Bugün" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Bugun"/>
-                <Button Content="Dün" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Dun"/>
-                <Button Content="Bu Hafta" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuHafta"/>
-                <Button Content="Bu Ay" Style="{StaticResource PrimaryBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuAy"/>
-                <Button Content="Geçen Ay" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenAy"/>
-                <Button Content="Bu Yıl" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuYil"/>
-                <Button Content="Geçen Yıl" Style="{StaticResource FilterBtn}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenYil"/>
+                <Button Content="Bugün" Style="{StaticResource DonemBugun}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Bugun"/>
+                <Button Content="Dün" Style="{StaticResource DonemDun}" Command="{Binding PresetDegistirKomutu}" CommandParameter="Dun"/>
+                <Button Content="Bu Hafta" Style="{StaticResource DonemBuHafta}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuHafta"/>
+                <Button Content="Bu Ay" Style="{StaticResource DonemBuAy}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuAy"/>
+                <Button Content="Geçen Ay" Style="{StaticResource DonemGecenAy}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenAy"/>
+                <Button Content="Bu Yıl" Style="{StaticResource DonemBuYil}" Command="{Binding PresetDegistirKomutu}" CommandParameter="BuYil"/>
+                <Button Content="Geçen Yıl" Style="{StaticResource DonemGecenYil}" Command="{Binding PresetDegistirKomutu}" CommandParameter="GecenYil"/>
 
                 <CheckBox Content="İptal Edilenleri Dahil Et" IsChecked="{Binding Filtre.IptalleriDahilEt, Mode=TwoWay}" VerticalAlignment="Center" Margin="15,0,0,0" FontWeight="SemiBold" Foreground="#475569"/>
             </WrapPanel>
@@ -129,6 +185,20 @@
 
         <!-- 3. Main Content (Tabs & Reports) -->
         <TabControl Grid.Row="2" SelectedIndex="{Binding SeciliSekmeIndeksi, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Margin="15,10,15,10">
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" CanContentScroll="True">
+                            <StackPanel Orientation="Horizontal" IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
+                        </ScrollViewer>
+                        <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" ContentSource="SelectedContent" Margin="0,8,0,0"/>
+                    </Grid>
+                </ControlTemplate>
+            </TabControl.Template>
 
             <!-- TAB 0: Yönetici Özeti -->
             <TabItem Header="👑 Yönetici Özeti">
@@ -476,7 +546,7 @@
         <Border Grid.Row="3" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="15,6">
             <Grid>
                 <TextBlock Text="{Binding DurumMesaji}" FontSize="12" Foreground="#475569" VerticalAlignment="Center"/>
-                <TextBlock Text="Ticari Muhasebe Raporlama Engine v12.0 (.NET 10 WPF)" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                <TextBlock Text="Rapor Merkezi" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
         </Border>
 

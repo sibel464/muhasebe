@@ -28,3 +28,6 @@ db-data/
 
 # Geçici çalışma dizini
 scratch/
+
+# Test ve derleme kontrol çıktıları
+.buildcheck/

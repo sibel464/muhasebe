@@ -16,6 +16,8 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
     private readonly IAktifFirmaBaglami? _firmaBaglami;
     private readonly IKullaniciServisi? _kullaniciServisi;
 
+    private readonly SemaphoreSlim _raporKilidi = new(1, 1);
+    private int _raporIstegi;
     private bool _yukleniyor;
     private string _durumMesaji = string.Empty;
     private int _seciliSekmeIndeksi;
@@ -116,8 +118,9 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
         get => _seciliSekmeIndeksi;
         set
         {
-            if (OzellikAyarla(ref _seciliSekmeIndeksi, value))
+            if (value >= 0 && value < 14 && OzellikAyarla(ref _seciliSekmeIndeksi, value))
             {
+                Filtre.PageNumber = 1;
                 _ = RaporYukleAsync();
             }
         }
@@ -158,17 +161,17 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
         _firmaBaglami = firmaBaglami;
         _kullaniciServisi = kullaniciServisi;
 
-        YenileKomutu = new KomutSarici(async () => await RaporYukleAsync());
+        YenileKomutu = new KomutSarici(async _ => await RaporYukleAsync());
         PresetDegistirKomutu = new KomutSarici(async p => await PresetDegistirAsync(p?.ToString()));
-        ExcelAktarKomutu = new KomutSarici(async () => await ExcelAktarAsync());
-        PdfAktarKomutu = new KomutSarici(async () => await PdfAktarAsync());
-        YazdirKomutu = new KomutSarici(async () => await YazdirAsync());
-        SonrakiSayfaKomutu = new KomutSarici(async () => await SayfaDegistirAsync(1));
-        ÖncekiSayfaKomutu = new KomutSarici(async () => await SayfaDegistirAsync(-1));
+        ExcelAktarKomutu = new KomutSarici(async _ => await ExcelAktarAsync());
+        PdfAktarKomutu = new KomutSarici(async _ => await PdfAktarAsync());
+        YazdirKomutu = new KomutSarici(async _ => await YazdirAsync());
+        SonrakiSayfaKomutu = new KomutSarici(async _ => await SayfaDegistirAsync(1));
+        ÖncekiSayfaKomutu = new KomutSarici(async _ => await SayfaDegistirAsync(-1));
         DrillDownKomutu = new KomutSarici(p => DrillDown(p));
 
         YetkileriYukle();
-        _ = RaporYukleAsync();
+        _ = PresetDegistirAsync("BuAy");
     }
 
     private void DrillDown(object? p)
@@ -226,75 +229,82 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                 break;
         }
 
+        Filtre.PageNumber = 1;
+        BildirimGonder(nameof(Filtre));
         await RaporYukleAsync();
     }
 
     public async Task RaporYukleAsync()
     {
+        var istek = ++_raporIstegi;
         Yukleniyor = true;
+        await _raporKilidi.WaitAsync();
         DurumMesaji = "Rapor verileri sorgulanıyor...";
 
         try
         {
+            if (istek != _raporIstegi) return;
+            var filtre = System.Text.Json.JsonSerializer.Deserialize<SatisRaporFiltreDto>(
+                System.Text.Json.JsonSerializer.Serialize(Filtre))!;
             switch (SeciliSekmeIndeksi)
             {
                 case 0: // Yönetici Özeti
-                    YoneticiOzet = await _raporServisi.GetYoneticiOzetiAsync(Filtre);
-                    DonemKarsilastirma = await _raporServisi.GetDonemKarsilastirmaAsync(Filtre);
+                    YoneticiOzet = await _raporServisi.GetYoneticiOzetiAsync(filtre);
+                    DonemKarsilastirma = await _raporServisi.GetDonemKarsilastirmaAsync(filtre);
                     break;
                 case 1: // Satış Raporları
-                    SatisRaporu = await _raporServisi.GetSatisRaporuAsync(Filtre);
-                    var topSatis = await _raporServisi.GetEnCokSatanUrunlerAsync(Filtre, 10);
+                    SatisRaporu = await _raporServisi.GetSatisRaporuAsync(filtre);
+                    var topSatis = await _raporServisi.GetEnCokSatanUrunlerAsync(filtre, 10);
                     TopSatanUrunler.Clear();
                     foreach (var item in topSatis) TopSatanUrunler.Add(item);
                     break;
                 case 2: // Alış Raporları
-                    AlisRaporu = await _raporServisi.GetAlisRaporuAsync(Filtre);
+                    AlisRaporu = await _raporServisi.GetAlisRaporuAsync(filtre);
                     break;
                 case 3: // Cari Raporları
-                    CariRaporu = await _raporServisi.GetCariRaporuAsync(Filtre);
+                    CariRaporu = await _raporServisi.GetCariRaporuAsync(filtre);
                     break;
                 case 4: // Cari Yaşlandırma
-                    var yaslandirma = await _raporServisi.GetCariYaslandirmaAsync(Filtre);
+                    var yaslandirma = await _raporServisi.GetCariYaslandirmaAsync(filtre);
                     CariYaslandirmaRaporu.Clear();
                     foreach (var item in yaslandirma) CariYaslandirmaRaporu.Add(item);
                     break;
                 case 5: // Stok Raporları
-                    StokRaporu = await _raporServisi.GetStokRaporuAsync(Filtre);
+                    StokRaporu = await _raporServisi.GetStokRaporuAsync(filtre);
                     break;
                 case 6: // Stok Devir / Hareketsiz
-                    var hareketsiz = await _raporServisi.GetHareketsizUrunlerAsync(Filtre, 30);
+                    var hareketsiz = await _raporServisi.GetHareketsizUrunlerAsync(filtre, 30);
                     HareketsizUrunler.Clear();
                     foreach (var item in hareketsiz) HareketsizUrunler.Add(item);
                     break;
                 case 7: // Stok Değeri
-                    var stokDeger = await _raporServisi.GetStokDegerRaporuAsync(Filtre);
+                    var stokDeger = await _raporServisi.GetStokDegerRaporuAsync(filtre);
                     StokDegerRaporu.Clear();
                     foreach (var item in stokDeger) StokDegerRaporu.Add(item);
                     break;
                 case 8: // Finans Raporları
-                    FinansRaporu = await _raporServisi.GetFinansRaporuAsync(Filtre);
+                    FinansRaporu = await _raporServisi.GetFinansRaporuAsync(filtre);
                     break;
                 case 9: // Nakit Akışı
-                    NakitAkisRaporu = await _raporServisi.GetNakitAkisRaporuAsync(Filtre);
+                    NakitAkisRaporu = await _raporServisi.GetNakitAkisRaporuAsync(filtre);
                     break;
                 case 10: // Kasa / Banka
-                    var kasaBanka = await _raporServisi.GetKasaBankaRaporuAsync(Filtre);
+                    var kasaBanka = await _raporServisi.GetKasaBankaRaporuAsync(filtre);
                     KasaBankaRaporu.Clear();
                     foreach (var item in kasaBanka) KasaBankaRaporu.Add(item);
                     break;
                 case 11: // POS Raporu
-                    var posList = await _raporServisi.GetPosRaporuAsync(Filtre);
+                    var posList = await _raporServisi.GetPosRaporuAsync(filtre);
                     PosRaporu.Clear();
                     foreach (var item in posList) PosRaporu.Add(item);
                     break;
                 case 12: // Çek / Senet
-                    var cekList = await _raporServisi.GetCekSenetRaporuAsync(Filtre);
+                    var cekList = await _raporServisi.GetCekSenetRaporuAsync(filtre);
                     CekSenetRaporu.Clear();
                     foreach (var item in cekList) CekSenetRaporu.Add(item);
                     break;
                 case 13: // KDV Raporu
-                    var kdvList = await _raporServisi.GetKdvRaporuAsync(Filtre);
+                    var kdvList = await _raporServisi.GetKdvRaporuAsync(filtre);
                     KdvRaporu.Clear();
                     foreach (var item in kdvList) KdvRaporu.Add(item);
                     break;
@@ -307,7 +317,8 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
         }
         finally
         {
-            Yukleniyor = false;
+            _raporKilidi.Release();
+            if (istek == _raporIstegi) Yukleniyor = false;
         }
     }
 

@@ -53,6 +53,7 @@ public class SiparisServisi : ISiparisServisi
 
     public async Task<Siparis> EkleAsync(Siparis siparis, bool taslak)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.FaturaOlustur, "Sipariş Oluşturma");
         Dogrula(siparis);
         var kullaniciId = AktifKullaniciId();
         await using var transaction = await _baglam.Database.BeginTransactionAsync();
@@ -80,6 +81,7 @@ public class SiparisServisi : ISiparisServisi
 
     public async Task<Siparis> GuncelleAsync(Siparis siparis)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.FaturaOlustur, "Sipariş Düzenleme");
         Dogrula(siparis);
         await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
@@ -128,6 +130,12 @@ public class SiparisServisi : ISiparisServisi
 
     public async Task<Siparis> DurumDegistirAsync(int id, SiparisDurumu yeniDurum, int versiyon)
     {
+        if (yeniDurum == SiparisDurumu.Iptal)
+            _kullaniciServisi.YetkiKontrolEt(y => y.FaturaIptal, "Sipariş İptali");
+        else if (yeniDurum == SiparisDurumu.Onaylandi)
+            _kullaniciServisi.YetkiKontrolEt(y => y.FaturaOnayla, "Sipariş Onayı");
+        else
+            _kullaniciServisi.YetkiKontrolEt(y => y.FaturaOlustur, "Sipariş Durumu Değiştirme");
         var siparis = await _baglam.Siparisler.SingleOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Sipariş bulunamadı.");
         if (!GecisGecerli(siparis.Durum, yeniDurum))

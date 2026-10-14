@@ -144,6 +144,7 @@ public class FaturaServisi : IFaturaServisi
 
     public async Task<Fatura> GuncelleAsync(Fatura fatura)
     {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.FaturaOlustur, "Fatura Güncelleme");
         // 1. Temel İş Doğrulamaları
         if (fatura.Id <= 0)
             throw new ArgumentException("Güncellenecek fatura bulunamadı.");
@@ -243,6 +244,7 @@ public class FaturaServisi : IFaturaServisi
 
     public async Task<bool> SilAsync(int id)
     {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.FaturaOlustur, "Taslak Fatura Silme");
         var fatura = await _baglam.Faturalar
             .Include(f => f.Kalemler)
             .FirstOrDefaultAsync(f => f.Id == id);

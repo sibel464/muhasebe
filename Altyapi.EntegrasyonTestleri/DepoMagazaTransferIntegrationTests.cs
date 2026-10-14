@@ -22,7 +22,8 @@ public class DepoMagazaTransferIntegrationTests
     }
 
     private MuhasebeBaglami CreateContext() => new(_fixture.Options);
-    private DepoServisi CreateService() => new(new TestContextFactory(_fixture.Options));
+    private DepoServisi CreateService() => new(new TestContextFactory(_fixture.Options),
+        new Cari360TestKullanici { AktifYetkiler = new() { AyarlariYonet = true, DepoTransferYap = true, StokDuzenle = true } });
 
     [Fact]
     public async Task Transfer_servisi_stoklari_atomik_gunceller_toplam_stogu_degistirmez()

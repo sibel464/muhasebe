@@ -23,5 +23,46 @@
 
 - **C# / .NET** (WPF masaüstü kullanıcı arayüzü)
 - **PostgreSQL** (İlişkisel veritabanı)
-- **Dapper / ADO.NET** veri erişim katmanı
+- **Entity Framework Core / Npgsql** veri erişim katmanı
+
+## Kurulum ve çalıştırma
+
+Windows üzerinde .NET 10 SDK ve PostgreSQL 16 gereklidir. Veritabanı bağlantısı
+`Masaustu/appsettings.json` içindeki `VeritabaniAyarlari:BaglantiDizesi` alanından okunur.
+Yerel parola veya farklı sunucu ayarları için Git tarafından izlenmeyen
+`Masaustu/appsettings.local.json` dosyasını kullanın. Bu dosya `appsettings.json`
+ile aynı JSON yapısında olmalıdır.
+
+```powershell
+dotnet build Muhasebe.slnx
+dotnet run --project Masaustu/Masaustu.csproj
+```
+
+Geliştirme ortamında uygulama açılışta bekleyen EF Core migration dosyalarını
+uygular. Üretim ortamında migration otomatik uygulanmaz; eksik migration varsa
+uygulama açılmadan önce veritabanı güncellenmelidir.
+
+## Üretim veritabanını güncelleme
+
+İşlemden önce uygulamayı kapatın ve hedef veritabanının tam yedeğini alın.
+Aşağıdaki komutlarda bağlantı bilgilerini kendi ortamınıza göre değiştirin.
+`--connection` parametresini atlamayın: tasarım zamanı fabrikasının varsayılanı
+`Muhasebe_Test` veritabanıdır.
+
+```powershell
+& 'C:\Program Files\PostgreSQL\16\bin\pg_dump.exe' -h 127.0.0.1 -p 5432 -U postgres -d Muhasebe -Fc -f 'Muhasebe-yedek.dump'
+& 'C:\Program Files\PostgreSQL\16\bin\pg_restore.exe' -l 'Muhasebe-yedek.dump'
+dotnet ef database update --project Altyapi/Altyapi.csproj --startup-project Masaustu/Masaustu.csproj --context MuhasebeBaglami --connection 'Host=127.0.0.1;Port=5432;Database=Muhasebe;Username=postgres;'
+```
+
+`20260921000000_RedactAuditPasswordHash` migration'ı, eski kullanıcı denetim
+kayıtlarının JSON içindeki `SifreHash` alanını temizler. Bu temizlik geri
+alınamaz; gerektiğinde yukarıdaki yedekten dönülmelidir. Güncelleme sonrası
+`__EFMigrationsHistory` tablosunda bu migration'ın bulunduğunu ve uygulamanın
+açıldığını doğrulayın. Entegrasyon testleri üretim veritabanını kullanmaz;
+adı `_Test` ile biten ayrı bir veritabanı kullanır:
+
+```powershell
+dotnet test Altyapi.EntegrasyonTestleri/Altyapi.EntegrasyonTestleri.csproj
+```
 - **Material / Modern UI** bileşenleri

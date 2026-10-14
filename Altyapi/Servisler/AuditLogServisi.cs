@@ -8,10 +8,12 @@ namespace Altyapi.Servisler;
 public class AuditLogServisi : IAuditLogServisi
 {
     private readonly MuhasebeBaglami _baglam;
+    private readonly IKullaniciServisi _kullaniciServisi;
 
-    public AuditLogServisi(MuhasebeBaglami baglam)
+    public AuditLogServisi(MuhasebeBaglami baglam, IKullaniciServisi kullaniciServisi)
     {
         _baglam = baglam;
+        _kullaniciServisi = kullaniciServisi;
     }
 
     public async Task<List<AuditLog>> LoglariGetirAsync(
@@ -22,6 +24,7 @@ public class AuditLogServisi : IAuditLogServisi
         int? kullaniciId = null,
         int limit = 100)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AuditLogGoruntule, "Denetim Kayıtlarını Görüntüleme");
         var sorgu = _baglam.AuditLoglar.AsQueryable();
 
         if (baslangic.HasValue)

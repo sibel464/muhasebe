@@ -75,13 +75,13 @@ public partial class GirisEkrani : Window
         var sirket = (await sirketServisi.ListeleAsync(aktif: true)).FirstOrDefault();
         if (sirket == null)
         {
-            context.Degistir(context.SirketId, context.SubeId, context.MaliDonemId, kullanici?.Id);
+            context.Degistir(context.SirketId, context.SubeId, context.MaliDonemId, kullanici?.Id, kullanici?.KullaniciAdi);
             return;
         }
 
         var sube = (await sirketServisi.SubeleriGetirAsync(sirket.Id)).FirstOrDefault();
         var donem = (await sirketServisi.DonemleriGetirAsync(sirket.Id)).FirstOrDefault(x => !x.KilitliMi);
-        context.Degistir(sirket.Id, sube?.Id, donem?.Id, kullanici?.Id);
+        context.Degistir(sirket.Id, sube?.Id, donem?.Id, kullanici?.Id, kullanici?.KullaniciAdi);
     }
 
     private static readonly SemaphoreSlim LogKilidi = new(1, 1);

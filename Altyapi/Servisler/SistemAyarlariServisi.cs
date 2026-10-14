@@ -8,11 +8,13 @@ namespace Altyapi.Servisler;
 public class SistemAyarlariServisi : ISistemAyarlariServisi
 {
     private readonly MuhasebeBaglami _baglam;
+    private readonly IKullaniciServisi _kullaniciServisi;
     private static SistemAyarlari? _onbellek;
 
-    public SistemAyarlariServisi(MuhasebeBaglami baglam)
+    public SistemAyarlariServisi(MuhasebeBaglami baglam, IKullaniciServisi kullaniciServisi)
     {
         _baglam = baglam;
+        _kullaniciServisi = kullaniciServisi;
     }
 
     public async Task<SistemAyarlari> AyarlariGetirAsync()
@@ -47,6 +49,7 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
 
     public async Task<SistemAyarlari> AyarlariKaydetAsync(SistemAyarlari guncelAyarlar)
     {
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, "Sistem Ayarlarını Güncelleme");
         if (string.IsNullOrWhiteSpace(guncelAyarlar.FirmaUnvani))
             throw new ArgumentException("Firma ünvanı boş olamaz.");
 

@@ -8,7 +8,15 @@ namespace Altyapi.Servisler;
 public sealed class SirketServisi : ISirketServisi
 {
     private readonly MuhasebeBaglami _db;
-    public SirketServisi(MuhasebeBaglami db) => _db = db;
+    private readonly IKullaniciServisi _kullaniciServisi;
+    public SirketServisi(MuhasebeBaglami db, IKullaniciServisi kullaniciServisi)
+    {
+        _db = db;
+        _kullaniciServisi = kullaniciServisi;
+    }
+
+    private void YonetimYetkisiKontrolEt(string islem) =>
+        _kullaniciServisi.YetkiKontrolEt(y => y.AyarlariYonet, islem);
 
     public Task<List<Sirket>> ListeleAsync(string? arama = null, bool? aktif = null)
     {
@@ -26,12 +34,14 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task<string> SonrakiKodAsync()
     {
+        YonetimYetkisiKontrolEt("Firma Kodu Üretme");
         var sira = await _db.Database.SqlQueryRaw<long>("SELECT nextval('firma_kodu_seq') AS \"Value\"").SingleAsync();
         return $"FRM-{sira:000000}";
     }
 
     public async Task<Sirket> KaydetAsync(Sirket sirket, bool otomatikKod)
     {
+        YonetimYetkisiKontrolEt("Firma Kaydetme");
         ArgumentNullException.ThrowIfNull(sirket);
         await using var tx = await _db.Database.BeginTransactionAsync();
         await _db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1179797849)");
@@ -58,6 +68,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task DurumDegistirAsync(Guid id, bool aktif)
     {
+        YonetimYetkisiKontrolEt("Firma Durumu Değiştirme");
         var x = await _db.Sirketler.SingleOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException("Firma bulunamadı.");
         if (!aktif && await _db.Subeler.AnyAsync(s => s.SirketId == id && s.AktifMi))
             throw new InvalidOperationException("Aktif şubeleri bulunan firma pasife alınamaz. Önce şubeleri pasife alın.");
@@ -69,6 +80,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task<Sube> SubeKaydetAsync(Sube sube)
     {
+        YonetimYetkisiKontrolEt("Şube Kaydetme");
         ArgumentNullException.ThrowIfNull(sube);
         sube.SubeKodu = sube.SubeKodu?.Trim().ToUpperInvariant() ?? string.Empty;
         sube.SubeAdi = sube.SubeAdi?.Trim() ?? string.Empty;
@@ -96,6 +108,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task SubeDurumDegistirAsync(int subeId, bool aktif)
     {
+        YonetimYetkisiKontrolEt("Şube Durumu Değiştirme");
         var sube = await _db.Subeler.SingleOrDefaultAsync(s => s.Id == subeId) ?? throw new KeyNotFoundException("Şube bulunamadı.");
         if (aktif && !await _db.Sirketler.AnyAsync(s => s.Id == sube.SirketId && s.AktifMi))
             throw new InvalidOperationException("Pasif firmaya bağlı şube aktifleştirilemez.");
@@ -107,6 +120,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task<MaliDonem> MaliDonemKaydetAsync(MaliDonem donem)
     {
+        YonetimYetkisiKontrolEt("Mali Dönem Kaydetme");
         ArgumentNullException.ThrowIfNull(donem);
         donem.DonemAdi = donem.DonemAdi?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(donem.DonemAdi)) throw new InvalidOperationException("Mali dönem adı zorunludur.");
@@ -137,6 +151,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task MaliDonemKilitleAsync(int donemId, bool kilitli)
     {
+        YonetimYetkisiKontrolEt("Mali Dönem Kilitleme");
         var donem = await _db.MaliDonemler.SingleOrDefaultAsync(d => d.Id == donemId) ?? throw new KeyNotFoundException("Mali dönem bulunamadı.");
         donem.KilitliMi = kilitli; donem.GuncellemeTarihi = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -147,6 +162,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task<BelgeSerisi> BelgeSerisiKaydetAsync(BelgeSerisi seri)
     {
+        YonetimYetkisiKontrolEt("Belge Serisi Kaydetme");
         ArgumentNullException.ThrowIfNull(seri);
         seri.BelgeTipi = seri.BelgeTipi?.Trim() ?? string.Empty;
         seri.Seri = seri.Seri?.Trim().ToUpperInvariant() ?? string.Empty;
@@ -171,6 +187,7 @@ public sealed class SirketServisi : ISirketServisi
 
     public async Task<string> SonrakiBelgeNoAsync(int belgeSerisiId)
     {
+        YonetimYetkisiKontrolEt("Belge Numarası Üretme");
         await using var tx = await _db.Database.BeginTransactionAsync();
         await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(42454, {belgeSerisiId})");
         var seri = await _db.BelgeSerileri.SingleOrDefaultAsync(s => s.Id == belgeSerisiId)
