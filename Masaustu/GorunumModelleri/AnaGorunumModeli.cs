@@ -180,7 +180,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Tahsilat", () => new TahsilatOdemeGorunumModeli(tahsilatOdemeServisi, _cariServisi, belgeKapamaServisi, EtkiAlani.Modeller.Finans.FinansIslemTuru.Tahsilat));
         _navigasyon.Kaydet("Odeme", () => new TahsilatOdemeGorunumModeli(tahsilatOdemeServisi, _cariServisi, belgeKapamaServisi, EtkiAlani.Modeller.Finans.FinansIslemTuru.Odeme));
         _navigasyon.Kaydet("Rapor", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<RaporMerkeziGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Ayarlar", () => new AyarlarGorunumModeli(_ayarlarServisi, _auditLogServisi));
+        _navigasyon.Kaydet("Ayarlar", () => new AyarlarGorunumModeli(_ayarlarServisi, _auditLogServisi, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<IVeritabaniYedekServisi>(App.HizmetSaglayici)));
         _navigasyon.Kaydet("Kullanicilar", () => new KullanicilarGorunumModeli(_kullaniciServisi, _auditLogServisi));
         _navigasyon.Kaydet("FirmaIslemleri", () => new FirmaIslemleriGorunumModeli(sirketServisi));
         _navigasyon.Kaydet("TicariIslemler", () => new TicariIslemlerGorunumModeli(globalAramaServisi, _navigasyon));

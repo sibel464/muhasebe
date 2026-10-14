@@ -105,6 +105,11 @@ public partial class App : Application
             // KullaniciServisi artık IDbContextFactory kullandığından Singleton olarak güvenle kayıt edilebilir.
             servisler.AddSingleton<Uygulama.Arayuzler.IKullaniciServisi, Altyapi.Servisler.KullaniciServisi>();
             servisler.AddTransient<ISistemAyarlariServisi, SistemAyarlariServisi>();
+            servisler.AddSingleton<IVeritabaniYedekServisi>(sp => new VeritabaniYedekServisi(
+                baglantiDizesi,
+                konfigurasyon["YedekAyarlari:Klasor"],
+                int.TryParse(konfigurasyon["YedekAyarlari:SaklanacakYedekSayisi"], out var saklanacak) ? saklanacak : 30,
+                sp.GetRequiredService<IKullaniciServisi>()));
             servisler.AddTransient<IAuditLogServisi, AuditLogServisi>();
             servisler.AddTransient<IUrunServisi, UrunServisi>();
             servisler.AddTransient<ICariServisi, CariServisi>();
@@ -196,6 +201,9 @@ public partial class App : Application
             await VeritabaniSaglikKontroluAsync(
                 string.Equals(ortam, "Development", StringComparison.OrdinalIgnoreCase));
 
+            if (!string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
+                OtomatikYedegiBaslat();
+
             var girisEkrani = HizmetSaglayici.GetRequiredService<GirisEkrani>();
             MainWindow = girisEkrani;
             girisEkrani.Show();
@@ -218,6 +226,23 @@ public partial class App : Application
         PostgreSqlSunucuYoneticisi.SunucuyuDurdur();
     }
 
+    // Günlük yedek arka planda alınır; başarısız olursa uygulama çalışmaya devam eder, hata log'a yazılır.
+    private static void OtomatikYedegiBaslat()
+    {
+        var yedekServisi = HizmetSaglayici.GetRequiredService<IVeritabaniYedekServisi>();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await yedekServisi.GerekirseGunlukYedekAlAsync();
+            }
+            catch (Exception ex)
+            {
+                await HatayiLoglaAsync(ex, "OtomatikGunlukYedek");
+            }
+        });
+    }
+
     private static async Task VeritabaniSaglikKontroluAsync(bool otomatikMigration)
     {
         await using var scope = HizmetSaglayici.CreateAsyncScope();
@@ -229,9 +254,9 @@ public partial class App : Application
         if (otomatikMigration)
             await baglam.Database.MigrateAsync();
 
-        if (baglam.Database.HasPendingModelChanges())
-            throw new InvalidOperationException("Veritabanı modeli ile migration dosyaları uyumlu değil. Lütfen sistem yöneticisine başvurun.");
-        if ((await baglam.Database.GetPendingMigrationsAsync()).Any())
+        if (baglam.Database.HasPendingModelChanges())
+            throw new InvalidOperationException("Veritabanı modeli ile migration dosyaları uyumlu değil. Lütfen sistem yöneticisine başvurun.");
+        if ((await baglam.Database.GetPendingMigrationsAsync()).Any())
             throw new InvalidOperationException("Veritabanı güncellemesi gerekiyor. Lütfen sistem yöneticisine başvurun.");
 
         if (!await baglam.Kullanicilar.AnyAsync())

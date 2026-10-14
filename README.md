@@ -42,6 +42,23 @@ Geliştirme ortamında uygulama açılışta bekleyen EF Core migration dosyalar
 uygular. Üretim ortamında migration otomatik uygulanmaz; eksik migration varsa
 uygulama açılmadan önce veritabanı güncellenmelidir.
 
+## Otomatik yedekleme ve geri yükleme
+
+Uygulama her açılışta son yedek 24 saatten eskiyse arka planda `pg_dump` ile tam yedek
+alır. Yedekler varsayılan olarak `Belgeler\Muhasebe Yedekleri` klasörüne
+`Muhasebe_YYYY-AA-GG_SSDDss_mmm.dump` adıyla yazılır ve son 30 yedek saklanır.
+Klasör, yedek sayısı ve otomatik yedeğin açık/kapalı olması `appsettings.json`
+içindeki `YedekAyarlari` bölümünden değiştirilebilir. Elle yedek almak ve yedekleri
+görmek için **Ayarlar → Yedekleme** sekmesini kullanın (Ayarları Yönet yetkisi gerekir).
+
+Bir yedeğe geri dönmek için uygulamayı kapatın ve aşağıdaki komutu kendi dosya
+adınızla çalıştırın. Bu işlem veritabanındaki mevcut verinin yerine yedeği yazar;
+önce güncel durumun da yedeğini alın.
+
+```powershell
+& 'C:\Program Files\PostgreSQL\16\bin\pg_restore.exe' -h 127.0.0.1 -p 5432 -U postgres -d Muhasebe --clean --if-exists "$env:USERPROFILE\Documents\Muhasebe Yedekleri\Muhasebe_2026-10-14_143600_000.dump"
+```
+
 ## Üretim veritabanını güncelleme
 
 İşlemden önce uygulamayı kapatın ve hedef veritabanının tam yedeğini alın.

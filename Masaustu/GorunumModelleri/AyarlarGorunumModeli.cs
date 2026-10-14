@@ -54,14 +54,32 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
 
     public ObservableCollection<AuditLog> AuditLoglar { get; } = new();
 
+    // Yedekleme
+    private readonly IVeritabaniYedekServisi? _yedekServisi;
+    private string _yedekDurumu = string.Empty;
+    private bool _yedekAliniyor;
+    public ObservableCollection<YedekDosyasi> Yedekler { get; } = new();
+    public string YedekKlasoru => _yedekServisi?.YedekKlasoru ?? string.Empty;
+    public string YedekBilgisi => _yedekServisi == null
+        ? string.Empty
+        : $"Program her açılışta son yedek 24 saatten eskiyse otomatik yedek alır. Son {_yedekServisi.SaklanacakYedekSayisi} yedek saklanır, daha eskiler silinir.";
+    public string YedekDurumu { get => _yedekDurumu; set => OzellikAyarla(ref _yedekDurumu, value); }
+    public bool YedekAliniyor { get => _yedekAliniyor; set => OzellikAyarla(ref _yedekAliniyor, value); }
+    public ICommand YedekAlKomutu { get; }
+    public ICommand YedekKlasoruAcKomutu { get; }
+
     public ICommand KaydetKomutu { get; }
     public ICommand YenileKomutu { get; }
     public ICommand AuditLoglariYenileKomutu { get; }
 
-    public AyarlarGorunumModeli(ISistemAyarlariServisi? ayarlarServisi = null, IAuditLogServisi? auditLogServisi = null)
+    public AyarlarGorunumModeli(ISistemAyarlariServisi? ayarlarServisi = null, IAuditLogServisi? auditLogServisi = null, IVeritabaniYedekServisi? yedekServisi = null)
     {
         _ayarlarServisi = ayarlarServisi;
         _auditLogServisi = auditLogServisi;
+        _yedekServisi = yedekServisi;
+        YedekAlKomutu = new KomutSarici(async _ => await YedekAlAsync(), _ => !YedekAliniyor && _yedekServisi != null);
+        YedekKlasoruAcKomutu = new KomutSarici(() => YedekKlasorunuAc());
+        YedekleriYenile();
 
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync());
         YenileKomutu = new KomutSarici(async () => await AyarlariYukleAsync());
@@ -183,5 +201,45 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         {
             Yukleniyor = false;
         }
+    }
+
+    private void YedekleriYenile()
+    {
+        Yedekler.Clear();
+        if (_yedekServisi == null) return;
+        foreach (var yedek in _yedekServisi.YedekleriListele())
+            Yedekler.Add(yedek);
+        YedekDurumu = Yedekler.Count == 0
+            ? "Henüz yedek alınmamış."
+            : $"Son yedek: {Yedekler[0].OlusturmaTarihi:dd.MM.yyyy HH:mm} ({Yedekler[0].BoyutMetni})";
+    }
+
+    private async Task YedekAlAsync()
+    {
+        if (_yedekServisi == null) return;
+        YedekAliniyor = true;
+        YedekDurumu = "Yedek alınıyor, lütfen bekleyin...";
+        try
+        {
+            var yedek = await _yedekServisi.ElleYedekAlAsync();
+            YedekleriYenile();
+            YedekDurumu = $"✅ Yedek alındı: {yedek.DosyaAdi} ({yedek.BoyutMetni})";
+        }
+        catch (Exception ex)
+        {
+            YedekDurumu = $"❌ {ex.Message}";
+        }
+        finally
+        {
+            YedekAliniyor = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    private void YedekKlasorunuAc()
+    {
+        if (string.IsNullOrEmpty(YedekKlasoru)) return;
+        System.IO.Directory.CreateDirectory(YedekKlasoru);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{YedekKlasoru}\"") { UseShellExecute = true });
     }
 }

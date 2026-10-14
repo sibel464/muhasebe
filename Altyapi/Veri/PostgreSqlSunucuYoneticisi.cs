@@ -216,6 +216,16 @@ public static class PostgreSqlSunucuYoneticisi
         return null;
     }
 
+    // pg_dump, pg_restore gibi PostgreSQL araçlarını sunucuyla aynı bin klasöründe arar.
+    public static string? AracBul(string exeAdi)
+    {
+        var postgres = _baslatilanPostgresExe ?? PostgresExeBul();
+        if (postgres == null)
+            return null;
+        var aday = Path.Combine(Path.GetDirectoryName(postgres)!, exeAdi);
+        return File.Exists(aday) ? aday : null;
+    }
+
     private static string? PostgresExeBul()
     {
         string[] bilinenYollar =
