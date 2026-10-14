@@ -955,8 +955,36 @@ public class MuhasebeBaglami : DbContext
         );
     }
 
+    // Fatura, çek/senet gibi modüller kasa/hesap seçmeden hareket oluşturabiliyor; böyle bir hareket
+    // hiçbir kasanın bakiyesinde görünmez. Kasa boşsa varsayılan (ilk aktif) kasaya, banka hesabı boşsa
+    // sistemde tek aktif hesap varsa ona bağlanır.
+    private async Task KasaVeBankaBaglantisiniTamamlaAsync(CancellationToken cancellationToken)
+    {
+        var kasasizlar = ChangeTracker.Entries<KasaHareketi>()
+            .Where(e => e.State == EntityState.Added && e.Entity.KasaId == null).Select(e => e.Entity).ToList();
+        if (kasasizlar.Count > 0)
+        {
+            var kasa = await Kasalar.AsNoTracking().Where(k => k.AktifMi).OrderBy(k => k.Id)
+                .Select(k => new { k.Id, k.SirketId }).FirstOrDefaultAsync(cancellationToken);
+            if (kasa != null)
+                foreach (var h in kasasizlar) { h.KasaId = kasa.Id; h.SirketId ??= kasa.SirketId; }
+        }
+
+        var hesapsizlar = ChangeTracker.Entries<BankaHareketi>()
+            .Where(e => e.State == EntityState.Added && e.Entity.BankaHesabiId == null).Select(e => e.Entity).ToList();
+        if (hesapsizlar.Count > 0)
+        {
+            var hesaplar = await BankaHesaplari.AsNoTracking().Where(b => b.AktifMi).Take(2)
+                .Select(b => new { b.Id, b.SirketId }).ToListAsync(cancellationToken);
+            if (hesaplar.Count == 1)
+                foreach (var h in hesapsizlar) { h.BankaHesabiId = hesaplar[0].Id; h.SirketId ??= hesaplar[0].SirketId; }
+        }
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        await KasaVeBankaBaglantisiniTamamlaAsync(cancellationToken);
+
         foreach (var entry in ChangeTracker.Entries<CariKart>().Where(e => e.State == EntityState.Added))
             entry.Entity.SirketId ??= VarsayilanSirketId;
 

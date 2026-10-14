@@ -466,6 +466,9 @@ public class KasaServisi : IKasaServisi
             if (hareket.IslemDurumu != FinansIslemDurumu.Tamamlandi)
                 throw new InvalidOperationException("İptal edilmiş veya ters kayıt niteliğindeki hareket silinemez.");
 
+            if (hareket.FaturaId.HasValue)
+                throw new InvalidOperationException("Bu tahsilat bir faturaya bağlı. Fatura ekranından iptal edilmelidir.");
+
             var simdi = DateTime.UtcNow;
             var neden = $"Kasa hareketi silindi ({Oturum.AktifKullanici?.KullaniciAdi ?? "bilinmeyen kullanıcı"})";
             var kontrolEdilecekKasalar = new HashSet<int>();

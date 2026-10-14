@@ -186,4 +186,34 @@ public class KasaBankaIntegrationTests
         await Assert.ThrowsAsync<Uygulama.Arayuzler.YetkisizErisimException>(() => new BankaServisi(db, yetkisiz).BankaHesabiEkleAsync(new BankaHesabi { Kod = "X", Ad = "X" }));
         await Assert.ThrowsAsync<Uygulama.Arayuzler.YetkisizErisimException>(() => new KasaServisi(db).TumunuGetirAsync());
     }
+
+    [Fact]
+    public async Task Kasa_secilmeden_eklenen_hareket_varsayilan_kasaya_baglanir()
+    {
+        _fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirket, _) = await SeedSirketVeCariAsync(db);
+        await SeedHesaplarAsync(db, sirket.Id);
+        var varsayilan = await db.Kasalar.Where(k => k.AktifMi).OrderBy(k => k.Id).FirstAsync();
+
+        var hareket = new KasaHareketi { Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.Gelir, Tutar = 10m, Aciklama = "Kasasız kayıt" };
+        db.KasaHareketleri.Add(hareket);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(varsayilan.Id, hareket.KasaId);
+    }
+
+    [Fact]
+    public async Task Faturaya_bagli_tahsilat_kasa_ekranindan_silinemez()
+    {
+        _fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirket, cari) = await SeedSirketVeCariAsync(db);
+        var (kasa, _, _) = await SeedHesaplarAsync(db, sirket.Id);
+        var hareket = new KasaHareketi { KasaId = kasa.Id, Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.Tahsilat, Tutar = 50m, Aciklama = "Nakit fatura", CariKartId = cari.Id, FaturaId = 999999, IlgiliBelgeId = 999999 };
+        db.KasaHareketleri.Add(hareket);
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, StabilizasyonTestOturumu.Olustur()).SilAsync(hareket.Id));
+    }
 }
