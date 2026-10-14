@@ -56,4 +56,57 @@ public sealed class KasaBankaMuhasebeFisiTests(IsolatedPostgreSqlFixture fixture
             .AnyAsync(f => f.Satirlar.Sum(s => s.Borc) != f.Satirlar.Sum(s => s.Alacak));
         Assert.False(dengesiz);
     }
+
+    [Fact]
+    public async Task Eski_fissiz_hareketler_tamamlanir_ve_tekrar_calistirmak_cift_kayit_uretmez()
+    {
+        fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(fixture.Options);
+        var sirket = new Sirket { Id = Guid.NewGuid(), Unvan = "Eski Kayıt", SirketKodu = $"ESK-{Guid.NewGuid():N}"[..12] };
+        var cari = new CariKart { SirketId = sirket.Id, Kod = $"C-{Guid.NewGuid():N}"[..12], Unvan = "Eski Cari", Aktif = true };
+        var kasa = new Kasa { SirketId = sirket.Id, Kod = $"K-{Guid.NewGuid():N}"[..12], Ad = "Eski Kasa", AktifMi = true };
+        var banka = new BankaHesabi { SirketId = sirket.Id, Kod = $"B-{Guid.NewGuid():N}"[..12], Ad = "Eski Banka", Iban = "TR330006100519786457841326", AktifMi = true };
+        db.AddRange(sirket, cari, kasa, banka);
+        await db.SaveChangesAsync();
+
+        // Otomatik fiş özelliğinden önceki gibi doğrudan (fişsiz) kayıtlar
+        db.KasaHareketleri.AddRange(
+            new KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.Gelir, Tutar = 5000m, Aciklama = "Sermaye" },
+            new KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tur = HareketTuru.Gider, FisTuru = KasaFisTuru.Gider, Tutar = 1200m, Aciklama = "Kırtasiye" },
+            new KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.Tahsilat, Tutar = 220m, Aciklama = "Nakit satış", CariKartId = cari.Id });
+        db.BankaHareketleri.Add(new BankaHareketi { SirketId = sirket.Id, BankaHesabiId = banka.Id, Tur = HareketTuru.Gelir, FisTuru = BankaFisTuru.GelenHavale, Tutar = 25000m, Aciklama = "POS gün sonu" });
+        await db.SaveChangesAsync();
+
+        Assert.True(await FinansMuhasebeKaydi.EksikFisleriTamamlaAsync(db) >= 4);
+        var kasaServisi = new KasaServisi(db, StabilizasyonTestOturumu.Olustur());
+        var bankaServisi = new BankaServisi(db, StabilizasyonTestOturumu.Olustur());
+        Assert.Equal(await kasaServisi.KasaBakiyeHesaplaAsync(kasa.Id), await HesapNetiAsync(db, sirket.Id, "100"));
+        Assert.Equal(await bankaServisi.HesapBakiyeHesaplaAsync(banka.Id), await HesapNetiAsync(db, sirket.Id, "102"));
+        Assert.Equal(-220m, await HesapNetiAsync(db, sirket.Id, "120"));
+
+        var fisSayisi = await db.YevmiyeFisleri.CountAsync(f => f.SirketId == sirket.Id);
+        await FinansMuhasebeKaydi.EksikFisleriTamamlaAsync(db);
+        Assert.Equal(fisSayisi, await db.YevmiyeFisleri.CountAsync(f => f.SirketId == sirket.Id));
+    }
+
+    [Fact]
+    public async Task Cek_tahsilati_kasaya_girer_ve_alinan_cekler_hesabindan_duser()
+    {
+        fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(fixture.Options);
+        var sirket = new Sirket { Id = Guid.NewGuid(), Unvan = "Çek Test", SirketKodu = $"CEK-{Guid.NewGuid():N}"[..12] };
+        var cari = new CariKart { SirketId = sirket.Id, Kod = $"C-{Guid.NewGuid():N}"[..12], Unvan = "Çek Cari", Aktif = true };
+        var kasa = new Kasa { SirketId = sirket.Id, Kod = $"K-{Guid.NewGuid():N}"[..12], Ad = "Çek Kasa", AktifMi = true };
+        db.AddRange(sirket, cari, kasa);
+        await db.SaveChangesAsync();
+        var cek = new CekSenet { SirketId = sirket.Id, CariKartId = cari.Id, Tur = CekSenetTuru.AlinanCek, Durum = CekSenetDurumu.Portfoyde,
+            BelgeNo = "CK-1", Tutar = 750m, VadeTarihi = DateTime.UtcNow, DuzenlemeTarihi = DateTime.UtcNow };
+        db.CekSenetler.Add(cek);
+        await db.SaveChangesAsync();
+
+        await new CekSenetServisi(db).DurumGuncelleAsync(cek.Id, CekSenetDurumu.TahsilEdildi, kasaId: kasa.Id);
+
+        Assert.Equal(750m, await HesapNetiAsync(db, sirket.Id, "100"));
+        Assert.Equal(-750m, await HesapNetiAsync(db, sirket.Id, "101"));
+    }
 }

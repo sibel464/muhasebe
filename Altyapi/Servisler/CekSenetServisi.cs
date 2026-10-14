@@ -58,6 +58,9 @@ public class CekSenetServisi : ICekSenetServisi
 
     public async Task DurumGuncelleAsync(int cekSenetId, CekSenetDurumu yeniDurum, int? kasaId = null, int? bankaHesabiId = null, string? aciklama = null)
     {
+        await using var tx = _baglam.Database.CurrentTransaction == null ? await _baglam.Database.BeginTransactionAsync() : null;
+        KasaHareketi? kasaH = null;
+        BankaHareketi? bankaH = null;
         var cek = await _baglam.CekSenetler.Include(x => x.CariKart).FirstOrDefaultAsync(x => x.Id == cekSenetId)
             ?? throw new KeyNotFoundException("Çek/Senet bulunamadı.");
 
@@ -71,7 +74,7 @@ public class CekSenetServisi : ICekSenetServisi
         {
             if (kasaId.HasValue)
             {
-                _baglam.KasaHareketleri.Add(new KasaHareketi
+                _baglam.KasaHareketleri.Add(kasaH = new KasaHareketi
                 {
                     KasaId = kasaId.Value,
                     Tarih = DateTime.UtcNow,
@@ -84,7 +87,7 @@ public class CekSenetServisi : ICekSenetServisi
             }
             else if (bankaHesabiId.HasValue)
             {
-                _baglam.BankaHareketleri.Add(new BankaHareketi
+                _baglam.BankaHareketleri.Add(bankaH = new BankaHareketi
                 {
                     BankaHesabiId = bankaHesabiId.Value,
                     Tarih = DateTime.UtcNow,
@@ -100,7 +103,7 @@ public class CekSenetServisi : ICekSenetServisi
         {
             if (kasaId.HasValue)
             {
-                _baglam.KasaHareketleri.Add(new KasaHareketi
+                _baglam.KasaHareketleri.Add(kasaH = new KasaHareketi
                 {
                     KasaId = kasaId.Value,
                     Tarih = DateTime.UtcNow,
@@ -113,7 +116,7 @@ public class CekSenetServisi : ICekSenetServisi
             }
             else if (bankaHesabiId.HasValue)
             {
-                _baglam.BankaHareketleri.Add(new BankaHareketi
+                _baglam.BankaHareketleri.Add(bankaH = new BankaHareketi
                 {
                     BankaHesabiId = bankaHesabiId.Value,
                     Tarih = DateTime.UtcNow,
@@ -127,6 +130,34 @@ public class CekSenetServisi : ICekSenetServisi
         }
 
         await _baglam.SaveChangesAsync();
+
+        // Çek/senet tahsili: 100/102 borç - 101/121 alacak; verilen çek/senet ödemesi: 103/321 borç - 100/102 alacak
+        var portfoyKodu = cek.Tur switch
+        {
+            CekSenetTuru.AlinanCek => "101",
+            CekSenetTuru.VerilenCek => "103",
+            CekSenetTuru.AlinanSenet => "121",
+            _ => "321"
+        };
+        if (kasaH != null)
+        {
+            await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, kasaH, portfoyKodu);
+            if (kasaH.Tur == HareketTuru.Gider && kasaH.KasaId is int kid && await FinansKurallari.KasaBakiyesiAsync(_baglam, kid) < 0)
+                throw new InvalidOperationException("Kasada bu ödeme için yeterli bakiye yok. Kasa bakiyesi eksiye düşemez.");
+        }
+        if (bankaH != null)
+        {
+            await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, bankaH, portfoyKodu);
+            if (bankaH.Tur == HareketTuru.Gider && bankaH.BankaHesabiId is int bid)
+            {
+                var hesap = await _baglam.BankaHesaplari.AsNoTracking().FirstAsync(b => b.Id == bid);
+                if (await FinansKurallari.BankaBakiyesiAsync(_baglam, bid) < -Math.Max(0, hesap.KrediLimiti))
+                    throw new InvalidOperationException($"'{hesap.Ad}' hesabında bu ödeme için yeterli bakiye yok.");
+            }
+        }
+
+        if (tx != null)
+            await tx.CommitAsync();
     }
 
     public async Task SilAsync(int id, string neden)

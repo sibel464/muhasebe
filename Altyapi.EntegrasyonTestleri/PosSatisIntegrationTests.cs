@@ -38,9 +38,42 @@ public sealed class PosSatisIntegrationTests
         Assert.Equal(bankaSayisi, await verify.BankaHareketleri.CountAsync(x => x.FaturaId == fatura.Id));
         Assert.Equal(cariSayisi, await verify.CariHareketler.CountAsync(x => x.IlgiliBelgeId == fatura.Id));
         Assert.Single(await verify.YevmiyeFisleri.Where(x => x.BelgeTipi == "Fatura" && x.BelgeId == fatura.Id).ToListAsync());
+        // Peşin tahsilat da muhasebeleşir: 100/102 borç - 120 alacak
+        var kasaIdleri = await verify.KasaHareketleri.Where(x => x.FaturaId == fatura.Id).Select(x => x.Id).ToListAsync();
+        var bankaIdleri = await verify.BankaHareketleri.Where(x => x.FaturaId == fatura.Id).Select(x => x.Id).ToListAsync();
+        Assert.Equal(kasaSayisi, await verify.YevmiyeFisleri.CountAsync(x => x.BelgeTipi == "KasaHareketi" && kasaIdleri.Contains(x.BelgeId)));
+        Assert.Equal(bankaSayisi, await verify.YevmiyeFisleri.CountAsync(x => x.BelgeTipi == "BankaHareketi" && bankaIdleri.Contains(x.BelgeId)));
         var hareketler = await verify.StokHareketleri.Where(x => x.IlgiliBelgeId == fatura.Id).OrderBy(x => x.DepoId).ToListAsync();
         Assert.Equal(new decimal[] { 2, 3, 5 }, hareketler.Select(x => x.Miktar));
         Assert.Equal(new int?[] { 1, 2, 3 }, hareketler.Select(x => x.DepoId));
+    }
+
+    [Fact]
+    public async Task Nakit_fatura_iptalinde_kasadaki_para_iade_edilir_ve_fisi_ters_kaydedilir()
+    {
+        var veri = await SeedAsync();
+        int faturaId;
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            var service = new FaturaServisi(context, new AuthorizedUserService());
+            faturaId = (await service.PosSatisiniTamamlaAsync(FaturaOlustur(veri, "Nakit"), "Nakit")).Id;
+            await service.IptalEtAsync(faturaId);
+        }
+
+        await using var verify = new MuhasebeBaglami(_fixture.Options);
+        var asil = await verify.KasaHareketleri.SingleAsync(x => x.FaturaId == faturaId);
+        Assert.Equal(EtkiAlani.Modeller.Finans.FinansIslemDurumu.IptalEdildi, asil.IslemDurumu);
+        var ters = await verify.KasaHareketleri.SingleAsync(x => x.Id == asil.TersKayitId);
+        Assert.Equal(EtkiAlani.Modeller.Finans.HareketTuru.Gider, ters.Tur);
+        Assert.Equal(asil.Tutar, ters.Tutar);
+
+        // Tahsilat fişi ile iade fişi birbirini sıfırlar.
+        var fisSatirlari = await verify.YevmiyeSatirlari
+            .Where(s => s.Fis!.BelgeTipi == "KasaHareketi" && (s.Fis.BelgeId == asil.Id || s.Fis.BelgeId == ters.Id))
+            .ToListAsync();
+        Assert.Equal(4, fisSatirlari.Count);
+        Assert.Equal(fisSatirlari.Sum(s => s.Borc), fisSatirlari.Sum(s => s.Alacak));
+        Assert.All(fisSatirlari.GroupBy(s => s.HesapId), g => Assert.Equal(g.Sum(s => s.Borc), g.Sum(s => s.Alacak)));
     }
 
     [Fact]
@@ -102,7 +135,7 @@ public sealed class PosSatisIntegrationTests
     private sealed class AuthorizedUserService : IKullaniciServisi
     {
         public Kullanici? AktifKullanici => new() { Yetkiler = AktifYetkiler };
-        public KullaniciYetkileri? AktifYetkiler => new() { FaturaOlustur = true, FaturaOnayla = true };
+        public KullaniciYetkileri? AktifYetkiler => new() { FaturaOlustur = true, FaturaOnayla = true, FaturaIptal = true };
         public Task<bool> GirisYapAsync(string a, string b, CancellationToken c = default) => Task.FromResult(false);
         public void CikisYap() { }
         public bool YetkiliMi(Func<KullaniciYetkileri, bool> sorgu) => sorgu(AktifYetkiler!);

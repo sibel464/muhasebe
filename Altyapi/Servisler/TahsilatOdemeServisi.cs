@@ -191,10 +191,20 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
     private async Task YevmiyeEkleAsync(CariKart cari, TahsilatOdemeTalebi t, int belgeId, DateTime tarih, string aciklama, bool ters)
     {
         var sirketId = cari.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
-        var nakitKodu = t.OdemeYontemi == OdemeYontemi.Nakit ? "100" : "102";
+        // Çek/senet portföye girer (101/121) veya verilen çek/senet olarak izlenir (103/321); kasaya/bankaya değil.
+        var nakitKodu = t.OdemeYontemi switch
+        {
+            OdemeYontemi.Nakit => "100",
+            OdemeYontemi.Cek => t.IslemTuru == FinansIslemTuru.Tahsilat ? "101" : "103",
+            OdemeYontemi.Senet => t.IslemTuru == FinansIslemTuru.Tahsilat ? "121" : "321",
+            _ => "102"
+        };
         var cariKodu = t.IslemTuru == FinansIslemTuru.Tahsilat ? "120" : "320";
-        var hesaplar = await _baglam.HesapPlanlari.Where(x => x.SirketId == sirketId && (x.HesapKodu == nakitKodu || x.HesapKodu == cariKodu) && x.AktifMi).ToDictionaryAsync(x => x.HesapKodu);
-        if (!hesaplar.ContainsKey(nakitKodu) || !hesaplar.ContainsKey(cariKodu)) throw new InvalidOperationException("Kasa/banka veya cari muhasebe hesabı bulunamadı.");
+        var hesaplar = new Dictionary<string, (int Id, string HesapKodu)>
+        {
+            [nakitKodu] = (await FinansMuhasebeKaydi.HesapGetirVeyaOlusturAsync(_baglam, sirketId, nakitKodu), nakitKodu),
+            [cariKodu] = (await FinansMuhasebeKaydi.HesapGetirVeyaOlusturAsync(_baglam, sirketId, cariKodu), cariKodu)
+        };
         var tahsilatYon = t.IslemTuru == FinansIslemTuru.Tahsilat;
         if (ters) tahsilatYon = !tahsilatYon;
         _baglam.YevmiyeFisleri.Add(new YevmiyeFis { SirketId = sirketId, FisNo = $"TO-{Guid.NewGuid():N}"[..15].ToUpperInvariant(), Tarih = tarih,

@@ -513,6 +513,11 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     IslemDurumu = FinansIslemDurumu.Tamamlandi
                 });
                 await _baglam.SaveChangesAsync(cancellationToken);
+
+                // Kasa fazlası: 100 / 397, kasa noksanı: 197 / 100
+                var duzeltme = _baglam.ChangeTracker.Entries<KasaHareketi>().Select(e => e.Entity)
+                    .Last(h => h.IlgiliBelgeId == mutabakat.Id && h.FisTuru == KasaFisTuru.SayimFarki);
+                await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, duzeltme, fark > 0 ? "397" : "197");
             }
 
             await tx.CommitAsync(cancellationToken);
@@ -725,9 +730,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             _baglam.BankaHareketleri.Add(bhKaynak);
             _baglam.BankaHareketleri.Add(bhHedef);
 
+            BankaHareketi? masrafHareketi = null;
             if (dto.Masraf > 0)
             {
-                _baglam.BankaHareketleri.Add(new BankaHareketi
+                _baglam.BankaHareketleri.Add(masrafHareketi = new BankaHareketi
                 {
                     SirketId = sirketId,
                     BankaHesabiId = dto.KaynakBankaHesapId,
@@ -749,6 +755,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             bhKaynak.TersKayitId = bhHedef.Id;
             bhHedef.TersKayitId = bhKaynak.Id;
             await _baglam.SaveChangesAsync(cancellationToken);
+
+            // Virman aynı 102 hesabında kalır; yalnızca masraf fişlenir (780 / 102).
+            if (masrafHareketi != null)
+                await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, masrafHareketi, "780");
             await tx.CommitAsync(cancellationToken);
         }
         catch
@@ -769,27 +779,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
     private async Task TransferYevmiyesiEkleAsync(Guid sirketId, string islemNo, DateTime tarih, string belgeTipi, int belgeId, string aciklama,
         string borcHesapKodu, string alacakHesapKodu, decimal tutar, CancellationToken cancellationToken)
     {
-        var borcHesap = await _baglam.HesapPlanlari.FirstOrDefaultAsync(x => x.SirketId == sirketId && x.HesapKodu == borcHesapKodu, cancellationToken);
-        var alacakHesap = await _baglam.HesapPlanlari.FirstOrDefaultAsync(x => x.SirketId == sirketId && x.HesapKodu == alacakHesapKodu, cancellationToken);
-        if (borcHesap == null || alacakHesap == null)
-            return;
-
-        _baglam.YevmiyeFisleri.Add(new YevmiyeFis
-        {
-            SirketId = sirketId,
-            FisNo = islemNo,
-            Tarih = tarih,
-            BelgeTipi = belgeTipi,
-            BelgeId = belgeId,
-            Aciklama = aciklama,
-            Durum = YevmiyeDurumu.Onaylandi,
-            Satirlar = new List<YevmiyeSatiri>
-            {
-                new() { HesapId = borcHesap.Id, Borc = tutar, Aciklama = aciklama },
-                new() { HesapId = alacakHesap.Id, Alacak = tutar, Aciklama = aciklama }
-            }
-        });
-        await _baglam.SaveChangesAsync(cancellationToken);
+        // Hesap planında eksik standart hesap varsa otomatik açılır; transfer her zaman fişlenir.
+        await FinansMuhasebeKaydi.FisEkleAsync(_baglam, sirketId, belgeTipi, belgeId, tarih, aciklama, islemNo,
+            new FinansMuhasebeKaydi.Satir(borcHesapKodu, tutar, 0),
+            new FinansMuhasebeKaydi.Satir(alacakHesapKodu, 0, tutar));
     }
 
     public async Task FinansIslemIptalEtAsync(int hareketId, string kaynak, Guid sirketId, int kullaniciId, string neden, CancellationToken cancellationToken = default)
@@ -815,6 +808,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             {
                 var asil = await _baglam.KasaHareketleri.SingleOrDefaultAsync(x => x.Id == hareketId && x.SirketId == sirketId, cancellationToken)
                     ?? throw new KeyNotFoundException("Kasa hareketi bulunamadı.");
+                if (asil.FaturaId.HasValue)
+                    throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is KasaFisTuru.KasaVirman or KasaFisTuru.BankayaYatirma or KasaFisTuru.BankadanCekme or KasaFisTuru.SayimFarki);
 
                 if (asil.KasaId.HasValue)
@@ -845,12 +840,15 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 _baglam.KasaHareketleri.Add(ters);
                 await _baglam.SaveChangesAsync(cancellationToken);
                 asil.TersKayitId = ters.Id;
+                await FinansMuhasebeKaydi.TersFisEkleAsync(_baglam, true, asil.Id, ters, null);
                 (cariKartId, cariHareketId, asilTur, tutar, belge) = (asil.CariKartId, asil.IlgiliBelgeId, asil.Tur, asil.Tutar, asil.Belge);
             }
             else
             {
                 var asil = await _baglam.BankaHareketleri.SingleOrDefaultAsync(x => x.Id == hareketId && x.SirketId == sirketId, cancellationToken)
                     ?? throw new KeyNotFoundException("Banka hareketi bulunamadı.");
+                if (asil.FaturaId.HasValue)
+                    throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is BankaFisTuru.BankaVirman or BankaFisTuru.BankayaYatirma or BankaFisTuru.KasadanCekme or BankaFisTuru.PosHesabaGecis);
 
                 if (asil.BankaHesabiId.HasValue)
@@ -882,6 +880,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 _baglam.BankaHareketleri.Add(ters);
                 await _baglam.SaveChangesAsync(cancellationToken);
                 asil.TersKayitId = ters.Id;
+                await FinansMuhasebeKaydi.TersFisEkleAsync(_baglam, false, asil.Id, null, ters);
                 (cariKartId, cariHareketId, asilTur, tutar, belge) = (asil.CariKartId, asil.IlgiliBelgeId, asil.Tur, asil.Tutar, asil.DekontNo);
             }
 

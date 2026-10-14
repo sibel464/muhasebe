@@ -261,6 +261,16 @@ public partial class App : Application
 
         if (!await baglam.Kullanicilar.AnyAsync())
             throw new InvalidOperationException("Kullanicilar tablosu boş veya veritabanı şeması hazır değil.");
+
+        // Otomatik fiş özelliğinden önce girilmiş kasa/banka hareketlerinin fişleri tamamlanır (tekrar çalışması güvenli).
+        try
+        {
+            await FinansMuhasebeKaydi.EksikFisleriTamamlaAsync(baglam);
+        }
+        catch (Exception ex)
+        {
+            await HatayiLoglaAsync(ex, "EksikFisleriTamamla");
+        }
     }
 
     internal static async Task HatayiLoglaAsync(Exception exception, string kaynak)

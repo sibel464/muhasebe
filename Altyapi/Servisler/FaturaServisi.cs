@@ -297,6 +297,8 @@ public class FaturaServisi : IFaturaServisi
             var eklenenFatura = await EkleAsync(fatura);
             await OnaylaAsync(eklenenFatura.Id);
 
+            KasaHareketi? posKasa = null;
+            BankaHareketi? posBanka = null;
             if (odemeYontemi != "Açık Hesap")
             {
                 _baglam.CariHareketler.Add(new CariHareket
@@ -309,7 +311,7 @@ public class FaturaServisi : IFaturaServisi
 
                 if (odemeYontemi == "Nakit")
                 {
-                    _baglam.KasaHareketleri.Add(new KasaHareketi
+                    _baglam.KasaHareketleri.Add(posKasa = new KasaHareketi
                     {
                         Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
                         Aciklama = "POS Nakit Satış Tahsilatı", Belge = eklenenFatura.FaturaNo,
@@ -318,7 +320,7 @@ public class FaturaServisi : IFaturaServisi
                 }
                 else if (odemeYontemi is "Kredi Kartı" or "Banka")
                 {
-                    _baglam.BankaHareketleri.Add(new BankaHareketi
+                    _baglam.BankaHareketleri.Add(posBanka = new BankaHareketi
                     {
                         Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
                         Aciklama = $"POS {odemeYontemi} Tahsilatı", BankaAdi = odemeYontemi == "Kredi Kartı" ? "POS" : "Banka",
@@ -345,6 +347,11 @@ public class FaturaServisi : IFaturaServisi
             }
 
             await _baglam.SaveChangesAsync();
+
+            // Tahsilat fişi: 100 Kasa / 102 Bankalar borç - 120 Alıcılar alacak
+            if (posKasa != null) await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, posKasa, "120", posKasa.CariKartId);
+            if (posBanka != null) await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, posBanka, "120", posBanka.CariKartId);
+
             await transaction.CommitAsync();
             return eklenenFatura;
         }
@@ -479,6 +486,42 @@ public class FaturaServisi : IFaturaServisi
 
             // SaveChangesAsync (otomatik olarak soft-delete hareketleri algılar, CariKart bakiye ve Urun stok miktarlarını geri çeker)
             await _baglam.SaveChangesAsync();
+
+            // Faturanın peşin tahsilatı/ödemesi de ters kayıtla geri alınır (para iadesi) ve fişlenir.
+            foreach (var asil in await _baglam.KasaHareketleri.Where(h => h.FaturaId == fatura.Id && h.IslemDurumu == FinansIslemDurumu.Tamamlandi).ToListAsync())
+            {
+                var ters = new KasaHareketi
+                {
+                    SirketId = asil.SirketId, KasaId = asil.KasaId, Tarih = DateTime.UtcNow, FisTuru = asil.FisTuru,
+                    Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = asil.Tutar,
+                    CariKartId = asil.CariKartId, Aciklama = $"{fatura.FaturaNo} nolu fatura iptali - ödeme iadesi", Belge = iptalBelgeNo,
+                    IslemDurumu = FinansIslemDurumu.TersKayit, TersKayitId = asil.Id
+                };
+                _baglam.KasaHareketleri.Add(ters);
+                asil.IslemDurumu = FinansIslemDurumu.IptalEdildi;
+                await _baglam.SaveChangesAsync();
+                asil.TersKayitId = ters.Id;
+                await FinansMuhasebeKaydi.TersFisEkleAsync(_baglam, true, asil.Id, ters, null);
+                if (ters.Tur == HareketTuru.Gider && ters.KasaId is int kasaId && await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
+                    throw new InvalidOperationException("Fatura iptali için kasada iade edilecek kadar bakiye yok.");
+            }
+            foreach (var asil in await _baglam.BankaHareketleri.Where(h => h.FaturaId == fatura.Id && h.IslemDurumu == FinansIslemDurumu.Tamamlandi).ToListAsync())
+            {
+                var ters = new BankaHareketi
+                {
+                    SirketId = asil.SirketId, BankaHesabiId = asil.BankaHesabiId, Tarih = DateTime.UtcNow, FisTuru = asil.FisTuru,
+                    Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = asil.Tutar,
+                    CariKartId = asil.CariKartId, BankaAdi = asil.BankaAdi, HesapNo = asil.HesapNo, OdemeYontemi = asil.OdemeYontemi,
+                    Aciklama = $"{fatura.FaturaNo} nolu fatura iptali - ödeme iadesi",
+                    IslemDurumu = FinansIslemDurumu.TersKayit, TersKayitId = asil.Id
+                };
+                _baglam.BankaHareketleri.Add(ters);
+                asil.IslemDurumu = FinansIslemDurumu.IptalEdildi;
+                await _baglam.SaveChangesAsync();
+                asil.TersKayitId = ters.Id;
+                await FinansMuhasebeKaydi.TersFisEkleAsync(_baglam, false, asil.Id, null, ters);
+            }
+            await _baglam.SaveChangesAsync();
             await transaction.CommitAsync();
 
             return fatura;
@@ -581,27 +624,67 @@ public class FaturaServisi : IFaturaServisi
             var eklenen = await EkleAsync(fatura);
             await _financialTransactionService.CreateFromInvoiceAsync(eklenen.Id);
 
+            (KasaHareketi? Kasa, BankaHareketi? Banka, string KarsiKod)? odeme = null;
             if (fatura.OdemeSekli != FaturaOdemeSekli.AcikHesap)
-                OdemeHareketleriniEkle(fatura);
+                odeme = OdemeHareketleriniEkle(fatura);
             if (irsaliye != null)
             {
                 var tumu = irsaliye.Kalemler.All(ik => _baglam.FaturaKalemleri.Local.Where(x => x.IrsaliyeKalemiId == ik.Id).Sum(x => x.Miktar) +
                     _baglam.FaturaKalemleri.Where(x => x.IrsaliyeKalemiId == ik.Id && x.Fatura!.Durum != BelgeDurumu.Iptal).Sum(x => x.Miktar) >= ik.Miktar);
                 if (tumu) { irsaliye.Durum = IrsaliyeDurumu.Faturalandi; irsaliye.DonusturulenFaturaId = fatura.Id; }
             }
-            await _baglam.SaveChangesAsync(); await tx.CommitAsync(); return fatura;
+            await _baglam.SaveChangesAsync();
+            if (odeme is { } o)
+            {
+                if (o.Kasa != null)
+                {
+                    await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, o.Kasa, o.KarsiKod, o.Kasa.CariKartId);
+                    if (o.Kasa.Tur == HareketTuru.Gider && o.Kasa.KasaId is int kasaId && await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
+                        throw new InvalidOperationException("Kasada bu ödeme için yeterli bakiye yok. Kasa bakiyesi eksiye düşemez.");
+                }
+                if (o.Banka != null)
+                    await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, o.Banka, o.KarsiKod, o.Banka.CariKartId);
+            }
+            await tx.CommitAsync(); return fatura;
         }
         catch (DbUpdateConcurrencyException ex) { await tx.RollbackAsync(); throw new InvalidOperationException("Faturalanabilir miktar başka bir işlem tarafından değiştirildi. Lütfen kayıtları yenileyin.", ex); }
         catch { await tx.RollbackAsync(); throw; }
     }
 
-    private void OdemeHareketleriniEkle(Fatura fatura)
+    // Peşin faturanın ödemesi: satış ve alış iadesinde para girer (tahsilat), alış ve satış iadesinde para çıkar (ödeme).
+    private (KasaHareketi? Kasa, BankaHareketi? Banka, string KarsiKod) OdemeHareketleriniEkle(Fatura fatura)
     {
-        _baglam.CariHareketler.Add(new CariHareket { CariKartId = fatura.CariKartId, Tarih = fatura.Tarih, BelgeNo = fatura.FaturaNo, IlgiliBelgeId = fatura.Id, HareketTuru = CariHareketTuru.Tahsilat, Alacak = fatura.GenelToplam, Aciklama = $"Fatura tahsilatı ({OdemeAdi(fatura.OdemeSekli)})" });
+        var giris = fatura.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade;
+        var karsiKod = fatura.Tur is FaturaTuru.Satis or FaturaTuru.SatisIade ? "120" : "320";
+        var islem = giris ? "tahsilatı" : "ödemesi";
+        _baglam.CariHareketler.Add(new CariHareket
+        {
+            CariKartId = fatura.CariKartId, Tarih = fatura.Tarih, BelgeNo = fatura.FaturaNo, IlgiliBelgeId = fatura.Id,
+            HareketTuru = giris ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
+            Alacak = giris ? fatura.GenelToplam : 0, Borc = giris ? 0 : fatura.GenelToplam,
+            Aciklama = $"Fatura {islem} ({OdemeAdi(fatura.OdemeSekli)})"
+        });
         if (fatura.OdemeSekli == FaturaOdemeSekli.Nakit)
-            _baglam.KasaHareketleri.Add(new KasaHareketi { Tarih = fatura.Tarih, Tur = HareketTuru.Gelir, Tutar = fatura.GenelToplam, Aciklama = "Nakit fatura tahsilatı", Belge = fatura.FaturaNo, CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id });
-        else
-            _baglam.BankaHareketleri.Add(new BankaHareketi { Tarih = fatura.Tarih, Tur = HareketTuru.Gelir, Tutar = fatura.GenelToplam, Aciklama = $"{OdemeAdi(fatura.OdemeSekli)} fatura tahsilatı", BankaAdi = fatura.OdemeSekli == FaturaOdemeSekli.KrediKarti ? "POS" : "Banka", CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id });
+        {
+            var kasa = new KasaHareketi
+            {
+                Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? KasaFisTuru.Tahsilat : KasaFisTuru.Odeme,
+                Tutar = fatura.GenelToplam, Aciklama = $"Nakit fatura {islem}", Belge = fatura.FaturaNo,
+                CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id
+            };
+            _baglam.KasaHareketleri.Add(kasa);
+            return (kasa, null, karsiKod);
+        }
+
+        var banka = new BankaHareketi
+        {
+            Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? BankaFisTuru.GelenHavale : BankaFisTuru.GidenHavale,
+            Tutar = fatura.GenelToplam, Aciklama = $"{OdemeAdi(fatura.OdemeSekli)} fatura {islem}",
+            BankaAdi = fatura.OdemeSekli == FaturaOdemeSekli.KrediKarti ? "POS" : "Banka",
+            CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id
+        };
+        _baglam.BankaHareketleri.Add(banka);
+        return (null, banka, karsiKod);
     }
     private static string OdemeAdi(FaturaOdemeSekli x) => x switch { FaturaOdemeSekli.AcikHesap => "Açık Hesap", FaturaOdemeSekli.KrediKarti => "Kredi Kartı", _ => x.ToString() };
 
