@@ -20,7 +20,8 @@ internal static class StabilizasyonTestOturumu
             RaporGoruntule = true, MaliyetHesaplariGoruntule = true, CariEkle = true, CariDuzenle = true, CariGoruntule = true,
             StokEkle = true, StokDuzenle = true, StokGoruntule = true,
             KasaYonet = true, BankaEkle = true, BankaDuzenle = true,
-            TahsilatYap = true, OdemeYap = true
+            TahsilatYap = true, OdemeYap = true,
+            CekSenetGoruntule = true, CekSenetIslemYap = true
         }
     };
 }

@@ -104,7 +104,7 @@ public sealed class KasaBankaMuhasebeFisiTests(IsolatedPostgreSqlFixture fixture
         db.CekSenetler.Add(cek);
         await db.SaveChangesAsync();
 
-        await new CekSenetServisi(db).DurumGuncelleAsync(cek.Id, CekSenetDurumu.TahsilEdildi, kasaId: kasa.Id);
+        await new CekSenetServisi(db, StabilizasyonTestOturumu.Olustur()).DurumGuncelleAsync(cek.Id, CekSenetDurumu.TahsilEdildi, kasaId: kasa.Id);
 
         Assert.Equal(750m, await HesapNetiAsync(db, sirket.Id, "100"));
         Assert.Equal(-750m, await HesapNetiAsync(db, sirket.Id, "101"));

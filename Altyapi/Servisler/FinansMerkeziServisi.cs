@@ -810,6 +810,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     ?? throw new KeyNotFoundException("Kasa hareketi bulunamadı.");
                 if (asil.FaturaId.HasValue)
                     throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
+                if (asil.OzelKod == CekSenetServisi.CekSenetOzelKodu)
+                    throw new InvalidOperationException("Çek/senet tahsilatı veya ödemesi iptal edilemez.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is KasaFisTuru.KasaVirman or KasaFisTuru.BankayaYatirma or KasaFisTuru.BankadanCekme or KasaFisTuru.SayimFarki);
 
                 if (asil.KasaId.HasValue)
@@ -849,6 +851,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     ?? throw new KeyNotFoundException("Banka hareketi bulunamadı.");
                 if (asil.FaturaId.HasValue)
                     throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
+                if (asil.OzelKod == CekSenetServisi.CekSenetOzelKodu)
+                    throw new InvalidOperationException("Çek/senet tahsilatı veya ödemesi iptal edilemez.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is BankaFisTuru.BankaVirman or BankaFisTuru.BankayaYatirma or BankaFisTuru.KasadanCekme or BankaFisTuru.PosHesabaGecis);
 
                 if (asil.BankaHesabiId.HasValue)
