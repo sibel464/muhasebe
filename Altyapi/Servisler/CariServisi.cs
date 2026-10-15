@@ -70,6 +70,8 @@ public class CariServisi : ICariServisi
         if (kodVarMi)
             throw new InvalidOperationException($"'{cari.Kod}' kodlu cari kart zaten mevcut.");
 
+        FinansalAlanlariDogrula(cari);
+        cari.OlusturanKullaniciId = _kullaniciServisi?.AktifKullanici?.Id;
         cari.OlusturmaTarihi = DateTime.UtcNow;
         cari.Silindi = false;
 
@@ -124,6 +126,23 @@ public class CariServisi : ICariServisi
         return $"GRP-{son + 1:000000}";
     }
 
+    // Risk limiti / vade / IBAN kuralları; IBAN boşluksuz ve büyük harfle saklanır.
+    private static void FinansalAlanlariDogrula(CariKart cari)
+    {
+        if (cari.RiskLimiti < 0)
+            throw new ArgumentException("Risk limiti negatif olamaz.");
+        if (cari.VadeGunu is < 0 or > 365)
+            throw new ArgumentException("Vade günü 0 ile 365 arasında olmalıdır.");
+        if (string.IsNullOrWhiteSpace(cari.Iban))
+        {
+            cari.Iban = null;
+            return;
+        }
+        if (!EtkiAlani.Yardimcilar.IbanDogrulayici.Gecerlidir(cari.Iban, out var iban))
+            throw new ArgumentException("Geçersiz IBAN. TR ile başlayan 26 karakterlik IBAN girin.");
+        cari.Iban = iban;
+    }
+
     // "Müşteri ve Tedarikçi" türündeki cari hem müşteri hem tedarikçi aramalarında yer alır.
     private static IQueryable<CariKart> TurFiltresiUygula(IQueryable<CariKart> sorgu, CariTuru tur) =>
         tur == CariTuru.MusteriTedarikci
@@ -154,6 +173,12 @@ public class CariServisi : ICariServisi
         var mevcutCari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == cari.Id);
         if (mevcutCari == null)
             throw new KeyNotFoundException("Güncellenecek cari kart bulunamadı.");
+
+        FinansalAlanlariDogrula(cari);
+        mevcutCari.RiskLimiti = cari.RiskLimiti;
+        mevcutCari.VadeGunu = cari.VadeGunu;
+        mevcutCari.Iban = cari.Iban;
+        mevcutCari.GuncelleyenKullaniciId = _kullaniciServisi?.AktifKullanici?.Id;
 
         // Güncelleme
         mevcutCari.Kod = cari.Kod;

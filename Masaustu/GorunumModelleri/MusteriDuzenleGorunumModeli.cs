@@ -35,7 +35,10 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     private string? _aciklama;
     private bool _aktif = true;
     private CariTuru _cariTuru = CariTuru.Musteri;
-    
+    private decimal? _riskLimiti;
+    private int? _vadeGunu;
+    private string? _iban;
+
     private string _hataMesaji = string.Empty;
     private bool _kaydediliyor = false;
 
@@ -217,6 +220,41 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     public string? Aciklama { get => _aciklama; set => OzellikAyarla(ref _aciklama, value); }
     public bool Aktif { get => _aktif; set => OzellikAyarla(ref _aktif, value); }
 
+    // Risk limiti: carinin açık bakiyesi bu tutarı aşınca satışta uyarı verilir (boş = sınırsız).
+    public decimal? RiskLimiti
+    {
+        get => _riskLimiti;
+        set
+        {
+            if (!OzellikAyarla(ref _riskLimiti, value)) return;
+            TemizleHata(nameof(RiskLimiti));
+            if (value < 0) EkleHata("Risk limiti negatif olamaz.", nameof(RiskLimiti));
+        }
+    }
+
+    public int? VadeGunu
+    {
+        get => _vadeGunu;
+        set
+        {
+            if (!OzellikAyarla(ref _vadeGunu, value)) return;
+            TemizleHata(nameof(VadeGunu));
+            if (value is < 0 or > 365) EkleHata("Vade günü 0 ile 365 arasında olmalıdır.", nameof(VadeGunu));
+        }
+    }
+
+    public string? Iban
+    {
+        get => _iban;
+        set
+        {
+            if (!OzellikAyarla(ref _iban, value)) return;
+            TemizleHata(nameof(Iban));
+            if (!string.IsNullOrWhiteSpace(value) && !EtkiAlani.Yardimcilar.IbanDogrulayici.Gecerlidir(value, out _))
+                EkleHata("Geçersiz IBAN. TR ile başlayan 26 karakterlik IBAN girin.", nameof(Iban));
+        }
+    }
+
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
     public bool Kaydediliyor { get => _kaydediliyor; set => OzellikAyarla(ref _kaydediliyor, value); }
 
@@ -254,6 +292,9 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
             _aciklama = mevcutCari.Aciklama;
             _aktif = mevcutCari.Aktif;
             _cariTuru = mevcutCari.Tur;
+            _riskLimiti = mevcutCari.RiskLimiti;
+            _vadeGunu = mevcutCari.VadeGunu;
+            _iban = mevcutCari.Iban;
         }
 
         KaydetKomutu = new KomutSarici(async _ => await KaydetAsync(), _ => !Kaydediliyor && !HasErrors);
@@ -327,10 +368,9 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         TemizleHata(nameof(VergiNo));
         if (IsKurumsal && !string.IsNullOrWhiteSpace(value))
         {
-            value = value.Trim();
-            if (value.Length != 10 || !Regex.IsMatch(value, "^[0-9]+$"))
+            if (!EtkiAlani.Yardimcilar.KimlikNoDogrulayici.VergiNoGecerliMi(value))
             {
-                EkleHata("Vergi numarası 10 haneli sayı olmalıdır.", nameof(VergiNo));
+                EkleHata("Geçersiz vergi numarası (10 hane ve sağlama hanesi tutmalı).", nameof(VergiNo));
             }
         }
     }
@@ -340,10 +380,9 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         TemizleHata(nameof(TcNo));
         if (IsBireysel && !string.IsNullOrWhiteSpace(value))
         {
-            value = value.Trim();
-            if (value.Length != 11 || !Regex.IsMatch(value, "^[0-9]+$"))
+            if (!EtkiAlani.Yardimcilar.KimlikNoDogrulayici.TcKimlikNoGecerliMi(value))
             {
-                EkleHata("T.C. Kimlik numarası 11 haneli sayı olmalıdır.", nameof(TcNo));
+                EkleHata("Geçersiz T.C. Kimlik numarası (11 hane ve sağlama haneleri tutmalı).", nameof(TcNo));
             }
         }
     }
@@ -406,7 +445,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
                     CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
-                    Aciklama = Aciklama, Aktif = Aktif,
+                    Aciklama = Aciklama, Aktif = Aktif, RiskLimiti = RiskLimiti, VadeGunu = VadeGunu, Iban = Iban,
                     Borc = _mevcutCari.Borc, Alacak = _mevcutCari.Alacak
                 }
                 : new CariKart
@@ -416,7 +455,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
                     CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
-                    Aciklama = Aciklama, Aktif = Aktif
+                    Aciklama = Aciklama, Aktif = Aktif, RiskLimiti = RiskLimiti, VadeGunu = VadeGunu, Iban = Iban
                 };
 
             if (_mevcutCari != null)

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
              xmlns:model="clr-namespace:EtkiAlani.Modeller.Cari;assembly=EtkiAlani"
+             Language="tr-TR"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -163,6 +164,27 @@
                         <TextBlock Text="Açık Adres" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding Adres, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
                     </StackPanel>
+
+                    <TextBlock Text="Ticari Koşullar" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Risk Limiti (₺) — boş: sınırsız" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding RiskLimiti, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="Vade (gün)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding VadeGunu, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="IBAN" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Iban, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" MaxLength="40"/>
+                        </StackPanel>
+                    </Grid>
 
                     <StackPanel Margin="0,0,0,24">
                         <TextBlock Text="Açıklama / Not" Style="{StaticResource EtiketMetin}"/>

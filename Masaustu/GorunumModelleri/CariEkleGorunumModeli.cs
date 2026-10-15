@@ -95,6 +95,12 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
     public string PostaKodu { get => _postaKodu; set => OzellikAyarla(ref _postaKodu, value); }
     public string Aciklama { get => _aciklama; set => OzellikAyarla(ref _aciklama, value); }
     public bool Aktif { get => _aktif; set => OzellikAyarla(ref _aktif, value); }
+    private decimal? _riskLimiti;
+    private int? _vadeGunu;
+    private string _iban = string.Empty;
+    public decimal? RiskLimiti { get => _riskLimiti; set => OzellikAyarla(ref _riskLimiti, value); }
+    public int? VadeGunu { get => _vadeGunu; set => OzellikAyarla(ref _vadeGunu, value); }
+    public string Iban { get => _iban; set => OzellikAyarla(ref _iban, value); }
 
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
     public string BasariMesaji { get => _basariMesaji; set => OzellikAyarla(ref _basariMesaji, value); }
@@ -174,13 +180,13 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
         if (IsBireysel && (string.IsNullOrWhiteSpace(Ad) || string.IsNullOrWhiteSpace(Soyad))) { HataMesaji = "Lütfen ad ve soyad giriniz."; return; }
 
         // TCKN Validasyonu
-        if (IsBireysel && !string.IsNullOrWhiteSpace(TcNo) && !TcNoDogrula(TcNo))
+        if (IsBireysel && !string.IsNullOrWhiteSpace(TcNo) && !EtkiAlani.Yardimcilar.KimlikNoDogrulayici.TcKimlikNoGecerliMi(TcNo))
         {
             HataMesaji = "Geçersiz T.C. Kimlik Numarası girdiniz."; return;
         }
 
         // VKN Validasyonu
-        if (IsKurumsal && !string.IsNullOrWhiteSpace(VergiNo) && !VknDogrula(VergiNo))
+        if (IsKurumsal && !string.IsNullOrWhiteSpace(VergiNo) && !EtkiAlani.Yardimcilar.KimlikNoDogrulayici.VergiNoGecerliMi(VergiNo))
         {
             HataMesaji = "Geçersiz Vergi Numarası girdiniz."; return;
         }
@@ -207,8 +213,8 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
                 CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, 
                 Eposta = Eposta, WebSitesi = WebSitesi,
                 Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
-                Aciklama = Aciklama, Aktif = Aktif
-                // Not: FotografYolu UI'dan binding yapilacak sonraki asamada eklenebilir.
+                Aciklama = Aciklama, Aktif = Aktif,
+                RiskLimiti = RiskLimiti, VadeGunu = VadeGunu, Iban = Iban
             };
 
             cari = KodManuel && GrupKoduManuel ? await _cariServisi.EkleAsync(cari) : await _cariServisi.OtomatikKodlaEkleAsync(cari, !GrupKoduManuel, !KodManuel);
@@ -221,42 +227,22 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
             await KodOnizlemesiniYukleAsync();
             await GrupKoduOnizlemesiniYukleAsync();
         }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            // Servisin iş kuralı mesajı (geçersiz IBAN, kod kullanımda, yetki yok...) olduğu gibi gösterilir.
+            HataMesaji = ex.Message;
+        }
         catch (Exception ex)
         {
-            HataMesaji = $"Kayıt hatası: {ex.Message}";
+            await App.HatayiLoglaAsync(ex, "CariEkle");
+            HataMesaji = "Cari kaydedilemedi. Girilen bilgileri ve bağlantıyı kontrol edin.";
         }
         finally
         {
-            if (!string.IsNullOrWhiteSpace(HataMesaji)) { DurumBasarili = false; DurumMesaji = "✕ Cari kaydedilemedi. Sebep: " + (HataMesaji.Contains("zaten", StringComparison.OrdinalIgnoreCase) ? "Bu cari kodu zaten kullanılıyor." : "Girilen bilgileri ve bağlantıyı kontrol edin."); }
+            if (!string.IsNullOrWhiteSpace(HataMesaji)) { DurumBasarili = false; DurumMesaji = "✕ Cari kaydedilemedi. Sebep: " + HataMesaji; }
             Kaydediliyor = false;
             ((KomutSarici)KaydetKomutu).BildirimGonder();
         }
-    }
-
-    private bool TcNoDogrula(string tcNo)
-    {
-        if (tcNo.Length != 11 || !tcNo.All(char.IsDigit) || tcNo[0] == '0') return false;
-        int[] digits = tcNo.Select(c => int.Parse(c.ToString())).ToArray();
-        int sumOdd = digits[0] + digits[2] + digits[4] + digits[6] + digits[8];
-        int sumEven = digits[1] + digits[3] + digits[5] + digits[7];
-        int c10 = (sumOdd * 7 - sumEven) % 10;
-        int c11 = (sumOdd + sumEven + digits[9]) % 10;
-        return digits[9] == c10 && digits[10] == c11;
-    }
-
-    private bool VknDogrula(string vkn)
-    {
-        if (vkn.Length != 10 || !vkn.All(char.IsDigit)) return false;
-        int[] digits = vkn.Select(c => int.Parse(c.ToString())).ToArray();
-        int sum = 0;
-        for (int i = 0; i < 9; i++)
-        {
-            int tmp = (digits[i] + (10 - (i + 1))) % 10;
-            if (tmp == 9) sum += tmp;
-            else sum += (tmp * (int)Math.Pow(2, 10 - (i + 1))) % 9;
-        }
-        int lastDigit = (10 - (sum % 10)) % 10;
-        return digits[9] == lastDigit;
     }
 
     private void FormuTemizle()
