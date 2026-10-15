@@ -1,0 +1,65 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Musteri.CariFisPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cari Fiş" Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Language="tr-TR" Background="#F8FAFC">
+    <StackPanel Margin="22">
+        <TextBlock x:Name="CariBaslik" FontSize="16" FontWeight="Bold" Foreground="#0F172A" TextWrapping="Wrap"/>
+        <TextBlock Text="Açılış/devir bakiyesi veya borç/alacak dekontu girin. Kayıtla birlikte muhasebe fişi de oluşur."
+                   FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,4,0,16"/>
+
+        <TextBlock Text="Fiş Türü" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <ComboBox x:Name="TurKutusu" Height="34" SelectionChanged="Degisti">
+            <ComboBoxItem Content="Borç Dekontu (cari borçlandırılır)"/>
+            <ComboBoxItem Content="Alacak Dekontu (cari alacaklandırılır)"/>
+            <ComboBoxItem Content="Açılış / Devir Bakiyesi"/>
+        </ComboBox>
+
+        <StackPanel x:Name="YonPaneli" Margin="0,10,0,0">
+            <TextBlock Text="Devir Bakiyesi Yönü" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <ComboBox x:Name="YonKutusu" Height="34" SelectedIndex="0" SelectionChanged="Degisti">
+                <ComboBoxItem Content="Cari bize borçlu (borç bakiyesi)"/>
+                <ComboBoxItem Content="Biz cariye borçluyuz (alacak bakiyesi)"/>
+            </ComboBox>
+        </StackPanel>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Tarih" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <DatePicker x:Name="TarihKutusu" Height="34"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Belge No" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <TextBox x:Name="BelgeNoKutusu" Height="34" VerticalContentAlignment="Center" MaxLength="50"/>
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Text="Tutar (₺)" FontWeight="SemiBold" Margin="0,10,0,4"/>
+        <TextBox x:Name="TutarKutusu" Height="34" VerticalContentAlignment="Center" TextChanged="Degisti"/>
+
+        <TextBlock Text="Karşı Muhasebe Hesabı" FontWeight="SemiBold" Margin="0,10,0,4"/>
+        <ComboBox x:Name="HesapKutusu" Height="34" IsEditable="True" IsTextSearchEnabled="True"
+                  DisplayMemberPath="Gorunen" TextSearch.TextPath="Gorunen" SelectionChanged="Degisti"/>
+
+        <TextBlock Text="Açıklama" FontWeight="SemiBold" Margin="0,10,0,4"/>
+        <TextBox x:Name="AciklamaKutusu" Height="54" TextWrapping="Wrap" AcceptsReturn="True" MaxLength="400"/>
+
+        <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,14,0,0">
+            <TextBlock x:Name="OnizlemeMetni" FontFamily="Consolas" FontSize="12" Foreground="#1E3A8A" TextWrapping="Wrap"/>
+        </Border>
+
+        <TextBlock x:Name="HataMetni" Foreground="#B91C1C" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Vazgeç" Width="100" Height="34" Margin="0,0,8,0" IsCancel="True"/>
+            <Button x:Name="KaydetDugmesi" Content="Fişi Kaydet" Width="120" Height="34" IsDefault="True" Click="Kaydet_Click"
+                    Background="#1D4ED8" Foreground="White" FontWeight="SemiBold" BorderThickness="0"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -109,26 +109,11 @@ public partial class CariDetayPenceresi : Window
         new Window {Title=title,Owner=this,WindowStartupLocation=WindowStartupLocation.CenterOwner,
             Width=Math.Min(1240,SystemParameters.WorkArea.Width-40),Height=Math.Min(720,SystemParameters.WorkArea.Height-40),Content=content,Background=Brushes.White}.ShowDialog();
     }
-    private async Task CariFisAc(CariKart cari)
+    private Task CariFisAc(CariKart cari)
     {
-        var panel=new StackPanel {Margin=new Thickness(20)};
-        var tur=new ComboBox {ItemsSource=new[]{"Açılış / Devir","Borç Dekontu","Alacak Dekontu"},SelectedIndex=0};
-        var yon=new ComboBox {ItemsSource=new[]{"Borç","Alacak"},SelectedIndex=0};
-        var tutar=new TextBox();var no=new TextBox();var aciklama=new TextBox();
-        foreach(var pair in new (string,Control)[]{("Tür",tur),("Açılış Yönü",yon),("Belge No",no),("Tutar (TL)",tutar),("Açıklama",aciklama)}) {
-            panel.Children.Add(new TextBlock {Text=pair.Item1,Margin=new Thickness(0,8,0,2)});panel.Children.Add(pair.Item2);
-        }
-        var kaydet=new Button {Content="Kaydet",Margin=new Thickness(0,14,0,0)};
-        panel.Children.Add(kaydet);
-        var w=new Window {Title="Cari Fiş • "+cari.Kod,Owner=this,Width=440,Height=460,Content=panel,WindowStartupLocation=WindowStartupLocation.CenterOwner};
-        kaydet.Click+=(_,_)=>{if(decimal.TryParse(tutar.Text,out var value) && value>0 && !string.IsNullOrWhiteSpace(no.Text))w.DialogResult=true;};
-        if(w.ShowDialog()!=true)return;
-        Get<IKullaniciServisi>().YetkiKontrolEt(x=>x.CariDuzenle,"Cari fiş oluştur");
         if(Get<IAktifFirmaBaglami>().SirketId!=_firma)throw new InvalidOperationException("Seçilen cari aktif firmaya ait değil.");
-        var miktar=decimal.Parse(tutar.Text);var borc=tur.SelectedIndex==1 || (tur.SelectedIndex==0 && yon.SelectedIndex==0);
-        await Get<ICariHareketServisi>().EkleAsync(new CariHareket {CariKartId=cari.Id,Tarih=DateTime.UtcNow,
-            HareketTuru=tur.SelectedIndex==0 ? CariHareketTuru.Devir : CariHareketTuru.Diger,
-            BelgeNo=no.Text.Trim(),Aciklama=tur.SelectedItem+" • "+aciklama.Text.Trim(),Borc=borc ? miktar : 0,Alacak=borc ? 0 : miktar});
+        new CariFisPenceresi(cari,Get<ICariHareketServisi>(),_firma){Owner=this}.ShowDialog();
+        return Task.CompletedTask;
     }
     private Task BelgeGoster(CariBelgeDetayDto dto)
     {

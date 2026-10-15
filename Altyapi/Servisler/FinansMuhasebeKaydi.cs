@@ -28,9 +28,11 @@ public static class FinansMuhasebeKaydi
         ["321"] = ("BORÇ SENETLERİ", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["397"] = ("SAYIM VE TESELLÜM FAZLALARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["500"] = ("SERMAYE", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["602"] = ("DİĞER GELİRLER", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["642"] = ("FAİZ GELİRLERİ", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["649"] = ("DİĞER OLAĞAN GELİR VE KARLAR", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["653"] = ("KOMİSYON GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["659"] = ("DİĞER OLAĞAN GİDER VE ZARARLAR (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["770"] = ("GENEL YÖNETİM GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["780"] = ("FİNANSMAN GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
     };
@@ -253,7 +255,12 @@ public static class FinansMuhasebeKaydi
         baglam.YevmiyeFisleri.Add(new YevmiyeFis
         {
             SirketId = sirket,
-            FisNo = FinansKurallari.FisNoUret(belgeTipi == KasaBelgeTipi ? "MF-KSA" : "MF-BNK"),
+            FisNo = FinansKurallari.FisNoUret(belgeTipi switch
+            {
+                KasaBelgeTipi => "MF-KSA",
+                CariHareketServisi.CariFisBelgeTipi => "MF-CRI",
+                _ => "MF-BNK"
+            }),
             FisTuru = FisTuru.Mahsup,
             Tarih = tarih,
             BelgeTipi = belgeTipi,
