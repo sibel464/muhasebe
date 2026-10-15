@@ -44,7 +44,6 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public ICommand MusteriKomutu { get; } // Bu artık Cari Listesi olarak kullanılacak
     public ICommand CariEkleKomutu { get; }
     public ICommand CariSilKomutu { get; }
-    public ICommand TedarikciKomutu { get; }
     public ICommand UrunEkleKomutu { get; }
     public ICommand UrunSilKomutu { get; }
     public ICommand UrunKomutu { get; }
@@ -165,7 +164,6 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Musteri", () => new MusteriGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon, () => CikisYapildi?.Invoke()));
         _navigasyon.Kaydet("CariEkle", () => new CariEkleGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon));
         _navigasyon.Kaydet("CariSil", () => new CariSilGorunumModeli(_cariServisi));
-        _navigasyon.Kaydet("Tedarikci", () => new TedarikciGorunumModeli(_cariServisi, _navigasyon, () => CikisYapildi?.Invoke()));
         _navigasyon.Kaydet("UrunEkle", () => new UrunEkleGorunumModeli(_urunServisi, _merkeziTanimServisi, _navigasyon));
         _navigasyon.Kaydet("UrunSil", () => new UrunSilGorunumModeli(_urunServisi));
         _navigasyon.Kaydet("Urun", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<StokOperasyonMerkeziGorunumModeli>(App.HizmetSaglayici));
@@ -206,7 +204,6 @@ public class AnaGorunumModeli : TemelGorunumModeli
         MusteriKomutu = new KomutSarici(() => MenuGit("Musteri"));
         CariEkleKomutu = new KomutSarici(() => MenuGit("CariEkle"));
         CariSilKomutu = new KomutSarici(() => MenuGit("CariSil"));
-        TedarikciKomutu = new KomutSarici(() => MenuGit("Tedarikci"));
         UrunEkleKomutu = new KomutSarici(() => MenuGit("UrunEkle"));
         UrunSilKomutu = new KomutSarici(() => MenuGit("UrunSil"));
         UrunKomutu = new KomutSarici(() => MenuGit("Urun"));

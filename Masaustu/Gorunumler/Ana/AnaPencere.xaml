@@ -46,9 +46,6 @@
             <DataTemplate DataType="{x:Type gm:CariSilGorunumModeli}">
                 <sayfa:CariSilSayfasi/>
             </DataTemplate>
-            <DataTemplate DataType="{x:Type gm:TedarikciGorunumModeli}">
-                <sayfa:TedarikciSayfasi/>
-            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:UrunEkleGorunumModeli}">
                 <sayfa:UrunEkleSayfasi/>
             </DataTemplate>
@@ -237,7 +234,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <!-- Eski Tedarikçiler butonu geçici olarak kapalı, Cari Listesi'nde hepsi görülecek -->
+                            <!-- Tedarikçiler de Cari Listesi'nde (Cari Türü filtresiyle) görülür; ayrı sayfa yok. -->
 
                             <TextBlock Text="STOK" Foreground="#50FFFFFF" FontSize="10"
                                        FontWeight="SemiBold" Margin="28,16,0,4"

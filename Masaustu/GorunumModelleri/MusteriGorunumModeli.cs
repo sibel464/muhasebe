@@ -56,6 +56,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
             (DuzenleKomutu as KomutSarici)?.BildirimGonder();
             (SilKomutu as KomutSarici)?.BildirimGonder();
             (EkstreKomutu as KomutSarici)?.BildirimGonder();
+            (OdemeKomutu as KomutSarici)?.BildirimGonder();
         }
     }
 
@@ -87,6 +88,16 @@ public class MusteriGorunumModeli : TemelGorunumModeli
     {
         get => _aramaIl;
         set { OzellikAyarla(ref _aramaIl, value); _ = AraAsync(); }
+    }
+
+    // Tek cari listesi: müşteri, tedarikçi veya ikisi birden; "Müşteri ve Tedarikçi" türü her iki seçimde de görünür.
+    public IReadOnlyList<KeyValuePair<CariTuru?, string>> TurFiltreleri { get; } =
+        [new(null, "Tüm Cariler"), new(CariTuru.Musteri, "Müşteriler"), new(CariTuru.Tedarikci, "Tedarikçiler")];
+    private KeyValuePair<CariTuru?, string> _seciliTurFiltresi = new(null, "Tüm Cariler");
+    public KeyValuePair<CariTuru?, string> SeciliTurFiltresi
+    {
+        get => _seciliTurFiltresi;
+        set { OzellikAyarla(ref _seciliTurFiltresi, value); _ = AraAsync(); }
     }
 
     public int BakiyeDurumu
@@ -124,6 +135,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
     public ICommand YenileKomutu { get; }
     public ICommand EkstreKomutu { get; }
     public ICommand TahsilatKomutu { get; }
+    public ICommand OdemeKomutu { get; }
     public ICommand DetayKomutu { get; }
     public ICommand ExcelAktarKomutu { get; }
     public ICommand HizliFiltreKomutu { get; }
@@ -169,6 +181,13 @@ public class MusteriGorunumModeli : TemelGorunumModeli
             var cari = obj as CariKart ?? SeciliMusteri;
             if (cari != null && TahsilatAc != null)
                 TahsilatAc(cari);
+        }, _ => SeciliMusteri != null);
+
+        // Tahsilat müşteriden, ödeme tedarikçiye yapılır (kural TahsilatOdemeServisi'nde).
+        OdemeKomutu = new KomutSarici(obj => {
+            var cari = obj as CariKart ?? SeciliMusteri;
+            if (cari != null && OdemeAc != null)
+                OdemeAc(cari);
         }, _ => SeciliMusteri != null);
 
         HizliFiltreKomutu = new KomutSarici(p => {
@@ -257,7 +276,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
                 AramaMetni = AramaMetni,
                 Kod = AramaKodu,
                 GrupKodu = AramaGrupKodu,
-                Tur = CariTuru.Musteri,
+                Tur = SeciliTurFiltresi.Key,
                 CariTipiId = AramaCariTipiId,
                 Il = AramaIl,
                 SadeceBorclular = BakiyeDurumu == 1,
@@ -266,7 +285,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
 
             var sonuclar = await _cariServisi.FiltreliAraAsync(filtre);
             Musteriler = new ObservableCollection<CariKart>(sonuclar);
-            DurumMesaji = $"{Musteriler.Count} müşteri listeleniyor.";
+            DurumMesaji = $"{Musteriler.Count} cari listeleniyor.";
             OzettleriGuncelle();
         }
         catch (Exception ex)

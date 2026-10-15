@@ -32,7 +32,7 @@
                 <Grid>
                     <StackPanel>
                         <TextBlock Text="{Binding PencereBasligi}" FontSize="16" FontWeight="Bold" Foreground="White"/>
-                        <TextBlock Text="Cari hesap ve müşteri kartı tanımlama bilgileri."
+                        <TextBlock Text="Müşteri / tedarikçi cari kartı bilgileri."
                                    FontSize="11" Foreground="#80FFFFFF" Margin="0,2,0,0"/>
                     </StackPanel>
                     <Button HorizontalAlignment="Right" Content="✕"
@@ -45,6 +45,13 @@
             <!-- Form -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="550">
                 <StackPanel Margin="24,20">
+
+                    <!-- Cari Türü: müşteri / tedarikçi / ikisi birden -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Cari Türü *" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding CariTurleri}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                                  SelectedValue="{Binding SeciliCariTuru}" Height="40" FontSize="13" Padding="10,0"/>
+                    </StackPanel>
 
                     <!-- Satır 1: Kod + Grup + Cari Tipi (Bireysel/Kurumsal) -->
                     <Grid Margin="0,0,0,16">
@@ -63,7 +70,7 @@
                             <ComboBox ItemsSource="{Binding GrupKodlari}" Text="{Binding GrupKodu, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" Height="40"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Müşteri Türü" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Kişi / Kurum" Style="{StaticResource EtiketMetin}"/>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
                                 <ComboBox ItemsSource="{Binding CariTipleri}" DisplayMemberPath="Ad" SelectedItem="{Binding SeciliCariTipi}" Height="40" FontSize="13" Padding="10,0"/>
                                 <Button Grid.Column="1" Content="+" Click="CariTipiYonet_Click" ToolTip="Cari tipi ekle veya yönet" Margin="4,0,0,0"/>

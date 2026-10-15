@@ -47,14 +47,14 @@
                         <TextBlock Text="👥" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Müşteri &amp; Cari Kart Yönetimi" Style="{StaticResource SayfaBasligi}"/>
-                        <TextBlock Text="Kayıtlı müşteri kartları, bakiye durumları ve cari hesap hareketleri." Style="{StaticResource SayfaAltBaslik}"/>
+                        <TextBlock Text="Cari Kartlar (Müşteri &amp; Tedarikçi)" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Müşteri ve tedarikçi kartları, bakiye durumları ve cari hesap hareketleri." Style="{StaticResource SayfaAltBaslik}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Sağ Üst Aksiyonlar -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0" ToolTip="Müşteri listesini CSV / Excel dosyası olarak aktarır">
+                    <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0" ToolTip="Cari listesini CSV / Excel dosyası olarak aktarır">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📊" Margin="0,0,6,0" VerticalAlignment="Center"/>
                             <TextBlock Text="Excel'e Aktar" VerticalAlignment="Center"/>
@@ -71,7 +71,7 @@
                     <Button Command="{Binding YeniEkleKomutu}" Style="{StaticResource BirinciDugme}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="➕" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Yeni Müşteri Ekle" VerticalAlignment="Center"/>
+                            <TextBlock Text="Yeni Cari Ekle" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -82,7 +82,7 @@
                 <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,12">
                     <Grid>
                         <StackPanel>
-                            <TextBlock Text="TOPLAM MÜŞTERİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                            <TextBlock Text="TOPLAM CARİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                 <TextBlock Text="{Binding ToplamMusteri}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
                                 <TextBlock Text="{Binding AktifMusteri, StringFormat='({0} Aktif)'}" FontSize="11" Foreground="{StaticResource SuccessDarkFirca}" VerticalAlignment="Bottom" Margin="6,0,0,2"/>
@@ -136,6 +136,7 @@
                     BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*"/>
                         <ColumnDefinition Width="2*"/>
                         <ColumnDefinition Width="1.2*"/>
                         <ColumnDefinition Width="1*"/>
@@ -143,26 +144,33 @@
                         <ColumnDefinition Width="1.2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Ünvan/Ad Arama -->
+                    <!-- Cari Türü -->
                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Cari Türü" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox Style="{StaticResource FiltreAcilirKutu}" ItemsSource="{Binding TurFiltreleri}"
+                                  SelectedItem="{Binding SeciliTurFiltresi}" DisplayMemberPath="Value"/>
+                    </StackPanel>
+
+                    <!-- Ünvan/Ad Arama -->
+                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
                         <TextBlock Text="Ünvan / Ad Soyad Ara" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Kod Arama -->
-                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                    <StackPanel Grid.Column="2" Margin="0,0,10,0">
                         <TextBlock Text="Cari Kodu" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaKodu, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Şehir Arama -->
-                    <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                    <StackPanel Grid.Column="3" Margin="0,0,10,0">
                         <TextBlock Text="Şehir (İl)" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaIl, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Cari Tipi Dinamik -->
-                    <StackPanel Grid.Column="3" Margin="0,0,10,0">
+                    <StackPanel Grid.Column="4" Margin="0,0,10,0">
                         <TextBlock Text="Cari Tipi" Style="{StaticResource EtiketMetin}"/>
                         <ComboBox Style="{StaticResource FiltreAcilirKutu}" 
                                   ItemsSource="{Binding CariTipleri}"
@@ -172,7 +180,7 @@
                     </StackPanel>
 
                     <!-- Bakiye Durumu -->
-                    <StackPanel Grid.Column="4">
+                    <StackPanel Grid.Column="5">
                         <TextBlock Text="Bakiye Durumu" Style="{StaticResource EtiketMetin}"/>
                         <ComboBox Style="{StaticResource FiltreAcilirKutu}" SelectedValue="{Binding BakiyeDurumu, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Tag">
                             <ComboBoxItem Content="Tümü" Tag="0"/>
@@ -200,7 +208,8 @@
                                         <MenuItem Header="🔍 Cari 360° Detay" Command="{Binding DataContext.DetayKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                         <MenuItem Header="📜 Hesap Ekstresi" Command="{Binding DataContext.EkstreKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                         <Separator/>
-                                        <MenuItem Header="💵 Tahsilat / Ödeme Yap" Command="{Binding DataContext.TahsilatKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="💵 Tahsilat Al" Command="{Binding DataContext.TahsilatKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="💸 Ödeme Yap" Command="{Binding DataContext.OdemeKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                         <Separator/>
                                         <MenuItem Header="✏️ Cari Kartı Düzenle" Command="{Binding DataContext.DuzenleKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                         <MenuItem Header="🗑️ Sil (Pasife Al)" Command="{Binding DataContext.SilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
@@ -229,7 +238,31 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="TİP" Binding="{Binding CariTipi.Ad}" Width="130"/>
+                        <DataGridTemplateColumn Header="TÜR" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="Müşteri"/>
+                                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Tur}" Value="{x:Static model:CariTuru.Tedarikci}">
+                                                        <Setter Property="Text" Value="Tedarikçi"/>
+                                                        <Setter Property="Foreground" Value="#B45309"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Tur}" Value="{x:Static model:CariTuru.MusteriTedarikci}">
+                                                        <Setter Property="Text" Value="Müşteri+Tedarikçi"/>
+                                                        <Setter Property="Foreground" Value="#7C3AED"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="TİP" Binding="{Binding CariTipi.Ad}" Width="110"/>
                         <DataGridTextColumn Header="TELEFON" Binding="{Binding Telefon}" Width="120"/>
                         <DataGridTextColumn Header="ŞEHİR" Binding="{Binding Il}" Width="100"/>
                         <DataGridTextColumn Header="BORÇ (TL)" Binding="{Binding Borc, StringFormat='{}{0:N2} ₺'}" Width="110">
@@ -328,7 +361,13 @@
                         <Button Command="{Binding TahsilatKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="💵" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Tahsilat / Ödeme" VerticalAlignment="Center"/>
+                                <TextBlock Text="Tahsilat" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding OdemeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💸" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Ödeme" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 

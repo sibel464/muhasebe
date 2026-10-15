@@ -59,7 +59,7 @@ public class CariSilGorunumModeli : TemelGorunumModeli
         IslemYapiliyor = true;
         try
         {
-            var sonuclar = await _cariServisi.AraAsync(AramaMetni, CariTuru.Musteri); // Tedarikçiler için ayrı sayfa veya genel olabilir, şimdilik Musteri.
+            var sonuclar = await _cariServisi.AraAsync(AramaMetni); // Müşteri ve tedarikçilerin hepsi
             AramaSonuclari = new ObservableCollection<CariKart>(sonuclar);
         }
         catch (Exception ex)

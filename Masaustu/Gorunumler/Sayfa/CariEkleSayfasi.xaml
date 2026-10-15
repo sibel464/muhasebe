@@ -53,6 +53,12 @@
                     
                     <TextBlock Text="Temel Kimlik Bilgileri" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
 
+                    <StackPanel Margin="0,0,0,14" Width="270" HorizontalAlignment="Left">
+                        <TextBlock Text="Cari Türü *" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding CariTurleri}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                                  SelectedValue="{Binding SeciliCariTuru}" Style="{StaticResource FormAcilirKutu}"/>
+                    </StackPanel>
+
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="270"/>
@@ -87,7 +93,7 @@
                     </Grid>
 
                     <StackPanel Margin="0,0,0,14">
-                        <TextBlock Text="Firma Ünvanı *" Style="{StaticResource EtiketMetin}"/>
+                        <TextBlock Text="Firma Ünvanı (kurumsal carilerde zorunlu)" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding Unvan, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
                     </StackPanel>
 
@@ -97,11 +103,11 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Adı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Adı (şahıslarda zorunlu)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding Ad, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Soyadı *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Soyadı (şahıslarda zorunlu)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding Soyad, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                     </Grid>

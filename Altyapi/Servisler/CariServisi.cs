@@ -25,7 +25,7 @@ public class CariServisi : ICariServisi
 
         if (turFilter.HasValue)
         {
-            sorgu = sorgu.Where(c => c.Tur == turFilter.Value);
+            sorgu = TurFiltresiUygula(sorgu, turFilter.Value);
         }
 
         return await sorgu
@@ -124,6 +124,12 @@ public class CariServisi : ICariServisi
         return $"GRP-{son + 1:000000}";
     }
 
+    // "Müşteri ve Tedarikçi" türündeki cari hem müşteri hem tedarikçi aramalarında yer alır.
+    private static IQueryable<CariKart> TurFiltresiUygula(IQueryable<CariKart> sorgu, CariTuru tur) =>
+        tur == CariTuru.MusteriTedarikci
+            ? sorgu.Where(c => c.Tur == CariTuru.MusteriTedarikci)
+            : sorgu.Where(c => c.Tur == tur || c.Tur == CariTuru.MusteriTedarikci);
+
     private static string KodNormalizeEt(string kod) => kod.Trim().ToUpperInvariant();
     private static string? GrupKoduNormalizeEt(string? kod) => string.IsNullOrWhiteSpace(kod) ? null : kod.Trim().ToUpper(CultureInfo.GetCultureInfo("tr-TR"));
 
@@ -210,7 +216,7 @@ public class CariServisi : ICariServisi
 
         if (turFilter.HasValue)
         {
-            sorgu = sorgu.Where(c => c.Tur == turFilter.Value);
+            sorgu = TurFiltresiUygula(sorgu, turFilter.Value);
         }
 
         return await sorgu
@@ -233,7 +239,7 @@ public class CariServisi : ICariServisi
             .AsQueryable();
 
         if (filtre.Tur.HasValue)
-            sorgu = sorgu.Where(c => c.Tur == filtre.Tur.Value);
+            sorgu = TurFiltresiUygula(sorgu, filtre.Tur.Value);
 
         if (filtre.CariTipiId.HasValue)
             sorgu = sorgu.Where(c => c.CariTipiId == filtre.CariTipiId.Value);

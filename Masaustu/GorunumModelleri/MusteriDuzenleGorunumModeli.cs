@@ -40,7 +40,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     private bool _kaydediliyor = false;
 
     public bool YeniKayit => _mevcutCari == null;
-    public string PencereBasligi => YeniKayit ? "Yeni Müşteri Ekle" : "Müşteri Kartı Düzenle";
+    public string PencereBasligi => YeniKayit ? "Yeni Cari Kart" : "Cari Kartı Düzenle";
 
     public string Kod 
     { 

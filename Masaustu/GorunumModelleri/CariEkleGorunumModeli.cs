@@ -160,8 +160,13 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
         DurumMesaji = string.Empty;
         TemizleHata(nameof(Kod)); TemizleHata(nameof(Ad)); TemizleHata(nameof(Soyad));
         if (KodManuel) await ManuelKodDogrulaAsync();
-        if (string.IsNullOrWhiteSpace(Ad)) EkleHata("Ad boş bırakılamaz.", nameof(Ad));
-        if (string.IsNullOrWhiteSpace(Soyad)) EkleHata("Soyad boş bırakılamaz.", nameof(Soyad));
+        // Ad/soyad yalnızca şahıs (bireysel) carilerde zorunlu; firmada ünvan yeterli.
+        var unvanYok = string.IsNullOrWhiteSpace(Unvan);
+        if (IsBireysel || (!IsKurumsal && unvanYok))
+        {
+            if (string.IsNullOrWhiteSpace(Ad)) EkleHata("Ad boş bırakılamaz.", nameof(Ad));
+            if (string.IsNullOrWhiteSpace(Soyad)) EkleHata("Soyad boş bırakılamaz.", nameof(Soyad));
+        }
         if (HasErrors) { DurumBasarili = false; DurumMesaji = "✕ Cari kaydedilemedi. Formdaki alanları kontrol edin."; return; }
         
         if (string.IsNullOrWhiteSpace(Kod)) { HataMesaji = "Lütfen cari kodu giriniz."; return; }
@@ -195,7 +200,7 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
         {
             var cari = new CariKart
             {
-                Kod = Kod, GrupKodu = GrupKodu, Tur = CariTurunuBelirle(), CariTipiId = SeciliCariTipi?.Id ?? 0,
+                Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0,
                 Unvan = string.IsNullOrWhiteSpace(Unvan) ? $"{Ad} {Soyad}".Trim() : Unvan,
                 Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
                 VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
@@ -237,14 +242,6 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
         int c10 = (sumOdd * 7 - sumEven) % 10;
         int c11 = (sumOdd + sumEven + digits[9]) % 10;
         return digits[9] == c10 && digits[10] == c11;
-    }
-
-    private CariTuru CariTurunuBelirle()
-    {
-        var metin = $"{SeciliCariTipi?.Kod} {SeciliCariTipi?.Ad}".ToUpper(new System.Globalization.CultureInfo("tr-TR"));
-        var musteri = metin.Contains("MÜŞTERİ") || metin.Contains("MUSTERI");
-        var tedarikci = metin.Contains("TEDARİKÇİ") || metin.Contains("TEDARIKCI");
-        return musteri && tedarikci ? CariTuru.MusteriTedarikci : tedarikci ? CariTuru.Tedarikci : CariTuru.Musteri;
     }
 
     private bool VknDogrula(string vkn)
