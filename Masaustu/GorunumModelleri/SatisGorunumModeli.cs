@@ -445,7 +445,7 @@ public class SatisGorunumModeli : TemelGorunumModeli
             {
                 Tur = FaturaTuru.Satis,
                 Durum = BelgeDurumu.Taslak,
-                FaturaNo = $"SAT-{DateTime.Now:yyMMddHHmmss}",
+                FaturaNo = string.Empty, // sunucu müteselsil numara verir (aynı saniyedeki iki satış çakışmaz)
                 CariKartId = cariId,
                 Tarih = DateTime.Now,
                 Aciklama = $"POS Satış - {odemeYontemi} ({(odemeYontemi == "Kredi Kartı" ? SeciliTaksit : "")})"

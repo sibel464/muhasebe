@@ -11,6 +11,8 @@ public interface IFaturaServisi
     Task<Fatura> GuncelleAsync(Fatura fatura);
     Task<bool> SilAsync(int id);
     Task<Fatura> OnaylaAsync(int id);
+    // Onay + peşin ödemenin (nakit/kart/banka) kasa/banka ve cari kaydı tek işlemde.
+    Task<Fatura> OnaylaVeOdemeyiKaydetAsync(int id);
     Task<Fatura> PosSatisiniTamamlaAsync(Fatura fatura, string odemeYontemi, int? bekleyenFaturaId = null);
     Task<Fatura> IptalEtAsync(int id);
     Task<List<Fatura>> AraAsync(string aramaMetni, FaturaTuru? turFilter = null);

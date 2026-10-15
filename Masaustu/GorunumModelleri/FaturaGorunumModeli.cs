@@ -126,10 +126,11 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 
 	public void Hesapla()
 	{
-		var brut = Miktar * BirimFiyat;
-		IskontoTutari = decimal.Round(brut * IskontoOrani / 100, 4, MidpointRounding.AwayFromZero);
-		KdvTutari = decimal.Round((brut - IskontoTutari) * KdvOrani / 100, 4, MidpointRounding.AwayFromZero);
-		SatirToplami = decimal.Round(brut - IskontoTutari + KdvTutari, 4, MidpointRounding.AwayFromZero);
+		// Satır tutarı kayıttaki hesaplayıcıyla aynı (kuruşa yuvarlı); fatura altı iskonto toplamda dağıtılır.
+		var satir = EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla([new(Miktar, BirimFiyat, IskontoOrani, KdvOrani)], 0).Satirlar[0];
+		IskontoTutari = satir.SatirIskontosu;
+		KdvTutari = satir.Kdv;
+		SatirToplami = satir.Toplam;
 		BildirimGonder(nameof(IskontoTutari));
 		BildirimGonder(nameof(KdvTutari));
 		BildirimGonder(nameof(SatirToplami));
@@ -203,11 +204,15 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public string DurumMesaji { get => _durumMesaji; private set => OzellikAyarla(ref _durumMesaji, value); }
 	public bool Yukleniyor { get => _yukleniyor; private set => OzellikAyarla(ref _yukleniyor, value); }
 	public bool Kaydediliyor { get => _kaydediliyor; private set => OzellikAyarla(ref _kaydediliyor, value); }
-	public decimal AraToplam => Kalemler.Sum(x => x.Miktar * x.BirimFiyat);
-	public decimal SatirIskontosuToplam => Kalemler.Sum(x => x.IskontoTutari);
-	public decimal GenelIskontoTutari => (AraToplam - SatirIskontosuToplam) * GenelIskontoOrani / 100;
-	public decimal KdvToplam => Kalemler.Sum(x => x.KdvTutari);
-	public decimal GenelToplam => decimal.Round(AraToplam - SatirIskontosuToplam - GenelIskontoTutari + KdvToplam, 2, MidpointRounding.AwayFromZero);
+	// Toplamlar kayıtla aynı hesaplayıcıdan gelir; genel iskonto KDV matrahını düşürür.
+	private EtkiAlani.Yardimcilar.FaturaHesaplayici.Sonuc Hesap => EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla(
+		Kalemler.Select(k => new EtkiAlani.Yardimcilar.FaturaHesaplayici.Girdi(k.Miktar, k.BirimFiyat, k.IskontoOrani, k.KdvOrani)).ToList(),
+		GenelIskontoOrani);
+	public decimal AraToplam => Hesap.AraToplam;
+	public decimal SatirIskontosuToplam => Hesap.SatirIskontosuToplam;
+	public decimal GenelIskontoTutari => Hesap.GenelIskontoTutari;
+	public decimal KdvToplam => Hesap.KdvToplam;
+	public decimal GenelToplam => Hesap.GenelToplam;
 	public bool Duzenlenebilir => SeciliFatura == null || Durum == BelgeDurumu.Taslak;
 	private readonly NavigasyonServisi? _navigasyon;
 

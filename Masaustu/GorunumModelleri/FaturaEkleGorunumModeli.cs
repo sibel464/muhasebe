@@ -173,11 +173,15 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     }
 
     // Dip Toplamlar
-    public decimal AraToplam => _kalemler.Sum(k => k.Miktar * k.BirimFiyat);
-    public decimal SatirIskontosuToplam => _kalemler.Sum(k => k.IskontoTutari);
-    public decimal GenelIskontoTutari => decimal.Round((AraToplam - SatirIskontosuToplam) * GenelIskontoOrani / 100, 2, MidpointRounding.AwayFromZero);
-    public decimal KdvToplam => _kalemler.Sum(k => k.KdvTutari);
-    public decimal GenelToplam => AraToplam - SatirIskontosuToplam - GenelIskontoTutari + KdvToplam;
+    // Toplamlar kayıtla aynı hesaplayıcıdan gelir; genel iskonto KDV matrahını düşürür.
+    private EtkiAlani.Yardimcilar.FaturaHesaplayici.Sonuc Hesap => EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla(
+        _kalemler.Select(k => new EtkiAlani.Yardimcilar.FaturaHesaplayici.Girdi(k.Miktar, k.BirimFiyat, k.IskontoOrani, k.KdvOrani)).ToList(),
+        GenelIskontoOrani);
+    public decimal AraToplam => Hesap.AraToplam;
+    public decimal SatirIskontosuToplam => Hesap.SatirIskontosuToplam;
+    public decimal GenelIskontoTutari => Hesap.GenelIskontoTutari;
+    public decimal KdvToplam => Hesap.KdvToplam;
+    public decimal GenelToplam => Hesap.GenelToplam;
 
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
     public string BasariMesaji { get => _basariMesaji; set => OzellikAyarla(ref _basariMesaji, value); }
@@ -259,7 +263,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
 
     private void FaturaNoOlustur()
     {
-        FaturaNo = $"FT{DateTime.Now:yyyyMMddHHmmss}";
+        // Boş bırakılır: kayıtta sunucu müteselsil numara verir. Matbu fatura için elle yazılabilir.
+        FaturaNo = string.Empty;
     }
 
     private readonly SemaphoreSlim _yuklemeKilidi = new(1, 1);
@@ -402,7 +407,6 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         HataMesaji = string.Empty;
         BasariMesaji = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(FaturaNo)) { HataMesaji = "Lütfen fatura numarasını giriniz."; return; }
         if (SeciliCari == null) { HataMesaji = "Lütfen cari kart seçiniz."; return; }
         if (!Kalemler.Any()) { HataMesaji = "Faturaya en az bir ürün kalemi eklemelisiniz."; return; }
         if (OdemeSekli == null) { HataMesaji = "Lütfen ödeme şeklini seçiniz."; return; }
@@ -448,7 +452,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
             else
             {
                 eklenenFatura = await _faturaServisi.EkleAsync(fatura);
-                if (durum == BelgeDurumu.Onaylandi) await _faturaServisi.OnaylaAsync(eklenenFatura.Id);
+                // Peşin alış faturasında ödeme (kasa/banka çıkışı) da onayla birlikte kaydedilir.
+                if (durum == BelgeDurumu.Onaylandi) eklenenFatura = await _faturaServisi.OnaylaVeOdemeyiKaydetAsync(eklenenFatura.Id);
             }
             MessageBox.Show($"{eklenenFatura.FaturaNo} numaralı fatura başarıyla oluşturuldu.", "Fatura oluşturuldu", MessageBoxButton.OK, MessageBoxImage.Information);
             Kapat?.Invoke();

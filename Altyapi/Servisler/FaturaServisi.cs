@@ -90,9 +90,14 @@ public class FaturaServisi : IFaturaServisi
         fatura.FaturaNo = fatura.FaturaNo?.Trim() ?? string.Empty;
         fatura.Tarih = DateTime.SpecifyKind(fatura.Tarih, DateTimeKind.Utc);
 
-        // FaturaNo boşsa sıralı fatura no üret
+        // Numara verme ile kayıt aynı işlemde ve kilit altında yapılır: eşzamanlı iki fatura aynı sıra numarasını alamaz.
+        var transactionSahibi = _baglam.Database.CurrentTransaction == null;
+        await using var tx = transactionSahibi ? await _baglam.Database.BeginTransactionAsync() : null;
+
+        // FaturaNo boşsa sıralı (müteselsil) fatura no üret
         if (string.IsNullOrWhiteSpace(fatura.FaturaNo))
         {
+            await _baglam.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(46415455)");
             fatura.FaturaNo = await SiraliFaturaNoUretAsync(fatura.Tur, fatura.Tarih);
         }
         else
@@ -138,6 +143,8 @@ public class FaturaServisi : IFaturaServisi
 
         _baglam.Faturalar.Add(fatura);
         await _baglam.SaveChangesAsync();
+        if (tx != null)
+            await tx.CommitAsync();
 
         return fatura;
     }
@@ -286,6 +293,38 @@ public class FaturaServisi : IFaturaServisi
         fatura.GuncellemeTarihi = DateTime.UtcNow;
         await _financialTransactionService.CreateFromInvoiceAsync(id);
         return fatura;
+    }
+
+    // Fatura ekranından onaylanan peşin (nakit/kart/banka) faturanın ödemesi de aynı işlemde kaydedilir.
+    // Eskiden yalnız sipariş/irsaliye kaynaklı faturada yapılıyordu; manuel peşin alış faturasında kasa/banka
+    // hareketi oluşmuyor, tedarikçi borcu kapanmıyordu.
+    public async Task<Fatura> OnaylaVeOdemeyiKaydetAsync(int id)
+    {
+        await using var tx = await _baglam.Database.BeginTransactionAsync();
+        try
+        {
+            var fatura = await OnaylaAsync(id);
+            if (fatura.OdemeSekli != FaturaOdemeSekli.AcikHesap)
+            {
+                var (kasa, banka, karsiKod) = OdemeHareketleriniEkle(fatura);
+                await _baglam.SaveChangesAsync();
+                if (kasa != null)
+                {
+                    await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, kasa, karsiKod, kasa.CariKartId);
+                    if (kasa.Tur == HareketTuru.Gider && kasa.KasaId is int kasaId && await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
+                        throw new InvalidOperationException("Kasada bu ödeme için yeterli bakiye yok. Kasa bakiyesi eksiye düşemez.");
+                }
+                if (banka != null)
+                    await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, banka, karsiKod, banka.CariKartId);
+            }
+            await tx.CommitAsync();
+            return fatura;
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<Fatura> PosSatisiniTamamlaAsync(Fatura fatura, string odemeYontemi, int? bekleyenFaturaId = null)
@@ -721,52 +760,33 @@ public class FaturaServisi : IFaturaServisi
     }
 
     // Fatura Tutar/KDV/Yuvarlama/İskonto Hesaplama Motoru (decimal standardı)
-    private void HesaplaFaturaToplamlari(Fatura fatura)
+    // Tutar/iskonto/KDV hesabı ortak hesaplayıcıyla yapılır (ekran önizlemesi ile birebir aynı sonuç).
+    // Fatura altı iskonto satırlara dağıtılır ve KDV matrahını düşürür; eskiden KDV iskontosuz tutardan
+    // hesaplandığı için genel iskontolu faturalarda fazla KDV çıkıyordu.
+    private static void HesaplaFaturaToplamlari(Fatura fatura)
     {
-        decimal araToplam = 0;
-        decimal satirIskontosuToplam = 0;
-        decimal kdvToplam = 0;
+        if (fatura.GenelIskontoOrani < 0 || fatura.GenelIskontoOrani > 100)
+            throw new ArgumentException("Fatura altı iskonto oranı 0-100 arasında olmalıdır.");
 
-        foreach (var kalem in fatura.Kalemler)
+        var sonuc = EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla(
+            fatura.Kalemler.Select(k => new EtkiAlani.Yardimcilar.FaturaHesaplayici.Girdi(k.Miktar, k.BirimFiyat, k.IskontoOrani, k.KdvOrani)).ToList(),
+            fatura.GenelIskontoOrani);
+
+        for (var i = 0; i < fatura.Kalemler.Count; i++)
         {
-            // Satır Brüt Tutarı = Miktar * BirimFiyat
-            decimal brutTutar = kalem.Miktar * kalem.BirimFiyat;
-            
-            // Satır İskontosu = Brüt Tutar * (Satır İskonto Oranı / 100)
-            decimal iskontoTutar = brutTutar * (kalem.IskontoOrani / 100);
-            kalem.IskontoTutari = decimal.Round(iskontoTutar, 4, MidpointRounding.AwayFromZero);
-
-            // Net Tutar = Brüt Tutar - İskonto
-            decimal netTutar = brutTutar - kalem.IskontoTutari;
-
-            // KDV Tutarı = Net Tutar * (KDV Oranı / 100)
-            decimal kdvTutar = netTutar * (kalem.KdvOrani / 100);
-            kalem.KdvTutari = decimal.Round(kdvTutar, 4, MidpointRounding.AwayFromZero);
-
-            // Satır Toplamı = Net Tutar + KDV Tutarı
-            kalem.SatirToplami = decimal.Round(netTutar + kalem.KdvTutari, 4, MidpointRounding.AwayFromZero);
-
-            araToplam += brutTutar;
-            satirIskontosuToplam += kalem.IskontoTutari;
-            kdvToplam += kalem.KdvTutari;
+            var kalem = fatura.Kalemler[i];
+            var satir = sonuc.Satirlar[i];
+            kalem.IskontoTutari = satir.SatirIskontosu;
+            kalem.KdvTutari = satir.Kdv;
+            kalem.SatirToplami = satir.Toplam; // genel iskonto payı düşülmüş, KDV dahil satır tutarı
         }
 
-        fatura.AraToplam = decimal.Round(araToplam, 4, MidpointRounding.AwayFromZero);
-        fatura.SatirIskontosuToplam = decimal.Round(satirIskontosuToplam, 4, MidpointRounding.AwayFromZero);
-
-        // Fatura Altı Genel İskonto Tutarı
-        decimal kalanMatrah = fatura.AraToplam - fatura.SatirIskontosuToplam;
-        decimal genelIskonto = kalanMatrah * (fatura.GenelIskontoOrani / 100);
-        fatura.GenelIskontoTutari = decimal.Round(genelIskonto, 4, MidpointRounding.AwayFromZero);
-
-        fatura.KdvToplam = decimal.Round(kdvToplam, 4, MidpointRounding.AwayFromZero);
-
-        // Nihai Genel Toplam (2 Hane Hassasiyetle Yuvarlanmış)
-        decimal matematikselGenelToplam = fatura.AraToplam - fatura.SatirIskontosuToplam - fatura.GenelIskontoTutari + fatura.KdvToplam;
-        decimal genelToplamRound = decimal.Round(matematikselGenelToplam, 2, MidpointRounding.AwayFromZero);
-
-        fatura.GenelToplam = genelToplamRound;
-        fatura.YuvarlamaTutari = decimal.Round(genelToplamRound - matematikselGenelToplam, 4, MidpointRounding.AwayFromZero);
+        fatura.AraToplam = sonuc.AraToplam;
+        fatura.SatirIskontosuToplam = sonuc.SatirIskontosuToplam;
+        fatura.GenelIskontoTutari = sonuc.GenelIskontoTutari;
+        fatura.KdvToplam = sonuc.KdvToplam;
+        fatura.GenelToplam = sonuc.GenelToplam;
+        fatura.YuvarlamaTutari = 0;
     }
 
     private async Task<string> SiraliFaturaNoUretAsync(FaturaTuru tur, DateTime tarih)
