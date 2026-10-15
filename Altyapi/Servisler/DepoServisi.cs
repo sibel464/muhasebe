@@ -158,7 +158,9 @@ public class DepoServisi : IDepoServisi
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
+        // Silinen ürünlerin geçmiş hareketleri de listelenir.
         var query = context.StokHareketleri
+            .IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi])
             .Include(sh => sh.Urun)
             .Include(sh => sh.Depo)
             .Include(sh => sh.HedefDepo)
@@ -335,6 +337,7 @@ public class DepoServisi : IDepoServisi
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         var query = context.DepoTransferFisleri
+            .IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi])
             .Include(f => f.KaynakDepo)
             .Include(f => f.HedefDepo)
             .Include(f => f.Kalemler).ThenInclude(k => k.Urun)

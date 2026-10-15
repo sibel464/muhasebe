@@ -12,6 +12,8 @@ public interface IUrunServisi
     Task<Urun> GuncelleAsync(Urun urun);
     Task<Urun> KartGuncelleAsync(Urun urun, List<UrunSatisFiyati> fiyatlar);
     Task<bool> SilAsync(int id, string? silmeNedeni = null);
+    Task<List<Urun>> SilinenleriGetirAsync();
+    Task GeriAlAsync(int id);
     Task<List<Urun>> AraAsync(string aramaMetni);
     Task<List<Urun>> FiltreliAraAsync(UrunFiltre filtre);
     Task<bool> KodMevcutMuAsync(string kod, int? haricId = null);

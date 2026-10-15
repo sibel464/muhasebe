@@ -18,6 +18,7 @@ namespace Altyapi.Veri;
 public class MuhasebeBaglami : DbContext
 {
     public static readonly Guid VarsayilanSirketId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public const string SilinmisUrunFiltresi = "SilinmisUrun";
 
     private readonly IAktifFirmaBaglami? _aktifFirmaBaglami;
 
@@ -379,7 +380,9 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<CariTipiTanimi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<MerkeziTanim>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<CariHareket>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Urun>().HasQueryFilter(x => !x.Silindi);
+        // Adlı filtre: listeler silinen ürünü göstermez, ama geçmişi okuyan rapor/hareket sorguları
+        // IgnoreQueryFilters([SilinmisUrunFiltresi]) ile silinen ürünün satış/alış/hareketlerini kaybetmez.
+        modelBuilder.Entity<Urun>().HasQueryFilter(SilinmisUrunFiltresi, x => !x.Silindi);
         modelBuilder.Entity<StokHareketi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<UrunSatisFiyati>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<UrunLokasyonStogu>().HasQueryFilter(x => !x.Silindi);
@@ -406,7 +409,8 @@ public class MuhasebeBaglami : DbContext
 
         // Indexler
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
-        modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique();
+        // Silinen ürünün kodu yeni bir üründe kullanılabilir; geri alırken çakışma servis tarafından denetlenir.
+        modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique().HasFilter("\"Silindi\" = false");
         modelBuilder.Entity<CariKart>().HasIndex(c => c.Kod).IsUnique();
         modelBuilder.Entity<CariTipiTanimi>().HasIndex(x => x.Kod).IsUnique();
         modelBuilder.Entity<MerkeziTanim>().HasIndex(x => new { x.Grup, x.Kod }).IsUnique();

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using EtkiAlani.Modeller.Kurumsal;
 using EtkiAlani.Modeller.Stok;
+using EtkiAlani.Modeller.Siparis;
 using Uygulama.Arayuzler;
 using Altyapi.Veri;
 using Altyapi.Yardimcilar;
@@ -230,17 +231,69 @@ public class UrunServisi : IUrunServisi
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokSil, "Stok Kartı Silme");
 
+        if (string.IsNullOrWhiteSpace(silmeNedeni) || silmeNedeni.Trim().Length < 3)
+            throw new ArgumentException("Silme nedeni yazılmalıdır (en az 3 karakter).");
+
         var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == id);
         if (urun == null) return false;
 
-        // Soft-delete uygulanıyor
+        // Stoğu olan ürün silinirse elde olan mal kayıtlardan kaybolur; önce stok çıkışı/sayım yapılmalı.
+        var lokasyonStogu = await _baglam.UrunLokasyonStoklari.Where(l => l.UrunId == id)
+            .Select(l => new { l.MevcutMiktar, l.RezerveMiktar }).ToListAsync();
+        var stok = lokasyonStogu.Count > 0 ? lokasyonStogu.Sum(l => l.MevcutMiktar) : urun.StokMiktari;
+        if (stok != 0)
+            throw new InvalidOperationException(
+                $"'{urun.Ad}' ürününün {stok:N2} {urun.Birim} stoğu var, silinemez. " +
+                "Önce Ürünler ekranından Stok Çıkışı veya Stok Sayımı ile stoğu sıfırlayın ya da ürünü kartından pasif yapın.");
+        if (lokasyonStogu.Sum(l => l.RezerveMiktar) != 0)
+            throw new InvalidOperationException($"'{urun.Ad}' ürünü için rezerve edilmiş stok var, silinemez.");
+
+        var acikSiparisVar = await _baglam.SiparisKalemleri.AnyAsync(k => k.UrunId == id && k.Siparis != null &&
+            (k.Siparis.Durum == SiparisDurumu.Taslak || k.Siparis.Durum == SiparisDurumu.Beklemede ||
+             k.Siparis.Durum == SiparisDurumu.Onaylandi || k.Siparis.Durum == SiparisDurumu.KismenKarsilandi));
+        if (acikSiparisVar)
+            throw new InvalidOperationException($"'{urun.Ad}' ürünü açık bir siparişte geçiyor, silinemez. Önce siparişi tamamlayın veya iptal edin.");
+
+        // Kayıt fiziksel olarak silinmez; geçmiş faturalar, hareketler ve raporlar ürünü görmeye devam eder.
         urun.Silindi = true;
+        urun.Aktif = false;
         urun.GuncellemeTarihi = DateTime.UtcNow;
         urun.SilinmeTarihi = DateTime.UtcNow;
-        urun.SilinmeNedeni = silmeNedeni;
-        
+        urun.SilinmeNedeni = $"{silmeNedeni.Trim()} (Silen: {_kullaniciServisi?.AktifKullanici?.KullaniciAdi ?? "?"})";
+
         await _baglam.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<List<Urun>> SilinenleriGetirAsync()
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokGoruntule, "Silinen ürünleri görüntüleme");
+        return await _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking()
+            .Where(u => u.Silindi)
+            .OrderByDescending(u => u.SilinmeTarihi)
+            .ToListAsync();
+    }
+
+    // Silinen ürünü geri getirir. Kodu veya barkodu bu arada yeni bir ürüne verildiyse geri alınamaz.
+    public async Task GeriAlAsync(int id)
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokSil, "Silinen ürünü geri alma");
+
+        var urun = await _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi])
+            .FirstOrDefaultAsync(u => u.Id == id && u.Silindi)
+            ?? throw new KeyNotFoundException("Geri alınacak ürün bulunamadı.");
+
+        if (await KodMevcutMuAsync(urun.Kod))
+            throw new InvalidOperationException($"'{urun.Kod}' kodu artık başka bir üründe kullanılıyor; bu ürün geri alınamaz.");
+        if (urun.Barkod != null && await BarkodMevcutMuAsync(urun.Barkod))
+            throw new InvalidOperationException($"'{urun.Barkod}' barkodu artık başka bir üründe kullanılıyor; bu ürün geri alınamaz.");
+
+        urun.Silindi = false;
+        urun.Aktif = true;
+        urun.SilinmeTarihi = null;
+        urun.SilinmeNedeni = null;
+        urun.GuncellemeTarihi = DateTime.UtcNow;
+        await _baglam.SaveChangesAsync();
     }
 
     public async Task<List<Urun>> AraAsync(string aramaMetni)

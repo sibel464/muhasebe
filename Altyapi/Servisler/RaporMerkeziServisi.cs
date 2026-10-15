@@ -77,7 +77,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 .Select(f => f.Id)
                 .ToListAsync();
 
-            var buAySatisKalemleri = await _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
+            var buAySatisKalemleri = await _baglam.FaturaKalemleri.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
                 .Where(fk => buAySatilarId.Contains(fk.FaturaId))
                 .Select(fk => new
                 {
@@ -289,7 +289,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
-                    join u in _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
+                    join u in _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
                     select new { Fatura = f, Kalem = fk, Urun = u };
 
         if (filtre.KategoriId.HasValue)
@@ -387,7 +387,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
-                    join u in _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
+                    join u in _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
                     group new { fk, u } by new { u.Id, u.Kod, u.Ad, u.Kategori, u.AlisFiyati, u.StokMiktari } into g
                     select new TopUrunRaporKalemiDto
                     {
@@ -428,7 +428,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
-                    join u in _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
+                    join u in _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
                     select new { Fatura = f, Kalem = fk, Urun = u };
 
         var totalCount = await query.CountAsync();

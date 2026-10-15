@@ -7,6 +7,15 @@ using EtkiAlani.Modeller.Finans;
 
 namespace Masaustu.Yardimcilar;
 
+// Veritabanında UTC tutulan zamanı bilgisayarın yerel saatiyle gösterir (parametre: biçim, ör. "dd.MM.yyyy HH:mm").
+public class UtcYerelTarihDonusturucu : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is DateTime t
+        ? DateTime.SpecifyKind(t, DateTimeKind.Utc).ToLocalTime().ToString(parameter as string ?? "dd.MM.yyyy HH:mm", culture)
+        : string.Empty;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public class SiparisDurumRenkDonusturucu : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch

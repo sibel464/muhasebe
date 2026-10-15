@@ -4184,7 +4184,8 @@ namespace Altyapi.Migrations
                     b.HasIndex("KategoriTanimiId");
 
                     b.HasIndex("Kod")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Silindi\" = false");
 
                     b.HasIndex("MarkaTanimiId");
 
