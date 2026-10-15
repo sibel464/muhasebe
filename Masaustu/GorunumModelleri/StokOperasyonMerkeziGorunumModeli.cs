@@ -28,7 +28,24 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     public string AramaMetni
     {
         get => _aramaMetni;
-        set => OzellikAyarla(ref _aramaMetni, value);
+        set { if (OzellikAyarla(ref _aramaMetni, value)) _ = YazarkenAraAsync(value); }
+    }
+
+    private bool _pasifleriGoster;
+    private int _yuklemeNo;
+    private readonly SemaphoreSlim _sorguKilidi = new(1, 1);
+    public bool PasifleriGoster
+    {
+        get => _pasifleriGoster;
+        set { if (OzellikAyarla(ref _pasifleriGoster, value)) _ = YukleAsync(); }
+    }
+
+    // Her tuşta sorgu atmamak için yazma bitince (kısa bekleme sonrası) aranır.
+    private async Task YazarkenAraAsync(string metin)
+    {
+        await Task.Delay(350);
+        if (metin == AramaMetni)
+            await YukleAsync();
     }
 
     public int? SeciliDepoId
@@ -73,6 +90,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     public ICommand AraKomutu { get; }
     public ICommand TemizleKomutu { get; }
     public ICommand YenileKomutu { get; }
+    public ICommand ExcelAktarKomutu { get; }
     public ICommand YeniUrunKomutu { get; }
     public ICommand UrunDuzenleKomutu { get; }
     public ICommand Stok360AcKomutu { get; }
@@ -96,6 +114,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     {
         _operasyonServisi = operasyonServisi;
 
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Urunler, "Urun_Stok_Listesi"), _ => Urunler.Count > 0);
         YeniUrunKomutu = new KomutSarici(_ => navigasyon.Git("UrunEkle"),
             _ => _kullaniciServisi!.YetkiliMi(x => x.StokEkle));
         UrunDuzenleKomutu = new KomutSarici(_ =>
@@ -110,7 +129,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
         _kullaniciServisi = kullaniciServisi;
 
         AraKomutu = new KomutSarici(async _ => await YukleAsync());
-        TemizleKomutu = new KomutSarici(async _ => { AramaMetni = string.Empty; SeciliDepoId = null; SadeceKritikStok = false; await YukleAsync(); });
+        TemizleKomutu = new KomutSarici(async _ => { AramaMetni = string.Empty; SeciliDepoId = null; SadeceKritikStok = false; PasifleriGoster = false; await YukleAsync(); });
         YenileKomutu = new KomutSarici(async _ => await YukleAsync());
 
         Stok360AcKomutu = new KomutSarici(p => {
@@ -151,21 +170,34 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
 
     public async Task YukleAsync()
     {
+        // Üst üste başlayan yüklemelerde (hızlı yazma, filtre değişimi) yalnızca en sonuncunun sonucu gösterilir.
+        var yuklemeNo = ++_yuklemeNo;
         Yukleniyor = true;
         DurumMesaji = "Stok matrisi yükleniyor...";
-        Urunler.Clear();
 
+        // Servisin veritabanı bağlamı aynı anda tek sorgu çalıştırabilir; sorgular sıraya alınır.
+        await _sorguKilidi.WaitAsync();
         try
         {
+            if (yuklemeNo != _yuklemeNo)
+                return;
             var result = await _operasyonServisi.GetMatrisOzetAsync(
                 _firmaBaglami.SirketId,
                 AramaMetni,
                 SeciliDepoId,
                 SadeceKritikStok
             );
+            if (yuklemeNo != _yuklemeNo)
+                return;
 
+            Urunler.Clear();
+
+            var pasifSayisi = 0;
             foreach (var r in result)
+            {
+                if (!r.Aktif && !PasifleriGoster) { pasifSayisi++; continue; }
                 Urunler.Add(r);
+            }
 
             BildirimGonder(nameof(ToplamFizikselStok));
             BildirimGonder(nameof(ToplamKullanilabilirStok));
@@ -175,7 +207,9 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
             BildirimGonder(nameof(Depo2ToplamStok));
             BildirimGonder(nameof(KritikStokSayisi));
 
-            DurumMesaji = $"{Urunler.Count} ürün listelendi.";
+            DurumMesaji = pasifSayisi > 0
+                ? $"{Urunler.Count} ürün listelendi ({pasifSayisi} pasif ürün gizli)."
+                : $"{Urunler.Count} ürün listelendi.";
         }
         catch (Exception ex)
         {
@@ -184,7 +218,9 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
         }
         finally
         {
-            Yukleniyor = false;
+            _sorguKilidi.Release();
+            if (yuklemeNo == _yuklemeNo)
+                Yukleniyor = false;
         }
     }
 }

@@ -160,9 +160,10 @@
                     <ComboBox ItemsSource="{Binding Depolar}" DisplayMemberPath="Ad" SelectedValuePath="Id" SelectedValue="{Binding SeciliDepoId}" Style="{StaticResource FormAcilirKutu}"/>
                 </StackPanel>
 
-                <!-- Kritik Stok Filtresi -->
-                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,12,6">
-                    <CheckBox Content="Sadece Kritik Stok" IsChecked="{Binding SadeceKritikStok}" FontWeight="SemiBold" FontSize="12"/>
+                <!-- Kritik Stok / Pasif Filtresi -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,12,2">
+                    <CheckBox Content="Sadece Kritik Stok" IsChecked="{Binding SadeceKritikStok}" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4"/>
+                    <CheckBox Content="Pasif Ürünleri Göster" IsChecked="{Binding PasifleriGoster}" FontWeight="SemiBold" FontSize="12"/>
                 </StackPanel>
 
                 <!-- Butonlar -->
@@ -170,8 +171,11 @@
                     <Button Command="{Binding AraKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0" Width="90">
                         <TextBlock Text="🔍 Ara"/>
                     </Button>
-                    <Button Command="{Binding TemizleKomutu}" Style="{StaticResource IkinciDugme}" Width="90">
+                    <Button Command="{Binding TemizleKomutu}" Style="{StaticResource IkinciDugme}" Width="90" Margin="0,0,8,0">
                         <TextBlock Text="Temizle"/>
+                    </Button>
+                    <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" ToolTip="Listelenen ürünleri Excel'de açılabilen dosyaya aktarır">
+                        <TextBlock Text="📊 Excel'e Aktar"/>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -185,6 +189,17 @@
                           Style="{StaticResource ModernDataGrid}"
                           AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                           MouseDoubleClick="TabloCiftTik">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Aktif}" Value="False">
+                                    <Setter Property="Foreground" Value="#9CA3AF"/>
+                                    <Setter Property="FontStyle" Value="Italic"/>
+                                    <Setter Property="ToolTip" Value="Pasif ürün: satış ve faturada seçilemez"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="KOD" Binding="{Binding UrunKodu}" Width="100" FontWeight="Bold"/>
                         <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="110"/>
@@ -270,10 +285,24 @@
                                                     <DataTrigger Binding="{Binding StokDurumu}" Value="Stok Yok">
                                                         <Setter Property="Background" Value="{StaticResource DangerLightFirca}"/>
                                                     </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Aktif}" Value="False">
+                                                        <Setter Property="Background" Value="#E5E7EB"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Text="{Binding StokDurumu}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        <TextBlock FontSize="11" FontWeight="Bold" HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding StokDurumu}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Aktif}" Value="False">
+                                                            <Setter Property="Text" Value="Pasif"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
