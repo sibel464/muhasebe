@@ -14,7 +14,9 @@ public static class PostgreSqlSunucuYoneticisi
     private static string? _baslatilanPostgresExe;
     private static readonly object _kilit = new();
 
-    public static async Task SunucuyuHazirlaAsync(string baglantiDizesi)
+    // veriKlasoru: ayarlardaki VeritabaniAyarlari:VeriKlasoru. Verilmişse yalnızca o klasör kullanılır; eski bir
+    // kopyanın yanlışlıkla açılıp verilerin ikiye bölünmemesi için başka yerde arama yapılmaz.
+    public static async Task SunucuyuHazirlaAsync(string baglantiDizesi, string? veriKlasoru = null)
     {
         var csb = new NpgsqlConnectionStringBuilder(baglantiDizesi);
         var host = csb.Host ?? "127.0.0.1";
@@ -31,7 +33,7 @@ public static class PostgreSqlSunucuYoneticisi
             {
                 if (!PortAcikMi(host, port))
                 {
-                    string? dbDataKlasoru = DbDataKlasorunuBul();
+                    string? dbDataKlasoru = DbDataKlasorunuBul(veriKlasoru);
                     if (!string.IsNullOrEmpty(dbDataKlasoru) && Directory.Exists(dbDataKlasoru))
                     {
                         string? postgresExe = PostgresExeBul();
@@ -40,7 +42,8 @@ public static class PostgreSqlSunucuYoneticisi
                             var startInfo = new ProcessStartInfo
                             {
                                 FileName = postgresExe,
-                                Arguments = $"-D \"{dbDataKlasoru}\" -p {port}",
+                                // Sunucu kendi günlüğünü veri klasöründeki "log" klasörüne yazar; açılış sorunları oradan izlenir.
+                                Arguments = $"-D \"{dbDataKlasoru}\" -p {port} -c logging_collector=on",
                                 UseShellExecute = false,
                                 CreateNoWindow = true,
                                 WindowStyle = ProcessWindowStyle.Hidden,
@@ -67,10 +70,13 @@ public static class PostgreSqlSunucuYoneticisi
                 }
             }
 
-            // Sunucunun ayağa kalkmasını bekle (maksimum 25 saniye)
-            for (int i = 0; i < 50; i++)
+            // Sunucunun ayağa kalkmasını bekle (maksimum 120 saniye). Düzgün kapatılmamış bir veritabanı
+            // açılışta kendini onarır; bu süre 25 saniyeyi aşabildiği için bekleme uzun tutulur.
+            for (int i = 0; i < 240; i++)
             {
                 if (await SunucuCevapVeriyorMuAsync(baglantiDizesi))
+                    break;
+                if (_postgresSureci is { HasExited: true })
                     break;
 
                 await Task.Delay(500);
@@ -125,11 +131,10 @@ public static class PostgreSqlSunucuYoneticisi
     {
         try
         {
+            // Zaman aşımı iptal belirteciyle yapılır; yarıda bırakılan bağlantı denemesi sahipsiz hata bırakmaz.
             using var client = new TcpClient();
-            var sonuc = client.BeginConnect(host, port, null, null);
-            var basarili = sonuc.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(400));
-            if (!basarili) return false;
-            client.EndConnect(sonuc);
+            using var iptal = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
+            client.ConnectAsync(host, port, iptal.Token).AsTask().GetAwaiter().GetResult();
             return true;
         }
         catch
@@ -194,8 +199,11 @@ public static class PostgreSqlSunucuYoneticisi
         }
     }
 
-    private static string? DbDataKlasorunuBul()
+    private static string? DbDataKlasorunuBul(string? veriKlasoru)
     {
+        if (!string.IsNullOrWhiteSpace(veriKlasoru))
+            return File.Exists(Path.Combine(veriKlasoru, "PG_VERSION")) ? veriKlasoru : null;
+
         // 1. Mevcut çalışma dizininden yukarı doğru ara
         var mevcutDizin = new DirectoryInfo(AppContext.BaseDirectory);
         while (mevcutDizin != null)

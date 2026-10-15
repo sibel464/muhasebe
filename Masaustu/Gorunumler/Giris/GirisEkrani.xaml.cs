@@ -11,6 +11,7 @@ public partial class GirisEkrani : Window
     private readonly GirisGorunumModeli _gorunumModeli;
     private bool _isSyncing = false;
     private bool _sifreGosteriliyor = false;
+    private bool _anaPencereAcildi;
 
     public GirisEkrani(GirisGorunumModeli gorunumModeli)
     {
@@ -39,6 +40,7 @@ public partial class GirisEkrani : Window
                 
                 Application.Current.MainWindow = anaPencere;
                 anaPencere.Show();
+                _anaPencereAcildi = true;
                 await LoginAsamasiniLoglaAsync("Ana pencere gösterildi");
                 this.Close();
             }
@@ -112,6 +114,16 @@ public partial class GirisEkrani : Window
     private void KapatDugmeTiklandi(object sender, RoutedEventArgs e)
     {
         Application.Current.Shutdown();
+    }
+
+    // Uygulama OnExplicitShutdown modunda; giriş ekranı Alt+F4 veya görev çubuğundan kapatılınca da uygulama
+    // kapanmalı. Aksi halde görünmez süreç ve veritabanı açık kalır, Windows kapanırken veritabanı düzgün kapanamaz.
+    // Başarılı girişte ana pencere açık kaldığı için o durumda kapanmaz.
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        if (!_anaPencereAcildi)
+            Application.Current.Shutdown();
     }
 
     private void SifreDegisti(object sender, RoutedEventArgs e)

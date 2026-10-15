@@ -84,7 +84,7 @@ public partial class App : Application
                 throw new InvalidOperationException("Veritabanı bağlantı dizesi bulunamadı.");
 
             // Yerel PostgreSQL sunucusu çalışmıyorsa otomatik başlat
-            await PostgreSqlSunucuYoneticisi.SunucuyuHazirlaAsync(baglantiDizesi);
+            await PostgreSqlSunucuYoneticisi.SunucuyuHazirlaAsync(baglantiDizesi, konfigurasyon["VeritabaniAyarlari:VeriKlasoru"]);
 
             // AddDbContextFactory: hem IDbContextFactory<> hem de Scoped DbContext'i kayıt eder.
             // Singleton KullaniciServisi, kısa ömürlü context'ler oluşturmak için factory kullanır.
@@ -254,9 +254,9 @@ public partial class App : Application
         if (otomatikMigration)
             await baglam.Database.MigrateAsync();
 
-        if (baglam.Database.HasPendingModelChanges())
-            throw new InvalidOperationException("Veritabanı modeli ile migration dosyaları uyumlu değil. Lütfen sistem yöneticisine başvurun.");
-        if ((await baglam.Database.GetPendingMigrationsAsync()).Any())
+        if (baglam.Database.HasPendingModelChanges())
+            throw new InvalidOperationException("Veritabanı modeli ile migration dosyaları uyumlu değil. Lütfen sistem yöneticisine başvurun.");
+        if ((await baglam.Database.GetPendingMigrationsAsync()).Any())
             throw new InvalidOperationException("Veritabanı güncellemesi gerekiyor. Lütfen sistem yöneticisine başvurun.");
 
         if (!await baglam.Kullanicilar.AnyAsync())

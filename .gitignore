@@ -34,3 +34,4 @@ scratch/
 
 # Veritabanı yedekleri (şirket verisi içerir)
 yedekler/
+db-data-ESKI-*/

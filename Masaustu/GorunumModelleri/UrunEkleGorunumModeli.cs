@@ -231,6 +231,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         if (u == null) { BarkodOtomatik = false; Barkod = aranan; HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı. Yeni ürün olarak devam edebilirsiniz."; return; }
         _bulunanUrun = u; KodOtomatik = false; BarkodOtomatik = false; Kod = u.Kod; Barkod = u.Barkod ?? aranan; Ad = u.Ad; Aciklama = u.Aciklama ?? ""; KdvOrani = u.KdvOrani; AlisFiyati = u.AlisFiyati;
         SeciliKategori = Kategoriler.FirstOrDefault(x => x.Id == u.KategoriTanimiId); SeciliMarka = Markalar.FirstOrDefault(x => x.Id == u.MarkaTanimiId); SeciliBirim = Birimler.FirstOrDefault(x => x.Id == u.BirimTanimiId);
+        FiyatTekCekim = u.PerakendeSatisFiyati;
         foreach (var f in u.SatisFiyatlari) FiyatAta(f.TaksitSayisi, f.Fiyat);
         MagazaStok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 1)?.MevcutMiktar ?? 0; Depo1Stok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 2)?.MevcutMiktar ?? 0; Depo2Stok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 3)?.MevcutMiktar ?? 0;
         BasariMesaji = $"Bu barkoda ait ürün bulundu: {u.Ad} ({u.Kod}). Düzenleme modunda açıldı."; BildirimGonder(nameof(DuzenlemeModu));
@@ -325,6 +326,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             MarkaTanimiId=SeciliMarka?.Id,
             BirimTanimiId=SeciliBirim?.Id,
             AlisFiyati = AlisFiyati,
+            PerakendeSatisFiyati = FiyatTekCekim,
             KdvOrani = KdvOrani,
             StokMiktari = ToplamStok, // Genel toplam görünüm amaçlı
             MinimumStok = MinimumStok,

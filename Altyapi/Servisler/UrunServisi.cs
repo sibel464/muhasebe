@@ -66,6 +66,11 @@ public class UrunServisi : IUrunServisi
         if (kodVarMi)
             throw new InvalidOperationException($"'{urun.Kod}' kodlu ürün zaten sistemde mevcut.");
 
+        // Peşin (tek çekim) fiyat girildiyse fatura/sipariş/irsaliyenin kullandığı satış fiyatı da odur.
+        var tekCekim = TekCekimTlFiyati(urun.SatisFiyatlari);
+        if (tekCekim != null)
+            urun.PerakendeSatisFiyati = tekCekim.Fiyat;
+
         urun.OlusturmaTarihi = DateTime.UtcNow;
         urun.Silindi = false;
 
@@ -166,6 +171,10 @@ public class UrunServisi : IUrunServisi
         mevcutUrun.AlisFiyati = urun.AlisFiyati;
         mevcutUrun.PerakendeSatisFiyati = urun.PerakendeSatisFiyati;
         mevcutUrun.ToptanSatisFiyati = urun.ToptanSatisFiyati;
+        // POS önce tek çekim fiyatına bakar; satış fiyatı değişince o da aynı kalmalı.
+        var tekCekimFiyati = TekCekimTlFiyati(await _baglam.UrunSatisFiyatlari.Where(f => f.UrunId == urun.Id).ToListAsync());
+        if (tekCekimFiyati != null)
+            tekCekimFiyati.Fiyat = urun.PerakendeSatisFiyati;
         mevcutUrun.KdvOrani = urun.KdvOrani;
         var stokFarki = urun.StokMiktari - mevcutUrun.StokMiktari;
         mevcutUrun.StokMiktari = urun.StokMiktari;
@@ -285,8 +294,24 @@ public class UrunServisi : IUrunServisi
         }
 
         await _baglam.UrunSatisFiyatlari.AddRangeAsync(fiyatlar);
+
+        var tekCekim = TekCekimTlFiyati(fiyatlar);
+        if (tekCekim != null)
+        {
+            var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == urunId);
+            if (urun != null)
+            {
+                urun.PerakendeSatisFiyati = tekCekim.Fiyat;
+                urun.GuncellemeTarihi = DateTime.UtcNow;
+            }
+        }
+
         await _baglam.SaveChangesAsync();
     }
+
+    // Para birimi boş kayıtlar eski TL fiyatlarıdır (ParaBirimiId 1 = TRY).
+    private static UrunSatisFiyati? TekCekimTlFiyati(IEnumerable<UrunSatisFiyati> fiyatlar) =>
+        fiyatlar.FirstOrDefault(f => f.TaksitSayisi == 1 && f.AktifMi && (f.ParaBirimiId == null || f.ParaBirimiId == 1));
 
     public async Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(int urunId)
     {
