@@ -83,12 +83,19 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     public decimal KalemKdvOrani { get => EklenecekKdvOrani; set => EklenecekKdvOrani = value; }
 
     public string FaturaNo { get => _faturaNo; set => OzellikAyarla(ref _faturaNo, value); }
-    public DateTime Tarih { get => _tarih; set => OzellikAyarla(ref _tarih, value); }
-    
+    public DateTime Tarih { get => _tarih; set { if (OzellikAyarla(ref _tarih, value)) VadeyiCaridenOner(); } }
+
     public CariKart? SeciliCari
     {
         get => _seciliCari;
-        set => OzellikAyarla(ref _seciliCari, value);
+        set { if (OzellikAyarla(ref _seciliCari, value)) VadeyiCaridenOner(); }
+    }
+
+    // Carinin kartında vade günü varsa vade tarihi fatura tarihine eklenerek önerilir (kullanıcı değiştirebilir).
+    private void VadeyiCaridenOner()
+    {
+        if (_seciliCari?.VadeGunu is int gun && gun > 0)
+            VadeTarihi = Tarih.Date.AddDays(gun);
     }
 
     public Urun? SeciliUrun
@@ -422,6 +429,14 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
 
         // Dağılımı boş kalem sunucuda ilk aktif mağazadan düşülür; doluysa toplamı miktara eşit olmalı.
         if (Kalemler.Any(k => k.StokDagilimlari.Count > 0 && k.StokDagilimlari.Sum(d => d.Miktar) != k.Miktar)) { HataMesaji = "Stok dağılımı ürün miktarına eşit olmalıdır."; return; }
+
+        // Açık hesap satışta risk limiti aşılacaksa onay istenir.
+        if (durum == BelgeDurumu.Onaylandi && Tur == FaturaTuru.Satis && OdemeSekli == FaturaOdemeSekli.AcikHesap &&
+            !await RiskKontrolu.OnayAlAsync(_cariServisi, SeciliCari.Id, GenelToplam))
+        {
+            HataMesaji = "Risk limiti nedeniyle satış onaylanmadı. İsterseniz taslak olarak kaydedebilirsiniz.";
+            return;
+        }
 
         Kaydediliyor = true;
         (KaydetKomutu as KomutSarici)?.BildirimGonder();

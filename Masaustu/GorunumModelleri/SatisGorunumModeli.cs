@@ -437,8 +437,15 @@ public class SatisGorunumModeli : TemelGorunumModeli
                 }
             }
 
+            if (odemeYontemi == "Açık Hesap" && SeciliCari != null &&
+                !await RiskKontrolu.OnayAlAsync(_cariServisi, SeciliCari.Id, GenelToplam))
+            {
+                DurumMesaji = "⚠ Risk limiti nedeniyle açık hesap satış yapılmadı.";
+                return;
+            }
+
             DurumMesaji = "Satış kaydediliyor...";
-            
+
             var cariId = SeciliCari?.Id ?? await VarsayilanCariAlAsync();
 
             var fatura = new Fatura

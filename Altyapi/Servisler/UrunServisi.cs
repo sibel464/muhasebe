@@ -134,7 +134,8 @@ public class UrunServisi : IUrunServisi
 
         urun.LokasyonStoklari = lokasyonlar;
         urun.StokMiktari = lokasyonlar.Sum(l => l.MevcutMiktar);
-        var simdi = DateTime.UtcNow;
+        // Hareket tarihi uygulama kuralına göre yerel saatle (UTC etiketiyle) yazılır; listeler dönüştürmeden gösterir.
+        var simdi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
         foreach (var lokasyon in lokasyonlar)
         {
             lokasyon.RezerveMiktar = 0;

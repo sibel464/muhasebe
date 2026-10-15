@@ -97,8 +97,9 @@ public partial class CariFisPenceresi : Window
             await _servis.EkleAsync(new CariHareket
             {
                 CariKartId = _cari.Id,
-                // Seçilen gün korunur: o günün şu anki saatiyle UTC'ye çevrilir.
-                Tarih = (tarih.Date + DateTime.Now.TimeOfDay).ToUniversalTime(),
+                // Uygulama genelindeki kural: belge tarihi yerel takvim tarihi/saati olarak saklanır (UTC'ye çevrilmez);
+                // çevrilirse 00:00-03:00 arası girilen fiş önceki güne düşer.
+                Tarih = DateTime.SpecifyKind(tarih.Date + DateTime.Now.TimeOfDay, DateTimeKind.Utc),
                 HareketTuru = DevirMi ? CariHareketTuru.Devir : CariHareketTuru.Diger,
                 BelgeNo = BelgeNoKutusu.Text.Trim(),
                 Aciklama = aciklama,
