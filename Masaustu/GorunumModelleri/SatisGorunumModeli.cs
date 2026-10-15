@@ -142,6 +142,7 @@ public class SatisGorunumModeli : TemelGorunumModeli
 
     public SatisGorunumModeli(IUrunServisi urunServisi, ICariServisi cariServisi, IFaturaServisi faturaServisi, ICariHareketServisi cariHareketServisi)
     {
+        _ = StokYerleri.YukleAsync(urunServisi);
         _urunServisi = urunServisi;
         _cariServisi = cariServisi;
         _faturaServisi = faturaServisi;

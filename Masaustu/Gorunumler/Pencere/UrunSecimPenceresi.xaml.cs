@@ -24,22 +24,31 @@ public partial class UrunSecimPenceresi : Window
         {
             var tumUrunler = await _servis.TumunuGetirAsync();
             var urunler = tumUrunler.Where(u => u != null && u.Aktif).ToList();
+
+            // Sütunlar Stok Operasyon Merkezi ile aynı: ilk aktif mağaza, ilk iki aktif depo (sabit 1-2-3 numarası değil).
+            await Masaustu.Yardimcilar.StokYerleri.YukleAsync(_servis);
+            var yerler = Masaustu.Yardimcilar.StokYerleri.Liste;
+            var magazaId = yerler.FirstOrDefault(y => y.Tur == EtkiAlani.Modeller.Kurumsal.DepoTuru.Magaza)?.Id;
+            var depolar = yerler.Where(y => y.Tur == EtkiAlani.Modeller.Kurumsal.DepoTuru.Depo).ToList();
+            var depo1Id = depolar.ElementAtOrDefault(0)?.Id;
+            var depo2Id = depolar.ElementAtOrDefault(1)?.Id;
+
             var satirlar = new List<UrunSecimSatiri>();
             foreach (var urun in urunler)
             {
-                decimal m1 = 0, m2 = 0, m3 = 0;
+                decimal m1 = 0, m2 = 0, m3 = 0, toplam = 0;
                 try
                 {
-                    var stoklar = await _servis.LokasyonStoklariniGetirAsync(urun.Id);
-                    m1 = stoklar?.FirstOrDefault(s => s.DepoId == 1)?.MevcutMiktar ?? 0;
-                    m2 = stoklar?.FirstOrDefault(s => s.DepoId == 2)?.MevcutMiktar ?? 0;
-                    m3 = stoklar?.FirstOrDefault(s => s.DepoId == 3)?.MevcutMiktar ?? 0;
+                    var stoklar = await _servis.LokasyonStoklariniGetirAsync(urun.Id) ?? [];
+                    decimal Stok(int? id) => id == null ? 0 : stoklar.Where(s => s.DepoId == id).Sum(s => s.MevcutMiktar);
+                    m1 = Stok(magazaId); m2 = Stok(depo1Id); m3 = Stok(depo2Id);
+                    toplam = stoklar.Where(s => yerler.Any(y => y.Id == s.DepoId)).Sum(s => s.MevcutMiktar);
                 }
                 catch
                 {
-                    m1 = urun.StokMiktari;
+                    toplam = urun.StokMiktari;
                 }
-                satirlar.Add(new UrunSecimSatiri(urun, m1, m2, m3));
+                satirlar.Add(new UrunSecimSatiri(urun, m1, m2, m3, toplam));
             }
             _satirlar = satirlar;
             Filtrele();
@@ -68,9 +77,8 @@ public partial class UrunSecimPenceresi : Window
     private void Sec_Click(object sender, RoutedEventArgs e) => Sec();
 }
 
-public sealed record UrunSecimSatiri(Urun Urun, decimal Magaza, decimal Depo1, decimal Depo2)
+public sealed record UrunSecimSatiri(Urun Urun, decimal Magaza, decimal Depo1, decimal Depo2, decimal Toplam)
 {
     public string Kategori => Urun.KategoriTanimi?.Ad ?? Urun.Kategori ?? "-";
     public string Marka => Urun.MarkaTanimi?.Ad ?? "-";
-    public decimal Toplam => Magaza + Depo1 + Depo2;
 }

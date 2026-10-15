@@ -45,13 +45,8 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 	public string IskontoOraniMetni { get => _iskontoOrani == 0 ? string.Empty : _iskontoOrani.ToString("0.####"); set => IskontoOrani = ParseDecimalSafe(value); }
 	public string KdvOraniMetni { get => _kdvOrani == 0 ? string.Empty : _kdvOrani.ToString("0.####"); set => KdvOrani = ParseDecimalSafe(value); }
 
-	private static decimal ParseDecimalSafe(string val)
-	{
-		if (string.IsNullOrWhiteSpace(val)) return 0;
-		if (decimal.TryParse(val.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d1)) return Math.Max(0, d1);
-		if (decimal.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), out var d2)) return Math.Max(0, d2);
-		return 0;
-	}
+	// "1.250" bin iki yüz elli okunur (eskiden 1,25 okunuyordu); bkz. TurkceSayi.
+	private static decimal ParseDecimalSafe(string val) => TurkceSayi.PozitifVeyaSifir(val);
 	public string Kod => Urun?.Kod ?? string.Empty;
 	public string Barkod => Urun?.Barkod ?? string.Empty;
 	public string Ad => Urun?.Ad ?? string.Empty;
@@ -62,28 +57,30 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 	public decimal SatirToplami { get; private set; }
 	public ObservableCollection<FaturaKalemiStokDagilimi> StokDagilimlari { get; } = new();
 	public string StokDagilimiOzeti => StokDagilimlari.Count > 0
-		? string.Join(" | ", StokDagilimlari.Select(d => $"{DepoAdi(d.DepoId)}: {d.Miktar}"))
-		: "Stok kaynağı seçilmedi";
+		? string.Join(" | ", StokDagilimlari.Select(d => $"{DepoAdi(d.DepoId)}: {d.Miktar:0.##}"))
+		: "Varsayılan mağaza";
 	public Action? Degisti { get; set; }
 	
 	public void StokDagilimiOzetiGuncelle() => BildirimGonder(nameof(StokDagilimiOzeti));
-	private static string DepoAdi(int depoId) => depoId switch { 1 => "Mağaza", 2 => "Depo 1", 3 => "Depo 2", _ => $"Depo {depoId}" };
+	private static string DepoAdi(int depoId) => StokYerleri.Ad(depoId);
 
-	public void VarsayilanStokDagilimiOlustur(int varsayilanDepoId = 1)
+	// Varsayılan stok yeri ilk aktif mağazadır (sabit 1 numaralı depo değil). Liste yüklenemediyse dağılım boş
+	// kalır; sunucu da aynı kuralla ilk aktif mağazayı kullanır.
+	public void VarsayilanStokDagilimiOlustur()
 	{
 		StokDagilimlari.Clear();
-		if (_miktar > 0)
+		if (_miktar > 0 && StokYerleri.VarsayilanId > 0)
 		{
-			StokDagilimlari.Add(new FaturaKalemiStokDagilimi { DepoId = varsayilanDepoId, Miktar = _miktar });
+			StokDagilimlari.Add(new FaturaKalemiStokDagilimi { DepoId = StokYerleri.VarsayilanId, Miktar = _miktar });
 		}
 		StokDagilimiOzetiGuncelle();
 	}
 
-	public void StokDagiliminiGuncelle(int varsayilanDepoId = 1)
+	public void StokDagiliminiGuncelle()
 	{
 		if (StokDagilimlari.Count == 0)
 		{
-			VarsayilanStokDagilimiOlustur(varsayilanDepoId);
+			VarsayilanStokDagilimiOlustur();
 			return;
 		}
 
@@ -104,7 +101,7 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 				}
 				else
 				{
-					VarsayilanStokDagilimiOlustur(varsayilanDepoId);
+					VarsayilanStokDagilimiOlustur();
 				}
 			}
 		}

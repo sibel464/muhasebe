@@ -119,6 +119,10 @@ public class FinancialTransactionService : IFinancialTransactionService
             if (fatura.KdvToplam == 0)
                 yevmiyeSatirlari.RemoveAll(s => s.Borc == 0 && s.Alacak == 0);
 
+            // 120/320 satırları cariye bağlanır; muhasebe tarafında cari muavini ve mutabakat yapılabilsin.
+            foreach (var satir in yevmiyeSatirlari.Where(s => s.HesapId == hesaplar["120"].Id || s.HesapId == hesaplar["320"].Id))
+                satir.CariKartId = fatura.CariKartId;
+
             var toplamBorc = yevmiyeSatirlari.Sum(s => s.Borc);
             var toplamAlacak = yevmiyeSatirlari.Sum(s => s.Alacak);
             if (toplamBorc != toplamAlacak)
@@ -130,7 +134,13 @@ public class FinancialTransactionService : IFinancialTransactionService
                 Tarih = fatura.Tarih,
                 BelgeNo = fatura.FaturaNo,
                 IlgiliBelgeId = fatura.Id,
-                Aciklama = $"{fatura.FaturaNo} Nolu {(fatura.Tur == FaturaTuru.Satis ? "Satış" : "Alış")} Faturası",
+                Aciklama = $"{fatura.FaturaNo} Nolu " + fatura.Tur switch
+                {
+                    FaturaTuru.Satis => "Satış Faturası",
+                    FaturaTuru.Alis => "Alış Faturası",
+                    FaturaTuru.SatisIade => "Satış İade Faturası",
+                    _ => "Alış İade Faturası"
+                },
                 HareketTuru = fatura.Tur switch
                 {
                     FaturaTuru.Satis => CariHareketTuru.SatisFaturasi,
@@ -149,9 +159,11 @@ public class FinancialTransactionService : IFinancialTransactionService
                     continue;
                 if (kalem.StokDagilimlari == null || kalem.StokDagilimlari.Count == 0)
                 {
+                    // Depo seçilmemişse ilk aktif mağaza kullanılır (sabit depo numarası varsayılmaz).
+                    var varsayilan = await DepoKurallari.VarsayilanDepoAsync(_baglam);
                     kalem.StokDagilimlari = new List<FaturaKalemiStokDagilimi>
                     {
-                        new FaturaKalemiStokDagilimi { DepoId = 1, Miktar = kalem.Miktar }
+                        new FaturaKalemiStokDagilimi { DepoId = varsayilan.Id, Miktar = kalem.Miktar }
                     };
                 }
 
@@ -163,34 +175,33 @@ public class FinancialTransactionService : IFinancialTransactionService
                 {
                     if (dagilim.Miktar <= 0) continue;
 
-                    if (dagilim.DepoId is < 1 or > 3)
-                        throw new InvalidOperationException("Geçersiz stok alanı seçildi. Yalnızca Mağaza, Depo 1 ve Depo 2 kullanılabilir.");
+                    var depo = await DepoKurallari.AktifDepoGetirAsync(_baglam, dagilim.DepoId);
 
                     var lokasyon = await _baglam.UrunLokasyonStoklari
                         .FirstOrDefaultAsync(s => s.UrunId == kalem.UrunId && s.DepoId == dagilim.DepoId);
 
                     if (lokasyon == null)
                     {
-                        var mevcStok = (dagilim.DepoId == 1 && urunler.TryGetValue(kalem.UrunId, out var u)) ? u.StokMiktari : 0;
+                        // Bu depoda daha önce hiç stok yoksa kayıt sıfırdan açılır (başka depodaki stok buraya sayılmaz).
                         lokasyon = new UrunLokasyonStogu
                         {
                             UrunId = kalem.UrunId,
                             DepoId = dagilim.DepoId,
-                            MevcutMiktar = mevcStok,
+                            MevcutMiktar = 0,
                             RezerveMiktar = 0
                         };
                         _baglam.UrunLokasyonStoklari.Add(lokasyon);
                         await _baglam.SaveChangesAsync();
                     }
 
-                    var depoAdi = dagilim.DepoId switch { 1 => "Mağazada", 2 => "Depo 1'de", 3 => "Depo 2'de", _ => "Seçilen stok alanında" };
+                    var depoAdi = $"'{depo.DepoAdi}' stok yerinde";
 
                     if (fatura.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade)
                     {
                         if (lokasyon.MevcutMiktar - lokasyon.RezerveMiktar < dagilim.Miktar)
                         {
                             var mevcut = lokasyon.MevcutMiktar - lokasyon.RezerveMiktar;
-                            throw new InvalidOperationException($"{depoAdi} yeterli stok bulunmuyor. Mevcut: {mevcut}, İstenen: {dagilim.Miktar}.");
+                            throw new InvalidOperationException($"'{urunler[kalem.UrunId].Ad}' için {depoAdi} yeterli stok yok. Mevcut: {mevcut:N2}, İstenen: {dagilim.Miktar:N2}.");
                         }
 
                         lokasyon.MevcutMiktar -= dagilim.Miktar;

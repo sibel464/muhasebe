@@ -136,12 +136,13 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
 
         Kalemler.Clear();
         var urunler = await _urunServisi.TumunuGetirAsync();
-        var matris = await _operasyonServisi.GetMatrisOzetAsync(_firmaBaglami.SirketId, null, SeciliDepoId);
+        // Sistem stoğu doğrudan seçilen deponun kaydından okunur. Eskiden depo numarası 1/2 varsayılıyordu;
+        // gerçek depo 4-5-6 iken başka deponun stoğu gösteriliyor ve sayım farkı yanlış çıkıyordu.
+        var depoStoklari = await _urunServisi.DepoStoklariniGetirAsync(SeciliDepoId.Value);
 
         foreach (var u in urunler)
         {
-            var m = matris.FirstOrDefault(x => x.UrunId == u.Id);
-            decimal sistemStok = m != null ? (SeciliDepoId == 1 ? m.MagazaFiziksel : (SeciliDepoId == 2 ? m.Depo1Fiziksel : m.Depo2Fiziksel)) : 0;
+            decimal sistemStok = depoStoklari.TryGetValue(u.Id, out var miktar) ? miktar : 0;
 
             Kalemler.Add(new StokSayimKalemModeli
             {

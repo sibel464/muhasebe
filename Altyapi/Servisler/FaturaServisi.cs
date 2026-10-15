@@ -479,7 +479,7 @@ public class FaturaServisi : IFaturaServisi
                 Aciklama = $"{fatura.Aciklama} - İptal ters kaydı", Durum = YevmiyeDurumu.Onaylandi,
                 Satirlar = kaynakFis.Satirlar.Select(s => new YevmiyeSatiri
                 {
-                    HesapId = s.HesapId, Borc = s.Alacak, Alacak = s.Borc,
+                    HesapId = s.HesapId, Borc = s.Alacak, Alacak = s.Borc, CariKartId = s.CariKartId,
                     Aciklama = $"{s.Aciklama} - İptal ters kaydı"
                 }).ToList()
             });

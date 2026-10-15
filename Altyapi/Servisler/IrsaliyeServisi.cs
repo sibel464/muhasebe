@@ -376,8 +376,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
     public Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(IEnumerable<int> urunIds)
     {
         var ids = urunIds.Distinct().ToList();
+        // Yalnız aktif depolardaki stok (sabit depo numarası varsayılmaz).
         return _baglam.UrunLokasyonStoklari.AsNoTracking().Include(x => x.Depo)
-            .Where(x => ids.Contains(x.UrunId) && x.DepoId >= 1 && x.DepoId <= 3)
+            .Where(x => ids.Contains(x.UrunId) && x.Depo != null && x.Depo.AktifMi)
             .OrderBy(x => x.DepoId).ToListAsync();
     }
 
@@ -408,8 +409,10 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                 if (kalem.Miktar > kalan) throw new InvalidOperationException($"'{siparisKalemi.UrunAdi}' için kalan miktardan fazla sevk yapılamaz. Kalan: {kalan:N2}");
                 if (kalem.StokDagilimlari.Count == 0 || kalem.StokDagilimlari.Sum(x => x.Miktar) != kalem.Miktar)
                     throw new InvalidOperationException($"'{siparisKalemi.UrunAdi}' stok dağılımı sevk miktarına eşit olmalıdır.");
-                if (kalem.StokDagilimlari.Any(x => x.DepoId is < 1 or > 3 || x.Miktar <= 0) || kalem.StokDagilimlari.GroupBy(x => x.DepoId).Any(x => x.Count() > 1))
-                    throw new InvalidOperationException("Yalnız Mağaza, Depo 1 ve Depo 2 için pozitif ve tekil dağılım girilebilir.");
+                if (kalem.StokDagilimlari.Any(x => x.Miktar <= 0) || kalem.StokDagilimlari.GroupBy(x => x.DepoId).Any(x => x.Count() > 1))
+                    throw new InvalidOperationException("Her stok yeri için tek ve pozitif dağılım girilebilir.");
+                foreach (var depoId in kalem.StokDagilimlari.Select(x => x.DepoId))
+                    await DepoKurallari.AktifDepoGetirAsync(_baglam, depoId);
 
                 kalem.UrunId = siparisKalemi.UrunId;
                 kalem.UrunKodu = siparisKalemi.UrunKodu;

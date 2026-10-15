@@ -402,6 +402,17 @@ public class UrunServisi : IUrunServisi
             .ToListAsync();
     }
 
+    public async Task<Dictionary<int, decimal>> DepoStoklariniGetirAsync(int depoId)
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokGoruntule, "Depo stoklarını görüntüleme");
+
+        return await _baglam.UrunLokasyonStoklari.AsNoTracking()
+            .Where(s => s.DepoId == depoId)
+            .GroupBy(s => s.UrunId)
+            .Select(g => new { UrunId = g.Key, Miktar = g.Sum(x => x.MevcutMiktar) })
+            .ToDictionaryAsync(x => x.UrunId, x => x.Miktar);
+    }
+
     public async Task<List<Depo>> DepolariGetirAsync()
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokGoruntule, "Depoları görüntüleme");

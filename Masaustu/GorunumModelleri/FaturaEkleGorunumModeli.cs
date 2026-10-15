@@ -228,6 +228,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         SatisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Satis);
         AlisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Alis);
 
+        _ = StokYerleri.YukleAsync(_urunServisi);
         _ = VerileriYukleAsync();
     }
 
@@ -252,7 +253,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     private void StokDagilimiAc(FaturaKalemiGorunumModeli? kalem)
     {
         if (kalem == null) return;
-        var vm = new StokDagilimiGorunumModeli(kalem, _urunServisi);
+        var vm = new StokDagilimiGorunumModeli(kalem, _urunServisi, Tur is FaturaTuru.Satis or FaturaTuru.AlisIade);
         new StokDagilimiPenceresi(vm) { Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) }.ShowDialog();
     }
 
@@ -415,7 +416,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 k.StokDagiliminiGuncelle();
         }
 
-        if (Kalemler.Any(k => k.StokDagilimlari.Count == 0 || k.StokDagilimlari.Sum(d => d.Miktar) != k.Miktar)) { HataMesaji = "Her ürün için stok kaynağı seçilmeli ve dağılım miktara eşit olmalıdır."; return; }
+        // Dağılımı boş kalem sunucuda ilk aktif mağazadan düşülür; doluysa toplamı miktara eşit olmalı.
+        if (Kalemler.Any(k => k.StokDagilimlari.Count > 0 && k.StokDagilimlari.Sum(d => d.Miktar) != k.Miktar)) { HataMesaji = "Stok dağılımı ürün miktarına eşit olmalıdır."; return; }
 
         Kaydediliyor = true;
         (KaydetKomutu as KomutSarici)?.BildirimGonder();

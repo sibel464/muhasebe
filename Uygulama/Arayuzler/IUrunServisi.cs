@@ -31,6 +31,8 @@ public interface IUrunServisi
 
     // ── Lokasyon Stok Yönetimi ── (stok yalnızca stok fişleriyle değişir; kartta açılış stoğu dışında yazılmaz)
     Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(int urunId);
+    // Bir depodaki tüm ürünlerin stoğu (ürün Id → mevcut miktar); sayım ekranı için.
+    Task<Dictionary<int, decimal>> DepoStoklariniGetirAsync(int depoId);
 
     // ── Depo Listesi ──
     Task<List<Depo>> DepolariGetirAsync();

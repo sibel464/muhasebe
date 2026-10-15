@@ -26,10 +26,14 @@ public class StokDagilimiGorunumModeli : TemelGorunumModeli
 
     public Action? Kapat { get; set; }
 
-    public StokDagilimiGorunumModeli(FaturaKalemiGorunumModeli kalem, IUrunServisi urunServisi)
+    // stokCikisi: satış / alış iadesi (stok düşer). Alış ve satış iadesinde stok girdiği için yeterlilik aranmaz.
+    private readonly bool _stokCikisi;
+
+    public StokDagilimiGorunumModeli(FaturaKalemiGorunumModeli kalem, IUrunServisi urunServisi, bool stokCikisi = true)
     {
         _kalem = kalem;
         _urunServisi = urunServisi;
+        _stokCikisi = stokCikisi;
 
         UygulaKomutu = new KomutSarici(Uygula);
         IptalKomutu = new KomutSarici(_ => Kapat?.Invoke());
@@ -49,13 +53,13 @@ public class StokDagilimiGorunumModeli : TemelGorunumModeli
         }
         catch { }
         
-        // Define exact physical locations required by user
-        var depolar = new (int Id, string Ad)[] { (1, "Mağaza"), (2, "Depo 1"), (3, "Depo 2") };
-        
-        foreach (var depo in depolar)
+        // Aktif mağaza ve depolar veritabanından okunur (sabit 1-2-3 numaralı depo varsayılmaz).
+        await StokYerleri.YukleAsync(_urunServisi);
+
+        foreach (var depo in StokYerleri.Liste)
         {
             var lokasyonStogu = lokasyonStoklari.FirstOrDefault(ls => ls.DepoId == depo.Id);
-            var mevcutStok = lokasyonStogu?.MevcutMiktar ?? (depo.Id == 1 ? Urun.StokMiktari : 0);
+            var mevcutStok = lokasyonStogu == null ? 0 : lokasyonStogu.MevcutMiktar - lokasyonStogu.RezerveMiktar;
             var eskiDagilim = _kalem.StokDagilimlari.FirstOrDefault(d => d.DepoId == depo.Id);
 
             var satir = new DagilimSatiri
@@ -96,7 +100,7 @@ public class StokDagilimiGorunumModeli : TemelGorunumModeli
     private void MagazayaEsite()
     {
         foreach (var d in Dagilimlar) d.Miktar = 0;
-        var magaza = Dagilimlar.FirstOrDefault(d => d.DepoId == 1) ?? Dagilimlar.FirstOrDefault();
+        var magaza = Dagilimlar.FirstOrDefault(d => d.DepoId == StokYerleri.VarsayilanId) ?? Dagilimlar.FirstOrDefault();
         if (magaza != null) magaza.Miktar = ToplamMiktar;
         HesaplaVeGuncelle();
     }
@@ -114,19 +118,16 @@ public class StokDagilimiGorunumModeli : TemelGorunumModeli
             return;
         }
 
-        foreach (var dagilim in Dagilimlar)
+        // Satışta stok eksiye düşemez (kural sunucuda). Önceden "devam edilsin mi" sorulup sonra
+        // sunucuda reddediliyordu; artık burada açıkça söylenir.
+        var yetersiz = _stokCikisi ? Dagilimlar.FirstOrDefault(d => d.Miktar > d.MevcutStok) : null;
+        if (yetersiz != null)
         {
-            if (dagilim.Miktar > dagilim.MevcutStok)
-            {
-                var onay = System.Windows.MessageBox.Show(
-                    $"{dagilim.DepoAdi} için girilen çıkış miktarı ({dagilim.Miktar:N2}), mevcut stoktan ({dagilim.MevcutStok:N2}) fazladır.\n\nEksi stok düşümü ile işleme devam etmek istiyor musunuz?",
-                    "Stok Yetersizliği Uyarısı",
-                    System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Warning);
-
-                if (onay != System.Windows.MessageBoxResult.Yes)
-                    return;
-            }
+            System.Windows.MessageBox.Show(
+                $"{yetersiz.DepoAdi} için girilen miktar ({yetersiz.Miktar:N2}), kullanılabilir stoktan ({yetersiz.MevcutStok:N2}) fazla.\n\n" +
+                "Başka bir stok yerinden düşün veya önce stok girişi/transfer yapın.",
+                "Stok Yetersiz", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
         }
 
         _kalem.StokDagilimlari.Clear();
@@ -172,18 +173,7 @@ public class DagilimSatiri : TemelGorunumModeli
         get => _miktar == 0 ? string.Empty : _miktar.ToString("0.####");
         set
         {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                Miktar = 0;
-            }
-            else if (decimal.TryParse(value.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
-            {
-                Miktar = Math.Max(0, val);
-            }
-            else if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), out var val2))
-            {
-                Miktar = Math.Max(0, val2);
-            }
+            Miktar = TurkceSayi.PozitifVeyaSifir(value);
         }
     }
 
