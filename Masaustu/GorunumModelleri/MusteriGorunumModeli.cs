@@ -318,49 +318,23 @@ public class MusteriGorunumModeli : TemelGorunumModeli
     private async Task SilAsync()
     {
         if (SeciliMusteri == null) return;
-
-        var sonuc = System.Windows.MessageBox.Show(
-            $"'{SeciliMusteri.Unvan}' adlı müşteriyi silmek istediğinize emin misiniz?",
-            "Müşteri Sil Onayı (1/3)",
-            System.Windows.MessageBoxButton.YesNo,
-            System.Windows.MessageBoxImage.Question);
-
-        if (sonuc != System.Windows.MessageBoxResult.Yes) return;
-
-        var sonuc2 = System.Windows.MessageBox.Show(
-            "Bu işlem geri alınamaz. Kesinlikle silmek istiyor musunuz?",
-            "Müşteri Sil Onayı (2/3)",
-            System.Windows.MessageBoxButton.YesNo,
-            System.Windows.MessageBoxImage.Stop);
-
-        if (sonuc2 != System.Windows.MessageBoxResult.Yes) return;
-
-        var girisPenceresi = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
-            "Silme Nedeni (3/3)",
-            $"{SeciliMusteri.Unvan} müşterisini neden siliyorsunuz? Lütfen açıklayınız.");
-
-        if (girisPenceresi.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var silmeNedeni = girisPenceresi.GirilenMetin;
+        if (!CariSilmeOnayi.Al(SeciliMusteri, out var silmeNedeni)) return;
 
         try
         {
             var basarili = await _cariServisi.SilAsync(SeciliMusteri.Id, silmeNedeni);
             if (basarili)
             {
-                DurumMesaji = "Müşteri silindi (Pasife alındı).";
+                DurumMesaji = $"'{SeciliMusteri.Unvan}' silindi. Cari Silme ekranından geri alınabilir.";
                 SeciliMusteri = null;
                 await AraAsync();
             }
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or UnauthorizedAccessException)
         {
-            // Ticari İlişki Güvenlik Uyarısı (Faturası veya hareketi varsa)
+            // Hareketi olan cari silinemez; servis ne yapılacağını mesajda söyler.
             System.Windows.MessageBox.Show(
-                ex.Message, // "Bu cari kart geçmiş işlemler nedeniyle silinemez. Pasif duruma alınabilir."
+                ex.Message,
                 "Silme Engellendi",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Warning);

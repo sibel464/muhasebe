@@ -43,6 +43,15 @@ namespace Altyapi.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // Eski indeksler silinenleri de kapsar: kodu/barkodu yeniden kullanılmış silinmiş ürünlere ek verilir.
+            migrationBuilder.Sql("""
+                UPDATE "Urunler" u SET "Kod" = u."Kod" || '-SIL' || u."Id"
+                WHERE u."Silindi" AND EXISTS (SELECT 1 FROM "Urunler" d WHERE d."Kod" = u."Kod" AND d."Id" <> u."Id");
+                UPDATE "Urunler" u SET "Barkod" = NULL
+                WHERE u."Silindi" AND u."Barkod" IS NOT NULL
+                  AND EXISTS (SELECT 1 FROM "Urunler" d WHERE d."Barkod" = u."Barkod" AND d."Id" <> u."Id");
+                """);
+
             migrationBuilder.Sql("""
                 DO $$
                 DECLARE son_mevcut_id integer;

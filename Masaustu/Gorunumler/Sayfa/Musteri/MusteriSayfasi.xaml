@@ -212,7 +212,7 @@
                                         <MenuItem Header="💸 Ödeme Yap" Command="{Binding DataContext.OdemeKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                         <Separator/>
                                         <MenuItem Header="✏️ Cari Kartı Düzenle" Command="{Binding DataContext.DuzenleKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                        <MenuItem Header="🗑️ Sil (Pasife Al)" Command="{Binding DataContext.SilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="🗑️ Sil" Command="{Binding DataContext.SilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
                                     </ContextMenu>
                                 </Setter.Value>
                             </Setter>

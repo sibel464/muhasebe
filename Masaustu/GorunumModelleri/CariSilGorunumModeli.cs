@@ -3,16 +3,18 @@ using System.Windows.Input;
 using EtkiAlani.Modeller.Cari;
 using Uygulama.Arayuzler;
 using Masaustu.Yardimcilar;
-using System.Windows;
 
 namespace Masaustu.GorunumModelleri;
 
+// Cari silme: yalnızca hiç işlem görmemiş cari silinir (kural serviste); silinen cari geri alınabilir.
 public class CariSilGorunumModeli : TemelGorunumModeli
 {
     private readonly ICariServisi _cariServisi;
     private string _aramaMetni = string.Empty;
     private ObservableCollection<CariKart> _aramaSonuclari = new();
+    private ObservableCollection<CariKart> _silinenler = new();
     private CariKart? _seciliCari;
+    private CariKart? _seciliSilinen;
     private string _hataMesaji = string.Empty;
     private string _basariMesaji = string.Empty;
     private bool _islemYapiliyor = false;
@@ -29,14 +31,22 @@ public class CariSilGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _aramaSonuclari, value);
     }
 
+    public ObservableCollection<CariKart> Silinenler
+    {
+        get => _silinenler;
+        set => OzellikAyarla(ref _silinenler, value);
+    }
+
     public CariKart? SeciliCari
     {
         get => _seciliCari;
-        set
-        {
-            OzellikAyarla(ref _seciliCari, value);
-            ((KomutSarici)SilKomutu).BildirimGonder();
-        }
+        set { OzellikAyarla(ref _seciliCari, value); ((KomutSarici)SilKomutu).BildirimGonder(); }
+    }
+
+    public CariKart? SeciliSilinen
+    {
+        get => _seciliSilinen;
+        set { OzellikAyarla(ref _seciliSilinen, value); ((KomutSarici)GeriAlKomutu).BildirimGonder(); }
     }
 
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
@@ -44,86 +54,139 @@ public class CariSilGorunumModeli : TemelGorunumModeli
     public bool IslemYapiliyor { get => _islemYapiliyor; set => OzellikAyarla(ref _islemYapiliyor, value); }
 
     public ICommand SilKomutu { get; }
+    public ICommand GeriAlKomutu { get; }
+
+    private readonly SemaphoreSlim _sorguKilidi = new(1, 1);
 
     public CariSilGorunumModeli(ICariServisi cariServisi)
     {
         _cariServisi = cariServisi;
         SilKomutu = new KomutSarici(async () => await SilAsync(), () => SeciliCari != null && !IslemYapiliyor);
-        
-        // İlk açıldığında tüm listeyi getir
-        _ = AraAsync();
+        GeriAlKomutu = new KomutSarici(async () => await GeriAlAsync(), () => SeciliSilinen != null && !IslemYapiliyor);
+        _ = YukleAsync();
     }
 
+    private async Task YukleAsync()
+    {
+        await AraAsync();
+        await SilinenleriYukleAsync();
+    }
+
+    // Servisin veritabanı bağlamı aynı anda tek sorgu çalıştırır; yazarken arama sorguları sıraya alınır.
     private async Task AraAsync()
     {
-        IslemYapiliyor = true;
+        await _sorguKilidi.WaitAsync();
         try
         {
-            var sonuclar = await _cariServisi.AraAsync(AramaMetni); // Müşteri ve tedarikçilerin hepsi
-            AramaSonuclari = new ObservableCollection<CariKart>(sonuclar);
+            AramaSonuclari = new ObservableCollection<CariKart>(await _cariServisi.AraAsync(AramaMetni));
         }
         catch (Exception ex)
         {
-            HataMesaji = $"Arama hatası: {ex.Message}";
+            HataMesaji = $"Cariler listelenemedi: {ex.Message}";
         }
         finally
         {
-            IslemYapiliyor = false;
+            _sorguKilidi.Release();
+        }
+    }
+
+    private async Task SilinenleriYukleAsync()
+    {
+        await _sorguKilidi.WaitAsync();
+        try
+        {
+            Silinenler = new ObservableCollection<CariKart>(await _cariServisi.SilinenleriGetirAsync());
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Silinen cariler listelenemedi: {ex.Message}";
+        }
+        finally
+        {
+            _sorguKilidi.Release();
         }
     }
 
     private async Task SilAsync()
     {
         if (SeciliCari == null) return;
-
+        var cari = SeciliCari;
         HataMesaji = string.Empty;
         BasariMesaji = string.Empty;
 
-        var sonuc = MessageBox.Show(
-            $"{SeciliCari.Unvan} isimli cari kaydını silmek istediğinize emin misiniz?",
-            "Kayıt Silme Onayı (1/3)",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
-        if (sonuc != MessageBoxResult.Yes) return;
-
-        var sonuc2 = MessageBox.Show(
-            "Bu işlem geri alınamaz. Kesinlikle silmek istiyor musunuz?",
-            "Kayıt Silme Onayı (2/3)",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Stop);
-
-        if (sonuc2 != MessageBoxResult.Yes) return;
-
-        var girisPenceresi = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
-            "Silme Nedeni (3/3)",
-            $"{SeciliCari.Unvan} carisini neden siliyorsunuz? Lütfen açıklayınız.");
-
-        if (girisPenceresi.ShowDialog() != true)
-        {
-            return;
-        }
-        
-        var silmeNedeni = girisPenceresi.GirilenMetin;
+        if (!CariSilmeOnayi.Al(cari, out var neden)) return;
 
         IslemYapiliyor = true;
         ((KomutSarici)SilKomutu).BildirimGonder();
-
         try
         {
-            await _cariServisi.SilAsync(SeciliCari.Id, silmeNedeni);
-            BasariMesaji = $"{SeciliCari.Unvan} başarıyla silindi!";
+            await _cariServisi.SilAsync(cari.Id, neden);
+            BasariMesaji = $"'{cari.Unvan}' silindi. Silinen Cariler listesinden geri alabilirsiniz.";
             SeciliCari = null;
-            await AraAsync();
+            await YukleAsync();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or KeyNotFoundException or UnauthorizedAccessException)
+        {
+            HataMesaji = ex.Message;
         }
         catch (Exception ex)
         {
-            HataMesaji = $"Silme hatası: {ex.Message}";
+            await App.HatayiLoglaAsync(ex, "CariSil");
+            HataMesaji = "Cari silinemedi. Ayrıntılar log dosyasına yazıldı.";
         }
         finally
         {
             IslemYapiliyor = false;
             ((KomutSarici)SilKomutu).BildirimGonder();
         }
+    }
+
+    private async Task GeriAlAsync()
+    {
+        if (SeciliSilinen == null) return;
+        var cari = SeciliSilinen;
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+
+        IslemYapiliyor = true;
+        ((KomutSarici)GeriAlKomutu).BildirimGonder();
+        try
+        {
+            await _cariServisi.GeriAlAsync(cari.Id);
+            BasariMesaji = $"'{cari.Unvan}' geri alındı ve tekrar aktif.";
+            SeciliSilinen = null;
+            await YukleAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or UnauthorizedAccessException)
+        {
+            HataMesaji = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "CariGeriAl");
+            HataMesaji = "Cari geri alınamadı. Ayrıntılar log dosyasına yazıldı.";
+        }
+        finally
+        {
+            IslemYapiliyor = false;
+            ((KomutSarici)GeriAlKomutu).BildirimGonder();
+        }
+    }
+}
+
+// Cari listesi ve Cari Silme ekranı aynı onay penceresini kullanır: tek pencerede onay + silme nedeni.
+public static class CariSilmeOnayi
+{
+    public static bool Al(CariKart cari, out string neden)
+    {
+        var pencere = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
+            "Cariyi Sil",
+            $"{cari.Kod} - {cari.Unvan}\n\n" +
+            "Yalnızca hiç işlem görmemiş cari silinebilir. Silinen cari Cari Silme ekranındaki " +
+            "\"Silinen Cariler\" bölümünden geri alınabilir.\n\nSilme nedenini yazın:");
+        neden = string.Empty;
+        if (pencere.ShowDialog() != true) return false;
+        neden = pencere.GirilenMetin;
+        return true;
     }
 }

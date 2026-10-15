@@ -214,22 +214,57 @@ public class CariServisi : ICariServisi
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.CariSil, "Cari Kart Silme");
 
+        if (string.IsNullOrWhiteSpace(silmeNedeni) || silmeNedeni.Trim().Length < 3)
+            throw new ArgumentException("Silme nedeni yazılmalıdır (en az 3 karakter).");
+
         var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == id);
         if (cari == null)
             throw new KeyNotFoundException("Silinecek cari kart bulunamadı.");
 
-        // Ticari İlişki Güvenlik Kontrolü
+        // Ticari İlişki Güvenlik Kontrolü: hareketi olan cari silinmez, geçmiş belgeler ona bağlı kalır.
         var islemGormus = await IslemGormusMuAsync(id);
         if (islemGormus)
-            throw new InvalidOperationException("Bu cari kart geçmiş işlemler nedeniyle silinemez. Pasif duruma alınabilir.");
+            throw new InvalidOperationException(
+                $"'{cari.Unvan}' carisinin fatura, sipariş, tahsilat/ödeme veya hareket kaydı var; silinemez. " +
+                "Kullanılmayacaksa cari kartını düzenleyip Aktif işaretini kaldırarak pasif yapın.");
 
         cari.Silindi = true;
+        cari.Aktif = false;
         cari.GuncellemeTarihi = DateTime.UtcNow;
         cari.SilinmeTarihi = DateTime.UtcNow;
-        cari.SilinmeNedeni = silmeNedeni;
+        cari.SilinmeNedeni = $"{silmeNedeni.Trim()} (Silen: {_kullaniciServisi?.AktifKullanici?.KullaniciAdi ?? "?"})";
 
         await _baglam.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<List<CariKart>> SilinenleriGetirAsync()
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.CariGoruntule, "Silinen carileri görüntüleme");
+        return await _baglam.CariKartlar.IgnoreQueryFilters().AsNoTracking()
+            .Where(c => c.Silindi)
+            .OrderByDescending(c => c.SilinmeTarihi)
+            .ToListAsync();
+    }
+
+    // Silinen cariyi geri getirir; kodu bu arada başka bir cariye verildiyse geri alınamaz.
+    public async Task GeriAlAsync(int id)
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.CariSil, "Silinen cariyi geri alma");
+
+        var cari = await _baglam.CariKartlar.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Id == id && c.Silindi)
+            ?? throw new KeyNotFoundException("Geri alınacak cari bulunamadı.");
+
+        if (await KodMevcutMuAsync(cari.Kod))
+            throw new InvalidOperationException($"'{cari.Kod}' kodu artık başka bir caride kullanılıyor; bu cari geri alınamaz.");
+
+        cari.Silindi = false;
+        cari.Aktif = true;
+        cari.SilinmeTarihi = null;
+        cari.SilinmeNedeni = null;
+        cari.GuncellemeTarihi = DateTime.UtcNow;
+        await _baglam.SaveChangesAsync();
     }
 
     public async Task<List<CariKart>> AraAsync(string aramaMetni, CariTuru? turFilter = null)

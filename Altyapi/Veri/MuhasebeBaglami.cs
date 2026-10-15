@@ -411,7 +411,8 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
         // Silinen ürünün kodu yeni bir üründe kullanılabilir; geri alırken çakışma servis tarafından denetlenir.
         modelBuilder.Entity<Urun>().HasIndex(u => u.Kod).IsUnique().HasFilter("\"Silindi\" = false");
-        modelBuilder.Entity<CariKart>().HasIndex(c => c.Kod).IsUnique();
+        // Silinen carinin kodu yeni bir caride kullanılabilir; geri alırken çakışma servis tarafından denetlenir.
+        modelBuilder.Entity<CariKart>().HasIndex(c => c.Kod).IsUnique().HasFilter("\"Silindi\" = false");
         modelBuilder.Entity<CariTipiTanimi>().HasIndex(x => x.Kod).IsUnique();
         modelBuilder.Entity<MerkeziTanim>().HasIndex(x => new { x.Grup, x.Kod }).IsUnique();
         modelBuilder.Entity<CariHareket>().HasIndex(h => h.Tarih);

@@ -357,7 +357,8 @@ namespace Altyapi.Migrations
                     b.HasIndex("GuncelleyenKullaniciId");
 
                     b.HasIndex("Kod")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Silindi\" = false");
 
                     b.HasIndex("OlusturanKullaniciId");
 
