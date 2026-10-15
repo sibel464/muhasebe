@@ -73,6 +73,8 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     public ICommand AraKomutu { get; }
     public ICommand TemizleKomutu { get; }
     public ICommand YenileKomutu { get; }
+    public ICommand YeniUrunKomutu { get; }
+    public ICommand UrunDuzenleKomutu { get; }
     public ICommand Stok360AcKomutu { get; }
     public ICommand StokGirisiKomutu { get; }
     public ICommand StokCikisiKomutu { get; }
@@ -89,9 +91,19 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
         IUrunServisi urunServisi,
         IDepoServisi depoServisi,
         IAktifFirmaBaglami firmaBaglami,
-        IKullaniciServisi kullaniciServisi)
+        IKullaniciServisi kullaniciServisi,
+        Masaustu.Servisler.NavigasyonServisi navigasyon)
     {
         _operasyonServisi = operasyonServisi;
+
+        YeniUrunKomutu = new KomutSarici(_ => navigasyon.Git("UrunEkle"),
+            _ => _kullaniciServisi!.YetkiliMi(x => x.StokEkle));
+        UrunDuzenleKomutu = new KomutSarici(_ =>
+        {
+            var id = SeciliSatir?.UrunId ?? 0;
+            if (id > 0)
+                navigasyon.Git("UrunEkle", gm => _ = ((UrunEkleGorunumModeli)gm).DuzenlemeIcinYukleAsync(id));
+        }, _ => SeciliSatir != null && _kullaniciServisi!.YetkiliMi(x => x.StokDuzenle));
         _urunServisi = urunServisi;
         _depoServisi = depoServisi;
         _firmaBaglami = firmaBaglami;

@@ -41,6 +41,19 @@
 
             <!-- Hızlı Aksiyon Butonları -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding YeniUrunKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="➕" Margin="0,0,6,0"/>
+                        <TextBlock Text="Yeni Ürün"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding UrunDuzenleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                        ToolTip="Seçili ürünün kartını (ad, fiyat, kategori...) düzenler">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="✏️" Margin="0,0,6,0"/>
+                        <TextBlock Text="Ürünü Düzenle"/>
+                    </StackPanel>
+                </Button>
                 <Button Command="{Binding Stok360AcKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔍" Margin="0,0,6,0"/>
@@ -59,7 +72,7 @@
                         <TextBlock Text="Stok Çıkışı"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding TransferKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+                <Button Command="{Binding TransferKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔄" Margin="0,0,6,0"/>
                         <TextBlock Text="Transfer Yap"/>

@@ -10,6 +10,7 @@ public interface IUrunServisi
     Task<Urun?> KodIleGetirAsync(string kod);
     Task<Urun> EkleAsync(Urun urun);
     Task<Urun> GuncelleAsync(Urun urun);
+    Task<Urun> KartGuncelleAsync(Urun urun, List<UrunSatisFiyati> fiyatlar);
     Task<bool> SilAsync(int id, string? silmeNedeni = null);
     Task<List<Urun>> AraAsync(string aramaMetni);
     Task<List<Urun>> FiltreliAraAsync(UrunFiltre filtre);
@@ -26,9 +27,8 @@ public interface IUrunServisi
     Task<List<UrunSatisFiyati>> FiyatlariGetirAsync(int urunId);
     Task FiyatlariKaydetAsync(int urunId, List<UrunSatisFiyati> fiyatlar);
 
-    // ── Lokasyon Stok Yönetimi ──
+    // ── Lokasyon Stok Yönetimi ── (stok yalnızca stok fişleriyle değişir; kartta açılış stoğu dışında yazılmaz)
     Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(int urunId);
-    Task LokasyonStoklariniKaydetAsync(int urunId, List<UrunLokasyonStogu> stoklar);
 
     // ── Depo Listesi ──
     Task<List<Depo>> DepolariGetirAsync();

@@ -31,4 +31,15 @@ public class NavigasyonServisi
             MevcutGorunumModeli = fabrika();
         }
     }
+
+    // Sayfa açılmadan önce görünüm modelini hazırlamak için (ör. ürün kartını düzenleme için yüklemek).
+    public void Git(string anahtar, Action<TemelGorunumModeli> hazirla)
+    {
+        if (_gorunumModelFabrika.TryGetValue(anahtar, out var fabrika))
+        {
+            var gorunumModeli = fabrika();
+            hazirla(gorunumModeli);
+            MevcutGorunumModeli = gorunumModeli;
+        }
+    }
 }

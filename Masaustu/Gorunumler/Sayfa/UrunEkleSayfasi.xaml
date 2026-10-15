@@ -26,13 +26,20 @@
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Style="{StaticResource BaslikIkonKutusu}">
-                    <TextBlock Text="➕" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="📦" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="Yeni Stok / Ürün Kayıt" Style="{StaticResource SayfaBasligi}"/>
-                    <TextBlock Text="Envantere yeni bir ürün, birim fiyatlar ve lokasyon stokları tanımlayın." Style="{StaticResource SayfaAltBaslik}"/>
+                    <TextBlock Text="{Binding SayfaBasligi}" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="{Binding SayfaAltBasligi}" Style="{StaticResource SayfaAltBaslik}"/>
                 </StackPanel>
             </StackPanel>
+            <Button Command="{Binding YeniUrunKomutu}" Style="{StaticResource IkinciDugme}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    ToolTip="Formu temizleyip yeni bir ürün kaydına başlar">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="➕" Margin="0,0,6,0"/>
+                    <TextBlock Text="Yeni Ürün"/>
+                </StackPanel>
+            </Button>
         </Grid>
 
         <!-- 2. FORM ALANI -->
@@ -145,12 +152,16 @@
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel Margin="0,0,0,24">
+                    <StackPanel Margin="0,0,0,14">
                         <TextBlock Text="Açıklama / Not" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
                     </StackPanel>
 
-                    <TextBlock Text="Fiyatlandırma (9 Taksit)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+                    <CheckBox IsChecked="{Binding Aktif}" Margin="0,0,0,24" FontWeight="SemiBold"
+                              Content="Ürün aktif (pasif ürünler satış ve faturada seçilemez, kayıtları silinmez)"/>
+
+                    <TextBlock Text="Fiyatlandırma" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Tek çekim (peşin) fiyat; fatura, sipariş, irsaliye ve POS'ta kullanılan satış fiyatıdır." Style="{StaticResource SayfaAltBaslik}" Margin="0,0,0,14"/>
 
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
@@ -164,6 +175,10 @@
                             <TextBox Text="{Binding AlisFiyati}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="Toptan Satış (₺)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding ToptanSatisFiyati}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="0,0,12,0">
                             <TextBlock Text="KDV Oranı (%)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding KdvOrani}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
@@ -177,7 +192,7 @@
                             <ColumnDefinition Width="200"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Tek Çekim Satış (₺)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Tek Çekim / Peşin Satış (₺)" Style="{StaticResource EtiketMetin}" FontWeight="Bold"/>
                             <TextBox Text="{Binding FiyatTekCekim}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,12,0">
@@ -224,7 +239,10 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="Stok ve Lokasyon Dağılımı" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
+                    <TextBlock Text="Stok" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,8"/>
+                    <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,14">
+                        <TextBlock Text="{Binding StokBilgiMetni}" TextWrapping="Wrap" FontSize="12" Foreground="#92400E"/>
+                    </Border>
 
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
@@ -234,16 +252,16 @@
                             <ColumnDefinition Width="200"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Mağaza Stoğu" Style="{StaticResource EtiketMetin}"/>
-                            <TextBox Text="{Binding MagazaStok, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                            <TextBlock Text="{Binding MagazaEtiketi}" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding MagazaStok, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding MagazaGirilebilir}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                            <TextBlock Text="Depo 1 Stoğu" Style="{StaticResource EtiketMetin}"/>
-                            <TextBox Text="{Binding Depo1Stok, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                            <TextBlock Text="{Binding Depo1Etiketi}" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Depo1Stok, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Depo1Girilebilir}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Margin="0,0,12,0">
-                            <TextBlock Text="Depo 2 Stoğu" Style="{StaticResource EtiketMetin}"/>
-                            <TextBox Text="{Binding Depo2Stok, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                            <TextBlock Text="{Binding Depo2Etiketi}" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding Depo2Stok, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Depo2Girilebilir}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="3">
                             <TextBlock Text="Toplam Stok" Style="{StaticResource EtiketMetin}" Foreground="{StaticResource TextSecondaryFirca}"/>
@@ -252,7 +270,7 @@
                     </Grid>
 
                     <StackPanel Margin="0,0,0,24">
-                        <TextBlock Text="Minimum Kritik Stok" Style="{StaticResource EtiketMetin}"/>
+                        <TextBlock Text="Kritik Stok Seviyesi (bu miktara düşünce uyarı verilir)" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding MinimumStok}" Style="{StaticResource FormGirisKutusu}" Width="200" HorizontalAlignment="Left"/>
                     </StackPanel>
 
@@ -267,14 +285,14 @@
                                 <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="✕" Margin="0,0,6,0"/>
-                                        <TextBlock Text="Vazgeç"/>
+                                        <TextBlock Text="Ürün Listesine Dön"/>
                                     </StackPanel>
                                 </Button>
 
                                 <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="💾" Margin="0,0,6,0"/>
-                                        <TextBlock Text="Ürünü Kaydet"/>
+                                        <TextBlock Text="{Binding KaydetDugmeMetni}"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>

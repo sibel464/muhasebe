@@ -27,7 +27,6 @@ public class DashboardGorunumModeli : TemelGorunumModeli
 
     // Dialog açma fonksiyonları
     public Func<Task<bool>>? MusteriDuzenleFormAc { get; set; }
-    public Func<Task<bool>>? UrunDuzenleFormAc { get; set; }
 
     public ICommand YeniMusteriKomutu { get; }
     public ICommand YeniUrunKomutu { get; }

@@ -32,7 +32,18 @@ public class UrunServisi : IUrunServisi
     {
         return await _baglam.Urunler
             .Include(u => u.KategoriTanimi).Include(u => u.MarkaTanimi).Include(u => u.BirimTanimi).Include(u => u.Depo)
+            .Include(u => u.SatisFiyatlari).Include(u => u.LokasyonStoklari).ThenInclude(l => l.Depo)
             .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
+    // Ürün kartı ve fiyat listesi tek işlemde kaydedilir; biri başarısız olursa hiçbiri kaydedilmez.
+    public async Task<Urun> KartGuncelleAsync(Urun urun, List<UrunSatisFiyati> fiyatlar)
+    {
+        await using var tx = await _baglam.Database.BeginTransactionAsync();
+        var sonuc = await GuncelleAsync(urun);
+        await FiyatlariKaydetAsync(urun.Id, fiyatlar);
+        await tx.CommitAsync();
+        return sonuc;
     }
 
     public async Task<Urun?> KodIleGetirAsync(string kod)
@@ -62,6 +73,7 @@ public class UrunServisi : IUrunServisi
         if (urun.KdvOrani < 0 || urun.KdvOrani > 100)
             throw new ArgumentException("Geçersiz KDV oranı.");
 
+        urun.Kod = urun.Kod.Trim().ToUpperInvariant();
         var kodVarMi = await KodMevcutMuAsync(urun.Kod);
         if (kodVarMi)
             throw new InvalidOperationException($"'{urun.Kod}' kodlu ürün zaten sistemde mevcut.");
@@ -78,22 +90,12 @@ public class UrunServisi : IUrunServisi
         if (urun.Barkod != null) urun.Barkod = urun.Barkod.Trim();
         if (urun.Barkod != null && await BarkodMevcutMuAsync(urun.Barkod))
             throw new InvalidOperationException("Bu barkod zaten kayıtlı: " + (await BarkodIleGetirAsync(urun.Barkod))?.Ad);
-        _baglam.Urunler.Add(urun);
-        try 
-        { 
-            await _baglam.SaveChangesAsync(); 
 
-            // Yeni ürün oluşturulurken varsayılan lokasyon stoklarını ilklendir
-            var mevcutLokasyonSayisi = await _baglam.UrunLokasyonStoklari.CountAsync(x => x.UrunId == urun.Id);
-            if (mevcutLokasyonSayisi == 0)
-            {
-                _baglam.UrunLokasyonStoklari.AddRange(
-                    new UrunLokasyonStogu { UrunId = urun.Id, DepoId = 1, MevcutMiktar = urun.StokMiktari, RezerveMiktar = 0 },
-                    new UrunLokasyonStogu { UrunId = urun.Id, DepoId = 2, MevcutMiktar = 0, RezerveMiktar = 0 },
-                    new UrunLokasyonStogu { UrunId = urun.Id, DepoId = 3, MevcutMiktar = 0, RezerveMiktar = 0 }
-                );
-                await _baglam.SaveChangesAsync();
-            }
+        await AcilisStogunuHazirlaAsync(urun);
+        _baglam.Urunler.Add(urun);
+        try
+        {
+            await _baglam.SaveChangesAsync();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         { throw new InvalidOperationException("Bu ürün kodu veya barkod zaten kullanılıyor.", ex); }
@@ -112,6 +114,44 @@ public class UrunServisi : IUrunServisi
             var sonuc = await EkleAsync(urun); await tx.CommitAsync(); return sonuc;
         }
         catch { await tx.RollbackAsync(); throw; }
+    }
+
+    // Açılış stoğu yalnızca ürün ilk kaydedilirken girilir; sonraki her değişiklik stok fişiyle yapılır.
+    // Her depo için bir "açılış stoğu" giriş hareketi yazılır, böylece stok miktarı hareketlerle hep tutar.
+    private async Task AcilisStogunuHazirlaAsync(Urun urun)
+    {
+        var lokasyonlar = urun.LokasyonStoklari.Where(l => l.MevcutMiktar != 0).ToList();
+        if (lokasyonlar.Any(l => l.MevcutMiktar < 0))
+            throw new ArgumentException("Açılış stoğu negatif olamaz.");
+        if (lokasyonlar.GroupBy(l => l.DepoId).Any(g => g.Count() > 1))
+            throw new ArgumentException("Aynı depoya iki kez açılış stoğu girilemez.");
+
+        var depoIdleri = lokasyonlar.Select(l => l.DepoId).ToList();
+        var aktifDepolar = await _baglam.Depolar.Where(d => depoIdleri.Contains(d.Id) && d.AktifMi).Select(d => d.Id).ToListAsync();
+        if (aktifDepolar.Count != depoIdleri.Count)
+            throw new InvalidOperationException("Açılış stoğu girilen depolardan biri bulunamadı veya pasif.");
+
+        urun.LokasyonStoklari = lokasyonlar;
+        urun.StokMiktari = lokasyonlar.Sum(l => l.MevcutMiktar);
+        var simdi = DateTime.UtcNow;
+        foreach (var lokasyon in lokasyonlar)
+        {
+            lokasyon.RezerveMiktar = 0;
+            _baglam.StokHareketleri.Add(new StokHareketi
+            {
+                Urun = urun,
+                DepoId = lokasyon.DepoId,
+                SirketId = urun.SirketId,
+                KullaniciId = _kullaniciServisi?.AktifKullanici?.Id,
+                Tarih = simdi,
+                HareketTuru = StokHareketTuru.Giris,
+                IslemTuru = StokIslemTuru.DevirGiris,
+                FisNo = $"ACL-{simdi:yyyyMMddHHmmss}",
+                Miktar = lokasyon.MevcutMiktar,
+                BirimFiyat = urun.AlisFiyati,
+                Aciklama = "Açılış stoğu (ürün kartı)"
+            });
+        }
     }
 
     public Task<string> OtomatikKodOnizleAsync() => new UrunKodBarkodUreteci(_baglam).SonrakiKodUretAsync();
@@ -144,11 +184,11 @@ public class UrunServisi : IUrunServisi
         if (urun.KdvOrani < 0 || urun.KdvOrani > 100)
             throw new ArgumentException("Geçersiz KDV oranı.");
 
+        urun.Kod = urun.Kod.Trim().ToUpperInvariant();
         var kodVarMi = await KodMevcutMuAsync(urun.Kod, urun.Id);
         if (kodVarMi)
             throw new InvalidOperationException($"'{urun.Kod}' kodlu ürün zaten sistemde mevcut.");
 
-        urun.Kod = urun.Kod.Trim().ToUpperInvariant();
         urun.Barkod = string.IsNullOrWhiteSpace(urun.Barkod) ? null : urun.Barkod.Trim();
         if (urun.Barkod != null && await BarkodMevcutMuAsync(urun.Barkod, urun.Id))
             throw new InvalidOperationException("Bu barkod başka bir üründe kullanılıyor.");
@@ -176,23 +216,8 @@ public class UrunServisi : IUrunServisi
         if (tekCekimFiyati != null)
             tekCekimFiyati.Fiyat = urun.PerakendeSatisFiyati;
         mevcutUrun.KdvOrani = urun.KdvOrani;
-        var stokFarki = urun.StokMiktari - mevcutUrun.StokMiktari;
-        mevcutUrun.StokMiktari = urun.StokMiktari;
-        if (stokFarki != 0)
-        {
-            var magazaStok = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(s => s.UrunId == urun.Id && s.DepoId == 1);
-            if (magazaStok == null)
-            {
-                magazaStok = new UrunLokasyonStogu { UrunId = urun.Id, DepoId = 1, MevcutMiktar = urun.StokMiktari, RezerveMiktar = 0 };
-                _baglam.UrunLokasyonStoklari.Add(magazaStok);
-            }
-            else
-            {
-                magazaStok.MevcutMiktar += stokFarki;
-                magazaStok.GuncellemeTarihi = DateTime.UtcNow;
-            }
-        }
-
+        // Stok miktarı bilerek güncellenmez: kart düzenlemesi stoğu değiştiremez, stok yalnızca
+        // fatura/irsaliye/stok giriş-çıkış/sayım fişleriyle (hareket kaydı bırakarak) değişir.
         mevcutUrun.MinimumStok = urun.MinimumStok;
         mevcutUrun.Aktif = urun.Aktif;
         mevcutUrun.GuncellemeTarihi = DateTime.UtcNow;
@@ -322,35 +347,6 @@ public class UrunServisi : IUrunServisi
             .Where(s => s.UrunId == urunId)
             .OrderBy(s => s.Depo!.DepoAdi)
             .ToListAsync();
-    }
-
-    public async Task LokasyonStoklariniKaydetAsync(int urunId, List<UrunLokasyonStogu> stoklar)
-    {
-        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.StokDuzenle, "Ürün lokasyon stoklarını güncelleme");
-
-        var mevcutStoklar = await _baglam.UrunLokasyonStoklari
-            .Where(s => s.UrunId == urunId)
-            .ToListAsync();
-
-        _baglam.UrunLokasyonStoklari.RemoveRange(mevcutStoklar);
-        foreach (var stok in stoklar)
-        {
-            stok.Id = 0;
-            stok.UrunId = urunId;
-            stok.Urun = null;
-            stok.Depo = null;
-        }
-
-        await _baglam.UrunLokasyonStoklari.AddRangeAsync(stoklar);
-
-        var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == urunId);
-        if (urun != null)
-        {
-            urun.StokMiktari = stoklar.Sum(s => s.MevcutMiktar);
-            urun.GuncellemeTarihi = DateTime.UtcNow;
-        }
-
-        await _baglam.SaveChangesAsync();
     }
 
     public async Task<List<Depo>> DepolariGetirAsync()

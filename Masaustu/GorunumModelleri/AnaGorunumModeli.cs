@@ -152,7 +152,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.GorunumModelDegisti += gm =>
         {
             MevcutSayfa = gm;
-            if (gm is UrunGorunumModeli) AktifMenu = "Urun";
+            if (gm is StokOperasyonMerkeziGorunumModeli) AktifMenu = "Urun";
             else if (gm is UrunEkleGorunumModeli) AktifMenu = "UrunEkle";
             else if (gm is MusteriGorunumModeli) AktifMenu = "Musteri";
             else if (gm is CariEkleGorunumModeli) AktifMenu = "CariEkle";

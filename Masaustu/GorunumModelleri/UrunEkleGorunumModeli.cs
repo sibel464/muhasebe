@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using EtkiAlani.Modeller.Stok;
+using EtkiAlani.Modeller.Kurumsal;
 using Uygulama.Arayuzler;
 using Masaustu.Yardimcilar;
 using Masaustu.Servisler;
@@ -11,6 +12,7 @@ using System.IO;
 
 namespace Masaustu.GorunumModelleri;
 
+// Ürün kartı: hem yeni ürün kaydı hem de var olan ürünün düzenlenmesi bu formla yapılır.
 public class UrunEkleGorunumModeli : TemelGorunumModeli
 {
     private readonly IUrunServisi _urunServisi;
@@ -24,18 +26,19 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     private string _kategori = string.Empty;
     private string _birim = "Adet";
     private MerkeziTanim? _seciliKategori, _seciliMarka, _seciliBirim;
-    
+
     private string _kategoriAramaMetni = string.Empty;
     private string _markaAramaMetni = string.Empty;
     private List<MerkeziTanim> _tumKategoriler = new();
     private List<MerkeziTanim> _tumMarkalar = new();
-    
+
     private bool _kodOtomatik = true;
     private bool _barkodOtomatik = true;
     private string _barkodArama = string.Empty;
     private Urun? _bulunanUrun;
 
     private decimal _alisFiyati = 0;
+    private decimal _toptanSatisFiyati = 0;
     private decimal _fiyatTekCekim = 0;
     private decimal _fiyat2Taksit = 0;
     private decimal _fiyat3Taksit = 0;
@@ -53,6 +56,10 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     private decimal _minimumStok = 0;
     private bool _aktif = true;
 
+    // Stok sütunları Stok Operasyon Merkezi ile aynı kurala göre aktif depolardan seçilir:
+    // ilk mağaza ve sırasıyla ilk iki depo.
+    private Depo? _magazaDepo, _depo1, _depo2;
+
     private string _hataMesaji = string.Empty;
     private string _basariMesaji = string.Empty;
     private bool _kaydediliyor = false;
@@ -63,7 +70,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public string Aciklama { get => _aciklama; set => OzellikAyarla(ref _aciklama, value); }
     public string Kategori { get => _kategori; set => OzellikAyarla(ref _kategori, value); }
     public string Birim { get => _birim; set => OzellikAyarla(ref _birim, value); }
-    
+
     public IReadOnlyList<string> KodlamaSecenekleri { get; } = ["Otomatik", "Manuel"];
     public ObservableCollection<string> KullanilanKodlar { get; } = new();
     public ObservableCollection<string> KullanilanBarkodlar { get; } = new();
@@ -94,6 +101,22 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     }
 
     public bool DuzenlemeModu => _bulunanUrun != null;
+    public bool StokGirilebilir => !DuzenlemeModu;
+    public string SayfaBasligi => DuzenlemeModu ? $"Ürün Kartı Düzenle — {_bulunanUrun!.Ad}" : "Yeni Ürün Kaydı";
+    public string SayfaAltBasligi => DuzenlemeModu
+        ? $"Kod: {_bulunanUrun!.Kod}   •   Bilgileri ve fiyatları değiştirip kaydedin."
+        : "Ürün bilgilerini, fiyatlarını ve açılış stoğunu girin.";
+    public string KaydetDugmeMetni => DuzenlemeModu ? "Değişiklikleri Kaydet" : "Ürünü Kaydet";
+    public string StokBilgiMetni => DuzenlemeModu
+        ? "Kayıtlı bir ürünün stoğu buradan değiştirilemez. Stok; fatura, irsaliye veya Ürünler ekranındaki Stok Girişi / Stok Çıkışı / Stok Sayımı ile değişir. Böylece her değişikliğin kaydı tutulur."
+        : "Buraya yalnızca ürünün şu an elinizde olan açılış stoğunu girin. Kayıttan sonra stok sadece fatura, irsaliye ve stok fişleriyle değişir.";
+
+    public string MagazaEtiketi => _magazaDepo?.DepoAdi ?? "Mağaza (tanımlı değil)";
+    public string Depo1Etiketi => _depo1?.DepoAdi ?? "Depo 1 (tanımlı değil)";
+    public string Depo2Etiketi => _depo2?.DepoAdi ?? "Depo 2 (tanımlı değil)";
+    public bool MagazaGirilebilir => StokGirilebilir && _magazaDepo != null;
+    public bool Depo1Girilebilir => StokGirilebilir && _depo1 != null;
+    public bool Depo2Girilebilir => StokGirilebilir && _depo2 != null;
 
     public ObservableCollection<MerkeziTanim> Kategoriler { get; }=new();
     public ObservableCollection<MerkeziTanim> Markalar { get; }=new();
@@ -101,8 +124,9 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public MerkeziTanim? SeciliKategori {get=>_seciliKategori;set{if(OzellikAyarla(ref _seciliKategori,value))Kategori=value?.Ad??"";}}
     public MerkeziTanim? SeciliMarka {get=>_seciliMarka;set=>OzellikAyarla(ref _seciliMarka,value);}
     public MerkeziTanim? SeciliBirim {get=>_seciliBirim;set{if(OzellikAyarla(ref _seciliBirim,value))Birim=value?.KisaAd??value?.Ad??"";}}
-    
+
     public decimal AlisFiyati { get => _alisFiyati; set => OzellikAyarla(ref _alisFiyati, value); }
+    public decimal ToptanSatisFiyati { get => _toptanSatisFiyati; set => OzellikAyarla(ref _toptanSatisFiyati, value); }
     public decimal FiyatTekCekim { get => _fiyatTekCekim; set => OzellikAyarla(ref _fiyatTekCekim, value); }
     public decimal Fiyat2Taksit { get => _fiyat2Taksit; set => OzellikAyarla(ref _fiyat2Taksit, value); }
     public decimal Fiyat3Taksit { get => _fiyat3Taksit; set => OzellikAyarla(ref _fiyat3Taksit, value); }
@@ -114,32 +138,32 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public decimal Fiyat9Taksit { get => _fiyat9Taksit; set => OzellikAyarla(ref _fiyat9Taksit, value); }
 
     public decimal KdvOrani { get => _kdvOrani; set => OzellikAyarla(ref _kdvOrani, value); }
-    public decimal MagazaStok 
-    { 
-        get => _magazaStok; 
-        set 
-        { 
-            OzellikAyarla(ref _magazaStok, value); 
-            BildirimGonder(nameof(ToplamStok)); 
-        } 
+    public decimal MagazaStok
+    {
+        get => _magazaStok;
+        set
+        {
+            OzellikAyarla(ref _magazaStok, value);
+            BildirimGonder(nameof(ToplamStok));
+        }
     }
-    public decimal Depo1Stok 
-    { 
-        get => _depo1Stok; 
-        set 
-        { 
-            OzellikAyarla(ref _depo1Stok, value); 
-            BildirimGonder(nameof(ToplamStok)); 
-        } 
+    public decimal Depo1Stok
+    {
+        get => _depo1Stok;
+        set
+        {
+            OzellikAyarla(ref _depo1Stok, value);
+            BildirimGonder(nameof(ToplamStok));
+        }
     }
-    public decimal Depo2Stok 
-    { 
-        get => _depo2Stok; 
-        set 
-        { 
-            OzellikAyarla(ref _depo2Stok, value); 
-            BildirimGonder(nameof(ToplamStok)); 
-        } 
+    public decimal Depo2Stok
+    {
+        get => _depo2Stok;
+        set
+        {
+            OzellikAyarla(ref _depo2Stok, value);
+            BildirimGonder(nameof(ToplamStok));
+        }
     }
     public decimal ToplamStok => MagazaStok + Depo1Stok + Depo2Stok;
 
@@ -151,7 +175,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public bool Kaydediliyor { get => _kaydediliyor; set => OzellikAyarla(ref _kaydediliyor, value); }
 
     public ICommand KaydetKomutu { get; }
-    public ICommand FormuTemizleKomutu { get; }
+    public ICommand YeniUrunKomutu { get; }
     public ICommand IptalKomutu { get; }
     public ICommand BarkodAraKomutu { get; }
     public ICommand KodEkleKomutu { get; }
@@ -162,9 +186,9 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         _urunServisi = urunServisi;
         _navigasyon = navigasyon;
         _tanimServisi=tanimServisi;
-        
+
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync(), () => !Kaydediliyor);
-        FormuTemizleKomutu = new KomutSarici(FormuTemizle);
+        YeniUrunKomutu = new KomutSarici(async () => await YeniUrunaGecAsync());
         IptalKomutu = new KomutSarici(() => _navigasyon.Git("Urun"));
         BarkodAraKomutu = new KomutSarici(_ => BarkodlaAraAsync());
         KodEkleKomutu = new KomutSarici(() => KodOtomatik = false);
@@ -180,15 +204,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         try
         {
             await TanimlariYukleAsync();
-            
-            var kodlar = await _urunServisi.KullanilanKodlariGetirAsync();
-            KullanilanKodlar.Clear();
-            foreach (var x in kodlar) KullanilanKodlar.Add(x);
-
-            var barkodlar = await _urunServisi.KullanilanBarkodlariGetirAsync();
-            KullanilanBarkodlar.Clear();
-            foreach (var x in barkodlar) KullanilanBarkodlar.Add(x);
-
+            await DepolariYukleAsync();
+            await KullanilanKodlariYukleAsync();
             await OnizlemeleriYukleKilitsizAsync();
         }
         catch (Exception ex)
@@ -199,6 +216,41 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         {
             _yuklemeKilidi.Release();
         }
+    }
+
+    private async Task KullanilanKodlariYukleAsync()
+    {
+        var kodlar = await _urunServisi.KullanilanKodlariGetirAsync();
+        KullanilanKodlar.Clear();
+        foreach (var x in kodlar) KullanilanKodlar.Add(x);
+
+        var barkodlar = await _urunServisi.KullanilanBarkodlariGetirAsync();
+        KullanilanBarkodlar.Clear();
+        foreach (var x in barkodlar) KullanilanBarkodlar.Add(x);
+    }
+
+    private async Task DepolariYukleAsync()
+    {
+        var depolar = (await _urunServisi.DepolariGetirAsync()).OrderBy(d => d.Id).ToList();
+        _magazaDepo = depolar.FirstOrDefault(d => d.DepoTuru == DepoTuru.Magaza);
+        var normal = depolar.Where(d => d.DepoTuru == DepoTuru.Depo).ToList();
+        _depo1 = normal.ElementAtOrDefault(0);
+        _depo2 = normal.ElementAtOrDefault(1);
+        StokAlanlariniBildir();
+    }
+
+    private void StokAlanlariniBildir()
+    {
+        foreach (var ad in new[] { nameof(MagazaEtiketi), nameof(Depo1Etiketi), nameof(Depo2Etiketi),
+                     nameof(MagazaGirilebilir), nameof(Depo1Girilebilir), nameof(Depo2Girilebilir), nameof(StokGirilebilir), nameof(StokBilgiMetni) })
+            BildirimGonder(ad);
+    }
+
+    private void ModBildir()
+    {
+        foreach (var ad in new[] { nameof(DuzenlemeModu), nameof(SayfaBasligi), nameof(SayfaAltBasligi), nameof(KaydetDugmeMetni) })
+            BildirimGonder(ad);
+        StokAlanlariniBildir();
     }
 
     private async Task OnizlemeleriYukleAsync()
@@ -224,17 +276,60 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         if (BarkodOtomatik) Barkod = await _urunServisi.OtomatikBarkodOnizleAsync();
     }
 
+    // Ürünler listesindeki "Düzenle" düğmesi formu bu yöntemle açar.
+    public async Task DuzenlemeIcinYukleAsync(int urunId)
+    {
+        await _yuklemeKilidi.WaitAsync();
+        try
+        {
+            var urun = await _urunServisi.IdIleGetirAsync(urunId);
+            if (urun == null) { HataMesaji = "Ürün bulunamadı. Silinmiş olabilir."; return; }
+            UrunuFormaYukle(urun);
+        }
+        catch (Exception ex)
+        {
+            HataMesaji = $"Ürün yüklenirken hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _yuklemeKilidi.Release();
+        }
+    }
+
     public async Task BarkodlaAraAsync()
     {
         var aranan = BarkodArama.Trim(); if (aranan.Length == 0) return;
+        HataMesaji = string.Empty; BasariMesaji = string.Empty;
         var u = await _urunServisi.BarkodIleGetirAsync(aranan);
-        if (u == null) { BarkodOtomatik = false; Barkod = aranan; HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı. Yeni ürün olarak devam edebilirsiniz."; return; }
-        _bulunanUrun = u; KodOtomatik = false; BarkodOtomatik = false; Kod = u.Kod; Barkod = u.Barkod ?? aranan; Ad = u.Ad; Aciklama = u.Aciklama ?? ""; KdvOrani = u.KdvOrani; AlisFiyati = u.AlisFiyati;
-        SeciliKategori = Kategoriler.FirstOrDefault(x => x.Id == u.KategoriTanimiId); SeciliMarka = Markalar.FirstOrDefault(x => x.Id == u.MarkaTanimiId); SeciliBirim = Birimler.FirstOrDefault(x => x.Id == u.BirimTanimiId);
+        if (u == null)
+        {
+            if (DuzenlemeModu) { HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı."; return; }
+            BarkodOtomatik = false; Barkod = aranan;
+            HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı. Yeni ürün olarak devam edebilirsiniz.";
+            return;
+        }
+        UrunuFormaYukle(u);
+        BasariMesaji = $"Bu barkoda ait ürün bulundu: {u.Ad} ({u.Kod}). Düzenleme için açıldı.";
+    }
+
+    private void UrunuFormaYukle(Urun u)
+    {
+        _bulunanUrun = u;
+        KodOtomatik = false; BarkodOtomatik = false;
+        Kod = u.Kod; Barkod = u.Barkod ?? string.Empty; Ad = u.Ad; Aciklama = u.Aciklama ?? "";
+        KdvOrani = u.KdvOrani; AlisFiyati = u.AlisFiyati; ToptanSatisFiyati = u.ToptanSatisFiyati;
+        MinimumStok = u.MinimumStok; Aktif = u.Aktif;
+        SeciliKategori = Kategoriler.FirstOrDefault(x => x.Id == u.KategoriTanimiId);
+        SeciliMarka = Markalar.FirstOrDefault(x => x.Id == u.MarkaTanimiId);
+        SeciliBirim = Birimler.FirstOrDefault(x => x.Id == u.BirimTanimiId) ?? SeciliBirim;
+
+        for (var t = 1; t <= 9; t++) FiyatAta(t, 0);
         FiyatTekCekim = u.PerakendeSatisFiyati;
-        foreach (var f in u.SatisFiyatlari) FiyatAta(f.TaksitSayisi, f.Fiyat);
-        MagazaStok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 1)?.MevcutMiktar ?? 0; Depo1Stok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 2)?.MevcutMiktar ?? 0; Depo2Stok = u.LokasyonStoklari.FirstOrDefault(x => x.DepoId == 3)?.MevcutMiktar ?? 0;
-        BasariMesaji = $"Bu barkoda ait ürün bulundu: {u.Ad} ({u.Kod}). Düzenleme modunda açıldı."; BildirimGonder(nameof(DuzenlemeModu));
+        foreach (var f in u.SatisFiyatlari.Where(f => f.AktifMi)) FiyatAta(f.TaksitSayisi, f.Fiyat);
+
+        decimal Stok(Depo? d) => d == null ? 0 : u.LokasyonStoklari.Where(x => x.DepoId == d.Id).Sum(x => x.MevcutMiktar);
+        MagazaStok = Stok(_magazaDepo); Depo1Stok = Stok(_depo1); Depo2Stok = Stok(_depo2);
+        ModBildir();
     }
 
     private void FiyatAta(int t, decimal f) { switch(t){case 1:FiyatTekCekim=f;break;case 2:Fiyat2Taksit=f;break;case 3:Fiyat3Taksit=f;break;case 4:Fiyat4Taksit=f;break;case 5:Fiyat5Taksit=f;break;case 6:Fiyat6Taksit=f;break;case 7:Fiyat7Taksit=f;break;case 8:Fiyat8Taksit=f;break;case 9:Fiyat9Taksit=f;break;} }
@@ -268,8 +363,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         }
 
         var arama = KategoriAramaMetni.ToLowerInvariant();
-        var filtreli = _tumKategoriler.Where(k => 
-            k.Ad.ToLowerInvariant().Contains(arama) || 
+        var filtreli = _tumKategoriler.Where(k =>
+            k.Ad.ToLowerInvariant().Contains(arama) ||
             k.Kod.ToLowerInvariant().Contains(arama)).ToList();
 
         Kategoriler.Clear();
@@ -286,8 +381,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         }
 
         var arama = MarkaAramaMetni.ToLowerInvariant();
-        var filtreli = _tumMarkalar.Where(m => 
-            m.Ad.ToLowerInvariant().Contains(arama) || 
+        var filtreli = _tumMarkalar.Where(m =>
+            m.Ad.ToLowerInvariant().Contains(arama) ||
             m.Kod.ToLowerInvariant().Contains(arama)).ToList();
 
         Markalar.Clear();
@@ -298,27 +393,28 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     {
         HataMesaji = string.Empty;
         BasariMesaji = string.Empty;
-        
+
         if (!KodOtomatik && string.IsNullOrWhiteSpace(Kod)) { HataMesaji = "Lütfen ürün kodu giriniz veya otomatik seçeneğini işaretleyiniz."; return; }
         if (string.IsNullOrWhiteSpace(Ad)) { HataMesaji = "Lütfen ürün adını giriniz."; return; }
-        
+        if (KdvOrani < 0 || KdvOrani > 100) { HataMesaji = "KDV oranı 0 ile 100 arasında olmalıdır."; return; }
+        if (AlisFiyati < 0 || ToptanSatisFiyati < 0 || FiyatlarListesi().Any(f => f.Fiyat < 0)) { HataMesaji = "Fiyatlar negatif olamaz."; return; }
+        if (MinimumStok < 0) { HataMesaji = "Kritik stok seviyesi negatif olamaz."; return; }
+        if (!DuzenlemeModu && (MagazaStok < 0 || Depo1Stok < 0 || Depo2Stok < 0)) { HataMesaji = "Açılış stoğu negatif olamaz."; return; }
+
         if (SeciliBirim is null && Birimler.Count > 0)
         {
             SeciliBirim = Birimler.FirstOrDefault(x => x.Ad.Equals(Birim, StringComparison.OrdinalIgnoreCase) || (x.KisaAd != null && x.KisaAd.Equals(Birim, StringComparison.OrdinalIgnoreCase))) ?? Birimler.FirstOrDefault();
         }
         if (SeciliBirim is null) { HataMesaji = "Lütfen ölçü birimi seçiniz."; return; }
 
-        string urunKodu = Kod.Trim();
-        string? urunBarkod = string.IsNullOrWhiteSpace(Barkod) ? null : Barkod.Trim();
-
         Kaydediliyor = true;
         ((KomutSarici)KaydetKomutu).BildirimGonder();
 
         var urun = new Urun
         {
-            Kod = urunKodu,
+            Kod = Kod.Trim(),
             Ad = Ad.Trim(),
-            Barkod = urunBarkod,
+            Barkod = string.IsNullOrWhiteSpace(Barkod) ? null : Barkod.Trim(),
             Aciklama = Aciklama?.Trim(),
             Kategori = Kategori,
             Birim = Birim,
@@ -327,74 +423,43 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             BirimTanimiId=SeciliBirim?.Id,
             AlisFiyati = AlisFiyati,
             PerakendeSatisFiyati = FiyatTekCekim,
+            ToptanSatisFiyati = ToptanSatisFiyati,
             KdvOrani = KdvOrani,
-            StokMiktari = ToplamStok, // Genel toplam görünüm amaçlı
             MinimumStok = MinimumStok,
             Aktif = Aktif
         };
-
-        // 9 Taksit Fiyatları
-        void FiyatEkle(int taksit, decimal fiyat) 
-        {
-            if(fiyat > 0) 
-            {
-                urun.SatisFiyatlari.Add(new UrunSatisFiyati { 
-                    TaksitSayisi = taksit,
-                    Fiyat = fiyat,
-                    ParaBirimiId = 1,
-                    AktifMi = true
-                });
-            }
-        }
-        FiyatEkle(1, FiyatTekCekim);
-        FiyatEkle(2, Fiyat2Taksit);
-        FiyatEkle(3, Fiyat3Taksit);
-        FiyatEkle(4, Fiyat4Taksit);
-        FiyatEkle(5, Fiyat5Taksit);
-        FiyatEkle(6, Fiyat6Taksit);
-        FiyatEkle(7, Fiyat7Taksit);
-        FiyatEkle(8, Fiyat8Taksit);
-        FiyatEkle(9, Fiyat9Taksit);
-
-        // Stok Lokasyonları
-        void LokasyonEkle(int depoId, decimal miktar)
-        {
-            if (miktar > 0)
-            {
-                urun.LokasyonStoklari.Add(new UrunLokasyonStogu {
-                    DepoId = depoId,
-                    MevcutMiktar = miktar
-                });
-            }
-        }
-        LokasyonEkle(1, MagazaStok);
-        LokasyonEkle(2, Depo1Stok);
-        LokasyonEkle(3, Depo2Stok);
+        var fiyatlar = FiyatlarListesi().Where(f => f.Fiyat > 0).ToList();
 
         try
         {
             Urun kaydedilenUrun;
-            if (_bulunanUrun == null) kaydedilenUrun = await _urunServisi.GuvenliEkleAsync(urun, KodOtomatik, BarkodOtomatik);
+            var yeniKayit = _bulunanUrun == null;
+            if (yeniKayit)
+            {
+                foreach (var f in fiyatlar) urun.SatisFiyatlari.Add(f);
+                void AcilisStogu(Depo? depo, decimal miktar)
+                {
+                    if (depo != null && miktar > 0)
+                        urun.LokasyonStoklari.Add(new UrunLokasyonStogu { DepoId = depo.Id, MevcutMiktar = miktar });
+                }
+                AcilisStogu(_magazaDepo, MagazaStok);
+                AcilisStogu(_depo1, Depo1Stok);
+                AcilisStogu(_depo2, Depo2Stok);
+                kaydedilenUrun = await _urunServisi.GuvenliEkleAsync(urun, KodOtomatik, BarkodOtomatik);
+            }
             else
             {
-                urun.Id = _bulunanUrun.Id;
-                kaydedilenUrun = await _urunServisi.GuncelleAsync(urun);
-                await _urunServisi.FiyatlariKaydetAsync(urun.Id, urun.SatisFiyatlari.ToList());
-                await _urunServisi.LokasyonStoklariniKaydetAsync(urun.Id, urun.LokasyonStoklari.ToList());
+                urun.Id = _bulunanUrun!.Id;
+                urun.DepoId = _bulunanUrun.DepoId;
+                await _urunServisi.KartGuncelleAsync(urun, fiyatlar);
+                kaydedilenUrun = await _urunServisi.IdIleGetirAsync(urun.Id) ?? urun;
             }
-            if (kaydedilenUrun.Id <= 0)
-                throw new InvalidOperationException("Ürün kaydı kimlik değeri üretilmeden tamamlandı.");
 
-            var yeniKayit = _bulunanUrun == null;
-            _bulunanUrun = kaydedilenUrun;
-            KodOtomatik = false;
-            BarkodOtomatik = false;
-            Kod = kaydedilenUrun.Kod;
-            Barkod = kaydedilenUrun.Barkod ?? string.Empty;
-            BildirimGonder(nameof(DuzenlemeModu));
+            UrunuFormaYukle(kaydedilenUrun);
+            await KullanilanKodlariYukleAsync();
             BasariMesaji = yeniKayit
-                ? $"✓ Ürün başarıyla kaydedildi.\nÜrün Kodu: {Kod}\nBarkod: {Barkod}"
-                : $"✓ Ürün başarıyla güncellendi.\nÜrün Kodu: {Kod}\nBarkod: {Barkod}";
+                ? $"✓ Ürün kaydedildi.  Kod: {Kod}   Barkod: {Barkod}\nYeni bir ürün eklemek için \"Yeni Ürün\" düğmesine basın."
+                : $"✓ Değişiklikler kaydedildi.  Kod: {Kod}";
         }
         catch (Exception ex)
         {
@@ -408,16 +473,24 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         }
     }
 
+    private List<UrunSatisFiyati> FiyatlarListesi()
+    {
+        var degerler = new[] { FiyatTekCekim, Fiyat2Taksit, Fiyat3Taksit, Fiyat4Taksit, Fiyat5Taksit, Fiyat6Taksit, Fiyat7Taksit, Fiyat8Taksit, Fiyat9Taksit };
+        return degerler.Select((fiyat, i) => new UrunSatisFiyati { TaksitSayisi = i + 1, Fiyat = fiyat, ParaBirimiId = 1, AktifMi = true }).ToList();
+    }
+
     private static string KullaniciHatasiOlustur(Exception exception)
     {
         var postgres = PostgreSqlHatasiniBul(exception);
         return postgres?.SqlState switch
         {
-            PostgresErrorCodes.UniqueViolation => "Bu ürün kodu veya barkod daha önce kullanılmış.",
+            PostgresErrorCodes.UniqueViolation => "Bu ürün kodu veya barkod daha önce kullanılmış (silinmiş bir üründe de olabilir). Farklı bir kod/barkod girin.",
             PostgresErrorCodes.ForeignKeyViolation => "Seçilen kategori, marka, birim, şirket veya depo artık geçerli değil.",
             PostgresErrorCodes.NotNullViolation => "Zorunlu ürün bilgilerinden biri eksik.",
             PostgresErrorCodes.NumericValueOutOfRange => "Girilen fiyat veya stok değeri izin verilen aralığın dışında.",
-            _ when exception is UnauthorizedAccessException => "Bu işlemi yapmak için ürün ekleme yetkiniz yok.",
+            _ when exception is UnauthorizedAccessException => "Bu işlem için yetkiniz yok. Yöneticinizden ürün ekleme/düzenleme yetkisi isteyin.",
+            // Servisin iş kuralı mesajları kullanıcıya olduğu gibi gösterilir.
+            _ when exception is ArgumentException or InvalidOperationException or KeyNotFoundException => exception.Message,
             _ when exception is DbUpdateException => "Ürün veritabanına kaydedilemedi. Bilgileri kontrol edip tekrar deneyin.",
             _ => "Ürün kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin."
         };
@@ -432,7 +505,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             var satirlar = new[]
             {
                 $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] Urun kaydi basarisiz",
-                $"Entity: Kod={urun.Kod}; Ad={urun.Ad}; Alis={urun.AlisFiyati}; Kdv={urun.KdvOrani}; MinimumStok={urun.MinimumStok}; SirketId={urun.SirketId}; DepoId={urun.DepoId}; KategoriTanimiId={urun.KategoriTanimiId}; MarkaTanimiId={urun.MarkaTanimiId}; BirimTanimiId={urun.BirimTanimiId}; Aktif={urun.Aktif}",
+                $"Entity: Id={urun.Id}; Kod={urun.Kod}; Ad={urun.Ad}; Alis={urun.AlisFiyati}; Kdv={urun.KdvOrani}; MinimumStok={urun.MinimumStok}; SirketId={urun.SirketId}; DepoId={urun.DepoId}; KategoriTanimiId={urun.KategoriTanimiId}; MarkaTanimiId={urun.MarkaTanimiId}; BirimTanimiId={urun.BirimTanimiId}; Aktif={urun.Aktif}",
                 $"Exception: {exception.GetType().FullName}: {exception.Message}",
                 $"InnerException: {inner?.GetType().FullName}: {inner?.Message}",
                 $"PostgreSQL: SqlState={postgres?.SqlState}; Constraint={postgres?.ConstraintName}; Table={postgres?.TableName}; Column={postgres?.ColumnName}",
@@ -454,25 +527,31 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         return null;
     }
 
-    private void FormuTemizle()
+    // Formu tamamen boşaltıp yeni ürün kaydına hazırlar (otomatik kod/barkod yeniden önerilir).
+    private async Task YeniUrunaGecAsync()
     {
-        Kod = string.Empty;
+        _bulunanUrun = null;
+        HataMesaji = string.Empty;
+        BasariMesaji = string.Empty;
+        BarkodArama = string.Empty;
         Ad = string.Empty;
-        Barkod = string.Empty;
         Aciklama = string.Empty;
-        Kategori = string.Empty;
+        SeciliKategori = null;
+        SeciliMarka = null;
+        KdvOrani = 20;
         AlisFiyati = 0;
-        FiyatTekCekim = 0;
-        Fiyat2Taksit = 0;
-        Fiyat3Taksit = 0;
-        Fiyat4Taksit = 0;
-        Fiyat5Taksit = 0;
-        Fiyat6Taksit = 0;
-        Fiyat7Taksit = 0;
-        Fiyat8Taksit = 0;
-        Fiyat9Taksit = 0;
+        ToptanSatisFiyati = 0;
+        for (var t = 1; t <= 9; t++) FiyatAta(t, 0);
         MagazaStok = 0;
         Depo1Stok = 0;
         Depo2Stok = 0;
+        MinimumStok = 0;
+        Aktif = true;
+        ModBildir();
+        // Otomatik moda geçiş önizlemeyi kendisi yükler; zaten otomatikse elle yüklenir.
+        var kodZatenOtomatik = KodOtomatik && BarkodOtomatik;
+        KodOtomatik = true;
+        BarkodOtomatik = true;
+        if (kodZatenOtomatik) await OnizlemeleriYukleAsync();
     }
 }

@@ -55,9 +55,6 @@
             <DataTemplate DataType="{x:Type gm:UrunSilGorunumModeli}">
                 <sayfa:UrunSilSayfasi/>
             </DataTemplate>
-            <DataTemplate DataType="{x:Type gm:UrunGorunumModeli}">
-                <sayfa:UrunSayfasi/>
-            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:SatisGorunumModeli}">
                 <sayfa:ProfesyonelSatisSayfasi/>
             </DataTemplate>

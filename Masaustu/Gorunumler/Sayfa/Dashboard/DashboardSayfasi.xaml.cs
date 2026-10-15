@@ -28,19 +28,6 @@ public partial class DashboardSayfasi : UserControl
                     pencere.ShowDialog();
                     return pencere.Kaydedildi;
                 };
-
-                vm.UrunDuzenleFormAc = async () =>
-                {
-                    var urunServisi = App.HizmetSaglayici.GetService(typeof(IUrunServisi)) as IUrunServisi;
-                    if (urunServisi == null) return false;
-
-                    var pencere = new Urun.UrunDuzenlePenceresi(urunServisi, null)
-                    {
-                        Owner = Window.GetWindow(this)
-                    };
-                    pencere.ShowDialog();
-                    return pencere.Kaydedildi;
-                };
             }
         };
     }
