@@ -505,12 +505,7 @@ public class FaturaServisi : IFaturaServisi
                             .SetProperty(s => s.GuncellemeTarihi, DateTime.UtcNow));
                     if (etkilenen != 1)
                         throw new InvalidOperationException("İptal işleminde özgün stok alanı güvenli biçimde güncellenemedi.");
-
-                    await _baglam.Urunler
-                        .Where(u => u.Id == hareket.UrunId)
-                        .ExecuteUpdateAsync(setters => setters
-                            .SetProperty(u => u.StokMiktari, u => u.StokMiktari + yon * hareket.Miktar)
-                            .SetProperty(u => u.GuncellemeTarihi, DateTime.UtcNow));
+                    // Ürün kartındaki toplam stok, aşağıdaki ters stok hareketinden MuhasebeBaglami tarafından güncellenir.
                 }
 
                 _baglam.StokHareketleri.Add(new StokHareketi
@@ -651,6 +646,8 @@ public class FaturaServisi : IFaturaServisi
                     if (fk.Miktar <= 0 || fk.Miktar > ik.Miktar - onceki)
                         throw new InvalidOperationException("Faturalanabilir irsaliye miktarı başka bir işlem tarafından değiştirildi. Lütfen kayıtları yenileyin.");
                     fk.SiparisKalemiId = ik.SiparisKalemiId; fk.UrunId = ik.UrunId; fk.UrunKodu = ik.UrunKodu; fk.UrunAd = ik.UrunAd; fk.Birim = ik.Birim;
+                    // Siparişsiz (elle girilmiş) irsaliyede fiyat ve KDV irsaliye kaleminden gelir.
+                    fk.BirimFiyat = ik.BirimFiyat; fk.IskontoOrani = 0; fk.KdvOrani = ik.KdvOrani;
                 }
                 else
                 {
@@ -672,8 +669,11 @@ public class FaturaServisi : IFaturaServisi
                 }
             }
 
-            fatura.Tur = siparis?.SiparisTuru == SiparisTuru.Alis ? FaturaTuru.Alis : FaturaTuru.Satis;
-            fatura.Durum = BelgeDurumu.Taslak; fatura.Tarih = fatura.Tarih == default ? DateTime.UtcNow : fatura.Tarih;
+            fatura.Tur = irsaliye != null
+                ? (irsaliye.Tur == IrsaliyeTuru.Alis ? FaturaTuru.Alis : FaturaTuru.Satis)
+                : (siparis?.SiparisTuru == SiparisTuru.Alis ? FaturaTuru.Alis : FaturaTuru.Satis);
+            // Belge tarihleri yerel saatle (UTC etiketli) saklanır.
+            fatura.Durum = BelgeDurumu.Taslak; fatura.Tarih = fatura.Tarih == default ? DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc) : fatura.Tarih;
             fatura.Aciklama = $"{(irsaliye != null ? irsaliye.IrsaliyeNo : siparis!.SiparisNo)} kaynaklı fatura";
             var eklenen = await EkleAsync(fatura);
             await _financialTransactionService.CreateFromInvoiceAsync(eklenen.Id);

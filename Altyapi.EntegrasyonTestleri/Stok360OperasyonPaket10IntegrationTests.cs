@@ -383,6 +383,22 @@ public sealed class Stok360OperasyonPaket10IntegrationTests
         Assert.Equal(14, item.MagazaFiziksel);
     }
 
+    [Fact]
+    public async Task Manuel_giris_cikis_ve_sayim_urun_kartindaki_toplam_stogu_bir_kez_degistirir()
+    {
+        var (db, sirket, magaza, _, _, urun, _, operasyon, _) = await HazirlaAsync();
+        await using var _ = db;
+
+        await operasyon.StokGirisiYapAsync(new StokGirisIstegi(urun.Id, magaza.Id, 15, 100, DateTime.UtcNow, "Alım", null, "Giriş"), sirket.Id, 100);
+        await operasyon.StokCikisiYapAsync(new StokCikisIstegi(urun.Id, magaza.Id, 5, 0, DateTime.UtcNow, "Fire", null, "Çıkış"), sirket.Id, 100);
+        var sayim = await operasyon.SayimOlusturAsync(new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Sayım", new List<StokSayimKalemIstegi> { new(urun.Id, 12) }), sirket.Id, 100);
+        await operasyon.SayimOnaylaAsync(sayim.Id, sirket.Id, 100);
+
+        await using var kontrol = new MuhasebeBaglami(_fixture.Options);
+        Assert.Equal(12, (await kontrol.Urunler.SingleAsync(u => u.Id == urun.Id)).StokMiktari);
+        Assert.Equal(12, await kontrol.UrunLokasyonStoklari.Where(l => l.UrunId == urun.Id).SumAsync(l => l.MevcutMiktar));
+    }
+
     #endregion
 
     #region 5. Multi-Tenant İzolasyon & Güvenlik Testleri

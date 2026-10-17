@@ -387,8 +387,7 @@ public class DepoServisi : IDepoServisi
             lokasyon.MevcutMiktar = sayilanMiktar;
         }
 
-        // Ana ürün toplam stok miktarını da fark kadar güncelle
-        urun.StokMiktari += fark;
+        // Ana ürün toplam stoğu sayım farkı hareketinden otomatik güncellenir (MuhasebeBaglami).
         var depoAdi = depo.DepoAdi;
 
         var sh = new StokHareketi

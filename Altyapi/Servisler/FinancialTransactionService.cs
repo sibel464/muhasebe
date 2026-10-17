@@ -206,23 +206,11 @@ public class FinancialTransactionService : IFinancialTransactionService
 
                         lokasyon.MevcutMiktar -= dagilim.Miktar;
                         lokasyon.GuncellemeTarihi = DateTime.UtcNow;
-
-                        if (urunler.TryGetValue(kalem.UrunId, out var targetUrun))
-                        {
-                            targetUrun.StokMiktari -= dagilim.Miktar;
-                            targetUrun.GuncellemeTarihi = DateTime.UtcNow;
-                        }
                     }
                     else
                     {
                         lokasyon.MevcutMiktar += dagilim.Miktar;
                         lokasyon.GuncellemeTarihi = DateTime.UtcNow;
-
-                        if (urunler.TryGetValue(kalem.UrunId, out var targetUrun))
-                        {
-                            targetUrun.StokMiktari += dagilim.Miktar;
-                            targetUrun.GuncellemeTarihi = DateTime.UtcNow;
-                        }
                     }
 
                     _baglam.StokHareketleri.Add(new StokHareketi

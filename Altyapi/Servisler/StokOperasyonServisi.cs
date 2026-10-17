@@ -156,9 +156,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         lokasyon.MevcutMiktar += istek.Miktar;
         lokasyon.GuncellemeTarihi = DateTime.UtcNow;
-
-        urun.StokMiktari += istek.Miktar;
-        urun.GuncellemeTarihi = DateTime.UtcNow;
+        // Ürün kartındaki toplam stok stok hareketinden otomatik güncellenir (MuhasebeBaglami).
 
         var sh = new StokHareketi
         {
@@ -208,9 +206,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         lokasyon!.MevcutMiktar -= istek.Miktar;
         lokasyon.GuncellemeTarihi = DateTime.UtcNow;
-
-        urun.StokMiktari -= istek.Miktar;
-        urun.GuncellemeTarihi = DateTime.UtcNow;
+        // Ürün kartındaki toplam stok stok hareketinden otomatik güncellenir (MuhasebeBaglami).
 
         var sh = new StokHareketi
         {
@@ -492,9 +488,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
             lokasyon.MevcutMiktar = k.SayilanMiktar;
             lokasyon.GuncellemeTarihi = DateTime.UtcNow;
-
-            urun.StokMiktari += fark;
-            urun.GuncellemeTarihi = DateTime.UtcNow;
+            // Ürün kartındaki toplam stok sayım farkı hareketinden otomatik güncellenir (MuhasebeBaglami).
 
             var sh = new StokHareketi
             {

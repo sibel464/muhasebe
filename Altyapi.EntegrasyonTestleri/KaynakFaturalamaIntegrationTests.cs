@@ -39,6 +39,69 @@ public sealed class KaynakFaturalamaIntegrationTests
     [Fact] public async Task Dogrudan_fatura_iptalinde_stok_geri_gelir() { var x=await Hazirla(5,20); var f=await Dogrudan(x,5); await Stok(x,15); await IptalFatura(f.Id); await Stok(x,20); }
     [Fact] public async Task Iptalde_faturalanan_miktar_azalir_ve_kritik_zincir_dogrudur() { var x=await Hazirla(10,20); var i=await Sevk(x,10); await Stok(x,10); var f=await Irsaliyeden(x,i,10); await Stok(x,10); await IptalFatura(f.Id); await Stok(x,10); await Kontrol(x,s=>Assert.Equal(0,s.Kalemler.Single().FaturalananMiktar)); await IptalIrsaliye(i.Id); await Stok(x,20); }
 
+    [Theory]
+    [InlineData(IrsaliyeTuru.Satis, FaturaTuru.Satis, "120")]
+    [InlineData(IrsaliyeTuru.Alis, FaturaTuru.Alis, "320")]
+    public async Task Siparissiz_irsaliyeden_fatura_irsaliyenin_fiyat_kdv_ve_turunu_alir(IrsaliyeTuru irsaliyeTuru, FaturaTuru beklenenTur, string cariHesap)
+    {
+        var x = await Hazirla(1, 50);
+        int irsaliyeId;
+        await using (var c = Yeni())
+        {
+            var cariId = await c.CariKartlar.Select(k => k.Id).FirstAsync();
+            var irsaliye = await IS(c).EkleAsync(new Irsaliye
+            {
+                CariKartId = cariId, Tur = irsaliyeTuru, Tarih = DateTime.UtcNow, SevkTarihi = DateTime.UtcNow,
+                Kalemler = [new IrsaliyeKalemi { UrunId = x.UrunId, Miktar = 3, BirimFiyat = 100, KdvOrani = 20 }]
+            });
+            irsaliyeId = irsaliye.Id;
+        }
+        await using (var c = Yeni()) await IS(c).OnaylaAsync(irsaliyeId);
+
+        Fatura f;
+        await using (var c = Yeni()) f = await IS(c).FaturayaDonusturAsync(irsaliyeId);
+
+        await using var k = Yeni();
+        var fatura = await k.Faturalar.Include(y => y.Kalemler).SingleAsync(y => y.Id == f.Id);
+        Assert.Equal(beklenenTur, fatura.Tur);
+        Assert.Equal(300, fatura.AraToplam);
+        Assert.Equal(60, fatura.KdvToplam);
+        Assert.Equal(360, fatura.GenelToplam);
+        Assert.Equal(100, fatura.Kalemler.Single().BirimFiyat);
+        var fis = await k.YevmiyeFisleri.Include(y => y.Satirlar).ThenInclude(s => s.Hesap).SingleAsync(y => y.BelgeTipi == "Fatura" && y.BelgeId == f.Id);
+        Assert.Contains(fis.Satirlar, s => s.Hesap!.HesapKodu == cariHesap && (s.Borc == 360 || s.Alacak == 360));
+        Assert.Equal(IrsaliyeDurumu.Faturalandi, (await k.Irsaliyeler.SingleAsync(i => i.Id == irsaliyeId)).Durum);
+    }
+
+    // Ürün kartındaki toplam stok, depo stoklarının toplamına her adımda eşit kalmalı (çift düşüm olmamalı).
+    [Fact]
+    public async Task Toplam_stok_depo_stoklariyla_her_adimda_tutar()
+    {
+        var x = await Hazirla(5, 20);
+        var f = await Dogrudan(x, 5); await ToplamStok(x, 15);
+        await IptalFatura(f.Id); await ToplamStok(x, 20);
+        var i = await Sevk(x, 5); await ToplamStok(x, 15);
+        await IptalIrsaliye(i.Id); await ToplamStok(x, 20);
+    }
+
+    [Theory]
+    [InlineData(IrsaliyeTuru.Satis, 17)]
+    [InlineData(IrsaliyeTuru.Alis, 23)]
+    public async Task Siparissiz_irsaliye_onayi_ve_iptali_depo_stogunu_gunceller(IrsaliyeTuru tur, decimal onayliStok)
+    {
+        var x = await Hazirla(1, 20);
+        int id;
+        await using (var c = Yeni())
+            id = (await IS(c).EkleAsync(new Irsaliye { CariKartId = await c.CariKartlar.Select(k => k.Id).FirstAsync(), Tur = tur, Tarih = DateTime.UtcNow, SevkTarihi = DateTime.UtcNow,
+                Kalemler = [new IrsaliyeKalemi { UrunId = x.UrunId, Miktar = 3, BirimFiyat = 10, StokDagilimlari = [new IrsaliyeKalemiStokDagilimi { DepoId = 1, Miktar = 3 }] }] })).Id;
+        await using (var c = Yeni()) await IS(c).OnaylaAsync(id);
+        await Stok(x, onayliStok); await ToplamStok(x, onayliStok);
+        await IptalIrsaliye(id);
+        await Stok(x, 20); await ToplamStok(x, 20);
+    }
+
+    private async Task ToplamStok((int SiparisId,int KalemId,int UrunId)x,decimal beklenen){await using var c=Yeni();Assert.Equal(beklenen,(await c.Urunler.SingleAsync(u=>u.Id==x.UrunId)).StokMiktari);Assert.Equal(beklenen,await c.UrunLokasyonStoklari.Where(s=>s.UrunId==x.UrunId).SumAsync(s=>s.MevcutMiktar));}
+
     private async Task<(int SiparisId,int KalemId,int UrunId)> Hazirla(decimal miktar,decimal stok=20,decimal kdv=20)
     { await using var c=Yeni(); var sirket=await c.Sirketler.FirstOrDefaultAsync(); if(sirket==null){sirket=new EtkiAlani.Modeller.Kurumsal.Sirket{Unvan="Fatura Test Şirketi",SirketKodu="FTS-01"};c.Sirketler.Add(sirket);await c.SaveChangesAsync();} var cariId=await c.CariKartlar.Select(x=>x.Id).FirstOrDefaultAsync(); if(cariId==0){var cari=new CariKart{SirketId=sirket.Id,Kod="F43-CARI",Unvan="Fatura Test Cari",Aktif=true};c.CariKartlar.Add(cari);await c.SaveChangesAsync();cariId=cari.Id;} var kod="F43"+Guid.NewGuid().ToString("N")[..10]; var u=new Urun{SirketId=sirket.Id,Kod=kod,Ad="Fatura Test Ürünü",Birim="Adet",Aktif=true,StokMiktari=stok,KdvOrani=kdv}; c.Urunler.Add(u); await c.SaveChangesAsync(); c.UrunLokasyonStoklari.AddRange(new UrunLokasyonStogu{UrunId=u.Id,DepoId=1,MevcutMiktar=stok},new UrunLokasyonStogu{UrunId=u.Id,DepoId=2},new UrunLokasyonStogu{UrunId=u.Id,DepoId=3}); var s=new Siparis{SiparisNo="S43-"+Guid.NewGuid().ToString("N")[..12],SiparisTuru=SiparisTuru.Satis,CariKartId=cariId,ParaBirimiId=1,Kur=1,Durum=SiparisDurumu.Onaylandi,OlusturanKullaniciId=1,Kalemler=[new SiparisKalemi{UrunId=u.Id,UrunKodu=u.Kod,UrunAdi=u.Ad,Birim=u.Birim,Miktar=miktar,BirimFiyat=100,KdvOrani=kdv}]}; c.Siparisler.Add(s); await c.SaveChangesAsync(); return(s.Id,s.Kalemler.Single().Id,u.Id); }
     private async Task<Irsaliye> Sevk((int SiparisId,int KalemId,int UrunId)x,decimal m){await using var c=Yeni();return await IS(c).SiparistenSevkEtAsync(new Irsaliye{SiparisId=x.SiparisId,SevkTarihi=DateTime.UtcNow,Kalemler=[new IrsaliyeKalemi{SiparisKalemiId=x.KalemId,Miktar=m,StokDagilimlari=[new IrsaliyeKalemiStokDagilimi{DepoId=1,Miktar=m}]}]});}
