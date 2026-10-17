@@ -115,6 +115,11 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
                 BildirimGonder(nameof(CekSenetGorunur));
                 BildirimGonder(nameof(KasaGorunur));
                 BildirimGonder(nameof(BankaHesabiGorunur));
+                // Kartla tahsilat POS hesabına girer; varsa POS hesabı önerilir.
+                if (value == OdemeYontemi.KrediKarti && BankaHesaplari.FirstOrDefault(b => b.HesapTuru == BankaHesapTuru.POSHesabi) is BankaHesabi pos)
+                    SeciliBankaHesabi = pos;
+                else if (value != OdemeYontemi.KrediKarti && SeciliBankaHesabi?.HesapTuru == BankaHesapTuru.POSHesabi)
+                    SeciliBankaHesabi = BankaHesaplari.FirstOrDefault(b => b.HesapTuru != BankaHesapTuru.POSHesabi) ?? SeciliBankaHesabi;
             }
         }
     }
@@ -132,7 +137,10 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
     public ObservableCollection<Kasa> Kasalar { get; } = [];
     public ObservableCollection<BankaHesabi> BankaHesaplari { get; } = [];
     public Kasa? SeciliKasa { get => _seciliKasa; set => OzellikAyarla(ref _seciliKasa, value); }
-    public BankaHesabi? SeciliBankaHesabi { get => _seciliBankaHesabi; set => OzellikAyarla(ref _seciliBankaHesabi, value); }
+    public BankaHesabi? SeciliBankaHesabi { get => _seciliBankaHesabi; set { if (OzellikAyarla(ref _seciliBankaHesabi, value)) BildirimGonder(nameof(KrediKartiBilgisi)); } }
+    public string KrediKartiBilgisi => SeciliBankaHesabi?.HesapTuru == BankaHesapTuru.POSHesabi
+        ? $"Tutarın tamamı '{SeciliBankaHesabi.Ad}' POS hesabına (108) girer. Banka komisyonu (%{SeciliBankaHesabi.PosKomisyonOrani:N2}), para vadesiz hesaba geçirilirken Banka ekranındaki POS geçişinde gider yazılır."
+        : "Seçilen hesap bir POS hesabı değil: tutar doğrudan bankaya (102) girer ve komisyon düşülmez. Kart tahsilatları için Banka ekranından bir POS hesabı tanımlamanız önerilir.";
 
     // ─── Banka / Havale ───
     public string BankaAdi { get => _bankaAdi; set => OzellikAyarla(ref _bankaAdi, value); }
@@ -342,7 +350,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
             foreach (var k in await _servis.AktifKasalariGetirAsync()) Kasalar.Add(k);
             foreach (var b in await _servis.AktifBankaHesaplariniGetirAsync()) BankaHesaplari.Add(b);
             SeciliKasa ??= Kasalar.FirstOrDefault();
-            SeciliBankaHesabi ??= BankaHesaplari.FirstOrDefault();
+            SeciliBankaHesabi ??= BankaHesaplari.FirstOrDefault(b => b.HesapTuru != BankaHesapTuru.POSHesabi) ?? BankaHesaplari.FirstOrDefault();
         }
         Gecmis.Clear();
         var tumGecmis = await _servis.GecmisiGetirAsync(IslemTuru);

@@ -682,4 +682,64 @@ public sealed class Finans360Paket11_1KabulTestleri
         var acik = await new BelgeKapamaServisi(db).AcikBelgeleriGetirAsync(cari.Id);
         Assert.DoesNotContain(acik, b => b.CariHareketId == asilCari.Id || b.CariHareketId == tersCari.Id);
     }
+    [Fact]
+    public async Task Kart_tahsilati_pos_hesabinda_108e_yazilir_iptal_ayni_hesaplari_ters_cevirir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, cari, _, _) = await SeedTemelVeriAsync(db);
+        var pos = new BankaHesabi { SirketId = sirketId, Kod = $"P-{Guid.NewGuid():N}"[..8], Ad = "Test POS", HesapTuru = BankaHesapTuru.POSHesabi, PosKomisyonOrani = 2, AktifMi = true };
+        db.BankaHesaplari.Add(pos);
+        await db.SaveChangesAsync();
+
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        var kayit = await service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.KrediKarti, cari.Id, 500m, DateTime.UtcNow, "Kart", BankaHesabiId: pos.Id, TaksitSayisi: 1));
+        // Aynı BelgeId'yi başka kaynakların (kasa/çek) fişleri de taşıyabilir; POS satırı olan fiş aranır.
+        var fisler = await db.YevmiyeFisleri.AsNoTracking().Include(f => f.Satirlar).ThenInclude(x => x.Hesap).Where(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == kayit.HareketId).ToListAsync();
+        Assert.Contains(fisler, f => f.Satirlar.Any(x => x.Hesap!.HesapKodu.StartsWith("108") && x.Borc == 500m));
+
+        await service.IptalEtAsync("Banka", kayit.HareketId, "Yanlış tutar");
+        var tersler = await db.YevmiyeFisleri.AsNoTracking().Include(f => f.Satirlar).ThenInclude(x => x.Hesap).Where(f => f.BelgeTipi == "TahsilatOdemeIptal" && f.BelgeId == kayit.HareketId).ToListAsync();
+        var ters = Assert.Single(tersler, f => f.Satirlar.Any(x => x.Hesap!.HesapKodu.StartsWith("108")));
+        Assert.Contains(ters.Satirlar, x => x.Hesap!.HesapKodu.StartsWith("108") && x.Alacak == 500m);
+        Assert.Contains(ters.Satirlar, x => x.Hesap!.HesapKodu == "120" && x.Borc == 500m && x.CariKartId == cari.Id);
+    }
+
+    [Fact]
+    public async Task Tahsilatla_alinan_cek_gecmiste_gorunur_portfoydeyse_iptal_edilir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, _, _) = await SeedTemelVeriAsync(db);
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        var cekNo = $"CK-{Guid.NewGuid():N}"[..12];
+        var kayit = await service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Cek, cari.Id, 900m, DateTime.UtcNow, "Çek", CekSenetNo: cekNo, VadeTarihi: DateTime.UtcNow.AddDays(30)));
+        Assert.Equal("Portfoy", kayit.Kaynak);
+        var gecmis = await service.GecmisiGetirAsync(FinansIslemTuru.Tahsilat);
+        Assert.Contains(gecmis, x => x.Kaynak == "Portfoy" && x.HareketId == kayit.HareketId && x.Durum == FinansIslemDurumu.Tamamlandi && x.OdemeYontemi == OdemeYontemi.Cek);
+
+        await service.IptalEtAsync("Portfoy", kayit.HareketId, "Çek geri verildi");
+
+        await using var k = new MuhasebeBaglami(_fixture.Options);
+        Assert.False(await k.CekSenetler.AnyAsync(x => x.Id == kayit.HareketId));
+        var hareketler = await k.CariHareketler.Where(x => x.CariKartId == cari.Id).ToListAsync();
+        Assert.Equal(0m, hareketler.Sum(x => x.Borc) - hareketler.Sum(x => x.Alacak));
+        Assert.All(hareketler, h => Assert.Equal(900m, h.KapaliTutar));
+        var cekTersleri = await k.YevmiyeFisleri.Include(f => f.Satirlar).ThenInclude(x => x.Hesap).Where(f => f.BelgeTipi == "TahsilatOdemeIptal" && f.BelgeId == kayit.HareketId).ToListAsync();
+        Assert.Contains(cekTersleri, f => f.Satirlar.Any(x => x.Hesap!.HesapKodu == "101" && x.Alacak == 900m));
+        var sonra = await new TahsilatOdemeServisi(k, PermittedUser()).GecmisiGetirAsync(FinansIslemTuru.Tahsilat);
+        Assert.Contains(sonra, x => x.Kaynak == "Portfoy" && x.HareketId == kayit.HareketId && x.Durum == FinansIslemDurumu.IptalEdildi);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => new TahsilatOdemeServisi(k, PermittedUser()).IptalEtAsync("Portfoy", kayit.HareketId, "Tekrar"));
+    }
+
+    [Fact]
+    public async Task Portfoyden_cikmis_cek_tahsilat_ekranindan_iptal_edilemez()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, _, _) = await SeedTemelVeriAsync(db);
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        var kayit = await service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Senet, cari.Id, 400m, DateTime.UtcNow, "Senet", CekSenetNo: $"SN-{Guid.NewGuid():N}"[..12]));
+        var cek = await db.CekSenetler.SingleAsync(x => x.Id == kayit.HareketId);
+        cek.Durum = CekSenetDurumu.CiroEdildi;
+        await db.SaveChangesAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.IptalEtAsync("Portfoy", kayit.HareketId, "Deneme"));
+    }
 }

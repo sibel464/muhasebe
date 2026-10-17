@@ -88,7 +88,10 @@ public static class FinansMuhasebeKaydi
         var adaylar = await baglam.YevmiyeFisleri.AsNoTracking().Include(f => f.Satirlar).ThenInclude(s => s.Hesap)
             .Where(f => belgeTipleri.Contains(f.BelgeTipi) && f.BelgeId == asilHareketId && f.Durum == YevmiyeDurumu.Onaylandi)
             .ToListAsync();
-        var asilFis = adaylar.FirstOrDefault(f => f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith(kasaMi ? "100" : "10", StringComparison.Ordinal)));
+        // "10" ile başlayan çek hesapları (101/103) banka sayılmaz; aynı BelgeId'yi çek fişi de taşıyabilir.
+        var asilFis = adaylar.FirstOrDefault(f => f.Satirlar.Any(s => kasaMi
+            ? s.Hesap!.HesapKodu.StartsWith("100", StringComparison.Ordinal)
+            : s.Hesap!.HesapKodu.StartsWith("102", StringComparison.Ordinal) || s.Hesap.HesapKodu.StartsWith("108", StringComparison.Ordinal) || s.Hesap.HesapKodu.StartsWith("300", StringComparison.Ordinal)));
 
         if (asilFis == null)
             return;
@@ -107,7 +110,12 @@ public static class FinansMuhasebeKaydi
         var fisler = await baglam.YevmiyeFisleri.IgnoreQueryFilters().AsNoTracking()
             .Where(f => f.BelgeTipi == KasaBelgeTipi || f.BelgeTipi == BankaBelgeTipi || f.BelgeTipi == "TahsilatOdeme" ||
                         f.BelgeTipi == "KasaBankaTransfer" || f.BelgeTipi == "BankaKasaTransfer")
-            .Select(f => new { f.BelgeTipi, f.BelgeId, KasaSatiriVar = f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith("100")) })
+            .Select(f => new
+            {
+                f.BelgeTipi, f.BelgeId,
+                KasaSatiriVar = f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith("100")),
+                BankaSatiriVar = f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith("102") || s.Hesap.HesapKodu.StartsWith("108") || s.Hesap.HesapKodu.StartsWith("300"))
+            })
             .ToListAsync(cancellationToken);
 
         var kasaKapsanan = new HashSet<int>();
@@ -118,7 +126,12 @@ public static class FinansMuhasebeKaydi
             {
                 case KasaBelgeTipi or "KasaBankaTransfer": kasaKapsanan.Add(f.BelgeId); break;
                 case BankaBelgeTipi or "BankaKasaTransfer": bankaKapsanan.Add(f.BelgeId); break;
-                default: (f.KasaSatiriVar ? kasaKapsanan : bankaKapsanan).Add(f.BelgeId); break;
+                // Tahsilat/ödeme fişi: kasa ya da banka satırına göre; çek/senet fişi (101/103/121/321) aynı numaralı
+                // bir kasa/banka hareketini "fişli" saymamalıdır.
+                default:
+                    if (f.KasaSatiriVar) kasaKapsanan.Add(f.BelgeId);
+                    else if (f.BankaSatiriVar) bankaKapsanan.Add(f.BelgeId);
+                    break;
             }
         }
 

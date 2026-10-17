@@ -416,20 +416,7 @@
                                         <ComboBox ItemsSource="{Binding TaksitSecenekleri}" SelectedItem="{Binding TaksitSayisi}" Style="{StaticResource GirdiCB}"/>
                                     </StackPanel>
                                 </Grid>
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="KOMİSYON ORANI (%)" Style="{StaticResource Alan}"/>
-                                        <TextBox Text="{Binding KomisyonOrani}" Style="{StaticResource Girdi}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="NET HESABA GEÇECEK" Style="{StaticResource Alan}"/>
-                                        <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10,8" CornerRadius="4">
-                                            <TextBlock Text="{Binding NetTutar, StringFormat={}{0:N2} ₺}"
-                                                       FontWeight="Bold" Foreground="#16A34A" FontSize="14"/>
-                                        </Border>
-                                    </StackPanel>
-                                </Grid>
+                                <TextBlock Text="{Binding KrediKartiBilgisi}" TextWrapping="Wrap" Foreground="#5B21B6" FontSize="12"/>
                             </StackPanel>
                         </Border>
 
