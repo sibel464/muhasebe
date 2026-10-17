@@ -52,7 +52,7 @@ public partial class GirisEkrani : Window
                     var log = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] GirisBasarili Hatasi: {ex.Message}{Environment.NewLine}";
                     await LogKilidi.WaitAsync();
                     kilitAlindi = true;
-                    await System.IO.File.AppendAllTextAsync(System.IO.Path.Combine(AppContext.BaseDirectory, "uygulama-hatalari.log"), log);
+                    await System.IO.File.AppendAllTextAsync(Altyapi.Veri.UygulamaKlasorleri.LogYolu("uygulama-hatalari.log"), log);
                 }
                 catch { }
                 finally
@@ -113,7 +113,7 @@ public partial class GirisEkrani : Window
         await LogKilidi.WaitAsync();
         try
         {
-            var yol = System.IO.Path.Combine(AppContext.BaseDirectory, "login-akis.log");
+            var yol = Altyapi.Veri.UygulamaKlasorleri.LogYolu("login-akis.log");
             await System.IO.File.AppendAllTextAsync(yol, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {asama}{Environment.NewLine}");
         }
         catch

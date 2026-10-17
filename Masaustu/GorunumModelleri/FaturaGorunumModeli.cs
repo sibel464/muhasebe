@@ -415,7 +415,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		try
 		{
 			var log = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {kaynak}\nMessage: {exception.Message}\nInnerException: {exception.InnerException?.Message}\nStackTrace: {exception.StackTrace}\n\n";
-			File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "uygulama-hatalari.log"), log);
+			File.AppendAllText(Altyapi.Veri.UygulamaKlasorleri.LogYolu("uygulama-hatalari.log"), log);
 		}
 		catch
 		{

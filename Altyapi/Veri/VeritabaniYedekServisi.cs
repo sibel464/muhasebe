@@ -37,6 +37,8 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         return YedekAlAsync(cancellationToken);
     }
 
+    public Task<YedekDosyasi> GuncellemeOncesiYedekAlAsync(CancellationToken cancellationToken = default) => YedekAlAsync(cancellationToken);
+
     public async Task<YedekDosyasi?> GerekirseGunlukYedekAlAsync(CancellationToken cancellationToken = default)
     {
         var sonYedek = YedekleriListele().FirstOrDefault();

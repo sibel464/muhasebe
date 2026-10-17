@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WiX Util eklentisinin Türkçe karşılığı olmayan hata metinleri (klasör izinleri). -->
+<WixLocalization Culture="tr-TR" Codepage="1254" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="msierrSecureObjectsFailedCreateSD" Value="Klasör için güvenlik tanımı oluşturulamadı: [3] Hata: [2]" />
+  <String Id="msierrSecureObjectsFailedSet" Value="Klasör izinleri ayarlanamadı: [3] Hata: [2]" />
+  <String Id="msierrSecureObjectsUnknownType" Value="Bilinmeyen nesne türü: [3] Hata: [2]" />
+</WixLocalization>

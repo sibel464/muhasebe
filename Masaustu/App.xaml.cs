@@ -74,17 +74,16 @@ public partial class App : Application
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
+                // Kuruluma özgü ayarlar (korumalı veritabanı şifresi vb.) yazılabilir ortak klasörde durur.
+                .AddJsonFile(UygulamaKlasorleri.YerelAyarDosyasi, optional: true, reloadOnChange: false)
                 .Build();
 
             var servisler = new ServiceCollection();
             servisler.AddSingleton<IConfiguration>(konfigurasyon);
 
-            var baglantiDizesi = konfigurasyon["VeritabaniAyarlari:BaglantiDizesi"];
-            if (string.IsNullOrWhiteSpace(baglantiDizesi))
-                throw new InvalidOperationException("Veritabanı bağlantı dizesi bulunamadı.");
-
-            // Yerel PostgreSQL sunucusu çalışmıyorsa otomatik başlat
-            await PostgreSqlSunucuYoneticisi.SunucuyuHazirlaAsync(baglantiDizesi, konfigurasyon["VeritabaniAyarlari:VeriKlasoru"]);
+            // Yerel PostgreSQL sunucusu çalışmıyorsa başlatılır; kurulum paketinde ilk açılışta veritabanı da kurulur.
+            var veritabani = await VeritabaniKurulumu.HazirlaAsync(konfigurasyon);
+            var baglantiDizesi = veritabani.BaglantiDizesi;
 
             // AddDbContextFactory: hem IDbContextFactory<> hem de Scoped DbContext'i kayıt eder.
             // Singleton KullaniciServisi, kısa ömürlü context'ler oluşturmak için factory kullanır.
@@ -243,6 +242,9 @@ public partial class App : Application
         });
     }
 
+    // Başlangıç yönetici kaydındaki (admin / admin123) şifre özeti; MuhasebeBaglami'ndaki başlangıç verisiyle aynıdır.
+    private const string BaslangicYoneticiSifreOzeti = "$2a$11$bFJTJsZZdqJQwi75rB4wM.DQgaRKmvwOSvi0VYrjuKdFj1/QC2UfS";
+
     private static async Task VeritabaniSaglikKontroluAsync(bool otomatikMigration)
     {
         await using var scope = HizmetSaglayici.CreateAsyncScope();
@@ -251,8 +253,21 @@ public partial class App : Application
         if (!await baglam.Database.CanConnectAsync())
             throw new InvalidOperationException("PostgreSQL bağlantısı kurulamadı. Sunucunun çalıştığından emin olun.");
 
-        if (otomatikMigration)
+        // Geliştirmede her açılışta, kurulum sürümünde yeni sürüm kurulunca veritabanı yapısı güncellenir.
+        // İçinde veri olan veritabanı güncellenmeden önce otomatik yedeklenir; yedek alınamazsa güncelleme yapılmaz.
+        var bekleyenler = (await baglam.Database.GetPendingMigrationsAsync()).ToList();
+        if (bekleyenler.Count > 0)
+        {
+            if (!otomatikMigration && (await baglam.Database.GetAppliedMigrationsAsync()).Any())
+                await HizmetSaglayici.GetRequiredService<IVeritabaniYedekServisi>().GuncellemeOncesiYedekAlAsync();
             await baglam.Database.MigrateAsync();
+        }
+
+        // Kurulum sürümünde her kopya aynı başlangıç şifresiyle gelir: admin bu şifreyi kullandıkça ilk girişte değiştirmek zorundadır.
+        if (UygulamaKlasorleri.GomuluPostgresBin != null)
+            await baglam.Database.ExecuteSqlRawAsync(
+                "UPDATE \"Kullanicilar\" SET \"SifreDegistirmeli\" = true WHERE \"Id\" = 1 AND \"SifreHash\" = {0} AND NOT \"SifreDegistirmeli\"",
+                BaslangicYoneticiSifreOzeti);
 
         if (baglam.Database.HasPendingModelChanges())
             throw new InvalidOperationException("Veritabanı modeli ile migration dosyaları uyumlu değil. Lütfen sistem yöneticisine başvurun.");
@@ -299,7 +314,7 @@ public partial class App : Application
         try
         {
             var log = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {kaynak}\n{exception}\n\n";
-            await File.AppendAllTextAsync(Path.Combine(AppContext.BaseDirectory, "uygulama-hatalari.log"), log);
+            await File.AppendAllTextAsync(UygulamaKlasorleri.LogYolu("uygulama-hatalari.log"), log);
         }
         catch
         {

@@ -38,9 +38,36 @@ dotnet build Muhasebe.slnx
 dotnet run --project Masaustu/Masaustu.csproj
 ```
 
-Geliştirme ortamında uygulama açılışta bekleyen EF Core migration dosyalarını
-uygular. Üretim ortamında migration otomatik uygulanmaz; eksik migration varsa
-uygulama açılmadan önce veritabanı güncellenmelidir.
+Uygulama açılışta bekleyen EF Core migration dosyalarını uygular. Kurulum (Release)
+sürümünde, içinde veri olan bir veritabanı güncellenmeden önce otomatik yedek alınır;
+yedek alınamazsa güncelleme yapılmaz ve program açılmaz.
+
+## Müşteri kurulum paketi (MSI)
+
+```powershell
+dotnet tool restore
+powershell -ExecutionPolicy Bypass -File kurulum\Paketle.ps1 -Surum 1.0.0
+```
+
+Çıktı: `kurulum\cikti\MuhasebeYonetim-1.0.0.msi`. Paket tek başına çalışır: .NET çalışma
+zamanı ve PostgreSQL 16 (bu bilgisayardaki `C:\Program Files\PostgreSQL` kurulumundan
+yalnız sunucu, kurulum ve yedek araçları) pakete gömülüdür; müşteride ayrıca bir şey kurulmaz.
+
+Müşteri bilgisayarında:
+
+- Program `C:\Program Files\Muhasebe Yönetim Sistemi` klasörüne kurulur; masaüstü ve Başlat menüsü kısayolu açılır.
+- İlk açılışta `C:\ProgramData\MuhasebeYonetim\db-data` klasörüne Türkçe sıralamalı (ICU tr-TR) yeni
+  bir veritabanı kurulur. Gömülü sunucu ayrı bir portta (5544) çalışır, bilgisayardaki başka bir
+  PostgreSQL ile çakışmaz ve program kapanınca durur.
+- Veritabanı şifresi rastgele üretilir, Windows DPAPI (makine kapsamı) ile şifrelenip
+  `C:\ProgramData\MuhasebeYonetimppsettings.local.json` dosyasında saklanır. Düz metin şifre yoktur;
+  dosya başka bilgisayara kopyalanırsa çözülemez.
+- Loglar `C:\ProgramData\MuhasebeYonetim\Loglar`, otomatik yedekler `Belgeler\Muhasebe Yedekleri` altındadır.
+- İlk giriş: kullanıcı `admin`, şifre `admin123`. Program ilk girişte şifrenin değiştirilmesini zorunlu tutar.
+- Programı kaldırmak verileri silmez (`C:\ProgramData\MuhasebeYonetim` yerinde kalır). Yeni sürüm
+  eski sürümün üzerine kurulur; veritabanı açılışta yedeklenip güncellenir.
+
+`kurulum\Lisans.rtf` bir **taslaktır**; satıştan önce hukuki olarak son haline getirilmelidir.
 
 ## Oturum zaman aşımı
 

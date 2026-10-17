@@ -121,7 +121,7 @@ public class GirisGorunumModeli : TemelGorunumModeli
         await LogKilidi.WaitAsync();
         try
         {
-            var yol = System.IO.Path.Combine(AppContext.BaseDirectory, "login-akis.log");
+            var yol = Altyapi.Veri.UygulamaKlasorleri.LogYolu("login-akis.log");
             await System.IO.File.AppendAllTextAsync(yol, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {asama}{Environment.NewLine}");
         }
         catch
@@ -138,7 +138,7 @@ public class GirisGorunumModeli : TemelGorunumModeli
         await LogKilidi.WaitAsync();
         try
         {
-            var yol = System.IO.Path.Combine(AppContext.BaseDirectory, "login-hatalari.log");
+            var yol = Altyapi.Veri.UygulamaKlasorleri.LogYolu("login-hatalari.log");
             await System.IO.File.AppendAllTextAsync(yol, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] Giriş hatası: {exception.Message}{Environment.NewLine}");
         }
         catch

@@ -9,7 +9,7 @@ namespace Altyapi.Veri;
 
 public static class PostgreSqlSunucuYoneticisi
 {
-    private static Process? _postgresSureci;
+    private static bool _sunucuyuBizBaslattik;
     private static string? _baslatilanVeriKlasoru;
     private static string? _baslatilanPostgresExe;
     private static readonly object _kilit = new();
@@ -37,29 +37,30 @@ public static class PostgreSqlSunucuYoneticisi
                     if (!string.IsNullOrEmpty(dbDataKlasoru) && Directory.Exists(dbDataKlasoru))
                     {
                         string? postgresExe = PostgresExeBul();
-                        if (!string.IsNullOrEmpty(postgresExe) && File.Exists(postgresExe))
+                        var pgCtl = postgresExe == null ? null : Path.Combine(Path.GetDirectoryName(postgresExe)!, "pg_ctl.exe");
+                        if (pgCtl != null && File.Exists(pgCtl))
                         {
-                            var startInfo = new ProcessStartInfo
+                            // pg_ctl ile başlatılır: program yönetici olarak açılsa bile PostgreSQL'i kısıtlı yetkiyle çalıştırır
+                            // (postgres.exe yönetici yetkisiyle çalışmayı reddeder). -W: beklemeden döner, hazır olma aşağıda beklenir.
+                            // Sunucu kendi günlüğünü veri klasöründeki "log" klasörüne yazar; açılış sorunları oradan izlenir.
+                            var startInfo = new ProcessStartInfo(pgCtl)
                             {
-                                FileName = postgresExe,
-                                // Sunucu kendi günlüğünü veri klasöründeki "log" klasörüne yazar; açılış sorunları oradan izlenir.
-                                Arguments = $"-D \"{dbDataKlasoru}\" -p {port} -c logging_collector=on",
                                 UseShellExecute = false,
                                 CreateNoWindow = true,
-                                WindowStyle = ProcessWindowStyle.Hidden,
-                                RedirectStandardOutput = false,
-                                RedirectStandardError = false
+                                WindowStyle = ProcessWindowStyle.Hidden
                             };
+                            foreach (var arg in new[] { "start", "-W", "-D", dbDataKlasoru, "-o", $"-p {port} -c logging_collector=on" })
+                                startInfo.ArgumentList.Add(arg);
 
                             try
                             {
                                 _baslatilanVeriKlasoru = dbDataKlasoru;
                                 _baslatilanPostgresExe = postgresExe;
-                                _postgresSureci = Process.Start(startInfo);
-                                if (_postgresSureci != null)
-                                {
+                                using var baslatici = Process.Start(startInfo);
+                                baslatici?.WaitForExit(15000);
+                                _sunucuyuBizBaslattik = baslatici != null;
+                                if (_sunucuyuBizBaslattik)
                                     AppDomain.CurrentDomain.ProcessExit += (_, _) => SunucuyuDurdur();
-                                }
                             }
                             catch (Exception ex)
                             {
@@ -76,7 +77,7 @@ public static class PostgreSqlSunucuYoneticisi
             {
                 if (await SunucuCevapVeriyorMuAsync(baglantiDizesi))
                     break;
-                if (_postgresSureci is { HasExited: true })
+                if (!_sunucuyuBizBaslattik && !PortAcikMi(host, port))
                     break;
 
                 await Task.Delay(500);
@@ -93,7 +94,7 @@ public static class PostgreSqlSunucuYoneticisi
         {
             try
             {
-                if (_postgresSureci != null && !_postgresSureci.HasExited)
+                if (_sunucuyuBizBaslattik)
                 {
                     if (string.IsNullOrWhiteSpace(_baslatilanVeriKlasoru) || string.IsNullOrWhiteSpace(_baslatilanPostgresExe))
                         return;
@@ -117,8 +118,7 @@ public static class PostgreSqlSunucuYoneticisi
                         Debug.WriteLine("PostgreSQL normal kapanışı doğrulanamadı. Süreç zorla sonlandırılmadı.");
                         return;
                     }
-                    _postgresSureci.Dispose();
-                    _postgresSureci = null;
+                    _sunucuyuBizBaslattik = false;
                 }
             }
             catch
@@ -236,6 +236,10 @@ public static class PostgreSqlSunucuYoneticisi
 
     private static string? PostgresExeBul()
     {
+        // Kurulum paketiyle gelen PostgreSQL her zaman önce kullanılır (bilgisayarda başka bir PostgreSQL olsa bile).
+        if (UygulamaKlasorleri.GomuluPostgresBin is { } gomulu)
+            return Path.Combine(gomulu, "postgres.exe");
+
         string[] bilinenYollar =
         {
             @"C:\Program Files\PostgreSQL\16\bin\postgres.exe",

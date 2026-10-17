@@ -35,3 +35,6 @@ scratch/
 # Veritabanı yedekleri (şirket verisi içerir)
 yedekler/
 db-data-ESKI-*/
+
+# Kurulum paketi çıktısı
+kurulum/cikti/

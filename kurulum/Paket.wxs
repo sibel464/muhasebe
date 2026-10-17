@@ -1,0 +1,65 @@
+<!--
+  Muhasebe Yönetim Sistemi kurulum paketi (WiX 5). Paketle.ps1 tarafından derlenir; elle derlemek için:
+    dotnet wix build kurulum\Paket.wxs -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext -d Kaynak=<uygulama klasörü> -d Surum=1.0.0 -o Kurulum.msi
+  Program Files'a kurulur; ayarlar, loglar ve veritabanı C:\ProgramData\MuhasebeYonetim altında tutulur ve
+  kaldırmada SİLİNMEZ (müşterinin verisi korunur). Yeni sürüm eski sürümün üzerine kurulur (MajorUpgrade).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Muhasebe Yönetim Sistemi"
+           Manufacturer="Muhasebe Yönetim"
+           Version="$(var.Surum)"
+           UpgradeCode="6B1D2E1A-6F0C-4C7E-9B4E-3B2F6A9C5D11"
+           Language="1055" Codepage="1254"
+           Scope="perMachine" Compressed="yes">
+    <SummaryInformation Description="Muhasebe Yönetim Sistemi Kurulumu" Codepage="1254" />
+
+    <MajorUpgrade DowngradeErrorMessage="Bu bilgisayarda daha yeni bir sürüm kurulu. Kurulum durduruldu." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="UYGULAMAKLASORU" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)Lisans.rtf" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="UYGULAMAKLASORU" Name="Muhasebe Yönetim Sistemi" />
+    </StandardDirectory>
+
+    <!-- Ortak veri klasörü: her Windows kullanıcısı ayar/log/veritabanı yazabilsin; kaldırmada silinmez. -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="VERIKLASORU" Name="MuhasebeYonetim">
+        <Component Id="VeriKlasoruIzinleri" Guid="9C3A7E52-1B6D-4F0E-8A2C-5D4B7E1F9A30" Permanent="yes">
+          <CreateFolder>
+            <util:PermissionEx User="Users" GenericAll="yes" />
+          </CreateFolder>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="BaslatMenusu" Name="Muhasebe Yönetim Sistemi">
+        <Component Id="BaslatMenusuKisayolu" Guid="2E8F4A61-7C3B-4D9A-B1E5-6F0A2C8D4B72">
+          <Shortcut Id="BaslatKisayolu" Name="Muhasebe Yönetim Sistemi" Target="[UYGULAMAKLASORU]Masaustu.exe" WorkingDirectory="UYGULAMAKLASORU" />
+          <RemoveFolder Id="BaslatMenusuKaldir" On="uninstall" />
+          <RegistryValue Root="HKLM" Key="Software\MuhasebeYonetim" Name="BaslatKisayolu" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="MasaustuKisayolu" Guid="5A1C9E37-3D6B-4E2F-8C4A-7B9D1E0F2A63">
+        <Shortcut Id="MasaustuKisayoluOge" Name="Muhasebe Yönetim Sistemi" Target="[UYGULAMAKLASORU]Masaustu.exe" WorkingDirectory="UYGULAMAKLASORU" />
+        <RegistryValue Root="HKLM" Key="Software\MuhasebeYonetim" Name="MasaustuKisayolu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Feature Id="Uygulama" Title="Muhasebe Yönetim Sistemi" Level="1">
+      <!-- Yayınlanan uygulama ve gömülü PostgreSQL (pgsql) klasörünün tamamı -->
+      <Files Directory="UYGULAMAKLASORU" Include="$(var.Kaynak)\**" />
+      <ComponentRef Id="VeriKlasoruIzinleri" />
+      <ComponentRef Id="BaslatMenusuKisayolu" />
+      <ComponentRef Id="MasaustuKisayolu" />
+    </Feature>
+  </Package>
+</Wix>

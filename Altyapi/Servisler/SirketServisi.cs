@@ -71,30 +71,51 @@ public sealed class SirketServisi : ISirketServisi
 
     // Kayıtlar firmaya göre ayrı tutulduğu için yeni firma boş başlar; satış/tahsilat hemen yapılabilsin diye
     // merkez şube, merkez mağaza, merkez kasa ve içinde bulunulan yılın mali dönemi açılır.
-    // Hiç şubesi olmayan firmayı aynı şekilde tamamlar (bu özellikten önce açılmış firmalar için; tekrar çalışması güvenli).
+    // Aktif firmalarda eksik temel tanımları (şube, mağaza, kasa, mali dönem) tamamlar: bu özellikten önce açılmış
+    // firmalar ve ilk kurulum için. Her parça ayrı denetlenir; tekrar çalışması güvenli, var olanlara dokunmaz.
     public static async Task<int> EksikFirmaTanimlariniTamamlaAsync(MuhasebeBaglami db)
     {
-        var eksikler = await db.Sirketler.Where(f => f.AktifMi && !db.Subeler.IgnoreQueryFilters().Any(s => s.SirketId == f.Id)).ToListAsync();
-        foreach (var firma in eksikler) await YeniFirmaTanimlariniAcAsync(db, firma);
-        return eksikler.Count;
+        var firmalar = await db.Sirketler.Where(f => f.AktifMi).ToListAsync();
+        var eklenen = 0;
+        foreach (var firma in firmalar)
+            eklenen += await YeniFirmaTanimlariniAcAsync(db, firma);
+        return eklenen;
     }
 
-    private static async Task YeniFirmaTanimlariniAcAsync(MuhasebeBaglami db, Sirket sirket)
+    private static async Task<int> YeniFirmaTanimlariniAcAsync(MuhasebeBaglami db, Sirket sirket)
     {
-        var sube = new Sube { SirketId = sirket.Id, SubeKodu = "MERKEZ", SubeAdi = "Merkez", AktifMi = true };
-        db.Subeler.Add(sube);
-        await db.SaveChangesAsync();
-        db.Depolar.Add(new Depo { SubeId = sube.Id, DepoKodu = "MAGAZA", DepoAdi = "Merkez Mağaza", DepoTuru = DepoTuru.Magaza, AktifMi = true });
+        var eklenen = 0;
+        var sube = await db.Subeler.IgnoreQueryFilters().Where(s => s.SirketId == sirket.Id && !s.Silindi).OrderBy(s => s.Id).FirstOrDefaultAsync();
+        if (sube == null && !await db.Subeler.IgnoreQueryFilters().AnyAsync(s => s.SirketId == sirket.Id))
+        {
+            sube = new Sube { SirketId = sirket.Id, SubeKodu = "MERKEZ", SubeAdi = "Merkez", AktifMi = true };
+            db.Subeler.Add(sube);
+            await db.SaveChangesAsync();
+            eklenen++;
+        }
+        // Kullanıcının bilerek pasife aldığı/sildiği depolara saygı: yalnız firmanın hiç deposu yoksa açılır.
+        if (sube != null && !await db.Depolar.IgnoreQueryFilters().AnyAsync(d => d.Sube!.SirketId == sirket.Id))
+        {
+            db.Depolar.Add(new Depo { SubeId = sube.Id, DepoKodu = "MAGAZA", DepoAdi = "Merkez Mağaza", DepoTuru = DepoTuru.Magaza, AktifMi = true });
+            eklenen++;
+        }
         if (!await db.Kasalar.IgnoreQueryFilters().AnyAsync(k => k.SirketId == sirket.Id))
+        {
             db.Kasalar.Add(new Kasa { SirketId = sirket.Id, Kod = $"KSA-{sirket.SirketKodu}", Ad = "Merkez Kasa", AktifMi = true });
+            eklenen++;
+        }
         var yil = DateTime.Today.Year;
         if (!await db.MaliDonemler.IgnoreQueryFilters().AnyAsync(d => d.SirketId == sirket.Id))
+        {
             db.MaliDonemler.Add(new MaliDonem
             {
                 SirketId = sirket.Id, DonemAdi = $"{yil} Yılı",
                 Baslangic = new DateTime(yil, 1, 1, 0, 0, 0, DateTimeKind.Utc), Bitis = new DateTime(yil, 12, 31, 23, 59, 59, DateTimeKind.Utc)
             });
+            eklenen++;
+        }
         await db.SaveChangesAsync();
+        return eklenen;
     }
 
     public async Task DurumDegistirAsync(Guid id, bool aktif)

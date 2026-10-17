@@ -16,5 +16,8 @@ public interface IVeritabaniYedekServisi
     // Son yedek 24 saatten eskiyse yedek alır; alındıysa dosyayı, gerek yoksa null döner.
     Task<YedekDosyasi?> GerekirseGunlukYedekAlAsync(CancellationToken cancellationToken = default);
 
+    // Program yeni sürüme güncellenip veritabanı yapısı değişmeden hemen önce sistemin aldığı yedek (oturum gerekmez).
+    Task<YedekDosyasi> GuncellemeOncesiYedekAlAsync(CancellationToken cancellationToken = default);
+
     IReadOnlyList<YedekDosyasi> YedekleriListele();
 }

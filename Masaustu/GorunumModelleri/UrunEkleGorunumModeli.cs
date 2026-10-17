@@ -511,7 +511,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
                 $"PostgreSQL: SqlState={postgres?.SqlState}; Constraint={postgres?.ConstraintName}; Table={postgres?.TableName}; Column={postgres?.ColumnName}",
                 string.Empty
             };
-            var yol = Path.Combine(AppContext.BaseDirectory, "urun-kayit.log");
+            var yol = Altyapi.Veri.UygulamaKlasorleri.LogYolu("urun-kayit.log");
             await File.AppendAllLinesAsync(yol, satirlar);
         }
         catch
