@@ -742,4 +742,17 @@ public sealed class Finans360Paket11_1KabulTestleri
         await db.SaveChangesAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.IptalEtAsync("Portfoy", kayit.HareketId, "Deneme"));
     }
+    [Fact]
+    public async Task Tahsilat_kasa_ekranindan_silinince_tahsilat_fisi_de_silinir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        var kayit = await new TahsilatOdemeServisi(db, PermittedUser()).KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 300m, DateTime.UtcNow, "Silinecek", KasaId: kasa.Id));
+
+        await new KasaServisi(db, PermittedUser()).SilAsync(kayit.HareketId);
+
+        var kalan = await db.YevmiyeFisleri.AsNoTracking().Include(f => f.Satirlar).ThenInclude(x => x.Hesap)
+            .Where(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == kayit.HareketId).ToListAsync();
+        Assert.DoesNotContain(kalan, f => f.Satirlar.Any(x => x.Hesap!.HesapKodu.StartsWith("100")));
+    }
 }

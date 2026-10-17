@@ -303,6 +303,16 @@ public static class FinansMuhasebeKaydi
             .Where(f => (f.BelgeTipi == KasaBelgeTipi && kasaIdleri.Contains(f.BelgeId)) ||
                         (f.BelgeTipi == BankaBelgeTipi && bankaIdleri.Contains(f.BelgeId)))
             .ToListAsync();
+        // Tahsilat/Ödeme ekranından gelen hareketin fişi "TahsilatOdeme" türündedir. Aynı BelgeId'yi kasa, banka ve
+        // çek fişleri paylaşabildiği için fiş, silinen hareketin hesap satırından (100 / 102-108-300) tanınır.
+        var tahsilatFisleri = await baglam.YevmiyeFisleri.Include(f => f.Satirlar).ThenInclude(s => s.Hesap)
+            .Where(f => (f.BelgeTipi == "TahsilatOdeme" || f.BelgeTipi == "TahsilatOdemeIptal") &&
+                        (kasaIdleri.Contains(f.BelgeId) || bankaIdleri.Contains(f.BelgeId)))
+            .ToListAsync();
+        fisler.AddRange(tahsilatFisleri.Where(f =>
+            (kasaIdleri.Contains(f.BelgeId) && f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith("100", StringComparison.Ordinal))) ||
+            (bankaIdleri.Contains(f.BelgeId) && f.Satirlar.Any(s => s.Hesap!.HesapKodu.StartsWith("102", StringComparison.Ordinal) ||
+                s.Hesap.HesapKodu.StartsWith("108", StringComparison.Ordinal) || s.Hesap.HesapKodu.StartsWith("300", StringComparison.Ordinal)))));
         foreach (var fis in fisler)
         {
             foreach (var kayit in fis.Satirlar.Cast<EtkiAlani.Modeller.Ortak.TemelVarlik>().Append(fis))
