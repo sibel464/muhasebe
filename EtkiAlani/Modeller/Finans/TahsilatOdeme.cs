@@ -57,4 +57,6 @@ public sealed record TahsilatOdemeTalebi(
     // Çek / Senet
     DateTime? VadeTarihi = null,
     string? CekSenetNo = null,
-    string? Kesideci = null);
+    string? Kesideci = null,
+    // Bu tahsilat/ödemeyle kapatılacak açık belgelerin (fatura vb.) cari hareketleri; sırayla, tutar bitene kadar kapatılır.
+    IReadOnlyList<int>? KapatilacakCariHareketIdleri = null);

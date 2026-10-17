@@ -592,5 +592,94 @@ public sealed class Finans360Paket11_1KabulTestleri
         Assert.NotEmpty(ozet.KasaDagilimi);
         Assert.NotEmpty(ozet.BankaHesapBakiyeleri);
     }
-}
+    [Fact]
+    public async Task Tahsilat_secilen_faturalari_ayni_islemde_kapatir_iptal_kapamayi_cozer()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        var fatA = new CariHareket { CariKartId = cari.Id, Tarih = DateTime.UtcNow.AddDays(-10), HareketTuru = CariHareketTuru.SatisFaturasi, Borc = 1000m, BelgeNo = "KP-A" };
+        var fatB = new CariHareket { CariKartId = cari.Id, Tarih = DateTime.UtcNow.AddDays(-5), HareketTuru = CariHareketTuru.SatisFaturasi, Borc = 500m, BelgeNo = "KP-B" };
+        db.CariHareketler.AddRange(fatA, fatB);
+        await db.SaveChangesAsync();
 
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        var kayit = await service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 1200m, DateTime.UtcNow, "Tahsilat", KasaId: kasa.Id,
+            KapatilacakCariHareketIdleri: [fatA.Id, fatB.Id]));
+
+        await using (var k = new MuhasebeBaglami(_fixture.Options))
+        {
+            Assert.Equal(1000m, (await k.CariHareketler.SingleAsync(x => x.Id == fatA.Id)).KapaliTutar);
+            Assert.Equal(200m, (await k.CariHareketler.SingleAsync(x => x.Id == fatB.Id)).KapaliTutar);
+            var acik = await new BelgeKapamaServisi(k).AcikBelgeleriGetirAsync(cari.Id);
+            Assert.DoesNotContain(acik, b => b.CariHareketId == fatA.Id);
+            Assert.Equal(300m, acik.Single(b => b.CariHareketId == fatB.Id).AcikTutar);
+            var fis = await k.YevmiyeFisleri.Include(f => f.Satirlar).ThenInclude(x => x.Hesap).SingleAsync(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == kayit.HareketId);
+            Assert.Equal(cari.Id, fis.Satirlar.Single(x => x.Hesap!.HesapKodu == "120").CariKartId);
+        }
+
+        await service.IptalEtAsync("Kasa", kayit.HareketId, "Yanlış cari");
+
+        await using var kontrol = new MuhasebeBaglami(_fixture.Options);
+        Assert.Equal(0m, (await kontrol.CariHareketler.SingleAsync(x => x.Id == fatA.Id)).KapaliTutar);
+        Assert.Equal(0m, (await kontrol.CariHareketler.SingleAsync(x => x.Id == fatB.Id)).KapaliTutar);
+        var acikSonra = await new BelgeKapamaServisi(kontrol).AcikBelgeleriGetirAsync(cari.Id);
+        // Yalnız iki fatura açık kalır; iptal edilen tahsilat ve ters kaydı birbirini kapatmıştır.
+        Assert.Equal(new[] { fatA.Id, fatB.Id }.OrderBy(x => x), acikSonra.Select(b => b.CariHareketId).OrderBy(x => x));
+        var ters = await kontrol.KasaHareketleri.SingleAsync(x => x.TersKayitId == kayit.HareketId && x.IslemDurumu == FinansIslemDurumu.TersKayit);
+        Assert.True(Math.Abs((ters.Tarih - DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc)).TotalMinutes) < 5);
+    }
+
+    [Fact]
+    public async Task Baska_carinin_veya_ters_yonlu_belgesi_kapatilamaz_ve_tahsilat_kaydedilmez()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        var alisFaturasi = new CariHareket { CariKartId = cari.Id, Tarih = DateTime.UtcNow, HareketTuru = CariHareketTuru.AlisFaturasi, Alacak = 700m, BelgeNo = "KP-ALIS" };
+        db.CariHareketler.Add(alisFaturasi);
+        await db.SaveChangesAsync();
+        var oncekiKasa = await db.KasaHareketleri.CountAsync(x => x.KasaId == kasa.Id);
+
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 100m, DateTime.UtcNow, "Tahsilat", KasaId: kasa.Id,
+            KapatilacakCariHareketIdleri: [alisFaturasi.Id])));
+
+        await using var kontrol = new MuhasebeBaglami(_fixture.Options);
+        Assert.Equal(oncekiKasa, await kontrol.KasaHareketleri.CountAsync(x => x.KasaId == kasa.Id));
+        Assert.Equal(0m, (await kontrol.CariHareketler.SingleAsync(x => x.Id == alisFaturasi.Id)).KapaliTutar);
+    }
+
+    [Fact]
+    public async Task Birden_fazla_aktif_kasa_varken_kasa_secilmeden_nakit_tahsilat_reddedilir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, cari, _, _) = await SeedTemelVeriAsync(db);
+        db.Kasalar.Add(new Kasa { SirketId = sirketId, Kod = $"K2-{Guid.NewGuid():N}"[..8], Ad = "İkinci Kasa", AktifMi = true });
+        await db.SaveChangesAsync();
+
+        var service = new TahsilatOdemeServisi(db, PermittedUser());
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 100m, DateTime.UtcNow, "Tahsilat")));
+        Assert.Contains("kasa", ex.Message);
+    }
+
+    [Fact]
+    public async Task Eski_iptal_edilmis_tahsilat_ve_ters_kaydi_eslestirilir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (_, cari, kasa, _) = await SeedTemelVeriAsync(db);
+        var asilCari = new CariHareket { CariKartId = cari.Id, Tarih = DateTime.UtcNow, HareketTuru = CariHareketTuru.Tahsilat, Alacak = 250m };
+        db.CariHareketler.Add(asilCari);
+        await db.SaveChangesAsync();
+        var asil = new KasaHareketi { KasaId = kasa.Id, Tarih = DateTime.UtcNow, Tur = HareketTuru.Gelir, Tutar = 250m, CariKartId = cari.Id, IlgiliBelgeId = asilCari.Id, IslemDurumu = FinansIslemDurumu.IptalEdildi, Aciklama = "Eski" };
+        db.KasaHareketleri.Add(asil);
+        await db.SaveChangesAsync();
+        var tersCari = new CariHareket { CariKartId = cari.Id, Tarih = DateTime.UtcNow, HareketTuru = CariHareketTuru.Diger, Borc = 250m, IlgiliBelgeId = asil.Id, Aciklama = "İptal: Kullanıcı iptali" };
+        db.CariHareketler.Add(tersCari);
+        await db.SaveChangesAsync();
+
+        Assert.True(await TahsilatOdemeServisi.EskiIptalleriEslestirAsync(db) >= 1);
+        Assert.Equal(0, await TahsilatOdemeServisi.EskiIptalleriEslestirAsync(db));
+
+        var acik = await new BelgeKapamaServisi(db).AcikBelgeleriGetirAsync(cari.Id);
+        Assert.DoesNotContain(acik, b => b.CariHareketId == asilCari.Id || b.CariHareketId == tersCari.Id);
+    }
+}

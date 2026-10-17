@@ -113,6 +113,8 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
                 BildirimGonder(nameof(BankaHavaleGorunur));
                 BildirimGonder(nameof(KrediKartiGorunur));
                 BildirimGonder(nameof(CekSenetGorunur));
+                BildirimGonder(nameof(KasaGorunur));
+                BildirimGonder(nameof(BankaHesabiGorunur));
             }
         }
     }
@@ -120,6 +122,17 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
     public bool BankaHavaleGorunur => OdemeYontemi is OdemeYontemi.Banka or OdemeYontemi.Havale or OdemeYontemi.Virman;
     public bool KrediKartiGorunur => OdemeYontemi == OdemeYontemi.KrediKarti;
     public bool CekSenetGorunur => OdemeYontemi is OdemeYontemi.Cek or OdemeYontemi.Senet;
+    public bool KasaGorunur => OdemeYontemi == OdemeYontemi.Nakit;
+    public bool BankaHesabiGorunur => OdemeYontemi is OdemeYontemi.Banka or OdemeYontemi.Havale or OdemeYontemi.Virman or OdemeYontemi.KrediKarti;
+
+    // ─── Paranın girdiği/çıktığı kasa veya banka hesabı ───
+    private Kasa? _seciliKasa;
+    private BankaHesabi? _seciliBankaHesabi;
+    private bool _kaydediliyor;
+    public ObservableCollection<Kasa> Kasalar { get; } = [];
+    public ObservableCollection<BankaHesabi> BankaHesaplari { get; } = [];
+    public Kasa? SeciliKasa { get => _seciliKasa; set => OzellikAyarla(ref _seciliKasa, value); }
+    public BankaHesabi? SeciliBankaHesabi { get => _seciliBankaHesabi; set => OzellikAyarla(ref _seciliBankaHesabi, value); }
 
     // ─── Banka / Havale ───
     public string BankaAdi { get => _bankaAdi; set => OzellikAyarla(ref _bankaAdi, value); }
@@ -202,7 +215,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         IslemTuru = tur;
 
         CariSecKomutu = new KomutSarici(CariSec);
-        KaydetKomutu = new KomutSarici(_ => Kaydet());
+        KaydetKomutu = new KomutSarici(_ => Kaydet(), _ => !_kaydediliyor);
         IptalKomutu = new KomutSarici(_ => Iptal());
         YenileKomutu = new KomutSarici(_ => Yukle());
         BelgeSecKomutu = new KomutSarici(p => BelgeSec(p as AcikBelge));
@@ -266,7 +279,8 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         BelgeArama = "";
         if (SecilenCari == null) return;
         var belgeler = await _kapama.AcikBelgeleriGetirAsync(SecilenCari.Id);
-        foreach (var x in belgeler)
+        // Tahsilat müşterinin borç belgelerini, ödeme tedarikçiye olan alacak belgelerini kapatır.
+        foreach (var x in belgeler.Where(b => b.BorcMu == (IslemTuru == FinansIslemTuru.Tahsilat)))
             AcikBelgeler.Add(x);
 
         _acikBelgelerView = CollectionViewSource.GetDefaultView(AcikBelgeler);
@@ -323,6 +337,13 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
 
     private async Task YukleKilitsiz()
     {
+        if (Kasalar.Count == 0 && BankaHesaplari.Count == 0)
+        {
+            foreach (var k in await _servis.AktifKasalariGetirAsync()) Kasalar.Add(k);
+            foreach (var b in await _servis.AktifBankaHesaplariniGetirAsync()) BankaHesaplari.Add(b);
+            SeciliKasa ??= Kasalar.FirstOrDefault();
+            SeciliBankaHesabi ??= BankaHesaplari.FirstOrDefault();
+        }
         Gecmis.Clear();
         var tumGecmis = await _servis.GecmisiGetirAsync(IslemTuru);
         if (SecilenCari != null)
@@ -335,10 +356,20 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
 
     private async Task Kaydet()
     {
+        if (_kaydediliyor) return;
+        _kaydediliyor = true;
+        CommandManager.InvalidateRequerySuggested();
         try
         {
             if (SecilenCari == null) throw new InvalidOperationException("Önce cari hesap seçiniz.");
             if (Tutar <= 0) throw new InvalidOperationException("Geçerli bir tutar giriniz.");
+            if (KasaGorunur && SeciliKasa == null) throw new InvalidOperationException("Kasa seçiniz.");
+            if (BankaHesabiGorunur && SeciliBankaHesabi == null) throw new InvalidOperationException("Banka hesabı seçiniz.");
+
+            // Kapatılacak belgeler: listeye eklenenler; eklenmediyse tabloda seçili tek belge.
+            var kapatilacaklar = SeciliBelgeler.Any()
+                ? SeciliBelgeler.Select(b => b.CariHareketId).ToList()
+                : SecilenAcikBelge != null ? [SecilenAcikBelge.CariHareketId] : new List<int>();
 
             var talep = new TahsilatOdemeTalebi(
                 IslemTuru: IslemTuru,
@@ -354,13 +385,13 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
                 KomisyonOrani: KrediKartiGorunur ? KomisyonOrani : 0,
                 VadeTarihi: CekSenetGorunur ? VadeTarihi : null,
                 CekSenetNo: CekSenetGorunur && !string.IsNullOrWhiteSpace(CekSenetNo) ? CekSenetNo : null,
-                Kesideci: CekSenetGorunur && !string.IsNullOrWhiteSpace(Kesideci) ? Kesideci : null);
+                Kesideci: CekSenetGorunur && !string.IsNullOrWhiteSpace(Kesideci) ? Kesideci : null,
+                KasaId: KasaGorunur ? SeciliKasa?.Id : null,
+                BankaHesabiId: BankaHesabiGorunur ? SeciliBankaHesabi?.Id : null,
+                KapatilacakCariHareketIdleri: kapatilacaklar);
 
-            var kayit = await _servis.KaydetAsync(talep);
-
-            // Fatura kapama
-            if (SecilenAcikBelge != null && kayit.TersKayitId == null)
-                await _kapama.KapatAsync(kayit.HareketId, SecilenAcikBelge.CariHareketId, Tutar);
+            // Tahsilat ve belge kapama tek işlemde kaydedilir.
+            await _servis.KaydetAsync(talep);
 
             MessageBox.Show($"{Baslik} başarıyla kaydedildi.", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -379,6 +410,11 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         {
             MessageBox.Show(ex.Message, "İşlem yapılamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+        finally
+        {
+            _kaydediliyor = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 
     private async Task Iptal()
@@ -386,9 +422,18 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         try
         {
             if (SecilenKayit == null) throw new InvalidOperationException("İptal edilecek kaydı seçiniz.");
-            if (MessageBox.Show("İşlem ters kayıtla iptal edilsin mi?", "İptal Onayı", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            await _servis.IptalEtAsync(SecilenKayit.Kaynak, SecilenKayit.HareketId, "Kullanıcı iptali");
+            if (SecilenKayit.Durum != FinansIslemDurumu.Tamamlandi) throw new InvalidOperationException("Bu kayıt zaten iptal edilmiş veya bir iptal ters kaydıdır.");
+            var kayit = SecilenKayit;
+            var pencere = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
+                $"{Baslik} İptali",
+                $"{kayit.Tarih:dd.MM.yyyy} - {kayit.CariUnvan} - {kayit.Tutar:N2} ₺\n\n" +
+                "İşlem ters kayıtla iptal edilir: kasa/banka, cari ve muhasebe kaydı geri alınır; bu işlemle kapatılan faturalar yeniden açık olur.\n\nİptal nedenini yazın:")
+            { Owner = Application.Current.MainWindow };
+            if (pencere.ShowDialog() != true) return;
+            await _servis.IptalEtAsync(kayit.Kaynak, kayit.HareketId, pencere.GirilenMetin);
+            if (SecilenCari != null) SecilenCari = await _cariler.IdIleGetirAsync(SecilenCari.Id);
             await Yukle();
+            await AcikBelgeleriYukle();
         }
         catch (Exception ex)
         {

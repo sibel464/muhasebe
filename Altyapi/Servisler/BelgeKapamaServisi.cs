@@ -22,8 +22,14 @@ public sealed class BelgeKapamaServisi : IBelgeKapamaServisi
 
         var acikBelgeler = new List<AcikBelge>();
 
+        // İptal edilen fatura ile "-IPTAL" ters kaydı birbirini götürür; ikisi de kapatılacak belge değildir.
+        var iptalNolari = hareketler.Where(c => c.BelgeNo?.EndsWith("-IPTAL", StringComparison.Ordinal) == true)
+            .Select(c => c.BelgeNo![..^"-IPTAL".Length]).ToHashSet();
+
         foreach (var c in hareketler)
         {
+            if (c.BelgeNo != null && (iptalNolari.Contains(c.BelgeNo) || c.BelgeNo.EndsWith("-IPTAL", StringComparison.Ordinal)))
+                continue;
             var toplamTutar = c.Borc > 0 ? c.Borc : c.Alacak;
             var acikTutar = toplamTutar - c.KapaliTutar;
             var dovizAcik = (c.DovizBorc > 0 ? c.DovizBorc : c.DovizAlacak) - c.KapaliDovizTutar;

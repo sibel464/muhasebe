@@ -271,6 +271,16 @@ public partial class App : Application
         {
             await HatayiLoglaAsync(ex, "EksikFisleriTamamla");
         }
+
+        // Daha önce iptal edilmiş tahsilat/ödemelerin asıl ve ters cari kayıtları eşleştirilir (tekrar çalışması güvenli).
+        try
+        {
+            await TahsilatOdemeServisi.EskiIptalleriEslestirAsync(baglam);
+        }
+        catch (Exception ex)
+        {
+            await HatayiLoglaAsync(ex, "EskiIptalleriEslestir");
+        }
     }
 
     internal static async Task HatayiLoglaAsync(Exception exception, string kaynak)
