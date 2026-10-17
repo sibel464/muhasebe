@@ -188,12 +188,17 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("SilinmeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SirketId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ParaBirimiId");
+
+                    b.HasIndex("SirketId");
 
                     b.HasIndex("Tarih");
 
@@ -1598,6 +1603,9 @@ namespace Altyapi.Migrations
                     b.Property<int?>("SiparisId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("SirketId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SoforAdi")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1661,6 +1669,8 @@ namespace Altyapi.Migrations
                     b.HasIndex("OlusturanKullaniciId");
 
                     b.HasIndex("SiparisId");
+
+                    b.HasIndex("SirketId");
 
                     b.HasIndex("Tarih");
 
@@ -3598,6 +3608,9 @@ namespace Altyapi.Migrations
                     b.Property<int>("SiparisTuru")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("SirketId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("TeslimTarihi")
                         .HasColumnType("timestamp with time zone");
 
@@ -3642,6 +3655,8 @@ namespace Altyapi.Migrations
 
                     b.HasIndex("SiparisNo")
                         .IsUnique();
+
+                    b.HasIndex("SirketId");
 
                     b.HasIndex("CariKartId", "SiparisTarihi", "Id");
 

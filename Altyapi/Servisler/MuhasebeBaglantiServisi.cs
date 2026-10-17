@@ -98,12 +98,12 @@ public class MuhasebeBaglantiServisi : IMuhasebeBaglantiServisi
 
     public async Task<List<MuhasebeBaglantiKoduDto>> GetirBaglantiKodlariAsync(Guid sirketId = default)
     {
-        return await GetirTumBaglantilarAsync(sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId);
+        return await GetirTumBaglantilarAsync(_baglam.SirketIdCoz(sirketId));
     }
 
     public async Task<bool> GuncelleBaglantiKoduAsync(MuhasebeBaglantiKoduDto dto, Guid sirketId = default)
     {
-        await GuncelleBaglantiAsync(dto, sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId);
+        await GuncelleBaglantiAsync(dto, _baglam.SirketIdCoz(sirketId));
         return true;
     }
 }

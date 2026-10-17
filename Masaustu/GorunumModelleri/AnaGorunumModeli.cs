@@ -94,7 +94,15 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public bool MenuAyarlarGorunur => _kullaniciServisi.YetkiliMi(y => y.AyarlariYonet || y.KullaniciYonet);
     public bool MenuKullanicilarGorunur => _kullaniciServisi.YetkiliMi(y => y.KullaniciYonet);
     
-    public string RolAd => _kullaniciServisi.AktifKullanici?.Rol ?? "Kullanıcı";
+    public string RolAd
+    {
+        get
+        {
+            var rol = _kullaniciServisi.AktifKullanici?.Rol ?? "Kullanıcı";
+            var firma = App.HizmetSaglayici?.GetService(typeof(IAktifFirmaBaglami)) is IAktifFirmaBaglami f ? f.SirketAdi : null;
+            return string.IsNullOrWhiteSpace(firma) ? rol : $"{rol} • {firma}";
+        }
+    }
 
     private readonly IKullaniciServisi _kullaniciServisi;
     private readonly IIrsaliyeServisi _irsaliyeServisi;

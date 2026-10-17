@@ -1,5 +1,6 @@
 using Altyapi.Veri;
 using EtkiAlani.Modeller.Kurumsal;
+using EtkiAlani.Modeller.Finans;
 using Microsoft.EntityFrameworkCore;
 using Uygulama.Arayuzler;
 
@@ -63,7 +64,37 @@ public sealed class SirketServisi : ISirketServisi
         var mevcut = await _db.Sirketler.FirstOrDefaultAsync(x => x.Id == sirket.Id);
         if (mevcut == null) _db.Sirketler.Add(sirket);
         else { mevcut.SirketKodu=sirket.SirketKodu; mevcut.Unvan=sirket.Unvan; mevcut.VergiNo=sirket.VergiNo; mevcut.VergiDairesi=sirket.VergiDairesi; mevcut.Telefon=sirket.Telefon; mevcut.Email=sirket.Email; mevcut.Adres=sirket.Adres; mevcut.AktifMi=sirket.AktifMi; sirket=mevcut; }
-        await _db.SaveChangesAsync(); await tx.CommitAsync(); return sirket;
+        await _db.SaveChangesAsync();
+        if (mevcut == null) await YeniFirmaTanimlariniAcAsync(_db, sirket);
+        await tx.CommitAsync(); return sirket;
+    }
+
+    // Kayıtlar firmaya göre ayrı tutulduğu için yeni firma boş başlar; satış/tahsilat hemen yapılabilsin diye
+    // merkez şube, merkez mağaza, merkez kasa ve içinde bulunulan yılın mali dönemi açılır.
+    // Hiç şubesi olmayan firmayı aynı şekilde tamamlar (bu özellikten önce açılmış firmalar için; tekrar çalışması güvenli).
+    public static async Task<int> EksikFirmaTanimlariniTamamlaAsync(MuhasebeBaglami db)
+    {
+        var eksikler = await db.Sirketler.Where(f => f.AktifMi && !db.Subeler.IgnoreQueryFilters().Any(s => s.SirketId == f.Id)).ToListAsync();
+        foreach (var firma in eksikler) await YeniFirmaTanimlariniAcAsync(db, firma);
+        return eksikler.Count;
+    }
+
+    private static async Task YeniFirmaTanimlariniAcAsync(MuhasebeBaglami db, Sirket sirket)
+    {
+        var sube = new Sube { SirketId = sirket.Id, SubeKodu = "MERKEZ", SubeAdi = "Merkez", AktifMi = true };
+        db.Subeler.Add(sube);
+        await db.SaveChangesAsync();
+        db.Depolar.Add(new Depo { SubeId = sube.Id, DepoKodu = "MAGAZA", DepoAdi = "Merkez Mağaza", DepoTuru = DepoTuru.Magaza, AktifMi = true });
+        if (!await db.Kasalar.IgnoreQueryFilters().AnyAsync(k => k.SirketId == sirket.Id))
+            db.Kasalar.Add(new Kasa { SirketId = sirket.Id, Kod = $"KSA-{sirket.SirketKodu}", Ad = "Merkez Kasa", AktifMi = true });
+        var yil = DateTime.Today.Year;
+        if (!await db.MaliDonemler.IgnoreQueryFilters().AnyAsync(d => d.SirketId == sirket.Id))
+            db.MaliDonemler.Add(new MaliDonem
+            {
+                SirketId = sirket.Id, DonemAdi = $"{yil} Yılı",
+                Baslangic = new DateTime(yil, 1, 1, 0, 0, 0, DateTimeKind.Utc), Bitis = new DateTime(yil, 12, 31, 23, 59, 59, DateTimeKind.Utc)
+            });
+        await db.SaveChangesAsync();
     }
 
     public async Task DurumDegistirAsync(Guid id, bool aktif)

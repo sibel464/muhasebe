@@ -223,7 +223,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<SayfaliSonuc<YevmiyeSatiriDto>> YevmiyeDefteriSorgulaAsync(YevmiyeFiltreDto filtre)
     {
-        var sirketId = filtre.SirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : filtre.SirketId;
+        var sirketId = _baglam.SirketIdCoz(filtre.SirketId);
         var query = _baglam.YevmiyeSatirlari
             .AsNoTracking()
             .Include(s => s.Fis)
@@ -448,13 +448,13 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto?> FisIptalEtTersKayitUretAsync(int fisId, string iptalNedeni, Guid sirketId = default)
     {
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         return await FisIptalEtAsync(fisId, iptalNedeni, targetSirketId);
     }
 
     public async Task<SayfaliSonuc<YevmiyeFisDto>> FisleriGetirAsync(YevmiyeFiltreDto filtre)
     {
-        var sirketId = filtre.SirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : filtre.SirketId;
+        var sirketId = _baglam.SirketIdCoz(filtre.SirketId);
         var query = _baglam.YevmiyeFisleri
             .Include(f => f.Satirlar)
             .ThenInclude(s => s.Hesap)

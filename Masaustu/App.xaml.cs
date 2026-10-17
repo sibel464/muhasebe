@@ -272,6 +272,16 @@ public partial class App : Application
             await HatayiLoglaAsync(ex, "EksikFisleriTamamla");
         }
 
+        // Şubesi olmayan (bu özellikten önce açılmış) firmalara merkez şube, mağaza, kasa ve mali dönem açılır.
+        try
+        {
+            await SirketServisi.EksikFirmaTanimlariniTamamlaAsync(baglam);
+        }
+        catch (Exception ex)
+        {
+            await HatayiLoglaAsync(ex, "EksikFirmaTanimlari");
+        }
+
         // Daha önce iptal edilmiş tahsilat/ödemelerin asıl ve ters cari kayıtları eşleştirilir (tekrar çalışması güvenli).
         try
         {

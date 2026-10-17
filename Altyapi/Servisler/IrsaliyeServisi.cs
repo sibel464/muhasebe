@@ -497,8 +497,8 @@ public class IrsaliyeServisi : IIrsaliyeServisi
     private async Task<string> SiraliSiparisIrsaliyeNoUretAsync(DateTime tarih)
     {
         const string tip = "Irsaliye"; const string seriKodu = "IRS";
-        var seri = await _baglam.BelgeSerileri.FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {MuhasebeBaglami.VarsayilanSirketId} AND ""BelgeTipi"" = {tip} AND ""Seri"" = {seriKodu} FOR UPDATE").SingleOrDefaultAsync();
-        if (seri == null) { seri = new BelgeSerisi { SirketId = MuhasebeBaglami.VarsayilanSirketId, BelgeTipi = tip, Seri = seriKodu, Prefix = seriKodu }; _baglam.BelgeSerileri.Add(seri); }
+        var seri = await _baglam.BelgeSerileri.FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {_baglam.SirketIdCoz(null)} AND ""BelgeTipi"" = {tip} AND ""Seri"" = {seriKodu} FOR UPDATE").SingleOrDefaultAsync();
+        if (seri == null) { seri = new BelgeSerisi { SirketId = _baglam.SirketIdCoz(null), BelgeTipi = tip, Seri = seriKodu, Prefix = seriKodu }; _baglam.BelgeSerileri.Add(seri); }
         seri.SonNumara++;
         return $"IRS-{tarih.Year}-{seri.SonNumara:D6}";
     }

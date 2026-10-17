@@ -5,6 +5,8 @@ namespace EtkiAlani.Modeller.Cari;
 public class CariHareket : TemelVarlik
 {
     public int CariKartId { get; set; }
+    // Firma ayrımı için: kayıt hangi firmaya ait (yeni kayıtta carinin firmasından doldurulur).
+    public Guid? SirketId { get; set; }
     public CariKart? CariKart { get; set; }
 
     // İşlem Tarihi (kullanıcı tarafından girilen)

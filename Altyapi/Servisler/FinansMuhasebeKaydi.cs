@@ -22,12 +22,16 @@ public static class FinansMuhasebeKaydi
         ["108"] = ("DİĞER HAZIR DEĞERLER (POS)", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["120"] = ("ALICILAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["121"] = ("ALACAK SENETLERİ", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["153"] = ("TİCARİ MALLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["191"] = ("İNDİRİLECEK KDV", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["197"] = ("SAYIM VE TESELLÜM NOKSANLARI", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["300"] = ("BANKA KREDİLERİ", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["320"] = ("SATICILAR", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["321"] = ("BORÇ SENETLERİ", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["391"] = ("HESAPLANAN KDV", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["397"] = ("SAYIM VE TESELLÜM FAZLALARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["500"] = ("SERMAYE", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["600"] = ("YURT İÇİ SATIŞLAR", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["602"] = ("DİĞER GELİRLER", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["642"] = ("FAİZ GELİRLERİ", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["649"] = ("DİĞER OLAĞAN GELİR VE KARLAR", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
@@ -49,10 +53,10 @@ public static class FinansMuhasebeKaydi
     }
 
     public static Task<string> KasaKoduAsync(MuhasebeBaglami baglam, EtkiAlani.Modeller.Finans.Kasa kasa) =>
-        HesapKoduSecAsync(baglam, kasa.SirketId ?? MuhasebeBaglami.VarsayilanSirketId, kasa.MuhasebeKodu, "100");
+        HesapKoduSecAsync(baglam, baglam.SirketIdCoz(kasa.SirketId), kasa.MuhasebeKodu, "100");
 
     public static Task<string> BankaKoduAsync(MuhasebeBaglami baglam, EtkiAlani.Modeller.Finans.BankaHesabi hesap) =>
-        HesapKoduSecAsync(baglam, hesap.SirketId ?? MuhasebeBaglami.VarsayilanSirketId, hesap.MuhasebeKodu, hesap.HesapTuru switch
+        HesapKoduSecAsync(baglam, baglam.SirketIdCoz(hesap.SirketId), hesap.MuhasebeKodu, hesap.HesapTuru switch
         {
             EtkiAlani.Modeller.Finans.BankaHesapTuru.POSHesabi => "108",
             EtkiAlani.Modeller.Finans.BankaHesapTuru.KrediHesabi => "300",
@@ -250,7 +254,7 @@ public static class FinansMuhasebeKaydi
     public static async Task FisEkleAsync(MuhasebeBaglami baglam, Guid? sirketId, string belgeTipi, int belgeId,
         DateTime tarih, string aciklama, string? belgeNo, params Satir[] satirlar)
     {
-        var sirket = sirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+        var sirket = baglam.SirketIdCoz(sirketId);
 
         // Aynı hesaba borç ve alacak (örn. iki kasa da 100'e bağlıysa virman) muhasebede etkisizdir.
         var gruplar = satirlar.GroupBy(s => (s.HesapKodu, s.CariKartId)).ToList();
@@ -349,7 +353,7 @@ public static class FinansMuhasebeKaydi
             Seviye = 1,
             ParaBirimiKodu = "TRY",
             SistemHesabi = true,
-            Aciklama = "Kasa/banka işlemi için otomatik açıldı",
+            Aciklama = "İşlem için otomatik açıldı (standart hesap)",
             AktifMi = true,
             OlusturmaTarihi = DateTime.UtcNow
         };

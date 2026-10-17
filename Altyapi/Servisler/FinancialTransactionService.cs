@@ -69,18 +69,13 @@ public class FinancialTransactionService : IFinancialTransactionService
                 throw new InvalidOperationException("Faturadaki ürünlerden biri bulunamadı veya aktif değil.");
 
             var hesapKodlari = new[] { "120", "153", "191", "320", "391", "600" };
-            var tumHesaplar = await _baglam.HesapPlanlari
-                .Where(h => (h.SirketId == sirketId || h.SirketId == MuhasebeBaglami.VarsayilanSirketId) && hesapKodlari.Contains(h.HesapKodu) && h.AktifMi)
-                .ToListAsync();
-
+            // Fatura yalnız kendi firmasının hesap planına yazılır; eksik standart hesap o firmanın planında açılır.
             var hesaplar = new Dictionary<string, HesapPlani>();
             foreach (var kod in hesapKodlari)
             {
-                var hesap = tumHesaplar.FirstOrDefault(h => h.SirketId == sirketId && h.HesapKodu == kod)
-                         ?? tumHesaplar.FirstOrDefault(h => h.SirketId == MuhasebeBaglami.VarsayilanSirketId && h.HesapKodu == kod);
-                if (hesap == null)
-                    throw new InvalidOperationException($"{kod} kodlu hesap planı hesabı bulunamadı.");
-                hesaplar[kod] = hesap;
+                var hesapId = await FinansMuhasebeKaydi.HesapGetirVeyaOlusturAsync(_baglam, sirketId, kod);
+                hesaplar[kod] = _baglam.HesapPlanlari.Local.FirstOrDefault(h => h.Id == hesapId)
+                    ?? await _baglam.HesapPlanlari.IgnoreQueryFilters().SingleAsync(h => h.Id == hesapId);
             }
 
             var matrah = fatura.GenelToplam - fatura.KdvToplam;

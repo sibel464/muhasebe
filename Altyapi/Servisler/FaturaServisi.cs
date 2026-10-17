@@ -82,7 +82,7 @@ public class FaturaServisi : IFaturaServisi
         if (!cari.Aktif)
             throw new InvalidOperationException("Pasif durumdaki Cari Karta fatura kesilemez.");
 
-        fatura.SirketId ??= cari.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+        fatura.SirketId ??= _baglam.SirketIdCoz(cari.SirketId);
 
         // POS'ta bekletilen satış finansal hareket üretmeden Beklemede kalmalıdır.
         if (fatura.Durum != BelgeDurumu.Beklemede)

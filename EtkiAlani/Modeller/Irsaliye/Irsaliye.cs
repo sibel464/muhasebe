@@ -41,6 +41,8 @@ public class Irsaliye : TemelVarlik
     public SiparisVarligi? Siparis { get; set; }
 
     public int CariKartId { get; set; }
+    // Firma ayrımı için: kayıt hangi firmaya ait (yeni kayıtta carinin firmasından doldurulur).
+    public Guid? SirketId { get; set; }
     public CariKart? CariKart { get; set; }
 
     public IrsaliyeTuru Tur { get; set; } = IrsaliyeTuru.Satis;

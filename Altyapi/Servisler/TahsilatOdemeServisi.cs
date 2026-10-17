@@ -144,7 +144,7 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
             .Select(f => new { f.BelgeId, f.BelgeTipi }).ToListAsync();
         var cekIdleri = cekFisleri.Where(f => f.BelgeTipi == "TahsilatOdeme").Select(f => f.BelgeId).ToHashSet();
         var iptalCekler = cekFisleri.Where(f => f.BelgeTipi == "TahsilatOdemeIptal").Select(f => f.BelgeId).ToHashSet();
-        var cekler = await _baglam.CekSenetler.IgnoreQueryFilters().AsNoTracking().Include(x => x.CariKart)
+        var cekler = await _baglam.CekSenetler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisFiltresi]).AsNoTracking().Include(x => x.CariKart)
             .Where(x => cekIdleri.Contains(x.Id)).ToListAsync();
         sonuc = sonuc.Concat(cekler.Select(x => KaydaDonustur("Portfoy", x.Id, x.DuzenlemeTarihi,
             x.Tur is CekSenetTuru.AlinanCek or CekSenetTuru.AlinanSenet ? FinansIslemTuru.Tahsilat : FinansIslemTuru.Odeme,
@@ -235,7 +235,7 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
 
     private async Task YevmiyeEkleAsync(CariKart cari, TahsilatOdemeTalebi t, int belgeId, DateTime tarih, string aciklama, bool ters)
     {
-        var sirketId = cari.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+        var sirketId = _baglam.SirketIdCoz(cari.SirketId);
         // Çek/senet portföye girer (101/121) veya verilen çek/senet olarak izlenir (103/321); kasaya/bankaya değil.
         // Kasa/banka satırı seçilen kasanın/hesabın muhasebe koduna yazılır (POS hesabı 108, kredi hesabı 300 gibi).
         var nakitKodu = t.OdemeYontemi switch

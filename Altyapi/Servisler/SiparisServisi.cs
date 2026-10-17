@@ -211,11 +211,11 @@ public class SiparisServisi : ISiparisServisi
         const string belgeTipi = "Siparis";
         const string seriKodu = "SIP";
         var seri = await _baglam.BelgeSerileri
-            .FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {MuhasebeBaglami.VarsayilanSirketId} AND ""BelgeTipi"" = {belgeTipi} AND ""Seri"" = {seriKodu} FOR UPDATE")
+            .FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {_baglam.SirketIdCoz(null)} AND ""BelgeTipi"" = {belgeTipi} AND ""Seri"" = {seriKodu} FOR UPDATE")
             .SingleOrDefaultAsync();
         if (seri == null)
         {
-            seri = new BelgeSerisi { SirketId = MuhasebeBaglami.VarsayilanSirketId, BelgeTipi = "Siparis", Seri = "SIP", Prefix = "SIP", SonNumara = 0 };
+            seri = new BelgeSerisi { SirketId = _baglam.SirketIdCoz(null), BelgeTipi = "Siparis", Seri = "SIP", Prefix = "SIP", SonNumara = 0 };
             _baglam.BelgeSerileri.Add(seri);
         }
         seri.SonNumara++;

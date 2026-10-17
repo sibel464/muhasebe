@@ -14,6 +14,8 @@ public class Siparis : TemelVarlik
     public string SiparisNo { get; set; } = string.Empty;
     public SiparisTuru SiparisTuru { get; set; }
     public int CariKartId { get; set; }
+    // Firma ayrımı için: kayıt hangi firmaya ait (yeni kayıtta carinin firmasından doldurulur).
+    public Guid? SirketId { get; set; }
     public CariKart? CariKart { get; set; }
     public DateTime SiparisTarihi { get; set; } = DateTime.UtcNow;
     public DateTime? TeslimTarihi { get; set; }

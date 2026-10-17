@@ -19,6 +19,22 @@ public class MuhasebeBaglami : DbContext
 {
     public static readonly Guid VarsayilanSirketId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     public const string SilinmisUrunFiltresi = "SilinmisUrun";
+    // Şirkete bağlı tablolarda silinme filtresi bu adla tanımlıdır; IgnoreQueryFilters([SilinmisFiltresi]) silinenleri
+    // aktif firma içinde gösterir. Parametresiz IgnoreQueryFilters() şirket ayrımını da kaldırır (yalnız global
+    // benzersizlik/numara kontrolleri ve bakım işleri için).
+    public const string SilinmisFiltresi = "Silinmis";
+    public const string SirketFiltresi = "Sirket";
+
+    // Testler ve bakım araçları için elle sabitlenebilir; aksi halde oturumdaki aktif firma kullanılır.
+    private Guid? _sabitSirketId;
+    public Guid? AktifSirketId
+    {
+        get => _sabitSirketId ?? (_aktifFirmaBaglami?.KullaniciId != null ? _aktifFirmaBaglami.SirketId : null);
+        set => _sabitSirketId = value;
+    }
+
+    // Boş/verilmemiş şirket: aktif firma, o da yoksa varsayılan şirket.
+    public Guid SirketIdCoz(Guid? sirketId) => sirketId is Guid g && g != Guid.Empty ? g : AktifSirketId ?? VarsayilanSirketId;
 
     private readonly IAktifFirmaBaglami? _aktifFirmaBaglami;
 
@@ -376,36 +392,67 @@ public class MuhasebeBaglami : DbContext
 
         // Global sorgu filtresi - silinmis kayitlari gizle
         modelBuilder.Entity<Kullanici>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<CariKart>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<CariKart>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<CariTipiTanimi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<MerkeziTanim>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<CariHareket>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<CariHareket>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         // Adlı filtre: listeler silinen ürünü göstermez, ama geçmişi okuyan rapor/hareket sorguları
         // IgnoreQueryFilters([SilinmisUrunFiltresi]) ile silinen ürünün satış/alış/hareketlerini kaybetmez.
         modelBuilder.Entity<Urun>().HasQueryFilter(SilinmisUrunFiltresi, x => !x.Silindi);
-        modelBuilder.Entity<StokHareketi>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<StokHareketi>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<UrunSatisFiyati>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<UrunLokasyonStogu>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<FaturaKalemiStokDagilimi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Fatura>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<Fatura>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<FaturaKalemi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Siparis>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<Siparis>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<SiparisKalemi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Irsaliye>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<Irsaliye>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<IrsaliyeKalemi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<IrsaliyeKalemiStokDagilimi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<KasaHareketi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<BankaHareketi>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<KasaHareketi>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
+        modelBuilder.Entity<BankaHareketi>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<Sube>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<Depo>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<Depo>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<MaliDonem>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<ParaBirimi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<KdvOrani>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<BelgeSerisi>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<CekSenet>().HasQueryFilter(x => !x.SilindiMi);
-        modelBuilder.Entity<HesapPlani>().HasQueryFilter(x => !x.Silindi);
-        modelBuilder.Entity<YevmiyeFis>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<CekSenet>().HasQueryFilter(SilinmisFiltresi, x => !x.SilindiMi);
+        modelBuilder.Entity<HesapPlani>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
+        modelBuilder.Entity<YevmiyeFis>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<YevmiyeSatiri>().HasQueryFilter(x => !x.Silindi);
+
+        // Şirket ayrımı: oturum açıkken her sorgu yalnız aktif firmanın kayıtlarını görür.
+        // AktifSirketId boşsa (giriş öncesi bakım işleri, testler) filtre uygulanmaz.
+        // Şube, mali dönem, belge serisi ve muhasebe bağlantı kodları her zaman açık şirket parametresiyle sorgulandığı
+        // (Firma Yönetimi başka firmanın tanımlarını da düzenler) için filtrelenmez.
+        modelBuilder.Entity<CariKart>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<CariNotu>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<Urun>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<Fatura>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<Kasa>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<KasaHareketi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<KasaSayimMutabakat>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<BankaHesabi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<BankaHareketi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<BankaMutabakat>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<PosIslemi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<CekSenet>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<StokHareketi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<StokSayimi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<DepoTransferFisi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<YevmiyeFis>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<HesapPlani>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<RevaluasyonKaydi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<CariHareket>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<Siparis>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<Irsaliye>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        // Depo firmaya şubesi üzerinden bağlıdır: her firma yalnız kendi şubelerinin depolarına stok yazar.
+        modelBuilder.Entity<Depo>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.Sube!.SirketId == AktifSirketId);
+        modelBuilder.Entity<CariHareket>().HasIndex(h => h.SirketId);
+        modelBuilder.Entity<Siparis>().HasIndex(h => h.SirketId);
+        modelBuilder.Entity<Irsaliye>().HasIndex(h => h.SirketId);
 
         // Indexler
         modelBuilder.Entity<Kullanici>().HasIndex(k => k.KullaniciAdi).IsUnique();
@@ -427,7 +474,7 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<CariKart>().Property(x => x.Iban).HasMaxLength(34);
         modelBuilder.Entity<CariNotu>(e => {
             e.ToTable("CariNotlari");
-            e.HasQueryFilter(x => !x.Silindi);
+            e.HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
             e.HasIndex(x => new { x.SirketId, x.CariKartId, x.OlusturmaTarihi });
             e.Property(x => x.Baslik).HasMaxLength(150);
             e.Property(x => x.Metin).HasMaxLength(4000);
@@ -992,11 +1039,32 @@ public class MuhasebeBaglami : DbContext
     {
         await KasaVeBankaBaglantisiniTamamlaAsync(cancellationToken);
 
-        foreach (var entry in ChangeTracker.Entries<CariKart>().Where(e => e.State == EntityState.Added))
-            entry.Entity.SirketId ??= VarsayilanSirketId;
-
-        foreach (var entry in ChangeTracker.Entries<Urun>().Where(e => e.State == EntityState.Added))
-            entry.Entity.SirketId ??= VarsayilanSirketId;
+        // Yeni kayıt şirketi belirtilmemişse: cariye bağlı kayıtta (cari hareket, sipariş, irsaliye, fatura...) carinin
+        // firması, değilse aktif firma (o da yoksa varsayılan şirket) yazılır.
+        var cariliEksikler = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added && e.Metadata.FindProperty("SirketId") != null && e.Metadata.FindProperty("CariKartId") != null &&
+                        e.Property("SirketId").CurrentValue == null && e.Property("CariKartId").CurrentValue is int)
+            .ToList();
+        if (cariliEksikler.Count > 0)
+        {
+            var cariIdleri = cariliEksikler.Select(e => (int)e.Property("CariKartId").CurrentValue!).Distinct().ToList();
+            var cariSirketleri = await CariKartlar.IgnoreQueryFilters().AsNoTracking().Where(c => cariIdleri.Contains(c.Id))
+                .Select(c => new { c.Id, c.SirketId }).ToDictionaryAsync(c => c.Id, c => c.SirketId, cancellationToken);
+            foreach (var e in cariliEksikler)
+            {
+                var cariId = (int)e.Property("CariKartId").CurrentValue!;
+                var yerel = ChangeTracker.Entries<CariKart>().FirstOrDefault(c => c.Entity.Id == cariId)?.Entity.SirketId;
+                e.Property("SirketId").CurrentValue = yerel ?? cariSirketleri.GetValueOrDefault(cariId);
+            }
+        }
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
+        {
+            var sirket = entry.Metadata.FindProperty("SirketId");
+            if (sirket == null || sirket.IsShadowProperty()) continue;
+            var deger = entry.Property("SirketId").CurrentValue;
+            if (deger == null || (deger is Guid g && g == Guid.Empty))
+                entry.Property("SirketId").CurrentValue = AktifSirketId ?? VarsayilanSirketId;
+        }
 
         foreach (var entry in ChangeTracker.Entries<Fatura>().Where(e => e.State == EntityState.Added))
             entry.Entity.SirketId ??= VarsayilanSirketId;

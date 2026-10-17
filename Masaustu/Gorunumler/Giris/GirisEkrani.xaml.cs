@@ -80,7 +80,11 @@ public partial class GirisEkrani : Window
         var context = App.HizmetSaglayici.GetRequiredService<IAktifFirmaBaglami>();
         var sirketServisi = App.HizmetSaglayici.GetRequiredService<ISirketServisi>();
         var kullanici = App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>().AktifKullanici;
-        var sirket = (await sirketServisi.ListeleAsync(aktif: true)).FirstOrDefault();
+        // Firma sırası ada göre değil: tek aktif firma varsa o, birden fazlaysa kullanıcıya sorulur (öneri: varsayılan şirket).
+        var firmalar = await sirketServisi.ListeleAsync(aktif: true);
+        var sirket = firmalar.Count <= 1
+            ? firmalar.FirstOrDefault()
+            : FirmaSor(firmalar);
         if (sirket == null)
         {
             context.Degistir(context.SirketId, context.SubeId, context.MaliDonemId, kullanici?.Id, kullanici?.KullaniciAdi);
@@ -89,7 +93,17 @@ public partial class GirisEkrani : Window
 
         var sube = (await sirketServisi.SubeleriGetirAsync(sirket.Id)).FirstOrDefault();
         var donem = (await sirketServisi.DonemleriGetirAsync(sirket.Id)).FirstOrDefault(x => !x.KilitliMi);
+        context.SirketAdi = sirket.Unvan;
         context.Degistir(sirket.Id, sube?.Id, donem?.Id, kullanici?.Id, kullanici?.KullaniciAdi);
+    }
+
+    private static EtkiAlani.Modeller.Kurumsal.Sirket FirmaSor(IReadOnlyList<EtkiAlani.Modeller.Kurumsal.Sirket> firmalar)
+    {
+        var pencere = new FirmaSecimPenceresi(firmalar, Altyapi.Veri.MuhasebeBaglami.VarsayilanSirketId);
+        pencere.ShowDialog();
+        return pencere.SecilenFirma
+            ?? firmalar.FirstOrDefault(f => f.Id == Altyapi.Veri.MuhasebeBaglami.VarsayilanSirketId)
+            ?? firmalar.OrderBy(f => f.OlusturmaTarihi).First();
     }
 
     private static readonly SemaphoreSlim LogKilidi = new(1, 1);

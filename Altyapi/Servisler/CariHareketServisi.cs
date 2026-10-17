@@ -97,7 +97,7 @@ public class CariHareketServisi : ICariHareketServisi
             if (!cari.Aktif)
                 throw new InvalidOperationException("Pasif durumdaki cari karta işlem girilemez.");
 
-            var sirketId = cari.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+            var sirketId = _baglam.SirketIdCoz(cari.SirketId);
             if (await _baglam.MaliDonemler.AnyAsync(d => d.KilitliMi && d.SirketId == sirketId && d.Baslangic <= hareket.Tarih && d.Bitis >= hareket.Tarih))
                 throw new InvalidOperationException("Bu tarih kilitli bir muhasebe dönemine düşüyor; fiş girilemez.");
 

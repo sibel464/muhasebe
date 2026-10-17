@@ -241,7 +241,8 @@ public class CariServisi : ICariServisi
     public async Task<List<CariKart>> SilinenleriGetirAsync()
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.CariGoruntule, "Silinen carileri görüntüleme");
-        return await _baglam.CariKartlar.IgnoreQueryFilters().AsNoTracking()
+        // Yalnız silinme filtresi kaldırılır: başka firmanın silinen carileri görünmez.
+        return await _baglam.CariKartlar.IgnoreQueryFilters([MuhasebeBaglami.SilinmisFiltresi]).AsNoTracking()
             .Where(c => c.Silindi)
             .OrderByDescending(c => c.SilinmeTarihi)
             .ToListAsync();
@@ -252,7 +253,7 @@ public class CariServisi : ICariServisi
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.CariSil, "Silinen cariyi geri alma");
 
-        var cari = await _baglam.CariKartlar.IgnoreQueryFilters()
+        var cari = await _baglam.CariKartlar.IgnoreQueryFilters([MuhasebeBaglami.SilinmisFiltresi])
             .FirstOrDefaultAsync(c => c.Id == id && c.Silindi)
             ?? throw new KeyNotFoundException("Geri alınacak cari bulunamadı.");
 

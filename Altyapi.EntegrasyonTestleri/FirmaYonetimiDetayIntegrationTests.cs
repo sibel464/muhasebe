@@ -18,11 +18,14 @@ public sealed class FirmaYonetimiDetayIntegrationTests
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var servis = Servis(db);
         var firma = await servis.KaydetAsync(YeniFirma("SB"), false);
-        var sube = await servis.SubeKaydetAsync(new Sube { SirketId = firma.Id, SubeKodu = " merkez ", SubeAdi = " Merkez Şube " });
-        Assert.Equal("MERKEZ", sube.SubeKodu);
-        Assert.Equal("Merkez Şube", sube.SubeAdi);
+        var sube = await servis.SubeKaydetAsync(new Sube { SirketId = firma.Id, SubeKodu = " kadikoy ", SubeAdi = " Kadıköy Şube " });
+        Assert.Equal("KADIKOY", sube.SubeKodu);
+        Assert.Equal("Kadıköy Şube", sube.SubeAdi);
         await Assert.ThrowsAsync<InvalidOperationException>(() => servis.SubeKaydetAsync(
-            new Sube { SirketId = firma.Id, SubeKodu = "MERKEZ", SubeAdi = "Tekrar" }));
+            new Sube { SirketId = firma.Id, SubeKodu = "KADIKOY", SubeAdi = "Tekrar" }));
+        // Yeni firmanın otomatik açılan merkez şubesi de aynı kuralla korunur.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => servis.SubeKaydetAsync(
+            new Sube { SirketId = firma.Id, SubeKodu = "merkez", SubeAdi = "Tekrar Merkez" }));
     }
 
     [Fact]
@@ -33,14 +36,14 @@ public sealed class FirmaYonetimiDetayIntegrationTests
         var firma = await servis.KaydetAsync(YeniFirma("MD"), false);
         var donem = await servis.MaliDonemKaydetAsync(new MaliDonem
         {
-            SirketId = firma.Id, DonemAdi = "2026", Baslangic = new DateTime(2026, 1, 1), Bitis = new DateTime(2026, 12, 31)
+            SirketId = firma.Id, DonemAdi = "2040", Baslangic = new DateTime(2040, 1, 1), Bitis = new DateTime(2040, 12, 31)
         });
         await Assert.ThrowsAsync<InvalidOperationException>(() => servis.MaliDonemKaydetAsync(new MaliDonem
         {
-            SirketId = firma.Id, DonemAdi = "Çakışan", Baslangic = new DateTime(2026, 6, 1), Bitis = new DateTime(2027, 5, 31)
+            SirketId = firma.Id, DonemAdi = "Çakışan", Baslangic = new DateTime(2040, 6, 1), Bitis = new DateTime(2041, 5, 31)
         }));
         await servis.MaliDonemKilitleAsync(donem.Id, true);
-        donem.Baslangic = new DateTime(2025, 1, 1);
+        donem.Baslangic = new DateTime(2039, 6, 1);
         await Assert.ThrowsAsync<InvalidOperationException>(() => servis.MaliDonemKaydetAsync(donem));
     }
 

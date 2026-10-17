@@ -491,7 +491,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<List<HesapPlaniDto>> HesapPlaniGetirAsync(string aramaMetni = "", bool sadeceAktifler = true, Guid sirketId = default)
     {
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         var tumu = await GetirTumHesaplarAsync(targetSirketId);
         if (sadeceAktifler) tumu = tumu.Where(h => h.AktifMi).ToList();
         if (!string.IsNullOrWhiteSpace(aramaMetni))
@@ -504,14 +504,14 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<Hesap360Dto> Hesap360GetirAsync(int hesapId, DateTime? baslangic = null, DateTime? bitis = null, Guid sirketId = default)
     {
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         return await GetirHesap360Async(hesapId, targetSirketId, baslangic, bitis);
     }
 
     public async Task<bool> HesapDurumDegistirAsync(int hesapId, bool aktifMi, Guid sirketId = default)
     {
         YetkiKontrolEt(y => y.HesapPlaniYonet, "Hesap Durumu Değiştirme");
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         var hesap = await _baglam.HesapPlanlari.FirstOrDefaultAsync(h => h.Id == hesapId && (h.SirketId == targetSirketId));
         if (hesap == null) return false;
         

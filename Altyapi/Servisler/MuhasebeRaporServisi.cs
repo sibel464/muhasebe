@@ -78,7 +78,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
     public async Task<MuavinRaporDto> MuavinAlAsync(int hesapId, Guid sirketId = default, DateTime? baslangic = null, DateTime? bitis = null)
     {
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Muavin Defter Görüntüleme");
 
         var bStart = baslangic ?? DateTime.MinValue;
@@ -143,7 +143,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
     public async Task<List<BuyukDefterSatirDto>> BuyukDefterAlAsync(Guid sirketId = default, DateTime? baslangic = null, DateTime? bitis = null)
     {
-        var targetSirketId = sirketId == Guid.Empty ? MuhasebeBaglami.VarsayilanSirketId : sirketId;
+        var targetSirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Büyük Defter Görüntüleme");
 
         var bStart = baslangic ?? DateTime.MinValue;
