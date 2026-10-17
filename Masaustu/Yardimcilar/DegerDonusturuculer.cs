@@ -4,6 +4,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using EtkiAlani.Modeller.Siparis;
 using EtkiAlani.Modeller.Finans;
+using EtkiAlani.Modeller.Fatura;
 
 namespace Masaustu.Yardimcilar;
 
@@ -48,6 +49,27 @@ public class SiparisMetinDonusturucu : IValueConverter
         SiparisOdemeSekli.Belirtilmedi => "Belirtilmedi",
         SiparisOdemeSekli.Nakit => "Nakit",
         SiparisOdemeSekli.Banka => "Banka",
+        _ => value?.ToString() ?? string.Empty
+    };
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public class FaturaMetinDonusturucu : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
+    {
+        FaturaTuru.Satis => "Satış",
+        FaturaTuru.Alis => "Alış",
+        FaturaTuru.SatisIade => "Satış İade",
+        FaturaTuru.AlisIade => "Alış İade",
+        BelgeDurumu.Taslak => "Taslak",
+        BelgeDurumu.Beklemede => "Beklemede",
+        BelgeDurumu.Onaylandi => "Onaylandı",
+        BelgeDurumu.Iptal => "İptal",
+        FaturaOdemeSekli.AcikHesap => "Açık Hesap",
+        FaturaOdemeSekli.Nakit => "Nakit",
+        FaturaOdemeSekli.KrediKarti => "Kredi Kartı",
+        FaturaOdemeSekli.Banka => "Banka",
         _ => value?.ToString() ?? string.Empty
     };
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;

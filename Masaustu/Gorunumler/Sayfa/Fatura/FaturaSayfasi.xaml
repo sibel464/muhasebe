@@ -16,6 +16,7 @@
             </ResourceDictionary.MergedDictionaries>
             <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <yardimci:FaturaMetinDonusturucu x:Key="FaturaMetin"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -113,6 +114,17 @@
                     <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
+                    <StackPanel Width="150" Margin="0,0,12,0">
+                        <TextBlock Text="Tür" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding TurSecenekleri}" SelectedItem="{Binding TurFiltresi}" Height="34"/>
+                    </StackPanel>
+                    <StackPanel Width="150">
+                        <TextBlock Text="Durum" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding DurumSecenekleri}" SelectedItem="{Binding DurumFiltresi}" Height="34"/>
+                    </StackPanel>
+                </StackPanel>
+
                 <TextBlock Grid.Column="2" Text="{Binding DurumMesaji}" Foreground="{StaticResource TextSecondaryFirca}" FontSize="12" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
             </Grid>
         </Border>
@@ -134,18 +146,18 @@
                                         <Style TargetType="Border" BasedOn="{StaticResource DurumRozeti}">
                                             <Setter Property="Background" Value="{StaticResource PrimaryLightFirca}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding FaturaTuru}" Value="{x:Static fatura:FaturaTuru.Alis}">
+                                                <DataTrigger Binding="{Binding Tur}" Value="{x:Static fatura:FaturaTuru.Alis}">
                                                     <Setter Property="Background" Value="{StaticResource SuccessLightFirca}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="{Binding FaturaTuru}" FontSize="11" FontWeight="Bold">
+                                    <TextBlock Text="{Binding Tur, Converter={StaticResource FaturaMetin}}" FontSize="11" FontWeight="Bold">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{StaticResource PrimaryDarkFirca}"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding FaturaTuru}" Value="{x:Static fatura:FaturaTuru.Alis}">
+                                                    <DataTrigger Binding="{Binding Tur}" Value="{x:Static fatura:FaturaTuru.Alis}">
                                                         <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -158,10 +170,11 @@
                     </DataGridTemplateColumn>
 
                     <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="130" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="TARİH" Binding="{Binding FaturaTarihi, StringFormat=dd.MM.yyyy}" Width="100"/>
+                    <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy}" Width="100"/>
                     <DataGridTextColumn Header="CARİ ÜNVANI" Binding="{Binding CariKart.Unvan}" Width="2*"/>
+                    <DataGridTextColumn Header="ÖDEME" Binding="{Binding OdemeSekli, Converter={StaticResource FaturaMetin}}" Width="100"/>
                     
-                    <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding ToplamTutar, StringFormat={}{0:N2} ₺}" Width="130">
+                    <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding GenelToplam, StringFormat={}{0:N2} ₺}" Width="130">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -189,7 +202,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="{Binding Durum}" FontSize="11" FontWeight="Bold">
+                                    <TextBlock Text="{Binding Durum, Converter={StaticResource FaturaMetin}}" FontSize="11" FontWeight="Bold">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryFirca}"/>
@@ -214,7 +227,7 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Command="{Binding DataContext.YazdirKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                    <Button Command="{Binding DataContext.FaturaYazdirKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,6,0">
                                         <StackPanel Orientation="Horizontal">
@@ -241,7 +254,7 @@
                                         </StackPanel>
                                     </Button>
 
-                                    <Button Command="{Binding DataContext.IptalEtKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                    <Button Command="{Binding DataContext.IptalKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource DangerLightFirca}" Foreground="{StaticResource DangerDarkFirca}">
                                         <StackPanel Orientation="Horizontal">

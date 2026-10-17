@@ -401,7 +401,7 @@ public class FaturaServisi : IFaturaServisi
         }
     }
 
-    public async Task<Fatura> IptalEtAsync(int id)
+    public async Task<Fatura> IptalEtAsync(int id, string? neden = null)
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.FaturaIptal, "Fatura İptal Etme");
 
@@ -441,13 +441,14 @@ public class FaturaServisi : IFaturaServisi
                 irsaliye.DonusturulenFaturaId = null;
             }
 
-            // Faturaya bağlı entegrasyon hareketlerini (Cari ve Stok) bulup soft-delete yap
+            // Faturanın kendi cari/stok hareketleri: IlgiliBelgeId başka belge türlerinde (kasa, çek, irsaliye, sayım)
+            // aynı sayıyı taşıyabildiği için belge numarasıyla birlikte eşleştirilir.
             var cariHareketler = await _baglam.CariHareketler
-                .Where(h => h.IlgiliBelgeId == fatura.Id)
+                .Where(h => h.IlgiliBelgeId == fatura.Id && h.BelgeNo == fatura.FaturaNo)
                 .ToListAsync();
 
             var stokHareketleri = await _baglam.StokHareketleri
-                .Where(h => h.IlgiliBelgeId == fatura.Id)
+                .Where(h => h.IlgiliBelgeId == fatura.Id && h.BelgeNo == fatura.FaturaNo)
                 .ToListAsync();
 
             var sirketId = fatura.SirketId ?? throw new InvalidOperationException("Faturanın şirket bağlantısı bulunamadı.");
@@ -463,12 +464,22 @@ public class FaturaServisi : IFaturaServisi
                 throw new InvalidOperationException("Bu fatura için ters kayıt zaten oluşturulmuş.");
 
             var iptalBelgeNo = $"{fatura.FaturaNo}-IPTAL";
+            neden = neden?.Trim();
+            if (neden?.Length > 200) neden = neden[..200];
+            var nedenEki = string.IsNullOrEmpty(neden) ? string.Empty : $" (Neden: {neden})";
+            // İadenin parası bugün çıkar; belge tarihleri yerel saatle (UTC etiketli) saklanır.
+            var simdi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+            if (nedenEki.Length > 0)
+            {
+                var ek = $"İptal{nedenEki}";
+                fatura.Aciklama = string.IsNullOrWhiteSpace(fatura.Aciklama) ? ek : $"{fatura.Aciklama[..Math.Min(fatura.Aciklama.Length, 500 - ek.Length - 3)]} - {ek}";
+            }
             foreach (var hareket in cariHareketler)
             {
                 _baglam.CariHareketler.Add(new CariHareket
                 {
                     CariKartId = hareket.CariKartId, Tarih = fatura.Tarih, BelgeNo = iptalBelgeNo,
-                    IlgiliBelgeId = fatura.Id, Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı",
+                    IlgiliBelgeId = fatura.Id, Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı{nedenEki}",
                     HareketTuru = hareket.HareketTuru switch
                     {
                         CariHareketTuru.SatisFaturasi => CariHareketTuru.SatisIadesi,
@@ -505,23 +516,27 @@ public class FaturaServisi : IFaturaServisi
                 _baglam.StokHareketleri.Add(new StokHareketi
                 {
                     UrunId = hareket.UrunId, DepoId = hareket.DepoId, Tarih = fatura.Tarih, BelgeNo = iptalBelgeNo,
-                    IlgiliBelgeId = fatura.Id, Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı",
+                    IlgiliBelgeId = fatura.Id, Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı{nedenEki}",
                     HareketTuru = hareket.HareketTuru == StokHareketTuru.Giris ? StokHareketTuru.Cikis : StokHareketTuru.Giris,
                     Miktar = hareket.Miktar, BirimFiyat = hareket.BirimFiyat
                 });
             }
 
-            _baglam.YevmiyeFisleri.Add(new YevmiyeFis
+            // Fatura fişi daha önce Muhasebe ekranından elle iptal edildiyse ters kaydı zaten vardır; ikinci kez ters çevrilmez.
+            if (kaynakFis.Durum != YevmiyeDurumu.Iptal)
             {
-                SirketId = sirketId, FisNo = $"YF-I-{fatura.Id:D10}", Tarih = fatura.Tarih,
-                BelgeTipi = "FaturaIptal", BelgeId = fatura.Id,
-                Aciklama = $"{fatura.Aciklama} - İptal ters kaydı", Durum = YevmiyeDurumu.Onaylandi,
-                Satirlar = kaynakFis.Satirlar.Select(s => new YevmiyeSatiri
+                _baglam.YevmiyeFisleri.Add(new YevmiyeFis
                 {
-                    HesapId = s.HesapId, Borc = s.Alacak, Alacak = s.Borc, CariKartId = s.CariKartId,
-                    Aciklama = $"{s.Aciklama} - İptal ters kaydı"
-                }).ToList()
-            });
+                    SirketId = sirketId, FisNo = $"YF-I-{fatura.Id:D10}", Tarih = fatura.Tarih,
+                    BelgeTipi = "FaturaIptal", BelgeId = fatura.Id,
+                    Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı{nedenEki}", Durum = YevmiyeDurumu.Onaylandi,
+                    Satirlar = kaynakFis.Satirlar.Select(s => new YevmiyeSatiri
+                    {
+                        HesapId = s.HesapId, Borc = s.Alacak, Alacak = s.Borc, CariKartId = s.CariKartId,
+                        Aciklama = $"{s.Aciklama} - İptal ters kaydı"
+                    }).ToList()
+                });
+            }
 
             // SaveChangesAsync (otomatik olarak soft-delete hareketleri algılar, CariKart bakiye ve Urun stok miktarlarını geri çeker)
             await _baglam.SaveChangesAsync();
@@ -531,7 +546,7 @@ public class FaturaServisi : IFaturaServisi
             {
                 var ters = new KasaHareketi
                 {
-                    SirketId = asil.SirketId, KasaId = asil.KasaId, Tarih = DateTime.UtcNow, FisTuru = asil.FisTuru,
+                    SirketId = asil.SirketId, KasaId = asil.KasaId, Tarih = simdi, FisTuru = asil.FisTuru,
                     Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = asil.Tutar,
                     CariKartId = asil.CariKartId, Aciklama = $"{fatura.FaturaNo} nolu fatura iptali - ödeme iadesi", Belge = iptalBelgeNo,
                     IslemDurumu = FinansIslemDurumu.TersKayit, TersKayitId = asil.Id
@@ -548,7 +563,7 @@ public class FaturaServisi : IFaturaServisi
             {
                 var ters = new BankaHareketi
                 {
-                    SirketId = asil.SirketId, BankaHesabiId = asil.BankaHesabiId, Tarih = DateTime.UtcNow, FisTuru = asil.FisTuru,
+                    SirketId = asil.SirketId, BankaHesabiId = asil.BankaHesabiId, Tarih = simdi, FisTuru = asil.FisTuru,
                     Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = asil.Tutar,
                     CariKartId = asil.CariKartId, BankaAdi = asil.BankaAdi, HesapNo = asil.HesapNo, OdemeYontemi = asil.OdemeYontemi,
                     Aciklama = $"{fatura.FaturaNo} nolu fatura iptali - ödeme iadesi",

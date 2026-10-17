@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Windows.Input;
 using EtkiAlani.Modeller.Cari;
@@ -176,6 +177,11 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	private string _faturaNo = string.Empty;
 	private DateTime _tarih = DateTime.Today;
 	private string _aramaMetni = string.Empty;
+	private const string Tumu = "Tümü";
+	private string _turFiltresi = Tumu;
+	private string _durumFiltresi = Tumu;
+	private List<Fatura> _tumFaturalar = new();
+	private static readonly Masaustu.Yardimcilar.FaturaMetinDonusturucu Metin = new();
 	private string _cariAramaMetni = string.Empty;
 	private string _urunAramaMetni = string.Empty;
 	private decimal _genelIskontoOrani;
@@ -196,7 +202,11 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public BelgeDurumu Durum { get => _durum; private set { if (OzellikAyarla(ref _durum, value)) { BildirimGonder(nameof(Duzenlenebilir)); KomutlariGuncelle(); } } }
 	public string FaturaNo { get => _faturaNo; set => OzellikAyarla(ref _faturaNo, value); }
 	public DateTime Tarih { get => _tarih; set => OzellikAyarla(ref _tarih, value); }
-	public string AramaMetni { get => _aramaMetni; set { OzellikAyarla(ref _aramaMetni, value); _ = ListeleAsync(); } }
+	public string AramaMetni { get => _aramaMetni; set { if (OzellikAyarla(ref _aramaMetni, value)) Filtrele(); } }
+	public IReadOnlyList<string> TurSecenekleri { get; } = new[] { Tumu, "Satış", "Alış", "Satış İade", "Alış İade" };
+	public IReadOnlyList<string> DurumSecenekleri { get; } = new[] { Tumu, "Taslak", "Onaylandı", "İptal", "Beklemede" };
+	public string TurFiltresi { get => _turFiltresi; set { if (OzellikAyarla(ref _turFiltresi, value)) Filtrele(); } }
+	public string DurumFiltresi { get => _durumFiltresi; set { if (OzellikAyarla(ref _durumFiltresi, value)) Filtrele(); } }
 	public string CariAramaMetni { get => _cariAramaMetni; set { OzellikAyarla(ref _cariAramaMetni, value); CariFiltrele(); } }
 	public string UrunAramaMetni { get => _urunAramaMetni; set { OzellikAyarla(ref _urunAramaMetni, value); UrunFiltrele(); } }
 	public decimal GenelIskontoOrani { get => _genelIskontoOrani; set { if (OzellikAyarla(ref _genelIskontoOrani, value)) ToplamlariGuncelle(); } }
@@ -234,6 +244,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand KalemEkleKomutu { get; }
 	public ICommand KalemSilKomutu { get; }
 	public ICommand FaturaYazdirKomutu { get; }
+	public ICommand DetayKomutu { get; }
 	public ICommand ExcelAktarKomutu { get; }
 
 	public FaturaGorunumModeli(
@@ -254,9 +265,11 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		YeniKomutu = new KomutSarici(_ => Yeni());
 		YenileKomutu = new KomutSarici(async _ => await YukleAsync());
 		KaydetKomutu = new KomutSarici(async _ => await KaydetAsync(), _ => Duzenlenebilir && !Kaydediliyor);
-		SilKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await SilAsync(); }, _ => SeciliFatura != null && Durum == BelgeDurumu.Taslak);
-		OnaylaKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await OnaylaAsync(); }, _ => SeciliFatura != null && Durum == BelgeDurumu.Taslak);
-		IptalKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await IptalAsync(); }, _ => SeciliFatura != null && Durum == BelgeDurumu.Onaylandi);
+		// Listedeki satır düğmeleri kendi satırının faturasını parametre olarak gönderir; düğme o faturanın durumuna göre açılır.
+		SilKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await SilAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Taslak);
+		OnaylaKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await OnaylaAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Taslak);
+		IptalKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await IptalAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Onaylandi);
+		DetayKomutu = new KomutSarici(param => { if ((param as Fatura ?? SeciliFatura) is Fatura f) FaturaDetayPenceresi.Goster(f); }, param => param is Fatura || SeciliFatura != null);
 		KalemEkleKomutu = new KomutSarici(_ => KalemEkle(), _ => Duzenlenebilir && SeciliUrun != null);
 		KalemSilKomutu = new KomutSarici(_ => { if (SeciliKalem != null) Kalemler.Remove(SeciliKalem); ToplamlariGuncelle(); }, _ => Duzenlenebilir && SeciliKalem != null);
 		FaturaYazdirKomutu = new KomutSarici(async param => 
@@ -287,34 +300,34 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		Yukleniyor = true;
 		try
 		{
-			Faturalar = new ObservableCollection<Fatura>(await _faturaServisi.TumunuGetirAsync());
-			
+			_tumFaturalar = (await _faturaServisi.TumunuGetirAsync()).OrderByDescending(f => f.Tarih).ThenByDescending(f => f.Id).ToList();
+
 			var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-			BuAySatisToplam = Faturalar.Where(f => f.Tarih >= ayBaslangic && f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi).Sum(f => f.GenelToplam);
-			BuAyAlisToplam = Faturalar.Where(f => f.Tarih >= ayBaslangic && f.Tur == FaturaTuru.Alis && f.Durum == BelgeDurumu.Onaylandi).Sum(f => f.GenelToplam);
-			TaslakSayisi = Faturalar.Count(f => f.Durum == BelgeDurumu.Taslak);
+			BuAySatisToplam = _tumFaturalar.Where(f => f.Tarih >= ayBaslangic && f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi).Sum(f => f.GenelToplam);
+			BuAyAlisToplam = _tumFaturalar.Where(f => f.Tarih >= ayBaslangic && f.Tur == FaturaTuru.Alis && f.Durum == BelgeDurumu.Onaylandi).Sum(f => f.GenelToplam);
+			TaslakSayisi = _tumFaturalar.Count(f => f.Durum == BelgeDurumu.Taslak);
 
 			_tumCariler = await _cariServisi.TumunuGetirAsync();
 			_tumUrunler = (await _urunServisi.TumunuGetirAsync()).Where(x => x.Aktif).ToList();
 			Cariler = new ObservableCollection<CariKart>(_tumCariler);
 			Urunler = new ObservableCollection<Urun>(_tumUrunler);
-			DurumMesaji = $"{Faturalar.Count} fatura listeleniyor.";
+			Filtrele();
 		}
 		catch (Exception ex) { DurumMesaji = $"Veriler yüklenemedi: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.YukleAsync"); }
 		finally { Yukleniyor = false; }
 	}
 
-	private async Task ListeleAsync()
+	// Liste bir kez yüklenir; arama ve filtreler bellekte uygulanır (yazarken veritabanına art arda sorgu gitmez).
+	private void Filtrele()
 	{
-		try
-		{
-			Faturalar = new ObservableCollection<Fatura>(await _faturaServisi.AraAsync(AramaMetni));
-		}
-		catch (Exception ex)
-		{
-			DurumMesaji = $"Fatura araması başarısız: {ex.Message}";
-			HatayiLogla(ex, "FaturaGorunumModeli.ListeleAsync");
-		}
+		var arama = AramaMetni.Trim();
+		var sonuc = _tumFaturalar.Where(f =>
+			(arama.Length == 0 || f.FaturaNo.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ||
+			 (f.CariKart?.Unvan?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false)) &&
+			(TurFiltresi == Tumu || (string)Metin.Convert(f.Tur, typeof(string), null!, CultureInfo.CurrentCulture) == TurFiltresi) &&
+			(DurumFiltresi == Tumu || (string)Metin.Convert(f.Durum, typeof(string), null!, CultureInfo.CurrentCulture) == DurumFiltresi)).ToList();
+		Faturalar = new ObservableCollection<Fatura>(sonuc);
+		DurumMesaji = sonuc.Count == _tumFaturalar.Count ? $"{sonuc.Count} fatura listeleniyor." : $"{sonuc.Count} / {_tumFaturalar.Count} fatura listeleniyor.";
 	}
 	private void CariFiltrele() => Cariler = new ObservableCollection<CariKart>(_tumCariler.Where(x => string.IsNullOrWhiteSpace(CariAramaMetni) || x.Kod.Contains(CariAramaMetni, StringComparison.OrdinalIgnoreCase) || x.Unvan.Contains(CariAramaMetni, StringComparison.OrdinalIgnoreCase)));
 	private void UrunFiltrele() => Urunler = new ObservableCollection<Urun>(_tumUrunler.Where(x => string.IsNullOrWhiteSpace(UrunAramaMetni) || x.Kod.Contains(UrunAramaMetni, StringComparison.OrdinalIgnoreCase) || x.Ad.Contains(UrunAramaMetni, StringComparison.OrdinalIgnoreCase)));
@@ -374,7 +387,26 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 
 	private async Task SilAsync() { if (SeciliFatura == null) return; try { await _faturaServisi.SilAsync(SeciliFatura.Id); DurumMesaji = "Taslak fatura silindi."; Yeni(); await YukleAsync(); } catch (Exception ex) { DurumMesaji = ex.Message; HatayiLogla(ex, "FaturaGorunumModeli.SilAsync"); } }
 	private async Task OnaylaAsync() { if (SeciliFatura == null) return; try { var f = await _faturaServisi.OnaylaAsync(SeciliFatura.Id); SeciliFatura = f; Durum = f.Durum; DurumMesaji = "Fatura onaylandı; cari ve stok hareketleri oluşturuldu."; await YukleAsync(); } catch (Exception ex) { DurumMesaji = $"Fatura onaylanamadı: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.OnaylaAsync"); } }
-	private async Task IptalAsync() { if (SeciliFatura == null) return; try { var f = await _faturaServisi.IptalEtAsync(SeciliFatura.Id); SeciliFatura = f; Durum = f.Durum; DurumMesaji = "Fatura iptal edildi; entegrasyon hareketleri geri alındı."; await YukleAsync(); } catch (Exception ex) { DurumMesaji = $"Fatura iptal edilemedi: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.IptalAsync"); } }
+	private async Task IptalAsync()
+	{
+		if (SeciliFatura == null) return;
+		var fatura = SeciliFatura;
+		var pencere = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
+			"Faturayı İptal Et",
+			$"{fatura.FaturaNo} - {fatura.CariKart?.Unvan} - {fatura.GenelToplam:N2} ₺\n\n" +
+			"İptal edilince carinin borcu/alacağı, stok ve muhasebe kaydı ters kayıtla geri alınır. " +
+			"Fatura peşin ödendiyse kasadan/bankadan iade kaydı oluşur. Bu işlem geri alınamaz.\n\nİptal nedenini yazın:");
+		pencere.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+		if (pencere.ShowDialog() != true) return;
+		try
+		{
+			var f = await _faturaServisi.IptalEtAsync(fatura.Id, pencere.GirilenMetin);
+			await YukleAsync();
+			SeciliFatura = _tumFaturalar.FirstOrDefault(x => x.Id == f.Id);
+			DurumMesaji = $"{f.FaturaNo} iptal edildi; cari, stok ve muhasebe kayıtları ters kayıtla geri alındı.";
+		}
+		catch (Exception ex) { DurumMesaji = $"Fatura iptal edilemedi: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.IptalAsync"); }
+	}
 	private void ToplamlariGuncelle() { foreach (var row in Kalemler) row.Hesapla(); BildirimGonder(nameof(AraToplam)); BildirimGonder(nameof(SatirIskontosuToplam)); BildirimGonder(nameof(GenelIskontoTutari)); BildirimGonder(nameof(KdvToplam)); BildirimGonder(nameof(GenelToplam)); }
 	private void KomutlariGuncelle() { (KaydetKomutu as KomutSarici)?.BildirimGonder(); (SilKomutu as KomutSarici)?.BildirimGonder(); (OnaylaKomutu as KomutSarici)?.BildirimGonder(); (IptalKomutu as KomutSarici)?.BildirimGonder(); }
 

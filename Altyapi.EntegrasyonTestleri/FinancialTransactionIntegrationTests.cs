@@ -120,6 +120,48 @@ public sealed class FinancialTransactionIntegrationTests
     }
 
     [Fact]
+    public async Task Fatura_iptali_ayni_numarali_baska_belgenin_hareketlerine_dokunmaz()
+    {
+        var invoice = await SeedAndCreateInvoiceAsync(FaturaTuru.Satis, 20);
+        await using var context = new MuhasebeBaglami(_fixture.Options);
+        await new FinancialTransactionService(context, new AuthorizedUserService()).CreateFromInvoiceAsync(invoice.Id);
+        var kalem = await context.FaturaKalemleri.FirstAsync(x => x.FaturaId == invoice.Id);
+        // Kasa/irsaliye gibi başka belgeler de IlgiliBelgeId'de aynı sayıyı taşıyabilir.
+        context.CariHareketler.Add(new CariHareket { CariKartId = invoice.CariKartId, Tarih = invoice.Tarih, BelgeNo = "KASA-BASKA", IlgiliBelgeId = invoice.Id, HareketTuru = CariHareketTuru.Tahsilat, Alacak = 50, Aciklama = "Başka belge" });
+        context.StokHareketleri.Add(new StokHareketi { UrunId = kalem.UrunId, Tarih = invoice.Tarih, BelgeNo = "IRS-BASKA", IlgiliBelgeId = invoice.Id, HareketTuru = StokHareketTuru.Giris, Miktar = 3, Aciklama = "Başka belge" });
+        await context.SaveChangesAsync();
+
+        await new FaturaServisi(context, new AuthorizedUserService()).IptalEtAsync(invoice.Id, "Yanlış cari");
+
+        var iptalNo = $"{invoice.FaturaNo}-IPTAL";
+        var cariTers = await context.CariHareketler.Where(x => x.BelgeNo == iptalNo).ToListAsync();
+        var stokTers = await context.StokHareketleri.Where(x => x.BelgeNo == iptalNo).ToListAsync();
+        Assert.Single(cariTers);
+        Assert.Equal(12000, cariTers[0].Alacak);
+        Assert.Contains("Yanlış cari", cariTers[0].Aciklama);
+        Assert.Single(stokTers);
+        Assert.Equal(kalem.Miktar, stokTers[0].Miktar);
+        Assert.Contains("Yanlış cari", (await context.Faturalar.SingleAsync(x => x.Id == invoice.Id)).Aciklama);
+    }
+
+    [Fact]
+    public async Task Fisi_muhasebeden_elle_iptal_edilmis_fatura_ikinci_ters_fis_uretmeden_iptal_edilir()
+    {
+        var invoice = await SeedAndCreateInvoiceAsync(FaturaTuru.Satis, 20);
+        await using var context = new MuhasebeBaglami(_fixture.Options);
+        await new FinancialTransactionService(context, new AuthorizedUserService()).CreateFromInvoiceAsync(invoice.Id);
+        var fis = await context.YevmiyeFisleri.SingleAsync(x => x.BelgeTipi == "Fatura" && x.BelgeId == invoice.Id);
+        fis.Durum = YevmiyeDurumu.Iptal;
+        await context.SaveChangesAsync();
+
+        await new FaturaServisi(context, new AuthorizedUserService()).IptalEtAsync(invoice.Id);
+
+        Assert.Equal(BelgeDurumu.Iptal, (await context.Faturalar.SingleAsync(x => x.Id == invoice.Id)).Durum);
+        Assert.False(await context.YevmiyeFisleri.AnyAsync(x => x.BelgeTipi == "FaturaIptal" && x.BelgeId == invoice.Id));
+        Assert.Single(await context.CariHareketler.Where(x => x.BelgeNo == $"{invoice.FaturaNo}-IPTAL").ToListAsync());
+    }
+
+    [Fact]
     public async Task Eszamanli_onayda_tek_finansal_islem_kalir()
     {
         var invoice = await SeedAndCreateInvoiceAsync(FaturaTuru.Satis, 20);
