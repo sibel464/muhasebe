@@ -24,6 +24,7 @@ public partial class AnaPencere : Window
     public AnaPencere(AnaGorunumModeli gorunumModeli)
     {
         InitializeComponent();
+        if (App.LisansMetni is { Length: > 0 } lisans) Title = $"{Title} — {lisans}";
         _gorunumModeli = gorunumModeli;
         DataContext = _gorunumModeli;
 

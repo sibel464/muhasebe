@@ -69,6 +69,28 @@ Müşteri bilgisayarında:
 
 `kurulum\Lisans.rtf` bir **taslaktır**; satıştan önce hukuki olarak son haline getirilmelidir.
 
+## Lisans ve deneme sürümü
+
+Kurulum sürümü ilk açılıştan itibaren 30 gün deneme olarak çalışır. Süre bitince program
+yalnız lisans penceresini açar (veriler silinmez). Lisans; müşterinin bilgisayarına bağlı,
+ECDSA ile imzalı bir dosyadır (`C:\ProgramData\MuhasebeYonetim\lisans.lic`), internet gerekmez.
+Geliştirme ortamında lisans denetimi yapılmaz.
+
+1. Müşteri **Ayarlar → Lisans** (veya deneme bitince açılan pencere) ekranındaki makine kodunu iletir.
+2. Satıcı lisans dosyasını üretir ve gönderir:
+
+```powershell
+dotnet run --project LisansUretici -- uret --musteri "ABC Ltd." --vkn 1234567890 --makine 3XZ5-AK45-SXCF-DK98 --bitis 2027-12-31
+```
+
+   `--bitis` verilmezse lisans süresizdir. `dogrula --dosya ... --makine ...` ile kontrol edilebilir.
+3. Müşteri dosyayı "Lisans Dosyası Yükle" ile seçer.
+
+Lisans üretmek için kullanılan **özel anahtar** `%USERPROFILE%\MuhasebeLisansAnahtari\ozel-anahtar.pem`
+dosyasıdır ve depoda yoktur. Güvenli bir yere yedeklenmelidir: kaybolursa yeni lisans
+üretilemez (programdaki açık anahtar değiştirilip yeni sürüm dağıtmak gerekir), başkasının
+eline geçerse herkes lisans üretebilir.
+
 ## Oturum zaman aşımı
 
 Program `UygulamaAyarlari:OturumZamanAsimiDakika` (varsayılan 15) dakika boyunca klavye

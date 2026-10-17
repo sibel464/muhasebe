@@ -1,7 +1,21 @@
 namespace Masaustu.Gorunumler.Sayfa;
 public partial class AyarlarSayfasi : System.Windows.Controls.UserControl
 {
-    public AyarlarSayfasi() => InitializeComponent();
+    public AyarlarSayfasi()
+    {
+        InitializeComponent();
+        LisansDurumunuGoster();
+    }
+
+    private void LisansDurumunuGoster() => LisansDurumMetni.Text = Masaustu.Servisler.LisansYoneticisi.DenetimGerekli
+        ? Masaustu.Servisler.LisansYoneticisi.DurumGetir().Aciklama
+        : "Geliştirme sürümü: lisans denetimi yapılmaz.";
+
+    private void Lisans_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        new Masaustu.Gorunumler.Ortak.LisansPenceresi(acilistaZorunlu: false) { Owner = System.Windows.Window.GetWindow(this) }.ShowDialog();
+        LisansDurumunuGoster();
+    }
     private void MerkeziTanim_Click(object sender,System.Windows.RoutedEventArgs e)
     {
         if(sender is not System.Windows.Controls.Button b||b.Tag is not string grup)return;

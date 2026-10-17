@@ -38,3 +38,7 @@ db-data-ESKI-*/
 
 # Kurulum paketi çıktısı
 kurulum/cikti/
+
+# Lisans özel anahtarı asla depoya girmez
+*.pem
+*.lic

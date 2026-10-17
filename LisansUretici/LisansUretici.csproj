@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Satıcının kullandığı lisans üretme aracı. Kurulum paketine girmez; özel anahtar bu araçla ve
+       proje dışında (varsayılan: %USERPROFILE%\MuhasebeLisansAnahtari) tutulur. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EtkiAlani\EtkiAlani.csproj" />
+  </ItemGroup>
+</Project>

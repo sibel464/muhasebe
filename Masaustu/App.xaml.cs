@@ -203,6 +203,18 @@ public partial class App : Application
             if (!string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
                 OtomatikYedegiBaslat();
 
+            // Kurulum sürümünde lisans/deneme denetimi: deneme bitmişse yalnız lisans penceresi açılır.
+            if (LisansYoneticisi.DenetimGerekli)
+            {
+                var lisans = LisansYoneticisi.DurumGetir();
+                if (!lisans.Kullanilabilir && new Masaustu.Gorunumler.Ortak.LisansPenceresi(acilistaZorunlu: true).ShowDialog() != true)
+                {
+                    Shutdown(0);
+                    return;
+                }
+                LisansMetni = LisansYoneticisi.DurumGetir().Aciklama;
+            }
+
             var girisEkrani = HizmetSaglayici.GetRequiredService<GirisEkrani>();
             MainWindow = girisEkrani;
             girisEkrani.Show();
@@ -222,6 +234,9 @@ public partial class App : Application
     // Yedekten geri yüklemeden sonra program kendini yeniden açar: yeni süreç veritabanı sunucusu tamamen
     // durduktan sonra başlatılır (aksi halde kapanmakta olan sunucuya bağlanmaya çalışırdı).
     internal static bool YenidenBaslat { get; set; }
+
+    // Ana pencere başlığında gösterilen lisans/deneme durumu (kurulum sürümünde).
+    internal static string? LisansMetni { get; private set; }
 
     protected override void OnExit(ExitEventArgs e)
     {
