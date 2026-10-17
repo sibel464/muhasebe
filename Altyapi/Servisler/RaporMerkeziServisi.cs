@@ -282,10 +282,10 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             faturaQuery = faturaQuery.Where(f => f.CariKartId == filtre.CariId.Value);
 
         if (filtre.BaslangicTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih >= EnsureUtc(filtre.BaslangicTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
 
         if (filtre.BitisTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih <= EnsureUtc(filtre.BitisTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi); // bitiş günü dahil
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
@@ -380,10 +380,10 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var faturaQuery = _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId).Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi);
 
         if (filtre.BaslangicTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih >= EnsureUtc(filtre.BaslangicTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
 
         if (filtre.BitisTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih <= EnsureUtc(filtre.BitisTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi); // bitiş günü dahil
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
@@ -421,10 +421,10 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .Where(f => f.Tur == FaturaTuru.Alis && f.Durum == BelgeDurumu.Onaylandi);
 
         if (filtre.BaslangicTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih >= EnsureUtc(filtre.BaslangicTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
 
         if (filtre.BitisTarihi.HasValue)
-            faturaQuery = faturaQuery.Where(f => f.Tarih <= EnsureUtc(filtre.BitisTarihi.Value));
+            faturaQuery = faturaQuery.Where(f => f.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi); // bitiş günü dahil
 
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId

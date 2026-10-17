@@ -23,7 +23,8 @@ public class KurServisi : IKurServisi
 
     public async Task<List<DovizKuruDto>> GetirGunlukKurlarAsync(DateTime? tarih = null)
     {
-        var hedefTarih = (tarih ?? DateTime.UtcNow).Date;
+        // Kur günü yerel takvim günüdür (UTC etiketli); gece 00-03 arası önceki güne düşmez, tür ne gelirse gelsin normalize edilir.
+        var hedefTarih = DateTime.SpecifyKind((tarih ?? DateTime.Now).Date, DateTimeKind.Utc);
 
         // Fetch DB rates for target date first
         var dbEntities = await _baglam.DovizKurlari
@@ -53,13 +54,14 @@ public class KurServisi : IKurServisi
 
     public async Task<DovizKuruDto?> GetirGecerliKurAsync(string paraBirimiKodu, DateTime? tarih = null)
     {
+        var hedefTarih = DateTime.SpecifyKind((tarih ?? DateTime.Now).Date, DateTimeKind.Utc);
         if (string.IsNullOrWhiteSpace(paraBirimiKodu) || paraBirimiKodu.Equals("TRY", StringComparison.OrdinalIgnoreCase))
         {
             return new DovizKuruDto
             {
                 ParaBirimiKodu = "TRY",
-                Tarih = (tarih ?? DateTime.UtcNow).Date,
-                KurTarihi = (tarih ?? DateTime.UtcNow).Date,
+                Tarih = hedefTarih,
+                KurTarihi = hedefTarih,
                 DovizAlis = 1.0m,
                 DovizSatis = 1.0m,
                 EfektifAlis = 1.0m,

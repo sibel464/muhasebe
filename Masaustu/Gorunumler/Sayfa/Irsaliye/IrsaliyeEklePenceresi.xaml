@@ -72,6 +72,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>   <!-- Cari Kart -->
                         <ColumnDefinition Width="1.2*"/> <!-- İrsaliye No -->
+                        <ColumnDefinition Width="1.3*"/> <!-- Stok Yeri -->
                         <ColumnDefinition Width="*"/>    <!-- Tarih -->
                         <ColumnDefinition Width="2*"/>   <!-- Açıklama -->
                     </Grid.ColumnDefinitions>
@@ -93,14 +94,22 @@
                                  Style="{StaticResource FormGirisKutusu}"/>
                     </StackPanel>
 
-                    <!-- Tarih -->
+                    <!-- Stok Yeri -->
                     <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                        <TextBlock Text="Stok Yeri (Depo)" Style="{StaticResource EtiketMetin}"/>
+                        <ComboBox ItemsSource="{Binding StokYerleriListesi}" SelectedItem="{Binding SeciliStokYeri}"
+                                  DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}"
+                                  ToolTip="Satış irsaliyesinde stoğun çıkacağı, alışta gireceği mağaza/depo"/>
+                    </StackPanel>
+
+                    <!-- Tarih -->
+                    <StackPanel Grid.Column="3" Margin="0,0,12,0">
                         <TextBlock Text="Tarih *" Style="{StaticResource EtiketMetin}"/>
                         <DatePicker SelectedDate="{Binding Tarih}" Height="38" VerticalContentAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Açıklama -->
-                    <StackPanel Grid.Column="3">
+                    <StackPanel Grid.Column="4">
                         <TextBlock Text="Açıklama / Sevk Notu" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" 
                                  Style="{StaticResource FormGirisKutusu}"/>

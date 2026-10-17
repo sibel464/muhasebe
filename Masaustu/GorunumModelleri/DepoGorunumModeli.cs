@@ -617,7 +617,7 @@ public class DepoGorunumModeli : TemelGorunumModeli
                 FisNo = TransferFisNo,
                 KaynakDepoId = SeciliKaynakDepo.Id,
                 HedefDepoId = SeciliHedefDepo.Id,
-                Tarih = DateTime.UtcNow,
+                Tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc),
                 Aciklama = string.IsNullOrWhiteSpace(TransferAciklama) ? $"{SeciliKaynakDepo.DepoAdi} ➔ {SeciliHedefDepo.DepoAdi} Sevk" : TransferAciklama,
                 BelgeNo = TransferBelgeNo,
                 Kalemler = TransferKalemleri.ToList()

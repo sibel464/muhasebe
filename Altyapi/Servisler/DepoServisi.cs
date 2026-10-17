@@ -178,14 +178,16 @@ public class DepoServisi : IDepoServisi
             query = query.Where(sh => sh.UrunId == urunId.Value);
         }
 
+        // Gün bazında: bitiş gününün tüm hareketleri dahil.
+        var aralik = RaporTarihAraligi.Olustur(baslangic, bitis);
         if (baslangic.HasValue)
         {
-            query = query.Where(sh => sh.Tarih >= baslangic.Value);
+            query = query.Where(sh => sh.Tarih >= aralik.Baslangic);
         }
 
         if (bitis.HasValue)
         {
-            query = query.Where(sh => sh.Tarih <= bitis.Value);
+            query = query.Where(sh => sh.Tarih < aralik.BitisSonrasi);
         }
 
         var list = await query.OrderByDescending(sh => sh.Tarih).Take(300).ToListAsync();

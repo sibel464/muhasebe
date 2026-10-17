@@ -230,11 +230,13 @@ public class YevmiyeServisi : IYevmiyeServisi
             .Include(s => s.Hesap)
             .Where(s => s.Fis != null && (s.Fis.SirketId == sirketId));
 
+        // Gün bazında: bitiş gününün tüm kayıtları dahil.
+        var aralik = RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, filtre.BitisTarihi);
         if (filtre.BaslangicTarihi.HasValue)
-            query = query.Where(s => s.Fis!.Tarih >= filtre.BaslangicTarihi.Value);
+            query = query.Where(s => s.Fis!.Tarih >= aralik.Baslangic);
 
         if (filtre.BitisTarihi.HasValue)
-            query = query.Where(s => s.Fis!.Tarih <= filtre.BitisTarihi.Value);
+            query = query.Where(s => s.Fis!.Tarih < aralik.BitisSonrasi);
 
         if (!string.IsNullOrWhiteSpace(filtre.FisNo))
             query = query.Where(s => s.Fis!.FisNo.Contains(filtre.FisNo));

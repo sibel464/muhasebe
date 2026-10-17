@@ -187,6 +187,11 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
     }
 
     public string IrsaliyeNo { get => _irsaliyeNo; set => OzellikAyarla(ref _irsaliyeNo, value); }
+
+    // Stoğun çıktığı (satış) / girdiği (alış) stok yeri; tüm kalemler için geçerlidir. İlk aktif mağaza önerilir.
+    public ObservableCollection<StokYerleri.StokYeri> StokYerleriListesi { get; } = new();
+    private StokYerleri.StokYeri? _seciliStokYeri;
+    public StokYerleri.StokYeri? SeciliStokYeri { get => _seciliStokYeri; set => OzellikAyarla(ref _seciliStokYeri, value); }
     public DateTime Tarih { get => _tarih; set => OzellikAyarla(ref _tarih, value); }
     public string Aciklama { get => _aciklama; set => OzellikAyarla(ref _aciklama, value); }
 
@@ -252,6 +257,10 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
 
             _tumUrunler = (await _urunServisi.TumunuGetirAsync()).Where(u => u.Aktif).ToList();
             Urunler = new ObservableCollection<Urun>(_tumUrunler);
+
+            await StokYerleri.YukleAsync(_urunServisi);
+            foreach (var yer in StokYerleri.Liste) StokYerleriListesi.Add(yer);
+            SeciliStokYeri = StokYerleriListesi.FirstOrDefault();
 
             await IrsaliyeNoGuncelleAsync();
         }
@@ -364,15 +373,22 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
 
         try
         {
+            // Belge tarihleri yerel saatle (UTC etiketli) saklanır; sevk, seçilen günün şu anki saatidir.
+            var sevk = DateTime.SpecifyKind(Tarih.Date + DateTime.Now.TimeOfDay, DateTimeKind.Utc);
+            var kalemler = Kalemler.Select(k => k.ToEntity()).ToList();
+            if (SeciliStokYeri != null)
+                foreach (var kalem in kalemler)
+                    kalem.StokDagilimlari = [new IrsaliyeKalemiStokDagilimi { DepoId = SeciliStokYeri.Id, Miktar = kalem.Miktar }];
             var irsaliye = new Irsaliye
             {
                 IrsaliyeNo = IrsaliyeNo,
-                Tarih = Tarih,
+                Tarih = DateTime.SpecifyKind(Tarih.Date, DateTimeKind.Utc),
+                SevkTarihi = sevk,
                 CariKartId = SeciliCari.Id,
                 Tur = IsSatisIrsaliyesi ? IrsaliyeTuru.Satis : IrsaliyeTuru.Alis,
                 Durum = IrsaliyeDurumu.Taslak,
                 Aciklama = Aciklama,
-                Kalemler = Kalemler.Select(k => k.ToEntity()).ToList()
+                Kalemler = kalemler
             };
 
             var eklenen = await _irsaliyeServisi.EkleAsync(irsaliye);
@@ -380,7 +396,19 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
             if (onayla)
             {
                 DurumMesaji = "İrsaliye onaylanıyor ve stok hareketleri işleniyor...";
-                await _irsaliyeServisi.OnaylaAsync(eklenen.Id);
+                try
+                {
+                    await _irsaliyeServisi.OnaylaAsync(eklenen.Id);
+                }
+                catch (Exception onayHatasi)
+                {
+                    // Taslak kaydedildi: yeniden "Kaydet" denirse ikinci irsaliye oluşmasın diye pencere kapatılır.
+                    MessageBox.Show($"'{eklenen.IrsaliyeNo}' numaralı irsaliye TASLAK olarak kaydedildi ama onaylanamadı:\n{onayHatasi.Message}\n\n" +
+                                    "Sorunu giderip irsaliye listesinden onaylayabilirsiniz; yeniden kaydetmeyin.",
+                        "Onaylanamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    KapatIstendi?.Invoke(true);
+                    return;
+                }
                 MessageBox.Show($"'{eklenen.IrsaliyeNo}' numaralı irsaliye başarıyla kaydedildi ve ONAYLANDI (Stok hareketleri işlendi).", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else

@@ -466,8 +466,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
             irsaliye.CariKartId = siparis.CariKartId;
             irsaliye.Tur = IrsaliyeTuru.Satis;
             irsaliye.Durum = IrsaliyeDurumu.Onaylandi;
-            irsaliye.Tarih = DateTime.UtcNow;
-            irsaliye.SevkTarihi = irsaliye.SevkTarihi.Kind == DateTimeKind.Utc ? irsaliye.SevkTarihi : irsaliye.SevkTarihi.ToUniversalTime();
+            // Belge tarihleri yerel saatle (UTC etiketli) saklanır; gerçek UTC'ye çevrilmez (gece yarısına yakın sevk önceki güne düşerdi).
+            irsaliye.Tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+            irsaliye.SevkTarihi = DateTime.SpecifyKind(irsaliye.SevkTarihi == default ? DateTime.Now : irsaliye.SevkTarihi, DateTimeKind.Utc);
             irsaliye.TeslimatAdSoyad = siparis.TeslimatAdSoyad; irsaliye.TeslimatTelefon = siparis.TeslimatTelefon;
             irsaliye.TeslimatAdres = siparis.TeslimatAdres; irsaliye.TeslimatIl = siparis.TeslimatIl; irsaliye.TeslimatIlce = siparis.TeslimatIlce;
             irsaliye.ReferansNo = string.IsNullOrWhiteSpace(irsaliye.ReferansNo) ? siparis.ReferansNo : irsaliye.ReferansNo;

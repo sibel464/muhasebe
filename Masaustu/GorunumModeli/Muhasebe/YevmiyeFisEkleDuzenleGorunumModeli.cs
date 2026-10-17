@@ -19,7 +19,7 @@ public class YevmiyeFisEkleDuzenleGorunumModeli : TemelGorunumModeli
 
     private string _fisNo = string.Empty;
     private FisTuru _fisTuru = FisTuru.Mahsup;
-    private DateTime _tarih = DateTime.UtcNow;
+    private DateTime _tarih = DateTime.Today;
     private string _aciklama = string.Empty;
     private string _referans = string.Empty;
 

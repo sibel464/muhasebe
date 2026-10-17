@@ -18,8 +18,8 @@ public class MuavinGorunumModeli : TemelGorunumModeli
     private string _durumMesaji = string.Empty;
 
     private HesapPlaniDto? _seciliHesap;
-    private DateTime? _baslangicTarihi = DateTime.UtcNow.AddMonths(-1);
-    private DateTime? _bitisTarihi = DateTime.UtcNow;
+    private DateTime? _baslangicTarihi = DateTime.Today.AddMonths(-1);
+    private DateTime? _bitisTarihi = DateTime.Today;
     private MuavinRaporDto? _muavin;
 
     public bool Yukleniyor

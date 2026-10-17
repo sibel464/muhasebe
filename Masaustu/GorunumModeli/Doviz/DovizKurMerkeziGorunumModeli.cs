@@ -27,7 +27,7 @@ public class DovizKurMerkeziGorunumModeli : TemelGorunumModeli
     private bool _yukleniyor;
     private string _durumMesaji = string.Empty;
 
-    private DateTime _seciliTarih = DateTime.UtcNow.Date;
+    private DateTime _seciliTarih = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc);
     private DovizKuruDto? _seciliKur;
 
     // Manuel Kur Form
@@ -38,7 +38,7 @@ public class DovizKurMerkeziGorunumModeli : TemelGorunumModeli
 
     // Revalüasyon Form
     private string _revaluasyonParaBirimi = "USD";
-    private DateTime _revaluasyonTarihi = DateTime.UtcNow.Date;
+    private DateTime _revaluasyonTarihi = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc);
     private RevaluasyonOnizleDto? _revaluasyonOnizleme;
 
     public bool Yukleniyor

@@ -15,8 +15,8 @@ public class Hesap360GorunumModeli : TemelGorunumModeli
     private bool _yukleniyor;
     private string _durumMesaji = string.Empty;
     private int _seciliSekmeIndeksi;
-    private DateTime? _baslangicTarihi = DateTime.UtcNow.AddMonths(-1);
-    private DateTime? _bitisTarihi = DateTime.UtcNow;
+    private DateTime? _baslangicTarihi = DateTime.Today.AddMonths(-1);
+    private DateTime? _bitisTarihi = DateTime.Today;
 
     private Hesap360Dto? _hesap360;
 

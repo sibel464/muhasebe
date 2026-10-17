@@ -40,7 +40,7 @@ public partial class SiparistenSevkPenceresi : Window
                 if (x.BuSevk > x.Kalan) throw new InvalidOperationException($"{x.UrunAdi}: Bu sevk kalan miktardan fazla olamaz.");
                 if (x.Magaza + x.Depo1 + x.Depo2 != x.BuSevk) throw new InvalidOperationException($"{x.UrunAdi}: Stok dağılımı ({x.Magaza + x.Depo1 + x.Depo2:N2}) sevk miktarına ({x.BuSevk:N2}) eşit olmalıdır.");
             }
-            var irsaliye = new IrsaliyeVarligi { SiparisId = Siparis.Id, SevkTarihi = DateTime.UtcNow, Tasiyici = Tasiyici, AracPlaka = AracPlaka, SoforAdi = SoforAdi, SoforTelefon = SoforTelefon, Kalemler = secilen.Select(x => x.IrsaliyeKalemi()).ToList() };
+            var irsaliye = new IrsaliyeVarligi { SiparisId = Siparis.Id, SevkTarihi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc), Tasiyici = Tasiyici, AracPlaka = AracPlaka, SoforAdi = SoforAdi, SoforTelefon = SoforTelefon, Kalemler = secilen.Select(x => x.IrsaliyeKalemi()).ToList() };
             var sonuc = await _servis.SiparistenSevkEtAsync(irsaliye);
             MessageBox.Show($"{sonuc.IrsaliyeNo} numaralı irsaliye oluşturuldu.", "Sevkiyat tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information); DialogResult = true;
         }

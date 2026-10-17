@@ -109,8 +109,10 @@ public class HesapPlaniServisi : IHesapPlaniServisi
         if (hesapDto == null)
             throw new KeyNotFoundException("Hesap bulunamadı.");
 
-        var basTarih = baslangic ?? new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var bitTarih = bitis ?? DateTime.UtcNow;
+        // Gün bazında, varsayılan yıl başından bugüne (bitiş günü dahil).
+        var aralik = RaporTarihAraligi.Olustur(baslangic ?? new DateTime(DateTime.Today.Year, 1, 1), bitis ?? DateTime.Today);
+        var basTarih = aralik.Baslangic;
+        var bitTarih = aralik.BitisSonrasi;
 
         // Devir
         var devir = await _baglam.YevmiyeSatirlari
@@ -124,7 +126,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
         var donemSatirlar = await _baglam.YevmiyeSatirlari
             .AsNoTracking()
             .Include(s => s.Fis)
-            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= basTarih && s.Fis.Tarih <= bitTarih)
+            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= basTarih && s.Fis.Tarih < bitTarih)
             .OrderBy(s => s.Fis!.Tarih)
             .ThenBy(s => s.Id)
             .ToListAsync();
@@ -180,7 +182,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
         // Monthly breakdown
         var tumSatirlar = await _baglam.YevmiyeSatirlari
             .AsNoTracking()
-            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih.Year == bitTarih.Year)
+            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih.Year == aralik.BitisGunu.Year)
             .Select(s => new { Tarih = s.Fis!.Tarih, s.Borc, s.Alacak })
             .ToListAsync();
 
@@ -191,9 +193,9 @@ public class HesapPlaniServisi : IHesapPlaniServisi
             var a = aySatirlari.Sum(x => x.Alacak);
             return new HesapAylikOzetDto
             {
-                Yil = bitTarih.Year,
+                Yil = aralik.BitisGunu.Year,
                 Ay = ay,
-                AyAdi = new DateTime(bitTarih.Year, ay, 1).ToString("MMMM"),
+                AyAdi = new DateTime(aralik.BitisGunu.Year, ay, 1).ToString("MMMM"),
                 Borc = b,
                 Alacak = a
             };
@@ -226,7 +228,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
             HesapKodu = hesapDto.HesapKodu,
             HesapAdi = hesapDto.HesapAdi,
             BaslangicTarihi = basTarih,
-            BitisTarihi = bitTarih,
+            BitisTarihi = aralik.BitisGunu,
             DevirBorc = devir?.Borc ?? 0m,
             DevirAlacak = devir?.Alacak ?? 0m,
             Satirlar = muavinSatirlar

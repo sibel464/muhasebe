@@ -22,8 +22,10 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Mizan Görüntüleme");
 
-        var bas = baslangic ?? new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var bit = bitis ?? DateTime.UtcNow;
+        // Varsayılan: yıl başından bugüne (gün sonu dahil).
+        var aralik = RaporTarihAraligi.Olustur(baslangic ?? new DateTime(DateTime.Today.Year, 1, 1), bitis ?? DateTime.Today);
+        var bas = aralik.Baslangic;
+        var bitSonrasi = aralik.BitisSonrasi;
 
         var hesaplar = await _baglam.HesapPlanlari
             .AsNoTracking()
@@ -42,7 +44,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
         // Calculate period balances from approved vouchers between start date and end date
         var donemGrubu = await _baglam.YevmiyeSatirlari
             .AsNoTracking()
-            .Where(s => s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bas && s.Fis.Tarih <= bit && (s.Fis.SirketId == sirketId))
+            .Where(s => s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bas && s.Fis.Tarih < bitSonrasi && (s.Fis.SirketId == sirketId))
             .GroupBy(s => s.HesapId)
             .Select(g => new { HesapId = g.Key, DonemBorc = g.Sum(x => x.Borc), DonemAlacak = g.Sum(x => x.Alacak) })
             .ToDictionaryAsync(x => x.HesapId);
@@ -71,7 +73,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
         {
             Tur = tur,
             BaslangicTarihi = bas,
-            BitisTarihi = bit,
+            BitisTarihi = aralik.BitisGunu,
             Satirlar = satirlar
         };
     }
@@ -81,8 +83,9 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
         var targetSirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Muavin Defter Görüntüleme");
 
-        var bStart = baslangic ?? DateTime.MinValue;
-        var bEnd = bitis ?? DateTime.MaxValue;
+        var aralik = RaporTarihAraligi.Olustur(baslangic, bitis);
+        var bStart = aralik.Baslangic;
+        var bEnd = aralik.BitisSonrasi;
 
         var hesap = await _baglam.HesapPlanlari
             .AsNoTracking()
@@ -102,7 +105,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
         var satirlar = await _baglam.YevmiyeSatirlari
             .AsNoTracking()
             .Include(s => s.Fis)
-            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bStart && s.Fis.Tarih <= bEnd)
+            .Where(s => s.HesapId == hesapId && s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bStart && s.Fis.Tarih < bEnd)
             .OrderBy(s => s.Fis!.Tarih)
             .ThenBy(s => s.Id)
             .ToListAsync();
@@ -134,7 +137,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
             HesapKodu = hesap.HesapKodu,
             HesapAdi = hesap.HesapAdi,
             BaslangicTarihi = bStart,
-            BitisTarihi = bEnd,
+            BitisTarihi = aralik.BitisGunu,
             DevirBorc = devir?.Borc ?? 0m,
             DevirAlacak = devir?.Alacak ?? 0m,
             Satirlar = muavinSatirlar
@@ -146,8 +149,9 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
         var targetSirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Büyük Defter Görüntüleme");
 
-        var bStart = baslangic ?? DateTime.MinValue;
-        var bEnd = bitis ?? DateTime.MaxValue;
+        var aralik = RaporTarihAraligi.Olustur(baslangic, bitis);
+        var bStart = aralik.Baslangic;
+        var bEnd = aralik.BitisSonrasi;
 
         var hesaplar = await _baglam.HesapPlanlari
             .AsNoTracking()
@@ -164,7 +168,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
         var donem = await _baglam.YevmiyeSatirlari
             .AsNoTracking()
-            .Where(s => s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bStart && s.Fis.Tarih <= bEnd && (s.Fis.SirketId == targetSirketId))
+            .Where(s => s.Fis != null && s.Fis.Durum == YevmiyeDurumu.Onaylandi && s.Fis.Tarih >= bStart && s.Fis.Tarih < bEnd && (s.Fis.SirketId == targetSirketId))
             .GroupBy(s => s.HesapId)
             .Select(g => new { HesapId = g.Key, Borc = g.Sum(x => x.Borc), Alacak = g.Sum(x => x.Alacak), Count = g.Count() })
             .ToDictionaryAsync(x => x.HesapId);
