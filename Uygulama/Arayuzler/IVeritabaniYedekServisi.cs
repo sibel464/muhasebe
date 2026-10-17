@@ -20,4 +20,9 @@ public interface IVeritabaniYedekServisi
     Task<YedekDosyasi> GuncellemeOncesiYedekAlAsync(CancellationToken cancellationToken = default);
 
     IReadOnlyList<YedekDosyasi> YedekleriListele();
+
+    // Seçilen yedeği geri yükler: önce güncel durumun yedeği alınır, yedek ayrı bir veritabanına açılıp doğrulanır,
+    // sonra kullanılan veritabanıyla yer değiştirir. Eski veritabanı silinmez, dönen adla saklanır.
+    // Sonrasında program yeniden başlatılmalıdır. Sistem ayarlarını yönetme yetkisi gerekir.
+    Task<string> GeriYukleAsync(string yedekYolu, CancellationToken cancellationToken = default);
 }

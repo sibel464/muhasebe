@@ -66,6 +66,10 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string YedekDurumu { get => _yedekDurumu; set => OzellikAyarla(ref _yedekDurumu, value); }
     public bool YedekAliniyor { get => _yedekAliniyor; set => OzellikAyarla(ref _yedekAliniyor, value); }
     public ICommand YedekAlKomutu { get; }
+    public ICommand SeciliYedegiGeriYukleKomutu { get; }
+    public ICommand DosyadanGeriYukleKomutu { get; }
+    private YedekDosyasi? _seciliYedek;
+    public YedekDosyasi? SeciliYedek { get => _seciliYedek; set { if (OzellikAyarla(ref _seciliYedek, value)) CommandManager.InvalidateRequerySuggested(); } }
     public ICommand YedekKlasoruAcKomutu { get; }
 
     public ICommand KaydetKomutu { get; }
@@ -79,6 +83,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         _yedekServisi = yedekServisi;
         YedekAlKomutu = new KomutSarici(async _ => await YedekAlAsync(), _ => !YedekAliniyor && _yedekServisi != null);
         YedekKlasoruAcKomutu = new KomutSarici(() => YedekKlasorunuAc());
+        SeciliYedegiGeriYukleKomutu = new KomutSarici(async _ => { if (SeciliYedek != null) await GeriYukleAsync(SeciliYedek.TamYol, SeciliYedek.OlusturmaTarihi); },
+            _ => !YedekAliniyor && _yedekServisi != null && SeciliYedek != null);
+        DosyadanGeriYukleKomutu = new KomutSarici(async _ => await DosyadanGeriYukleAsync(), _ => !YedekAliniyor && _yedekServisi != null);
         YedekleriYenile();
 
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync());
@@ -232,6 +239,63 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         finally
         {
             YedekAliniyor = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    private async Task DosyadanGeriYukleAsync()
+    {
+        var secim = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Geri yüklenecek yedek dosyasını seçin",
+            Filter = "Veritabanı yedeği (*.dump)|*.dump",
+            InitialDirectory = System.IO.Directory.Exists(YedekKlasoru) ? YedekKlasoru : null
+        };
+        if (secim.ShowDialog() != true) return;
+        await GeriYukleAsync(secim.FileName, System.IO.File.GetLastWriteTime(secim.FileName));
+    }
+
+    // Geri yükleme tüm verinin yerine yedeği koyar: kullanıcı "GERİ YÜKLE" yazarak onaylar. Önce güncel durumun
+    // yedeği alınır ve eski veritabanı silinmeden saklanır; işlem sonunda program yeniden başlar.
+    private async Task GeriYukleAsync(string yol, DateTime yedekTarihi)
+    {
+        if (_yedekServisi == null) return;
+        var onay = new Masaustu.Gorunumler.Ortak.MetinGirisPenceresi(
+            "Yedekten Geri Yükle",
+            $"{System.IO.Path.GetFileName(yol)}  ({yedekTarihi:dd.MM.yyyy HH:mm})\n\n" +
+            "Programdaki TÜM veriler bu yedekteki haline döner; yedekten sonra girilen kayıtlar görünmez olur. " +
+            "Güvenlik için önce şu anki verinin yedeği alınır ve eski veritabanı silinmeden saklanır. " +
+            "İşlem bitince program yeniden başlar; başka bilgisayarda açık olan program varsa kapatın.\n\n" +
+            "Devam etmek için GERİ YÜKLE yazın:")
+        { Owner = System.Windows.Application.Current.MainWindow };
+        if (onay.ShowDialog() != true) return;
+        if (!string.Equals(onay.GirilenMetin.Trim(), "GERİ YÜKLE", StringComparison.CurrentCultureIgnoreCase))
+        {
+            YedekDurumu = "Geri yükleme iptal edildi (onay metni eşleşmedi).";
+            return;
+        }
+
+        YedekAliniyor = true;
+        CommandManager.InvalidateRequerySuggested();
+        YedekDurumu = "Geri yükleniyor: önce güncel verinin yedeği alınıyor, sonra yedek açılıyor. Lütfen bekleyin...";
+        try
+        {
+            var eski = await _yedekServisi.GeriYukleAsync(yol);
+            System.Windows.MessageBox.Show(
+                $"Yedek geri yüklendi.\n\nÖnceki veriler silinmedi: \"{eski}\" adlı veritabanında ve yedek klasöründe duruyor.\n\nProgram şimdi yeniden başlayacak.",
+                "Geri Yükleme Tamamlandı", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            App.YenidenBaslat = true;
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "GeriYukle");
+            YedekDurumu = $"❌ Geri yüklenemedi, verileriniz değişmedi: {ex.Message}";
+        }
+        finally
+        {
+            YedekAliniyor = false;
+            YedekleriYenile();
             CommandManager.InvalidateRequerySuggested();
         }
     }

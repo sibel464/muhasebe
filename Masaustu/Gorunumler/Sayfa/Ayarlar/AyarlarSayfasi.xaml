@@ -257,6 +257,20 @@
                                         <TextBlock Text="Klasörü Aç"/>
                                     </StackPanel>
                                 </Button>
+                                <Button Command="{Binding DosyadanGeriYukleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                                        ToolTip="Başka bir klasördeki / USB bellekteki yedeği geri yükle">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📥" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Dosyadan Geri Yükle"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding SeciliYedegiGeriYukleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                                        ToolTip="Listede seçili yedeği geri yükle">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="⏪" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Seçili Yedeği Geri Yükle"/>
+                                    </StackPanel>
+                                </Button>
                                 <Button Command="{Binding YedekAlKomutu}" Style="{StaticResource BirinciDugme}" Padding="16,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="💾" Margin="0,0,6,0"/>
@@ -269,8 +283,8 @@
 
                     <Border Grid.Row="1" Background="White" CornerRadius="10"
                             BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" ClipToBounds="True">
-                        <DataGrid ItemsSource="{Binding Yedekler}" Style="{StaticResource ModernDataGrid}"
-                                  AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid ItemsSource="{Binding Yedekler}" SelectedItem="{Binding SeciliYedek}" Style="{StaticResource ModernDataGrid}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="TARİH" Binding="{Binding OlusturmaTarihi, StringFormat=dd.MM.yyyy HH:mm}" Width="150"/>
                                 <DataGridTextColumn Header="BOYUT" Binding="{Binding BoyutMetni}" Width="100"/>

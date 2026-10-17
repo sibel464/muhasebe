@@ -4,8 +4,8 @@ using Uygulama.Arayuzler;
 
 namespace Altyapi.Veri;
 
-// pg_dump ile sıkıştırılmış (custom format) tam veritabanı yedeği alır ve eski yedekleri temizler.
-// Geri yükleme pg_restore ile yapılır; README'deki adımlara bakın.
+// pg_dump ile sıkıştırılmış (custom format) tam veritabanı yedeği alır, eski yedekleri temizler ve
+// seçilen yedeği güvenli biçimde (yeni veritabanına açıp yer değiştirerek) geri yükler.
 public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 {
     private static readonly TimeSpan GunlukAralik = TimeSpan.FromHours(24);
@@ -123,6 +123,107 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         {
             YedekKilidi.Release();
         }
+    }
+
+    public async Task<string> GeriYukleAsync(string yedekYolu, CancellationToken cancellationToken = default)
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama"))
+            .YetkiKontrolEt(y => y.AyarlariYonet, "Yedekten Geri Yükleme");
+        if (!File.Exists(yedekYolu) || new FileInfo(yedekYolu).Length == 0)
+            throw new FileNotFoundException("Yedek dosyası bulunamadı veya boş.", yedekYolu);
+        var pgRestore = PostgreSqlSunucuYoneticisi.AracBul("pg_restore.exe")
+            ?? throw new InvalidOperationException("pg_restore.exe bulunamadı. PostgreSQL kurulumunu kontrol edin.");
+
+        // 1. Geri dönüş garantisi: şu anki verinin yedeği (bu da başarısızsa hiçbir şeye dokunulmaz).
+        await YedekAlAsync(cancellationToken);
+
+        var asil = _baglanti.Database ?? "Muhasebe";
+        var damga = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var gecici = $"{asil}_geri_{damga}";
+        var eski = $"{asil}_eski_{damga}";
+
+        await YedekKilidi.WaitAsync(cancellationToken);
+        try
+        {
+            // 2. Yedek ayrı (yeni) bir veritabanına açılır; kullanılan veritabanına bu aşamada dokunulmaz.
+            await SistemKomutuAsync($"CREATE DATABASE \"{gecici}\" WITH TEMPLATE template0 ENCODING 'UTF8'", cancellationToken);
+            try
+            {
+                var bilgi = new ProcessStartInfo(pgRestore)
+                {
+                    UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true
+                };
+                foreach (var arg in new[] { "-h", _baglanti.Host ?? "127.0.0.1", "-p", _baglanti.Port.ToString(), "-U", _baglanti.Username ?? "postgres",
+                                            "-d", gecici, "--no-owner", "--exit-on-error", "--no-password", yedekYolu })
+                    bilgi.ArgumentList.Add(arg);
+                if (!string.IsNullOrEmpty(_baglanti.Password))
+                    bilgi.Environment["PGPASSWORD"] = _baglanti.Password;
+                using var surec = Process.Start(bilgi) ?? throw new InvalidOperationException("pg_restore başlatılamadı.");
+                var hataCiktisi = surec.StandardError.ReadToEndAsync(cancellationToken);
+                using var zamanAsimi = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                zamanAsimi.CancelAfter(YedekZamanAsimi);
+                try { await surec.WaitForExitAsync(zamanAsimi.Token); }
+                catch (OperationCanceledException)
+                {
+                    try { surec.Kill(entireProcessTree: true); } catch { }
+                    throw new TimeoutException("Geri yükleme zaman aşımına uğradı.");
+                }
+                if (surec.ExitCode != 0)
+                    throw new InvalidOperationException($"Yedek açılamadı: {(await hataCiktisi).Trim()}");
+
+                // 3. Açılan yedek bu programın veritabanı mı? (yanlış dosya seçilmesine karşı)
+                await using (var kontrol = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(_baglanti.ConnectionString) { Database = gecici, Pooling = false }.ConnectionString))
+                {
+                    await kontrol.OpenAsync(cancellationToken);
+                    await using var tabloKomutu = kontrol.CreateCommand();
+                    tabloKomutu.CommandText = "SELECT to_regclass('public.\"__EFMigrationsHistory\"') IS NOT NULL AND to_regclass('public.\"Kullanicilar\"') IS NOT NULL";
+                    var gecerli = await tabloKomutu.ExecuteScalarAsync(cancellationToken) is true;
+                    if (gecerli)
+                    {
+                        await using var komut = kontrol.CreateCommand();
+                        komut.CommandText = "SELECT (SELECT count(*) FROM \"__EFMigrationsHistory\") > 0 AND (SELECT count(*) FROM \"Kullanicilar\") > 0";
+                        gecerli = await komut.ExecuteScalarAsync(cancellationToken) is true;
+                    }
+                    if (!gecerli)
+                        throw new InvalidOperationException("Seçilen dosya bu programın geçerli bir yedeği değil.");
+                }
+            }
+            catch
+            {
+                try { await SistemKomutuAsync($"DROP DATABASE IF EXISTS \"{gecici}\"", CancellationToken.None); } catch { }
+                throw;
+            }
+
+            // 4. Yer değiştirme: programın açık bağlantıları kapatılır, eski veritabanı silinmeden yeniden adlandırılır.
+            NpgsqlConnection.ClearAllPools();
+            await SistemKomutuAsync($"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{asil}' AND pid <> pg_backend_pid()", cancellationToken);
+            await SistemKomutuAsync($"ALTER DATABASE \"{asil}\" RENAME TO \"{eski}\"", cancellationToken);
+            try
+            {
+                await SistemKomutuAsync($"ALTER DATABASE \"{gecici}\" RENAME TO \"{asil}\"", cancellationToken);
+            }
+            catch
+            {
+                await SistemKomutuAsync($"ALTER DATABASE \"{eski}\" RENAME TO \"{asil}\"", CancellationToken.None);
+                throw;
+            }
+            return eski;
+        }
+        finally
+        {
+            YedekKilidi.Release();
+        }
+    }
+
+    // Sunucu düzeyindeki komutlar (veritabanı oluşturma/yeniden adlandırma) sistem veritabanı üzerinden çalışır.
+    private async Task SistemKomutuAsync(string sql, CancellationToken cancellationToken)
+    {
+        var cs = new NpgsqlConnectionStringBuilder(_baglanti.ConnectionString) { Database = "postgres", Pooling = false, CommandTimeout = 120 };
+        await using var baglanti = new NpgsqlConnection(cs.ConnectionString);
+        await baglanti.OpenAsync(cancellationToken);
+        await using var komut = baglanti.CreateCommand();
+        komut.CommandText = sql;
+        await komut.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private void YarimKalanlariTemizle()

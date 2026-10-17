@@ -85,9 +85,15 @@ Klasör, yedek sayısı ve otomatik yedeğin açık/kapalı olması `appsettings
 içindeki `YedekAyarlari` bölümünden değiştirilebilir. Elle yedek almak ve yedekleri
 görmek için **Ayarlar → Yedekleme** sekmesini kullanın (Ayarları Yönet yetkisi gerekir).
 
-Bir yedeğe geri dönmek için uygulamayı kapatın ve aşağıdaki komutu kendi dosya
-adınızla çalıştırın. Bu işlem veritabanındaki mevcut verinin yerine yedeği yazar;
-önce güncel durumun da yedeğini alın.
+Bir yedeğe geri dönmek için **Ayarlar → Yedekleme** sekmesinde yedeği seçip
+"Seçili Yedeği Geri Yükle" (ya da başka bir klasördeki/USB'deki dosya için "Dosyadan
+Geri Yükle") düğmesini kullanın ve onay için `GERİ YÜKLE` yazın. Program önce güncel
+verinin yedeğini alır, yedeği ayrı bir veritabanına açıp bu programa ait olduğunu
+doğrular, sonra kullanılan veritabanıyla yer değiştirir ve yeniden başlar. Önceki
+veritabanı silinmez, `Muhasebe_eski_<tarih>` adıyla saklanır.
+
+Elle (komut satırından) geri yükleme gerekirse uygulamayı kapatıp aşağıdaki komutu
+kendi dosya adınızla çalıştırın; bu yol mevcut verinin yerine yedeği doğrudan yazar.
 
 ```powershell
 & 'C:\Program Files\PostgreSQL\16\bin\pg_restore.exe' -h 127.0.0.1 -p 5432 -U postgres -d Muhasebe --clean --if-exists "$env:USERPROFILE\Documents\Muhasebe Yedekleri\Muhasebe_2026-10-14_143600_000.dump"

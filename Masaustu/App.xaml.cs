@@ -219,10 +219,19 @@ public partial class App : Application
         }
     }
 
+    // Yedekten geri yüklemeden sonra program kendini yeniden açar: yeni süreç veritabanı sunucusu tamamen
+    // durduktan sonra başlatılır (aksi halde kapanmakta olan sunucuya bağlanmaya çalışırdı).
+    internal static bool YenidenBaslat { get; set; }
+
     protected override void OnExit(ExitEventArgs e)
     {
         base.OnExit(e);
         PostgreSqlSunucuYoneticisi.SunucuyuDurdur();
+        if (YenidenBaslat && Environment.ProcessPath is { } exe)
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true }); }
+            catch { }
+        }
     }
 
     // Günlük yedek arka planda alınır; başarısız olursa uygulama çalışmaya devam eder, hata log'a yazılır.
