@@ -77,8 +77,28 @@ public class FaturaMetinDonusturucu : IValueConverter
 
 public class FinansMetinDonusturucu : IValueConverter
 {
+    public static string Metin(object? value) => (string)new FinansMetinDonusturucu().Convert(value!, typeof(string), null!, CultureInfo.CurrentCulture);
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
     {
+        KasaFisTuru.Tahsilat => "Tahsilat",
+        KasaFisTuru.Odeme => "Ödeme",
+        KasaFisTuru.Gelir => "Gelir",
+        KasaFisTuru.Gider => "Gider",
+        KasaFisTuru.KasaVirman => "Kasa Virmanı",
+        KasaFisTuru.BankayaYatirma => "Bankaya Yatırma",
+        KasaFisTuru.BankadanCekme => "Bankadan Çekme",
+        KasaFisTuru.AcilisDevir => "Açılış / Devir",
+        KasaFisTuru.SayimFarki => "Sayım Farkı",
+        BankaFisTuru.GelenHavale => "Gelen Havale/EFT",
+        BankaFisTuru.GidenHavale => "Giden Havale/EFT",
+        BankaFisTuru.BankaGelir => "Banka Geliri",
+        BankaFisTuru.BankaGiderMasraf => "Banka Masrafı",
+        BankaFisTuru.BankaVirman => "Banka Virmanı",
+        BankaFisTuru.KasadanCekme => "Kasaya Çekme",
+        BankaFisTuru.BankayaYatirma => "Kasadan Yatırma",
+        BankaFisTuru.PosHesabaGecis => "POS Geçişi",
+        BankaFisTuru.KrediOdemesi => "Kredi Ödemesi",
         FinansIslemTuru.Tahsilat => "Tahsilat",
         FinansIslemTuru.Odeme => "Ödeme",
         OdemeYontemi.Nakit => "Nakit",
@@ -235,4 +255,12 @@ public class InverseBooleanConverter : IValueConverter
             return !b;
         return false;
     }
+}
+
+// Ekstrede giriş/çıkış sütunlarından yalnız dolu olan görünsün: sıfır boş gösterilir (parametre: sayı biçimi, ör. "N2").
+public class SifirBosDonusturucu : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is decimal d ? (d == 0 ? string.Empty : d.ToString(parameter as string ?? "N2", culture)) : value;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }

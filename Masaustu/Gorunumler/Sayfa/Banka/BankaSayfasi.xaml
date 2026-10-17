@@ -18,6 +18,8 @@
             <yardimci:HareketTurDonusturucu x:Key="HareketTurDonusturucu"/>
             <yardimci:ParaTutariDonusturucu x:Key="ParaTutariDonusturucu"/>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <yardimci:FinansMetinDonusturucu x:Key="FinansMetin"/>
+            <yardimci:SifirBosDonusturucu x:Key="SifirBos"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -55,7 +57,7 @@
                     <Button Command="{Binding DokumYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🖨️" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Banka Dökümü" VerticalAlignment="Center"/>
+                            <TextBlock Text="Ekstre / Gün Sonu Yazdır" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
@@ -197,24 +199,71 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,0,0,14">
-                                <TextBox Style="{StaticResource FiltreKutusu}" Width="280" HorizontalAlignment="Left"
-                                         Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
-                            </Grid>
+                            <!-- Ekstre filtresi: tarih aralığı, arama ve dönem özeti -->
+                            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                                <WrapPanel Margin="0,0,0,10">
+                                    <StackPanel Margin="0,0,10,0">
+                                        <TextBlock Text="Başlangıç" Style="{StaticResource EtiketMetin}"/>
+                                        <DatePicker SelectedDate="{Binding BaslangicTarihi}" Width="130"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,10,0">
+                                        <TextBlock Text="Bitiş" Style="{StaticResource EtiketMetin}"/>
+                                        <DatePicker SelectedDate="{Binding BitisTarihi}" Width="130"/>
+                                    </StackPanel>
+                                    <Button Command="{Binding BugunKomutu}" Style="{StaticResource IkinciDugme}" Content="Bugün (Gün Sonu)" VerticalAlignment="Bottom" Margin="0,0,8,0"/>
+                                    <Button Command="{Binding BuAyKomutu}" Style="{StaticResource IkinciDugme}" Content="Bu Ay" VerticalAlignment="Bottom" Margin="0,0,10,0"/>
+                                    <StackPanel Width="220">
+                                        <TextBlock Text="Ara" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <UniformGrid Columns="4">
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="DEVREDEN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                        <TextBlock Text="{Binding DevirBakiye, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="GİRİŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                        <TextBlock Text="{Binding DonemGiris, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="ÇIKIŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                        <TextBlock Text="{Binding DonemCikis, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="DÖNEM SONU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                        <TextBlock Text="{Binding DonemSonuBakiye, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
 
                             <DataGrid Grid.Row="1" ItemsSource="{Binding Hareketler}"
                                       Style="{StaticResource ModernDataGrid}"
                                       AutoGenerateColumns="False" IsReadOnly="True">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="FİŞ NO" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
-                                    <DataGridTextColumn Header="FİŞ TİPİ" Binding="{Binding FisTuru}" Width="110"/>
-                                    <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy HH:mm}" Width="120"/>
-                                    <DataGridTextColumn Header="BANKA ADI" Binding="{Binding BankaAdi}" Width="120"/>
-                                    <DataGridTextColumn Header="CARİ KART" Binding="{Binding CariKart.Unvan}" Width="1.5*"/>
-                                    <DataGridTextColumn Header="DEKONT NO" Binding="{Binding DekontNo}" Width="110"/>
-                                    <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="2*"/>
-                                    
-                                    <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} ₺}" Width="110">
+                                    <DataGridTextColumn Header="TARİH" Binding="{Binding Kayit.Tarih, StringFormat=dd.MM.yyyy HH:mm}" Width="115"/>
+                                    <DataGridTextColumn Header="FİŞ NO" Binding="{Binding Kayit.FisNo}" Width="110" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="FİŞ TİPİ" Binding="{Binding Kayit.FisTuru, Converter={StaticResource FinansMetin}}" Width="115"/>
+                                    <DataGridTextColumn Header="HESAP" Binding="{Binding Kayit.BankaHesabi.Ad}" Width="110"/>
+                                    <DataGridTextColumn Header="CARİ KART" Binding="{Binding Kayit.CariKart.Unvan}" Width="1.3*"/>
+                                    <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Kayit.Aciklama}" Width="2*"/>
+                                    <DataGridTextColumn Header="GİRİŞ" Binding="{Binding Giris, Converter={StaticResource SifirBos}, ConverterParameter=N2}" Width="105">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="ÇIKIŞ" Binding="{Binding Cikis, Converter={StaticResource SifirBos}, ConverterParameter=N2}" Width="105">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                <Setter Property="Foreground" Value="{StaticResource DangerDarkFirca}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="105">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="HorizontalAlignment" Value="Right"/>

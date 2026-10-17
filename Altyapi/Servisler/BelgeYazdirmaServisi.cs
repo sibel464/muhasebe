@@ -387,6 +387,54 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
+    public string HesapEkstresiHtmlUret(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null)
+    {
+        static string H(string? metin) => System.Net.WebUtility.HtmlEncode(metin ?? string.Empty);
+        var f = firma ?? _firmaBilgisi;
+        var donem = belge.Baslangic is DateTime b && belge.Bitis is DateTime s
+            ? (b.Date == s.Date ? b.ToString("dd.MM.yyyy") : $"{b:dd.MM.yyyy} - {s:dd.MM.yyyy}")
+            : belge.Baslangic is DateTime b2 ? $"{b2:dd.MM.yyyy} ve sonrası" : belge.Bitis is DateTime s2 ? $"{s2:dd.MM.yyyy} ve öncesi" : "Tüm hareketler";
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>" + H(belge.Baslik) + "</title><style>" + GetCommonCss() + "</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        sb.AppendLine("<div class='container'>");
+        sb.AppendLine("<table class='header-table'><tr>");
+        sb.AppendLine("<td><div class='company-title'>" + H(f.FirmaUnvani) + "</div><div class='company-info'>" + H(belge.HesapAdi) + "<br>Dönem: " + donem + "</div></td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + H(belge.Baslik.ToUpper(new System.Globalization.CultureInfo("tr-TR"))) + "</div><div style='color:#64748B;'>Rapor Tarihi: " + DateTime.Now.ToString("dd.MM.yyyy HH:mm") + "</div></td>");
+        sb.AppendLine("</tr></table>");
+
+        sb.AppendLine("<table class='data-table'><thead><tr>");
+        sb.AppendLine("<th>TARİH</th><th>FİŞ NO</th><th>TÜR</th><th>CARİ</th><th>AÇIKLAMA</th><th class='text-right'>GİRİŞ (₺)</th><th class='text-right'>ÇIKIŞ (₺)</th><th class='text-right'>BAKİYE (₺)</th>");
+        sb.AppendLine("</tr></thead><tbody>");
+        sb.AppendLine("<tr><td colspan='7'><strong>Devreden Bakiye</strong></td><td class='text-right'><strong>" + belge.Devir.ToString("N2") + "</strong></td></tr>");
+        foreach (var r in belge.Satirlar)
+        {
+            sb.AppendLine("<tr><td>" + r.Tarih.ToString("dd.MM.yyyy HH:mm") + "</td><td>" + H(r.FisNo) + "</td><td>" + H(r.Tur) + "</td><td>" + H(r.Cari) + "</td><td>" + H(r.Aciklama) + "</td>" +
+                "<td class='text-right'>" + (r.Giris > 0 ? r.Giris.ToString("N2") : "-") + "</td>" +
+                "<td class='text-right'>" + (r.Cikis > 0 ? r.Cikis.ToString("N2") : "-") + "</td>" +
+                "<td class='text-right'>" + r.Bakiye.ToString("N2") + "</td></tr>");
+        }
+        sb.AppendLine("</tbody></table>");
+
+        sb.AppendLine("<table class='totals-table'>");
+        sb.AppendLine("<tr><td>Devreden Bakiye:</td><td class='text-right'>" + belge.Devir.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr><td>Toplam Giriş (" + belge.Satirlar.Count(x => x.Giris > 0) + " işlem):</td><td class='text-right'>" + belge.ToplamGiris.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr><td>Toplam Çıkış (" + belge.Satirlar.Count(x => x.Cikis > 0) + " işlem):</td><td class='text-right'>" + belge.ToplamCikis.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr class='grand-total'><td>DÖNEM SONU BAKİYE:</td><td class='text-right'>" + belge.Kapanis.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("</table>");
+        sb.AppendLine("<p style='color:#64748B;font-size:11px;margin-top:16px;'>İptal edilen işlemler ve iptal ters kayıtları birbirini götürdüğü için ekstrede gösterilmez.</p>");
+        sb.AppendLine("</div></body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> HesapEkstresiYazdirAsync(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null)
+    {
+        var html = HesapEkstresiHtmlUret(belge, firma);
+        var guvenliAd = string.Concat(belge.HesapAdi.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
+        var dosyaAdi = $"{(belge.Baslik.StartsWith("Gün Sonu") ? "GunSonu" : "Ekstre")}_{guvenliAd}_{DateTime.Now:yyyyMMddHHmm}.html";
+        return await DosyayaKaydetVeAcAsync(html, null, dosyaAdi);
+    }
+
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), geciciBelgeAdi);

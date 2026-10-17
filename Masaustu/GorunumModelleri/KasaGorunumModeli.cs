@@ -4,6 +4,7 @@ using EtkiAlani.Modeller.Finans;
 using EtkiAlani.Modeller.Cari;
 using Uygulama.Arayuzler;
 using Masaustu.Yardimcilar;
+using EtkiAlani.Yardimcilar;
 
 namespace Masaustu.GorunumModelleri;
 
@@ -23,7 +24,10 @@ public class KasaGorunumModeli : TemelGorunumModeli
     private ObservableCollection<BankaHesabi> _bankaHesaplari = new();
     private BankaHesabi? _seciliTargetBankaHesabi;
 
-    private ObservableCollection<KasaHareketi> _hareketler = new();
+    private ObservableCollection<HesapEkstresi.Satir<KasaHareketi>> _hareketler = new();
+    private HesapEkstresi.Sonuc<KasaHareketi>? _ekstre;
+    private DateTime? _baslangicTarihi = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _bitisTarihi = DateTime.Today;
     private List<KasaHareketi> _tumHareketler = new();
     private string _aramaMetni = string.Empty;
     private decimal _toplamBakiye;
@@ -111,7 +115,17 @@ public class KasaGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _seciliTargetKasa, value);
     }
 
-    public ObservableCollection<KasaHareketi> Hareketler
+    // Ekstre: seçilen tarih aralığı; öncesi devreden bakiye olur. Başlangıç = bitiş = bugün → gün sonu raporu.
+    public DateTime? BaslangicTarihi { get => _baslangicTarihi; set { if (OzellikAyarla(ref _baslangicTarihi, value)) Filtrele(); } }
+    public DateTime? BitisTarihi { get => _bitisTarihi; set { if (OzellikAyarla(ref _bitisTarihi, value)) Filtrele(); } }
+    public decimal DevirBakiye => _ekstre?.Devir ?? 0;
+    public decimal DonemGiris => _ekstre?.ToplamGiris ?? 0;
+    public decimal DonemCikis => _ekstre?.ToplamCikis ?? 0;
+    public decimal DonemSonuBakiye => _ekstre?.Kapanis ?? 0;
+    public ICommand BugunKomutu { get; }
+    public ICommand BuAyKomutu { get; }
+
+    public ObservableCollection<HesapEkstresi.Satir<KasaHareketi>> Hareketler
     {
         get => _hareketler;
         set => OzellikAyarla(ref _hareketler, value);
@@ -263,19 +277,31 @@ public class KasaGorunumModeli : TemelGorunumModeli
         _cariServisi = cariServisi;
         _bankaServisi = bankaServisi;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Hareketler, "Kasa_Hareketleri_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Hareketler.Select(r => new
+        {
+            Tarih = r.Kayit.Tarih, r.Kayit.FisNo, Tur = FinansMetinDonusturucu.Metin(r.Kayit.FisTuru), Kasa = r.Kayit.Kasa?.Ad,
+            Cari = r.Kayit.CariKart?.Unvan, r.Kayit.Aciklama, r.Giris, r.Cikis, r.Bakiye
+        }), "Kasa_Ekstresi"));
+        BugunKomutu = new KomutSarici(() => { _baslangicTarihi = DateTime.Today; _bitisTarihi = DateTime.Today; BildirimGonder(nameof(BaslangicTarihi)); BildirimGonder(nameof(BitisTarihi)); Filtrele(); });
+        BuAyKomutu = new KomutSarici(() => { _baslangicTarihi = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1); _bitisTarihi = DateTime.Today; BildirimGonder(nameof(BaslangicTarihi)); BildirimGonder(nameof(BitisTarihi)); Filtrele(); });
 
         FisKaydetKomutu = new KomutSarici(async () => await FisKaydetAsync());
         KasaVirmanKaydetKomutu = new KomutSarici(async () => await KasaVirmanKaydetAsync());
         BankayaYatirKaydetKomutu = new KomutSarici(async () => await BankayaYatirKaydetAsync());
         MutabakatKaydetKomutu = new KomutSarici(async () => await MutabakatKaydetAsync());
         KasaEkleKomutu = new KomutSarici(async () => await KasaEkleAsync());
-        SilKomutu = new KomutSarici(async param => { if (param is KasaHareketi h) await SilAsync(h); });
+        SilKomutu = new KomutSarici(async param => { if (param is HesapEkstresi.Satir<KasaHareketi> r) await SilAsync(r.Kayit); else if (param is KasaHareketi h) await SilAsync(h); });
         YenileKomutu = new KomutSarici(async () => await VerileriYukleAsync());
         DokumYazdirKomutu = new KomutSarici(async () =>
         {
-            if (_yazdirmaServisi != null)
-                await _yazdirmaServisi.KasaDokumuYazdirAsync(Hareketler.ToList(), ToplamBakiye);
+            if (_yazdirmaServisi == null || _ekstre == null) return;
+            var gunSonu = BaslangicTarihi?.Date == BitisTarihi?.Date && BaslangicTarihi != null;
+            await _yazdirmaServisi.HesapEkstresiYazdirAsync(new HesapEkstresiBelgesi(
+                gunSonu ? "Gün Sonu Kasa Raporu" : "Kasa Ekstresi",
+                SeciliKasa?.Ad ?? "Tüm Kasalar", BaslangicTarihi, BitisTarihi, _ekstre.Devir,
+                Hareketler.Select(r => new HesapEkstresiSatiri(r.Kayit.Tarih, r.Kayit.FisNo ?? r.Kayit.MakbuzNo ?? "", FinansMetinDonusturucu.Metin(r.Kayit.FisTuru),
+                    r.Kayit.CariKart?.Unvan ?? "", r.Kayit.Aciklama, r.Giris, r.Cikis, r.Bakiye)).ToList(),
+                Hareketler.Sum(r => r.Giris), Hareketler.Sum(r => r.Cikis), _ekstre.Kapanis));
         });
 
         _ = IlkYuklemeAsync();
@@ -366,23 +392,36 @@ public class KasaGorunumModeli : TemelGorunumModeli
         GuncelleSayimToplam();
 
         var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        BuAyGelir = liste.Where(h => h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar);
-        BuAyGider = liste.Where(h => h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar);
+        BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar);
+        BuAyGider = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar);
 
         DurumMesaji = $"{liste.Count} kasa hareketi listeleniyor.";
     }
 
+    // Bakiye yalnız tamamlanmış hareketlerden yürür (iptal edilen ile ters kaydı birbirini götürür, gösterilmez).
+    // Arama yalnız gösterilen satırları süzer; devir ve yürüyen bakiye tüm hareketlerden hesaplanır.
     private void Filtrele()
     {
+        if (BaslangicTarihi.HasValue && BitisTarihi.HasValue && BaslangicTarihi > BitisTarihi)
+        {
+            HataMesaji = "Başlangıç tarihi bitiş tarihinden sonra olamaz.";
+            return;
+        }
+        _ekstre = HesapEkstresi.Olustur(_tumHareketler.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi),
+            h => h.Tarih, h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar, h => h.Id, BaslangicTarihi, BitisTarihi);
         var arama = AramaMetni.Trim();
-        var filtrelenmis = string.IsNullOrWhiteSpace(arama)
-            ? _tumHareketler
-            : _tumHareketler.Where(h =>
-                h.Aciklama.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ||
-                (h.FisNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
-                (h.MakbuzNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
-                (h.CariKart?.Unvan.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false));
-        Hareketler = new ObservableCollection<KasaHareketi>(filtrelenmis);
+        var satirlar = string.IsNullOrWhiteSpace(arama)
+            ? _ekstre.Satirlar
+            : _ekstre.Satirlar.Where(r =>
+                r.Kayit.Aciklama.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ||
+                (r.Kayit.FisNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                (r.Kayit.MakbuzNo?.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                (r.Kayit.CariKart?.Unvan.Contains(arama, StringComparison.CurrentCultureIgnoreCase) ?? false)).ToList();
+        Hareketler = new ObservableCollection<HesapEkstresi.Satir<KasaHareketi>>(satirlar);
+        BildirimGonder(nameof(DevirBakiye));
+        BildirimGonder(nameof(DonemGiris));
+        BildirimGonder(nameof(DonemCikis));
+        BildirimGonder(nameof(DonemSonuBakiye));
     }
 
     private async Task FisKaydetAsync()

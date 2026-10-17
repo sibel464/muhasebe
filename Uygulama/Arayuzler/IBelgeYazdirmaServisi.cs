@@ -5,6 +5,11 @@ using EtkiAlani.Modeller.Ortak;
 
 namespace Uygulama.Arayuzler;
 
+// Kasa/banka ekstresi ve gün sonu raporu için yazdırılacak hazır satırlar (bakiye ekranda hesaplanmış olarak gelir).
+public sealed record HesapEkstresiSatiri(DateTime Tarih, string FisNo, string Tur, string Cari, string Aciklama, decimal Giris, decimal Cikis, decimal Bakiye);
+public sealed record HesapEkstresiBelgesi(string Baslik, string HesapAdi, DateTime? Baslangic, DateTime? Bitis, decimal Devir,
+    IReadOnlyList<HesapEkstresiSatiri> Satirlar, decimal ToplamGiris, decimal ToplamCikis, decimal Kapanis);
+
 public interface IBelgeYazdirmaServisi
 {
     FirmaBilgisi FirmaBilgisiGetir();
@@ -24,6 +29,9 @@ public interface IBelgeYazdirmaServisi
     Task<string> MakbuzYazdirAsync(CariKart cari, decimal tutar, bool isTahsilat, string aciklama, string? dosyaYolu = null, string? belgeNo = null, DateTime? tarih = null, string? kasaBankaAdi = null, FirmaBilgisi? firma = null);
     Task<string> KasaDokumuYazdirAsync(List<KasaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null);
     Task<string> BankaDokumuYazdirAsync(List<BankaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, string? bankaAdi = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null);
+
+    string HesapEkstresiHtmlUret(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
+    Task<string> HesapEkstresiYazdirAsync(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
 
     // Doğrudan Görüntüleme & Yazdırma Diyaloğu Açma
     Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi);
