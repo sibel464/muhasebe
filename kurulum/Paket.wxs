@@ -23,7 +23,8 @@
     <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)Lisans.rtf" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="UYGULAMAKLASORU" Name="Muhasebe Yönetim Sistemi" />
+      <!-- Klasör adı Türkçe karaktersizdir: gömülü PostgreSQL'in ilk kurulumu (initdb) yolda "ö" gibi harfleri kabul etmez. -->
+      <Directory Id="UYGULAMAKLASORU" Name="MuhasebeYonetim" />
     </StandardDirectory>
 
     <!-- Ortak veri klasörü: her Windows kullanıcısı ayar/log/veritabanı yazabilsin; kaldırmada silinmez. -->

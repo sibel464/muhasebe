@@ -15,14 +15,27 @@ public static class UygulamaKlasorleri
     public static string YerelAyarDosyasi => Path.Combine(VeriKoku, "appsettings.local.json");
 
     // Uygulamayla birlikte gelen PostgreSQL (kurulum paketi): <uygulama>\pgsql\bin. Geliştirme ortamında yoktur.
+    // PostgreSQL kurulum (initdb) sırasında kendi klasör yolunu SQL'e yazar; yolda Türkçe karakter varsa (ör. "Yönetim")
+    // UTF-8 hatasıyla durur. Bu durumda klasörün Windows kısa adı (8.3, yalnız ASCII) kullanılır.
     public static string? GomuluPostgresBin
     {
         get
         {
             var bin = Path.Combine(AppContext.BaseDirectory, "pgsql", "bin");
-            return File.Exists(Path.Combine(bin, "postgres.exe")) ? bin : null;
+            return File.Exists(Path.Combine(bin, "postgres.exe")) ? AsciiYol(bin) : null;
         }
     }
+
+    public static string AsciiYol(string yol)
+    {
+        if (yol.All(c => c < 128) || !OperatingSystem.IsWindows()) return yol;
+        var tampon = new System.Text.StringBuilder(1024);
+        var uzunluk = GetShortPathName(yol, tampon, tampon.Capacity);
+        return uzunluk > 0 && uzunluk < tampon.Capacity && tampon.ToString().All(c => c < 128) ? tampon.ToString() : yol;
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern int GetShortPathName(string uzunYol, System.Text.StringBuilder kisaYol, int boyut);
 
     // Log dosyası yolu: ortak klasör yazılamıyorsa geçici klasöre düşer (log yazılamadığı için uygulama durmamalı).
     public static string LogYolu(string dosyaAdi)
