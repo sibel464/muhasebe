@@ -3,10 +3,15 @@
   Kullanım (proje kökünden):  powershell -ExecutionPolicy Bypass -File kurulum\Paketle.ps1 [-Surum 1.0.0] [-PostgresKaynak "C:\Program Files\PostgreSQL\16"]
   Çıktı: kurulum\cikti\MuhasebeYonetim-<sürüm>.msi
   Gerekenler: .NET SDK, proje içi WiX aracı (dotnet tool restore) ve bu bilgisayarda kurulu PostgreSQL 16 (yalnız dosyaları kopyalanır).
+  -YayinAdresi verilirse (ör. https://site.com/guncelleme) lisans anahtarıyla imzalı kurulum\cikti\guncelleme.json da üretilir;
+  MSI ve guncelleme.json o adrese yüklenir, programdaki GuncellemeAdresi = <YayinAdresi>/guncelleme.json olur.
+  Her yeni sürümde -Surum artırılmalıdır (ör. 1.0.1); aynı sürüm üzerine kurulmaz.
 #>
 param(
     [string]$Surum = "1.0.0",
-    [string]$PostgresKaynak = "C:\Program Files\PostgreSQL\16"
+    [string]$PostgresKaynak = "C:\Program Files\PostgreSQL\16",
+    [string]$YayinAdresi = "",
+    [string]$Notlar = ""
 )
 $ErrorActionPreference = "Stop"
 $kok = Split-Path -Parent $PSScriptRoot
@@ -60,3 +65,10 @@ finally { Pop-Location }
 
 $boyut = [math]::Round((Get-Item $msi).Length / 1MB, 1)
 Write-Host "Hazır: $msi ($boyut MB)"
+
+if ($YayinAdresi) {
+    # Lisans özel anahtarıyla imzalanır; anahtar yoksa bildirim üretilmez.
+    $adres = $YayinAdresi.TrimEnd('/') + "/MuhasebeYonetim-$Surum.msi"
+    dotnet run --project (Join-Path $kok "LisansUretici") -v q -- guncelleme --msi $msi --surum $Surum --adres $adres --notlar $Notlar --cikti (Join-Path $cikti "guncelleme.json")
+    if ($LASTEXITCODE -ne 0) { throw "Güncelleme bildirimi üretilemedi." }
+}

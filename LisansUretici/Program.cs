@@ -6,6 +6,8 @@ using EtkiAlani.Lisanslama;
 //   dotnet run --project LisansUretici -- makine-kodu          (bu bilgisayarın kodu; deneme için)
 //   dotnet run --project LisansUretici -- uret --musteri "ABC Ltd." --makine ABCD-EFGH-JKLM-NPQR [--vkn 1234567890] [--bitis 2027-12-31] [--cikti lisans.lic]
 //   dotnet run --project LisansUretici -- dogrula --dosya lisans.lic --makine ABCD-EFGH-JKLM-NPQR
+//   dotnet run --project LisansUretici -- guncelleme --msi MuhasebeYonetim-1.0.1.msi --surum 1.0.1 --adres https://.../MuhasebeYonetim-1.0.1.msi [--notlar "..."] [--cikti guncelleme.json]
+//     (çıkan guncelleme.json ve MSI, programdaki GuncellemeAdresi'nin gösterdiği yere yüklenir)
 // Özel anahtar --anahtar ile verilmezse %USERPROFILE%\MuhasebeLisansAnahtari\ozel-anahtar.pem kullanılır.
 // Özel anahtar kaybolursa yeni lisans üretilemez; başkasının eline geçerse herkes lisans üretebilir.
 var ayarlar = Argumanlar(args.Skip(1).ToArray());
@@ -72,8 +74,28 @@ switch (args.FirstOrDefault())
         return sonuc.GecerliMi ? 0 : 2;
     }
 
+    case "guncelleme":
+    {
+        var msi = Zorunlu(ayarlar, "msi");
+        string ozet;
+        using (var akis = File.OpenRead(msi)) ozet = Convert.ToHexString(SHA256.HashData(akis));
+        var bilgi = new GuncellemeBilgisi(Zorunlu(ayarlar, "surum"), Zorunlu(ayarlar, "adres"), ozet,
+            ayarlar.GetValueOrDefault("notlar") ?? "", DateOnly.FromDateTime(DateTime.Today));
+        using var anahtar = AnahtarOku(anahtarYolu);
+        var metin = Guncelleme.BildirimMetni(bilgi, anahtar);
+        if (Guncelleme.Dogrula(metin, Convert.ToBase64String(anahtar.ExportSubjectPublicKeyInfo())) == null)
+        {
+            Console.Error.WriteLine("Bildirim doğrulanamadı: sürüm (ör. 1.0.1) ve https ile başlayan adres girin.");
+            return 2;
+        }
+        var cikti = ayarlar.GetValueOrDefault("cikti") ?? "guncelleme.json";
+        File.WriteAllText(cikti, metin);
+        Console.WriteLine($"Güncelleme bildirimi yazıldı: {Path.GetFullPath(cikti)}  (sürüm {bilgi.Surum}, SHA-256 {ozet[..12]}...)");
+        return 0;
+    }
+
     default:
-        Console.WriteLine("Komutlar: anahtar-olustur | makine-kodu | acik-anahtar | uret --musteri .. --makine .. [--vkn ..] [--bitis yyyy-aa-gg] [--cikti dosya] | dogrula --dosya .. --makine ..");
+        Console.WriteLine("Komutlar: anahtar-olustur | makine-kodu | acik-anahtar | uret --musteri .. --makine .. [--vkn ..] [--bitis yyyy-aa-gg] [--cikti dosya] | dogrula --dosya .. --makine .. | guncelleme --msi .. --surum .. --adres https://.. [--notlar ..]");
         return 1;
 }
 

@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Effects;
@@ -62,12 +63,45 @@ public partial class AnaPencere : Window
             _bostaKalmaZamanlayicisi.Start();
         }
 
+        Loaded += async (_, _) => await GuncellemeyiDenetleAsync();
+
         // Pencere sürükleme (üst bar ile)
         MouseLeftButtonDown += (_, e) =>
         {
             if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
                 try { DragMove(); } catch { }
         };
+    }
+
+    // Program açıkken yalnız bir kez (her girişte değil) yeni sürüm aranır; ağ yoksa sessizce geçilir.
+    private static bool _guncellemeDenetlendi;
+
+    private async Task GuncellemeyiDenetleAsync()
+    {
+        if (_guncellemeDenetlendi) return;
+        _guncellemeDenetlendi = true;
+        try
+        {
+            var adres = App.HizmetSaglayici.GetRequiredService<IConfiguration>()["UygulamaAyarlari:GuncellemeAdresi"];
+            var yeni = await GuncellemeYoneticisi.YeniSurumVarMiAsync(adres);
+            if (yeni == null) return;
+            var notlar = string.IsNullOrWhiteSpace(yeni.Notlar) ? "" : $"\n\nYenilikler:\n{yeni.Notlar}";
+            if (MessageBox.Show(this, $"Programın yeni sürümü yayınlandı: {yeni.Surum} (kullandığınız: {GuncellemeYoneticisi.MevcutSurum.ToString(3)}).{notlar}\n\nŞimdi indirilsin mi? İndirme arka planda yapılır, çalışmaya devam edebilirsiniz.",
+                    "Güncelleme", MessageBoxButton.YesNo, MessageBoxImage.Information) != MessageBoxResult.Yes)
+                return;
+            await GuncellemeYoneticisi.IndirAsync(yeni);
+            if (MessageBox.Show(this, $"{yeni.Surum} sürümü indirildi.\n\nKurulum için program kapanacak, kurulum bitince kendiliğinden yeniden açılacak. Verileriniz korunur; yeni sürüm veritabanı yapısını değiştiriyorsa önce otomatik yedek alınır.\n\nŞimdi kapatıp güncellensin mi? (Hayır derseniz program kapandığında kurulur.)",
+                    "Güncelleme hazır", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                Application.Current.Shutdown();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine($"Güncelleme denetlenemedi: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Güncelleme", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private void GirdiAlgilandi(object sender, PreProcessInputEventArgs e)

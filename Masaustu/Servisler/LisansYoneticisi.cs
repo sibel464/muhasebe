@@ -14,6 +14,7 @@ public static class LisansYoneticisi
 {
     // LisansUretici "anahtar-olustur" çıktısındaki açık anahtar. Özel anahtar yalnız satıcıdadır.
     private const string AcikAnahtar = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJ0n8zVKs3oB42FWEt9cJ3W3KjQyOo5YQ5oWVXcR2TGdeOifAwb6UXvJt4d+uq2uvW6Ji00b28eOzPcyhkHunSA==";
+    public static string AcikAnahtarBase64 => AcikAnahtar;
     public const int DenemeGunu = 30;
     private static readonly byte[] Entropi = Encoding.UTF8.GetBytes("MuhasebeYonetim.Deneme.v1");
 

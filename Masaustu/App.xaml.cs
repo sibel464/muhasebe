@@ -242,6 +242,12 @@ public partial class App : Application
     {
         base.OnExit(e);
         PostgreSqlSunucuYoneticisi.SunucuyuDurdur();
+        // İndirilmiş güncelleme varsa kurulur; kurulum bitince program kendini yeniden açar.
+        if (GuncellemeYoneticisi.BekleyenPaket != null)
+        {
+            GuncellemeYoneticisi.BekleyenPaketiKur();
+            return;
+        }
         if (YenidenBaslat && Environment.ProcessPath is { } exe)
         {
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true }); }
