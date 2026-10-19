@@ -332,11 +332,12 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 BirimFiyat = x.Kalem.BirimFiyat,
                 Iskonto = x.Kalem.IskontoTutari,
                 KdvOrani = x.Kalem.KdvOrani,
-                NetTutar = x.Fatura.Tur == FaturaTuru.SatisIade ? -x.Kalem.SatirToplami : x.Kalem.SatirToplami,
-                KdvTutar = x.Kalem.KdvTutari,
-                ToplamTutar = x.Fatura.Tur == FaturaTuru.SatisIade ? -x.Kalem.SatirToplami : x.Kalem.SatirToplami,
-                Maliyet = x.Kalem.Miktar * x.Urun.AlisFiyati,
-                BrutKar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -x.Kalem.SatirToplami : x.Kalem.SatirToplami) - (x.Kalem.Miktar * x.Urun.AlisFiyati),
+                // SatirToplami KDV dahildir; net tutar ve kâr KDV hariç hesaplanır, iadeler eksi işaretlidir.
+                NetTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * (x.Kalem.SatirToplami - x.Kalem.KdvTutari),
+                KdvTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.KdvTutari,
+                ToplamTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.SatirToplami,
+                Maliyet = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.Miktar * x.Urun.AlisFiyati,
+                BrutKar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * (x.Kalem.SatirToplami - x.Kalem.KdvTutari - x.Kalem.Miktar * x.Urun.AlisFiyati),
                 Durum = x.Fatura.Durum.ToString()
             })
             .ToListAsync();
@@ -396,8 +397,9 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                         UrunAd = g.Key.Ad,
                         Kategori = g.Key.Kategori ?? "",
                         SatilanMiktar = g.Sum(x => x.fk.Miktar),
-                        Ciro = g.Sum(x => x.fk.SatirToplami),
-                        BrutKar = filtre.MaliyetGor ? (g.Sum(x => x.fk.SatirToplami) - g.Sum(x => x.fk.Miktar * g.Key.AlisFiyati)) : null,
+                        // Ciro ve kâr KDV hariç.
+                        Ciro = g.Sum(x => x.fk.SatirToplami - x.fk.KdvTutari),
+                        BrutKar = filtre.MaliyetGor ? (g.Sum(x => x.fk.SatirToplami - x.fk.KdvTutari) - g.Sum(x => x.fk.Miktar * g.Key.AlisFiyati)) : null,
                         MevcutStok = g.Key.StokMiktari
                     };
 
@@ -642,10 +644,13 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var urunIds = urunler.Select(u => u.Id).ToList();
 
+        // Rezerve: açık satış siparişlerinin henüz sevk edilmemiş miktarı (alış siparişi stok ayırmaz).
         var rezerveMap = await _baglam.SiparisKalemleri.AsNoTracking().Where(x => x.Siparis!.CariKart!.SirketId == sirketId)
-            .Where(sk => urunIds.Contains(sk.UrunId) && sk.Siparis != null && sk.Siparis.Durum == SiparisDurumu.Onaylandi)
+            .Where(sk => urunIds.Contains(sk.UrunId) && sk.Siparis != null && sk.Siparis.SiparisTuru == SiparisTuru.Satis &&
+                (sk.Siparis.Durum == SiparisDurumu.Beklemede || sk.Siparis.Durum == SiparisDurumu.Onaylandi || sk.Siparis.Durum == SiparisDurumu.KismenKarsilandi) &&
+                sk.Miktar > sk.SevkEdilenMiktar)
             .GroupBy(sk => sk.UrunId)
-            .Select(g => new { UrunId = g.Key, Rezerve = g.Sum(x => x.Miktar) })
+            .Select(g => new { UrunId = g.Key, Rezerve = g.Sum(x => x.Miktar - x.SevkEdilenMiktar) })
             .ToDictionaryAsync(x => x.UrunId, x => x.Rezerve);
 
         // COGS & Stok Devir Hızı Formülü: COGS / Ortalama Stok Değeri
@@ -654,6 +659,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .GroupBy(fk => fk.UrunId)
             .Select(g => new { UrunId = g.Key, Cogs = g.Sum(x => x.Miktar * (x.Urun != null ? x.Urun.AlisFiyati : 0m)) })
             .ToDictionaryAsync(x => x.UrunId, x => x.Cogs);
+
+        var sonHareketMap = await SonStokHareketleriAsync(sirketId, urunIds);
 
         var result = urunler.Select(u =>
         {
@@ -673,7 +680,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 RezerveStok = rezerveMap.TryGetValue(u.Id, out var rez) ? rez : 0m,
                 BirimMaliyet = filtre.MaliyetGor ? u.AlisFiyati : null,
                 KritikStokSeviyesi = u.MinimumStok,
-                SonHareketTarihi = null,
+                SonHareketTarihi = sonHareketMap.TryGetValue(u.Id, out var son) ? son : null,
                 StokDevirHizi = devirHizi
             };
         }).ToList();
@@ -699,13 +706,23 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 UrunAd = u.Ad,
                 Kategori = u.Kategori ?? "",
                 StokMiktari = u.StokMiktari,
-                SonHareketTarihi = null,
                 StokDegeri = filtre.MaliyetGor ? (u.StokMiktari * u.AlisFiyati) : 0m
             })
             .ToListAsync();
 
-        return urunler.Where(x => x.HareketsizGunSayisi >= gunFilter).ToList();
+        var sonHareketMap = await SonStokHareketleriAsync(sirketId, urunler.Select(u => u.UrunId).ToList());
+        foreach (var u in urunler)
+            u.SonHareketTarihi = sonHareketMap.TryGetValue(u.UrunId, out var son) ? son : null;
+        return urunler.Where(x => x.HareketsizGunSayisi >= gunFilter).OrderByDescending(x => x.HareketsizGunSayisi).ToList();
     }
+
+    // Ürünlerin iptal edilmemiş son stok hareketi tarihi.
+    private Task<Dictionary<int, DateTime>> SonStokHareketleriAsync(Guid sirketId, List<int> urunIds) =>
+        _baglam.StokHareketleri.AsNoTracking()
+            .Where(h => h.Urun!.SirketId == sirketId && urunIds.Contains(h.UrunId) && !h.IptalEdildi)
+            .GroupBy(h => h.UrunId)
+            .Select(g => new { UrunId = g.Key, Son = g.Max(h => h.Tarih) })
+            .ToDictionaryAsync(x => x.UrunId, x => x.Son);
 
     public async Task<List<StokDegerRaporuKalemiDto>> GetStokDegerRaporuAsync(SatisRaporFiltreDto filtre)
     {
@@ -715,15 +732,22 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var result = new List<StokDegerRaporuKalemiDto>();
 
+        // Depo bazında gerçek lokasyon stokları (ürünün varsayılan deposu değil).
+        var fiyatlar = urunler.ToDictionary(u => u.Id, u => u.AlisFiyati);
+        var depoIdleri = depos.Select(d => d.Id).ToList();
+        var lokasyonlar = await _baglam.UrunLokasyonStoklari.AsNoTracking()
+            .Where(l => depoIdleri.Contains(l.DepoId) && l.MevcutMiktar != 0)
+            .Select(l => new { l.DepoId, l.UrunId, l.MevcutMiktar })
+            .ToListAsync();
         foreach (var depo in depos)
         {
-            var depoUrunleri = urunler.Where(u => u.DepoId == depo.Id).ToList();
+            var depoStoklari = lokasyonlar.Where(l => l.DepoId == depo.Id && fiyatlar.ContainsKey(l.UrunId)).ToList();
             result.Add(new StokDegerRaporuKalemiDto
             {
                 LokasyonAd = depo.DepoAdi,
-                UrunCesidiSayisi = depoUrunleri.Count,
-                ToplamMiktar = depoUrunleri.Sum(u => u.StokMiktari),
-                ToplamStokDegeri = filtre.MaliyetGor ? depoUrunleri.Sum(u => u.StokMiktari * u.AlisFiyati) : 0m
+                UrunCesidiSayisi = depoStoklari.Select(l => l.UrunId).Distinct().Count(),
+                ToplamMiktar = depoStoklari.Sum(l => l.MevcutMiktar),
+                ToplamStokDegeri = filtre.MaliyetGor ? depoStoklari.Sum(l => l.MevcutMiktar * fiyatlar[l.UrunId]) : 0m
             });
         }
 
@@ -894,35 +918,36 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
     public async Task<List<KdvRaporuKalemiDto>> GetKdvRaporuAsync(SatisRaporFiltreDto filtre)
     {
         var sirketId = RaporYetkiKontrol(filtre);
-        var satisKalemler = await _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
-            .Include(fk => fk.Fatura)
-            .Where(fk => fk.Fatura != null && fk.Fatura.Tur == FaturaTuru.Satis && fk.Fatura.Durum == BelgeDurumu.Onaylandi)
+        // Seçilen dönemdeki onaylı faturalar; iadeler kendi tarafından düşülür (satış iadesi satıştan, alış iadesi alıştan).
+        var sorgu = _baglam.FaturaKalemleri.AsNoTracking()
+            .Where(fk => fk.Fatura!.SirketId == sirketId && fk.Fatura.Durum == BelgeDurumu.Onaylandi);
+        if (filtre.BaslangicTarihi.HasValue)
+            sorgu = sorgu.Where(fk => fk.Fatura!.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
+        if (filtre.BitisTarihi.HasValue)
+            sorgu = sorgu.Where(fk => fk.Fatura!.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi);
+        var kalemler = await sorgu
+            .Select(fk => new { fk.Fatura!.Tur, fk.KdvOrani, Matrah = fk.SatirToplami - fk.KdvTutari, Kdv = fk.KdvTutari })
             .ToListAsync();
 
-        var alisKalemler = await _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
-            .Include(fk => fk.Fatura)
-            .Where(fk => fk.Fatura != null && fk.Fatura.Tur == FaturaTuru.Alis && fk.Fatura.Durum == BelgeDurumu.Onaylandi)
-            .ToListAsync();
-
-        var rates = new[] { 0m, 1m, 10m, 20m };
-
-        var list = new List<KdvRaporuKalemiDto>();
-
-        foreach (var r in rates)
+        static decimal Isaret(FaturaTuru tur, bool satis) => (satis, tur) switch
         {
-            var sMatrah = satisKalemler.Where(x => x.KdvOrani == r).Sum(x => x.SatirToplami - x.KdvTutari);
-            var sKdv = satisKalemler.Where(x => x.KdvOrani == r).Sum(x => x.KdvTutari);
+            (true, FaturaTuru.Satis) or (false, FaturaTuru.Alis) => 1m,
+            (true, FaturaTuru.SatisIade) or (false, FaturaTuru.AlisIade) => -1m,
+            _ => 0m
+        };
 
-            var aMatrah = alisKalemler.Where(x => x.KdvOrani == r).Sum(x => x.SatirToplami - x.KdvTutari);
-            var aKdv = alisKalemler.Where(x => x.KdvOrani == r).Sum(x => x.KdvTutari);
-
+        // Standart oranlar her zaman listelenir; kayıtlarda geçen başka oranlar (eski %8, %18 gibi) da eklenir.
+        var list = new List<KdvRaporuKalemiDto>();
+        foreach (var r in new[] { 0m, 1m, 10m, 20m }.Union(kalemler.Select(k => k.KdvOrani)).Distinct().OrderBy(x => x))
+        {
+            var oranKalemleri = kalemler.Where(x => x.KdvOrani == r).ToList();
             list.Add(new KdvRaporuKalemiDto
             {
                 KdvOrani = r,
-                SatisMatrah = sMatrah,
-                SatisKdv = sKdv,
-                AlisMatrah = aMatrah,
-                AlisKdv = aKdv
+                SatisMatrah = oranKalemleri.Sum(x => Isaret(x.Tur, true) * x.Matrah),
+                SatisKdv = oranKalemleri.Sum(x => Isaret(x.Tur, true) * x.Kdv),
+                AlisMatrah = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Matrah),
+                AlisKdv = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Kdv)
             });
         }
 
