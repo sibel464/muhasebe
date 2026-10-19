@@ -27,16 +27,27 @@ public class KurServisi : IKurServisi
         var hedefTarih = DateTime.SpecifyKind((tarih ?? DateTime.Now).Date, DateTimeKind.Utc);
 
         // Fetch DB rates for target date first
+        // Elle girilen kur her zaman TCMB kurunun önüne geçer (aynı türde en son girilen geçerli);
+        // eskiden yalnız kayıt sırasına bakılıyordu, sonradan önbelleğe alınan TCMB kuru elle girileni eziyordu.
         var dbEntities = await _baglam.DovizKurlari
             .AsNoTracking()
             .Where(k => k.Tarih.Date == hedefTarih && !k.Silindi)
-            .OrderBy(k => k.Id)
+            .OrderBy(k => k.Kaynak == "MANUEL" ? 1 : 0)
+            .ThenBy(k => k.Id)
             .ToListAsync();
 
         var dbKurlar = dbEntities.Select(MapToDto).ToList();
 
-        // Fetch TCMB rates
-        var tcmbKurlar = await _tcmbServisi.GunlukKurlariGuncelleVeyaGetirAsync(hedefTarih);
+        // TCMB'ye ulaşılamazsa (internet yok) veritabanındaki kurlarla (elle girilen dahil) devam edilir.
+        List<DovizKuruDto> tcmbKurlar;
+        try
+        {
+            tcmbKurlar = await _tcmbServisi.GunlukKurlariGuncelleVeyaGetirAsync(hedefTarih);
+        }
+        catch (InvalidOperationException) when (dbKurlar.Count > 0)
+        {
+            tcmbKurlar = [];
+        }
 
         // Merge: DB rates override TCMB fallback rates
         var dict = new Dictionary<string, DovizKuruDto>(StringComparer.OrdinalIgnoreCase);
@@ -44,7 +55,7 @@ public class KurServisi : IKurServisi
         {
             dict[k.ParaBirimiKodu] = k;
         }
-        foreach (var m in dbKurlar)
+        foreach (var m in dbKurlar.Where(m => m.Kaynak != "TCMB" || !dict.ContainsKey(m.ParaBirimiKodu)))
         {
             dict[m.ParaBirimiKodu] = m;
         }
@@ -103,7 +114,7 @@ public class KurServisi : IKurServisi
         if (dto.DovizAlis <= 0 || dto.DovizSatis <= 0)
             throw new ArgumentException("Döviz alış ve satış kurları pozitif olmalıdır.");
 
-        var hedefTarih = dto.Tarih.Date;
+        var hedefTarih = DateTime.SpecifyKind(dto.Tarih.Date, DateTimeKind.Utc);
         var kullaniciId = _kullaniciServisi.AktifKullanici?.Id ?? 1;
         var kullaniciAdi = _kullaniciServisi.AktifKullanici?.KullaniciAdi ?? "Sistem";
 

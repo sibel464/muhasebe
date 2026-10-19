@@ -13,30 +13,77 @@ public class TcmbKurServisi : ITcmbKurServisi
     private readonly MuhasebeBaglami _baglam;
     private readonly HttpClient _httpClient;
 
-    public TcmbKurServisi(MuhasebeBaglami baglam, HttpClient? httpClient = null)
+    // Servis her ekranda yeniden oluşturulur; HttpClient paylaşılır (her seferinde yeni bağlantı havuzu açılmasın).
+    private static readonly HttpClient OrtakHttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+
+    // TCMB günün kurunu 15:30'da yayımlar; bu saatten sonra bugüne önbelleğe alınmış önceki gün kuru yenilenir.
+    public static readonly TimeSpan YayinSaati = new(15, 45, 0);
+
+    private readonly Func<DateTime> _simdi;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<DateTime, DateTime> SonYenilemeDenemesi = new();
+
+    public TcmbKurServisi(MuhasebeBaglami baglam, HttpClient? httpClient = null, Func<DateTime>? simdi = null)
     {
         _baglam = baglam;
-        _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        _httpClient = httpClient ?? OrtakHttpClient;
+        _simdi = simdi ?? (() => DateTime.Now);
     }
 
     public async Task<List<DovizKuruDto>> GunlukKurlariGuncelleVeyaGetirAsync(DateTime? tarih = null, CancellationToken cancellationToken = default)
     {
-        var hedefTarih = (tarih ?? DateTime.UtcNow).Date;
+        // Kur günü yerel takvim günüdür (KurServisi ile aynı).
+        var simdi = _simdi();
+        var hedefTarih = DateTime.SpecifyKind((tarih ?? simdi).Date, DateTimeKind.Utc);
 
         // Check DB Cache first
         var cached = await _baglam.DovizKurlari
-            .AsNoTracking()
             .Where(k => k.Tarih.Date == hedefTarih && k.Kaynak == "TCMB" && !k.Silindi)
             .ToListAsync(cancellationToken);
 
-        if (cached.Count > 0)
+        // Bugün sabah alınan kur önceki iş gününün kurudur; yayın saatinden sonra bir kez yenilenir.
+        // Eski kurla yapılmış işlemler etkilenmez (kur işleme kaydedilirken kopyalanır).
+        // Hafta sonu/tatilde yeni bülten çıkmaz; her sorguda internete gidilmesin diye 30 dakikada bir denenir.
+        var bayatBugunKuru = cached.Count > 0 && hedefTarih == simdi.Date && simdi.TimeOfDay >= YayinSaati
+            && cached.All(k => k.KurTarihi.Date < hedefTarih)
+            && (!SonYenilemeDenemesi.TryGetValue(hedefTarih, out var son) || simdi - son >= TimeSpan.FromMinutes(30));
+        if (bayatBugunKuru)
+            SonYenilemeDenemesi[hedefTarih] = simdi;
+        if (cached.Count > 0 && !bayatBugunKuru)
         {
             return cached.Select(MapToDto).ToList();
         }
 
+        if (bayatBugunKuru)
+        {
+            List<DovizKuruDto> yeni;
+            DateTime yeniTarih;
+            try
+            {
+                (yeni, yeniTarih) = await TcmbXmlCekAndParseAsync(hedefTarih, cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                // Bağlantı yoksa elimizdeki (önceki iş günü) kur kullanılmaya devam eder.
+                return cached.Select(MapToDto).ToList();
+            }
+            if (yeniTarih.Date <= cached.Max(k => k.KurTarihi.Date))
+                return cached.Select(MapToDto).ToList();
+            foreach (var eski in cached)
+            {
+                eski.Silindi = true;
+                eski.GuncellemeTarihi = DateTime.UtcNow;
+            }
+            return await KaydetAsync(yeni, yeniTarih, hedefTarih, cancellationToken);
+        }
+
         // Fetch from TCMB
         var (parsedKurlar, kurTarihi) = await TcmbXmlCekAndParseAsync(hedefTarih, cancellationToken);
+        return await KaydetAsync(parsedKurlar, kurTarihi, hedefTarih, cancellationToken);
+    }
 
+    private async Task<List<DovizKuruDto>> KaydetAsync(List<DovizKuruDto> parsedKurlar, DateTime kurTarihi, DateTime hedefTarih, CancellationToken cancellationToken)
+    {
+        kurTarihi = DateTime.SpecifyKind(kurTarihi.Date, DateTimeKind.Utc);
         var list = new List<DovizKuru>();
         foreach (var p in parsedKurlar)
         {
@@ -87,11 +134,12 @@ public class TcmbKurServisi : ITcmbKurServisi
     {
         DateTime aktifTarih = hedefTarih.Date;
         int maxFallbackDays = 7;
+        var bugun = _simdi().Date;
 
         for (int i = 0; i < maxFallbackDays; i++)
         {
             string url;
-            if (aktifTarih.Date == DateTime.UtcNow.Date)
+            if (aktifTarih.Date >= bugun)
             {
                 url = "https://www.tcmb.gov.tr/kurlar/today.xml";
             }
@@ -109,7 +157,9 @@ public class TcmbKurServisi : ITcmbKurServisi
                     var kurlar = XmlParse(xmlStr);
                     if (kurlar.Count > 0)
                     {
-                        return (kurlar, aktifTarih);
+                        // today.xml yayın saatinden önce önceki iş gününün bültenidir; gerçek bülten tarihi XML'den okunur.
+                        var bultenTarihi = XmlTarihi(xmlStr) ?? aktifTarih;
+                        return (kurlar, bultenTarihi > aktifTarih ? aktifTarih : bultenTarihi);
                     }
                 }
             }
@@ -117,9 +167,11 @@ public class TcmbKurServisi : ITcmbKurServisi
             {
                 throw;
             }
-            catch (HttpRequestException)
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
             {
-                // Network error or timeout, try fallback date
+                // Bağlantı yok veya zaman aşımı (zaman aşımı TaskCanceledException olarak gelir): diğer günleri denemek
+                // yalnız bekletir (7 × 5 sn). Tatil/hafta sonu için geri gitme yalnız sunucu "dosya yok" dediğinde yapılır.
+                break;
             }
 
             aktifTarih = aktifTarih.AddDays(-1);
@@ -127,6 +179,25 @@ public class TcmbKurServisi : ITcmbKurServisi
 
         // Doğrulanmış veri yoksa finansal kur üretilmez.
         throw new InvalidOperationException("TCMB doğrulanmış kur verisi alınamadı. Bağlantınızı kontrol edin veya yetkili kullanıcı ile manuel kur girin.");
+    }
+
+    // Kök öğedeki bülten tarihi: Tarih="17.10.2026" (gg.aa.yyyy) veya Date="10/17/2026" (aa/gg/yyyy).
+    public static DateTime? XmlTarihi(string xmlContent)
+    {
+        try
+        {
+            var kok = XDocument.Parse(xmlContent).Root;
+            var tr = kok?.Attribute("Tarih")?.Value;
+            if (DateTime.TryParseExact(tr, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var t1))
+                return DateTime.SpecifyKind(t1, DateTimeKind.Utc);
+            var en = kok?.Attribute("Date")?.Value;
+            if (DateTime.TryParseExact(en, "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var t2))
+                return DateTime.SpecifyKind(t2, DateTimeKind.Utc);
+        }
+        catch
+        {
+        }
+        return null;
     }
 
     public static List<DovizKuruDto> XmlParse(string xmlContent)
