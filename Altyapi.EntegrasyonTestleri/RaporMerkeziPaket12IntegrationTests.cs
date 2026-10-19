@@ -297,14 +297,22 @@ public sealed class RaporMerkeziPaket12IntegrationTests
             GenelToplam = 7500m
         };
         db.Faturalar.Add(fatura);
+        // Onaylı fatura cariye borç olarak işlenir; 10 gün önce kesilen ikinci fatura ve kısmi tahsilat:
+        // 9.000 TL tahsilat önce 40 günlük faturayı (7.500) kapatır, kalan 1.500 yeni faturadan düşer.
+        var yeni = fatura.FaturaNo + "B";
+        db.CariHareketler.AddRange(
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = fatura.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = fatura.FaturaNo, Borc = 7500m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = DateTime.SpecifyKind(DateTime.Today.AddDays(-10), DateTimeKind.Utc), HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = yeni, Borc = 4000m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc), HareketTuru = CariHareketTuru.Tahsilat, Alacak = 9000m });
         await db.SaveChangesAsync();
 
         var servis = StabilizasyonTestOturumu.Rapor(db, data.Sirket.Id);
+        var acikBakiye = await db.CariHareketler.Where(h => h.CariKartId == data.Cari.Id).SumAsync(h => h.Borc - h.Alacak);
         var list = await servis.GetCariYaslandirmaAsync(new SatisRaporFiltreDto());
 
-        var row = list.FirstOrDefault(x => x.CariId == data.Cari.Id);
-        Assert.NotNull(row);
-        Assert.True(row.Gun31_60 > 0);
+        var row = list.Single(x => x.CariId == data.Cari.Id);
+        Assert.Equal(acikBakiye, row.VadesiGelmemis + row.Gun1_30 + row.Gun31_60 + row.Gun61_90 + row.Gun90Plus);
+        Assert.Equal(0m, row.Gun31_60);
     }
 
     [Fact]

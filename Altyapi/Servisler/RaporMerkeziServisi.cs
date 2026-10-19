@@ -102,23 +102,24 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .Where(f => f.Tarih >= ayBasiUtc && f.Tarih <= aySonuUtc)
             .SumAsync(f => (decimal?)f.GenelToplam) ?? 0m;
 
-        // Kasa & Banka Hareketlerinden Tahsilat & Ödeme (İç transferler Hariç)
+        // Kasa & Banka Hareketlerinden Tahsilat & Ödeme (İç transferler hariç). İptal edilen işlem ile ters kaydı
+        // aynı fiş türünü taşıdığından ikisi de sayılmaz; yalnız tamamlanmış işlemler toplanır.
         var kasaGiris = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiUtc && kh.Tarih <= aySonuUtc && kh.FisTuru == KasaFisTuru.Tahsilat)
+            .Where(kh => kh.Tarih >= ayBasiUtc && kh.Tarih <= aySonuUtc && kh.FisTuru == KasaFisTuru.Tahsilat && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var bankaGiris = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId)
-            .Where(bh => bh.Tarih >= ayBasiUtc && bh.Tarih <= aySonuUtc && bh.FisTuru == BankaFisTuru.GelenHavale)
+            .Where(bh => bh.Tarih >= ayBasiUtc && bh.Tarih <= aySonuUtc && bh.FisTuru == BankaFisTuru.GelenHavale && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
 
         var buAyTahsilat = kasaGiris + bankaGiris;
 
         var kasaCikis = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiUtc && kh.Tarih <= aySonuUtc && kh.FisTuru == KasaFisTuru.Odeme)
+            .Where(kh => kh.Tarih >= ayBasiUtc && kh.Tarih <= aySonuUtc && kh.FisTuru == KasaFisTuru.Odeme && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var bankaCikis = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId)
-            .Where(bh => bh.Tarih >= ayBasiUtc && bh.Tarih <= aySonuUtc && bh.FisTuru == BankaFisTuru.GidenHavale)
+            .Where(bh => bh.Tarih >= ayBasiUtc && bh.Tarih <= aySonuUtc && bh.FisTuru == BankaFisTuru.GidenHavale && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
 
         var buAyOdeme = kasaCikis + bankaCikis;
@@ -142,9 +143,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var bankaToplami = await _baglam.BankaHesaplari.AsNoTracking().Where(x => x.SirketId == sirketId).SumAsync(b => (decimal?)b.Bakiye) ?? 0m;
 
         // Vadesi Geçmiş Alacak
-        var vadesiGecmisAlacak = await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
-            .Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi && f.VadeTarihi.HasValue && f.VadeTarihi.Value < bugünUtc)
-            .SumAsync(f => (decimal?)f.GenelToplam) ?? 0m;
+        // Ödenmiş faturalar düşülerek (yaşlandırmayla aynı hesap) yalnız vadesi geçmiş açık tutar.
+        var vadesiGecmisAlacak = (await GetCariYaslandirmaAsync(filtre)).Sum(x => x.Gun1_30 + x.Gun31_60 + x.Gun61_90 + x.Gun90Plus);
 
         // Kritik Stok Sayısı
         var kritikStokSayisi = await _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId)
@@ -218,19 +218,19 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .SumAsync(f => (decimal?)f.GenelToplam) ?? 0m;
 
         var mTahsilat = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= mBasUtc && kh.Tarih <= mBitUtc && kh.FisTuru == KasaFisTuru.Tahsilat)
+            .Where(kh => kh.Tarih >= mBasUtc && kh.Tarih <= mBitUtc && kh.FisTuru == KasaFisTuru.Tahsilat && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var oTahsilat = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= oBasUtc && kh.Tarih <= oBitUtc && kh.FisTuru == KasaFisTuru.Tahsilat)
+            .Where(kh => kh.Tarih >= oBasUtc && kh.Tarih <= oBitUtc && kh.FisTuru == KasaFisTuru.Tahsilat && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var mOdeme = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= mBasUtc && kh.Tarih <= mBitUtc && kh.FisTuru == KasaFisTuru.Odeme)
+            .Where(kh => kh.Tarih >= mBasUtc && kh.Tarih <= mBitUtc && kh.FisTuru == KasaFisTuru.Odeme && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var oOdeme = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= oBasUtc && kh.Tarih <= oBitUtc && kh.FisTuru == KasaFisTuru.Odeme)
+            .Where(kh => kh.Tarih >= oBasUtc && kh.Tarih <= oBitUtc && kh.FisTuru == KasaFisTuru.Odeme && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var mIade = await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
@@ -534,48 +534,58 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var sirketId = RaporYetkiKontrol(filtre);
         var bugün = DateTime.Today;
 
-        var acikFaturalar = await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
-            .Include(f => f.CariKart)
-            .Where(f => f.Durum == BelgeDurumu.Onaylandi && f.Tur == FaturaTuru.Satis)
-            .Select(f => new
-            {
-                f.CariKartId,
-                CariKod = f.CariKart != null ? f.CariKart.Kod : "",
-                CariUnvan = f.CariKart != null ? f.CariKart.Unvan : "",
-                CariTur = f.CariKart != null ? f.CariKart.Tur.ToString() : "",
-                f.GenelToplam,
-                VadeTarihi = f.VadeTarihi ?? f.Tarih
-            })
+        // Açık alacak: carinin tahsilat/iade gibi alacak kayıtları en eski borçtan başlayarak düşülür (FIFO);
+        // kalan borçlar vadesine göre yaşlandırılır. Satış faturası borcunun vadesi faturadan, diğer borçlarınki kendi tarihinden alınır.
+        var hareketler = await _baglam.CariHareketler.AsNoTracking().Where(x => x.CariKart!.SirketId == sirketId)
+            .Select(h => new { h.CariKartId, h.Tarih, h.Borc, h.Alacak, h.BelgeNo, h.HareketTuru })
             .ToListAsync();
+        var faturaVadeleri = (await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
+                .Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi)
+                .Select(f => new { f.CariKartId, f.FaturaNo, Vade = f.VadeTarihi ?? f.Tarih })
+                .ToListAsync())
+            .GroupBy(f => (f.CariKartId, f.FaturaNo)).ToDictionary(g => g.Key, g => g.First().Vade);
+        var cariIdleri = hareketler.Select(h => h.CariKartId).Distinct().ToList();
+        var cariler = await _baglam.CariKartlar.AsNoTracking().Where(c => cariIdleri.Contains(c.Id))
+            .Select(c => new { c.Id, c.Kod, c.Unvan, Tur = c.Tur.ToString() }).ToDictionaryAsync(c => c.Id);
 
-        var grouped = acikFaturalar.GroupBy(x => x.CariKartId).Select(g =>
+        var grouped = new List<CariYaslandirmaRaporuKalemiDto>();
+        foreach (var g in hareketler.GroupBy(h => h.CariKartId))
         {
-            var first = g.First();
+            var kalanAlacak = g.Sum(h => h.Alacak);
             decimal vadesiGelmemis = 0m, g1_30 = 0m, g31_60 = 0m, g61_90 = 0m, g90Plus = 0m;
-
-            foreach (var item in g)
+            var borclar = g.Where(h => h.Borc > 0).Select(h => new
             {
-                var gecikme = (bugün - item.VadeTarihi.Date).Days;
-                if (gecikme <= 0) vadesiGelmemis += item.GenelToplam;
-                else if (gecikme <= 30) g1_30 += item.GenelToplam;
-                else if (gecikme <= 60) g31_60 += item.GenelToplam;
-                else if (gecikme <= 90) g61_90 += item.GenelToplam;
-                else g90Plus += item.GenelToplam;
+                h.Borc,
+                Vade = h.HareketTuru == CariHareketTuru.SatisFaturasi && h.BelgeNo != null && faturaVadeleri.TryGetValue((g.Key, h.BelgeNo), out var v) ? v : h.Tarih
+            }).OrderBy(x => x.Vade);
+            foreach (var borc in borclar)
+            {
+                var dusulen = Math.Min(borc.Borc, kalanAlacak);
+                kalanAlacak -= dusulen;
+                var acik = borc.Borc - dusulen;
+                if (acik <= 0) continue;
+                var gecikme = (bugün - borc.Vade.Date).Days;
+                if (gecikme <= 0) vadesiGelmemis += acik;
+                else if (gecikme <= 30) g1_30 += acik;
+                else if (gecikme <= 60) g31_60 += acik;
+                else if (gecikme <= 90) g61_90 += acik;
+                else g90Plus += acik;
             }
+            if (vadesiGelmemis + g1_30 + g31_60 + g61_90 + g90Plus <= 0 || !cariler.TryGetValue(g.Key, out var cari)) continue;
 
-            return new CariYaslandirmaRaporuKalemiDto
+            grouped.Add(new CariYaslandirmaRaporuKalemiDto
             {
                 CariId = g.Key,
-                CariKod = first.CariKod,
-                CariUnvan = first.CariUnvan,
-                CariTur = first.CariTur,
+                CariKod = cari.Kod,
+                CariUnvan = cari.Unvan,
+                CariTur = cari.Tur,
                 VadesiGelmemis = vadesiGelmemis,
                 Gun1_30 = g1_30,
                 Gun31_60 = g31_60,
                 Gun61_90 = g61_90,
                 Gun90Plus = g90Plus
-            };
-        }).ToList();
+            });
+        }
 
         return grouped;
     }
@@ -768,8 +778,9 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var ayBasiiUtc = EnsureUtc(new DateTime(bugün.Year, bugün.Month, 1));
 
         var kasaQuery = _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Tahsilat);
+            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Tahsilat && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi);
 
+        // Nakit akışında CariId filtresi kasa seçimi olarak kullanılır.
         if (filtre.CariId.HasValue)
             kasaQuery = kasaQuery.Where(kh => kh.KasaId == filtre.CariId.Value);
 
@@ -777,7 +788,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
 
         var odemeQuery = _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Odeme);
+            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Odeme && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi);
 
         if (filtre.CariId.HasValue)
             odemeQuery = odemeQuery.Where(kh => kh.KasaId == filtre.CariId.Value);
@@ -808,8 +819,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         foreach (var k in kasalar)
         {
-            var giris = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gelir).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
-            var cikis = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gider).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
+            var giris = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gelir && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
+            var cikis = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gider && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
             result.Add(new KasaBankaRaporKalemiDto
             {
                 HesapId = k.Id,
@@ -824,8 +835,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         foreach (var b in bankalar)
         {
-            var giris = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gelir).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
-            var cikis = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gider).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
+            var giris = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gelir && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
+            var cikis = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gider && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
             result.Add(new KasaBankaRaporKalemiDto
             {
                 HesapId = b.Id,

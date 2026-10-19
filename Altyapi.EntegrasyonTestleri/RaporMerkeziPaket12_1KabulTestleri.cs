@@ -269,6 +269,25 @@ public sealed class RaporMerkeziPaket12_1KabulTestleri
     }
 
     [Fact]
+    public async Task K06b_Iptal_edilen_tahsilat_ve_ters_kaydi_ozette_sayilmaz()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var data = await SeedPaket12_1TestVerisiAsync(db);
+        var servis = StabilizasyonTestOturumu.Rapor(db, data.Sirket.Id);
+        var once = await servis.GetYoneticiOzetiAsync(new SatisRaporFiltreDto());
+
+        var bugun = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc);
+        db.KasaHareketleri.AddRange(
+            new KasaHareketi { KasaId = data.Kasa.Id, Tarih = bugun, FisTuru = KasaFisTuru.Tahsilat, Tur = HareketTuru.Gelir, Tutar = 1000m, IslemDurumu = FinansIslemDurumu.IptalEdildi },
+            new KasaHareketi { KasaId = data.Kasa.Id, Tarih = bugun, FisTuru = KasaFisTuru.Tahsilat, Tur = HareketTuru.Gider, Tutar = 1000m, IslemDurumu = FinansIslemDurumu.TersKayit },
+            new KasaHareketi { KasaId = data.Kasa.Id, Tarih = bugun, FisTuru = KasaFisTuru.Tahsilat, Tur = HareketTuru.Gelir, Tutar = 300m });
+        await db.SaveChangesAsync();
+
+        var sonra = await servis.GetYoneticiOzetiAsync(new SatisRaporFiltreDto());
+        Assert.Equal(300m, sonra.BuAyTahsilat - once.BuAyTahsilat);
+    }
+
+    [Fact]
     public async Task K07_BüyükVeriBenchmark_100BinKayıt_ServerSideEFQueryEngine()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
