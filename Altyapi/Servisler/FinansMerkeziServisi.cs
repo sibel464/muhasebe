@@ -326,6 +326,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
     public async Task PosIslemiHesabaGecirAsync(int posIslemId, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default)
     {
         _kullanici.YetkiKontrolEt(x => x.POSYonet, "POS Yönetimi");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync(cancellationToken);
         try
@@ -342,7 +343,9 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 throw new InvalidOperationException("İptal edilen POS işlemi hesaba geçirilemez.");
 
             pos.Durum = PosIslemDurumu.HesabaGecti;
-            pos.HesabaGecisTarihi = DateTime.UtcNow;
+            // Belge tarihi yerel saat (UTC etiketli): gece yarısından sonraki aktarım önceki güne düşmesin.
+            var islemTarihi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+            pos.HesabaGecisTarihi = islemTarihi;
 
             // Banka Hareketi Gelir ekle (Net Tutar)
             var bh = new BankaHareketi
@@ -351,7 +354,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 BankaHesabiId = pos.BankaHesabiId,
                 BankaAdi = pos.BankaHesabi?.Ad ?? pos.BankaAdi,
                 HesapNo = pos.BankaHesabi?.HesapNo,
-                Tarih = DateTime.UtcNow,
+                Tarih = islemTarihi,
                 Tur = HareketTuru.Gelir,
                 OdemeYontemi = OdemeYontemi.KrediKarti,
                 Tutar = pos.NetTutar,
@@ -361,29 +364,16 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             _baglam.BankaHareketleri.Add(bh);
             await _baglam.SaveChangesAsync(cancellationToken);
 
-            // Yevmiye Fişi (102 Banka Borç / 108 POS Alacak)
-            var bankaHesap = await _baglam.HesapPlanlari.FirstOrDefaultAsync(x => x.SirketId == sirketId && x.HesapKodu == "102", cancellationToken);
-            var posHesap = await _baglam.HesapPlanlari.FirstOrDefaultAsync(x => x.SirketId == sirketId && x.HesapKodu == "108", cancellationToken);
-
-            if (bankaHesap != null && posHesap != null)
-            {
-                _baglam.YevmiyeFisleri.Add(new YevmiyeFis
-                {
-                    SirketId = sirketId,
-                    FisNo = $"POS-{pos.Id:D6}",
-                    Tarih = DateTime.UtcNow,
-                    BelgeTipi = "POSAktarim",
-                    BelgeId = pos.Id,
-                    Aciklama = $"POS Aktarımı - {pos.PosCihazAdi}",
-                    Durum = YevmiyeDurumu.Onaylandi,
-                    Satirlar = new List<YevmiyeSatiri>
-                    {
-                        new() { HesapId = bankaHesap.Id, Borc = pos.NetTutar, Aciklama = "Banka Hesabına Geçen POS Net Tutar" },
-                        new() { HesapId = posHesap.Id, Alacak = pos.NetTutar, Aciklama = "POS Çözülme Alacağı" }
-                    }
-                });
-                await _baglam.SaveChangesAsync(cancellationToken);
-            }
+            // Fiş banka hareketine bağlanır (BankaHareketi/bh.Id). Eskiden POS işlemine bağlıydı; açılıştaki
+            // "eksik fişleri tamamla" bu banka hareketini fişsiz sanıp ikinci kez 102 borç / 649 alacak kesiyordu.
+            // Banka ekranındaki POS aktarımıyla aynı kayıt: banka borç net, 653 komisyon, 108 alacak brüt.
+            var bankaKodu = pos.BankaHesabi != null ? await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, pos.BankaHesabi) : "102";
+            var komisyon = Math.Max(0, pos.BrutTutar - pos.NetTutar);
+            var satirlar = new List<FinansMuhasebeKaydi.Satir> { new(bankaKodu, pos.NetTutar, 0) };
+            if (komisyon > 0) satirlar.Add(new FinansMuhasebeKaydi.Satir("653", komisyon, 0));
+            satirlar.Add(new FinansMuhasebeKaydi.Satir("108", 0, pos.NetTutar + komisyon));
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, sirketId, FinansMuhasebeKaydi.BankaBelgeTipi, bh.Id, islemTarihi,
+                bh.Aciklama, $"POS-{pos.Id:D6}", satirlar.ToArray());
 
             await tx.CommitAsync(cancellationToken);
         }

@@ -509,6 +509,18 @@ public sealed class Finans360Paket11IntegrationTests
 
         var bh = await db.BankaHareketleri.SingleAsync(x => x.BankaHesabiId == banka.Id);
         Assert.Equal(980m, bh.Tutar);
+
+        // Fiş banka hareketine bağlı: banka 980 borç, 653 komisyon 20 borç, 108 1.000 alacak
+        var fis = await db.YevmiyeFisleri.Include(f => f.Satirlar).ThenInclude(s => s.Hesap)
+            .SingleAsync(f => f.BelgeTipi == FinansMuhasebeKaydi.BankaBelgeTipi && f.BelgeId == bh.Id);
+        Assert.Equal(980m, fis.Satirlar.Single(s => s.Hesap!.HesapKodu.StartsWith("102")).Borc);
+        Assert.Equal(20m, fis.Satirlar.Single(s => s.Hesap!.HesapKodu == "653").Borc);
+        Assert.Equal(1000m, fis.Satirlar.Single(s => s.Hesap!.HesapKodu == "108").Alacak);
+
+        // Açılıştaki eksik fiş tamamlama bu hareket için ikinci fiş kesmez
+        var once = await db.YevmiyeFisleri.CountAsync(f => f.SirketId == sirketId);
+        await FinansMuhasebeKaydi.EksikFisleriTamamlaAsync(db);
+        Assert.Equal(once, await db.YevmiyeFisleri.CountAsync(f => f.SirketId == sirketId));
     }
 
     // 23. POS Double Settlement Engeli

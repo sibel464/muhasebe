@@ -162,13 +162,15 @@ public class YevmiyeServisi : IYevmiyeServisi
             fis.Durum = YevmiyeDurumu.Iptal;
 
             // Generate reversing entry (Ters Fiş)
-            var tersFisNo = await FisNoUretAsync(fis.FisTuru, DateTime.UtcNow, sirketId);
+            // Ters fiş tarihi yerel gün (UTC etiketli); gerçek UTC gece yarısı sonrası iptali önceki güne/yıla atardı.
+            var tersTarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+            var tersFisNo = await FisNoUretAsync(fis.FisTuru, tersTarih, sirketId);
             var tersFis = new YevmiyeFis
             {
                 SirketId = sirketId,
                 FisNo = tersFisNo,
                 FisTuru = fis.FisTuru,
-                Tarih = DateTime.UtcNow,
+                Tarih = tersTarih,
                 MaliDonemId = fis.MaliDonemId,
                 SubeId = fis.SubeId,
                 BelgeTipi = !string.IsNullOrWhiteSpace(fis.BelgeTipi) ? $"TERS_{fis.BelgeTipi}_{fis.Id}" : $"TERS_{fis.FisNo}",
