@@ -267,9 +267,12 @@ public class KullaniciServisi : IKullaniciServisi
         YetkiKontrolEt(y => y.KullaniciYonet, "Kullanıcı Güncelleme");
         await using var baglam = await _baglamFactory.CreateDbContextAsync();
 
-        kullanici.KullaniciAdi = kullanici.KullaniciAdi.Trim().ToLowerInvariant();
+        kullanici.KullaniciAdi = kullanici.KullaniciAdi?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (kullanici.KullaniciAdi.Length < 3 || kullanici.KullaniciAdi.Length > 100 || kullanici.KullaniciAdi.Any(char.IsWhiteSpace))
+            throw new ArgumentException("Kullanıcı adı 3-100 karakter olmalı ve boşluk içermemelidir.");
 
-        if (await baglam.Kullanicilar.AnyAsync(k => k.KullaniciAdi == kullanici.KullaniciAdi && k.Id != kullanici.Id))
+        // Silinmiş kullanıcıların adları da dolu sayılır (eklemedeki gibi); aksi halde benzersizlik kuralı veritabanında patlar.
+        if (await baglam.Kullanicilar.IgnoreQueryFilters().AnyAsync(k => k.KullaniciAdi == kullanici.KullaniciAdi && k.Id != kullanici.Id))
             throw new InvalidOperationException("Bu kullanıcı adı zaten kullanılıyor.");
 
         var mevcut = await baglam.Kullanicilar.Include(k => k.Yetkiler)
