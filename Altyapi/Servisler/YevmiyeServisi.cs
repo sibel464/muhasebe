@@ -24,6 +24,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto> FisOlusturAsync(YevmiyeFisDto dto, Guid sirketId, int kullaniciId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.MuhasebeFisEkle, "Muhasebe Fişi Ekleme");
 
         await MaliDonemAcikMiDogrulaAsync(dto.Tarih, sirketId);
@@ -104,6 +105,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto> FisOnaylaAsync(int fisId, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.MuhasebeFisOnayla, "Muhasebe Fişi Onaylama");
 
         var fis = await _baglam.YevmiyeFisleri
@@ -134,6 +136,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto> FisIptalEtAsync(int fisId, string iptalNedeni, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.MuhasebeFisIptal, "Muhasebe Fişi İptal Etme");
 
         var fis = await _baglam.YevmiyeFisleri
@@ -212,6 +215,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto?> GetirFisByIdAsync(int fisId, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var fis = await _baglam.YevmiyeFisleri
             .AsNoTracking()
             .Include(f => f.Satirlar)
@@ -294,6 +298,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto?> GetirBelgeFisiAsync(string belgeTipi, int belgeId, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var fis = await _baglam.YevmiyeFisleri
             .AsNoTracking()
             .Include(f => f.Satirlar)
@@ -305,6 +310,7 @@ public class YevmiyeServisi : IYevmiyeServisi
 
     public async Task<YevmiyeFisDto> OtomatikMuhasebelestirAsync(string belgeTipi, int belgeId, Guid sirketId, int kullaniciId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         // Check if already posted (Idempotency)
         var mevcutFis = await GetirBelgeFisiAsync(belgeTipi, belgeId, sirketId);
         if (mevcutFis != null)

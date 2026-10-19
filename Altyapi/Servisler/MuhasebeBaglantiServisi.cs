@@ -19,6 +19,7 @@ public class MuhasebeBaglantiServisi : IMuhasebeBaglantiServisi
 
     public async Task<List<MuhasebeBaglantiKoduDto>> GetirTumBaglantilarAsync(Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var baglantilar = await _baglam.MuhasebeBaglantiKodlari
             .AsNoTracking()
             .Where(b => b.SirketId == sirketId)
@@ -46,6 +47,7 @@ public class MuhasebeBaglantiServisi : IMuhasebeBaglantiServisi
 
     public async Task GuncelleBaglantiAsync(MuhasebeBaglantiKoduDto dto, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.AyarlariYonet, "Muhasebe Bağlantı Kodları Güncelleme");
 
         var entity = await _baglam.MuhasebeBaglantiKodlari
@@ -70,6 +72,7 @@ public class MuhasebeBaglantiServisi : IMuhasebeBaglantiServisi
 
     public async Task<string> GetirHesapKoduForKategoriAsync(string kategoriKodu, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var item = await _baglam.MuhasebeBaglantiKodlari
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.KategoriKodu == kategoriKodu && (b.SirketId == sirketId) && b.AktifMi);

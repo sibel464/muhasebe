@@ -20,6 +20,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
     public async Task<MizanRaporDto> MizanAlAsync(Guid sirketId, DateTime? baslangic, DateTime? bitis, MizanTuru tur = MizanTuru.Genel)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.MizanGoruntule, "Mizan Görüntüleme");
 
         // Varsayılan: yıl başından bugüne (gün sonu dahil).
@@ -196,6 +197,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
     public async Task<MuhasebeSaglikDto> SaglikPaneliGetirAsync(Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var onayliFisler = await _baglam.YevmiyeFisleri
             .AsNoTracking()
             .Include(f => f.Satirlar)
@@ -238,6 +240,7 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
 
     public async Task<List<MuhasebelesmemisBelgeDto>> GetirMuhasebelesmemisBelgelerAsync(Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var result = new List<MuhasebelesmemisBelgeDto>();
 
         // Approved Invoices without yevmiye fis

@@ -19,6 +19,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<List<HesapPlaniDto>> GetirTumHesaplarAsync(Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var hesaplar = await _baglam.HesapPlanlari
             .AsNoTracking()
             .Where(h => h.SirketId == sirketId)
@@ -46,6 +47,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<List<HesapPlaniDto>> GetirHiyerarşikHesaplarAsync(Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var tumu = await GetirTumHesaplarAsync(sirketId);
         var lookup = tumu.ToDictionary(h => h.Id);
         var kokHesaplar = new List<HesapPlaniDto>();
@@ -67,6 +69,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<HesapPlaniDto?> GetirHesapByIdAsync(int id, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var hesap = await _baglam.HesapPlanlari
             .AsNoTracking()
             .Include(h => h.UstHesap)
@@ -86,6 +89,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<HesapPlaniDto?> GetirHesapByKodAsync(string hesapKodu, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var hesap = await _baglam.HesapPlanlari
             .AsNoTracking()
             .Include(h => h.UstHesap)
@@ -105,6 +109,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<Hesap360Dto> GetirHesap360Async(int hesapId, Guid sirketId, DateTime? baslangic = null, DateTime? bitis = null)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         var hesapDto = await GetirHesapByIdAsync(hesapId, sirketId);
         if (hesapDto == null)
             throw new KeyNotFoundException("Hesap bulunamadı.");
@@ -279,6 +284,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task<HesapPlaniDto> EkleHesapAsync(HesapPlaniDto dto, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.HesapPlaniYonet, "Hesap Planı Ekleme");
 
         if (string.IsNullOrWhiteSpace(dto.HesapKodu))
@@ -343,6 +349,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task GuncelleHesapAsync(HesapPlaniDto dto, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.HesapPlaniYonet, "Hesap Planı Güncelleme");
 
         var entity = await _baglam.HesapPlanlari.FirstOrDefaultAsync(h => h.Id == dto.Id && (h.SirketId == sirketId));
@@ -418,6 +425,7 @@ public class HesapPlaniServisi : IHesapPlaniServisi
 
     public async Task SilVeyaPasifeAlAsync(int hesapId, Guid sirketId)
     {
+        sirketId = _baglam.SirketIdCoz(sirketId);
         YetkiKontrolEt(y => y.HesapPlaniYonet, "Hesap Planı Silme/Pasife Alma");
 
         var entity = await _baglam.HesapPlanlari.FirstOrDefaultAsync(h => h.Id == hesapId && (h.SirketId == sirketId));
