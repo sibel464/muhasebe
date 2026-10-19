@@ -308,6 +308,11 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                     KdvRaporu.Clear();
                     foreach (var item in kdvList) KdvRaporu.Add(item);
                     break;
+                case 14: // Tahsilat Performansı
+                    var tahsilat = await _raporServisi.GetTahsilatPerformansiAsync(filtre);
+                    TahsilatPerformansi.Clear();
+                    foreach (var item in tahsilat) TahsilatPerformansi.Add(item);
+                    break;
             }
             DurumMesaji = "Rapor güncellendi.";
         }

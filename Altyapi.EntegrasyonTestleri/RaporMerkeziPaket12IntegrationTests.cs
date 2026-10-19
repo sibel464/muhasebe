@@ -316,6 +316,47 @@ public sealed class RaporMerkeziPaket12IntegrationTests
     }
 
     [Fact]
+    public async Task T12b_TahsilatPerformansi_FIFO_TahsilTarihi_IptalTersKaydiSayilmaz()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var data = await SeedRaporTestVerisiAsync(db);
+        DateTime Gun(int fark) => DateTime.SpecifyKind(DateTime.Today.AddDays(fark), DateTimeKind.Utc);
+        Fatura YeniFatura(string ek, int tarih, int vade, decimal tutar, BelgeDurumu durum) => new()
+        {
+            SirketId = data.Sirket.Id, SubeId = data.Sube.Id, CariKartId = data.Cari.Id,
+            FaturaNo = $"TP{ek}-{Guid.NewGuid():N}"[..12], Tur = FaturaTuru.Satis, Durum = durum,
+            Tarih = Gun(tarih), VadeTarihi = Gun(vade), GenelToplam = tutar
+        };
+        var eski = YeniFatura("A", -40, -30, 1000m, BelgeDurumu.Onaylandi);
+        var yeni = YeniFatura("B", -10, -10, 500m, BelgeDurumu.Onaylandi);
+        var iptal = YeniFatura("C", -50, -50, 2000m, BelgeDurumu.Iptal);
+        db.Faturalar.AddRange(eski, yeni, iptal);
+        await db.SaveChangesAsync();
+        db.CariHareketler.AddRange(
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = eski.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = eski.FaturaNo, IlgiliBelgeId = eski.Id, Borc = 1000m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = yeni.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = yeni.FaturaNo, IlgiliBelgeId = yeni.Id, Borc = 500m },
+            // İptal edilen fatura ve ters kaydı: ters kayıt tahsilat sayılsaydı A faturası 50 gün önce kapanmış görünürdü.
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = iptal.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = iptal.FaturaNo, IlgiliBelgeId = iptal.Id, Borc = 2000m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = iptal.Tarih, HareketTuru = CariHareketTuru.SatisIadesi, BelgeNo = iptal.FaturaNo + "-IPTAL", IlgiliBelgeId = iptal.Id, Alacak = 2000m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = Gun(-20), HareketTuru = CariHareketTuru.Tahsilat, Alacak = 1200m });
+        await db.SaveChangesAsync();
+
+        var servis = StabilizasyonTestOturumu.Rapor(db, data.Sirket.Id);
+        var list = await servis.GetTahsilatPerformansiAsync(new SatisRaporFiltreDto());
+
+        Assert.DoesNotContain(list, x => x.FaturaNo == iptal.FaturaNo);
+        var a = list.Single(x => x.FaturaNo == eski.FaturaNo);
+        Assert.Equal(Gun(-20).Date, a.TahsilTarihi?.Date);
+        Assert.Equal(0m, a.KalanTutar);
+        Assert.Equal(10, a.GecikmeGun);
+        var b = list.Single(x => x.FaturaNo == yeni.FaturaNo);
+        Assert.Null(b.TahsilTarihi);
+        Assert.Equal(300m, b.KalanTutar);
+        Assert.Equal("Kısmen tahsil", b.Durum);
+        Assert.Equal(20d, b.OrtalamaTahsilSuresiGun);
+    }
+
+    [Fact]
     public async Task T13_VadesiGecmisAlacaklar_FaturaTarihli_Dogru()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);

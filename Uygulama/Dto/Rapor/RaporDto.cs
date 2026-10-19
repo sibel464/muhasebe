@@ -167,8 +167,11 @@ public class TahsilatPerformansiKalemiDto
     public string FaturaNo { get; set; } = "";
     public DateTime FaturaTarihi { get; set; }
     public DateTime VadeTarihi { get; set; }
+    public decimal Tutar { get; set; }
+    public decimal KalanTutar { get; set; }
     public DateTime? TahsilTarihi { get; set; }
-    public int GecikmeGun => TahsilTarihi.HasValue 
+    public string Durum => TahsilTarihi.HasValue ? "Tahsil edildi" : KalanTutar < Tutar ? "Kısmen tahsil" : "Açık";
+    public int GecikmeGun => TahsilTarihi.HasValue
         ? Math.Max(0, (TahsilTarihi.Value.Date - VadeTarihi.Date).Days)
         : Math.Max(0, (DateTime.Today - VadeTarihi.Date).Days);
     public double OrtalamaTahsilSuresiGun { get; set; }

@@ -538,14 +538,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         // Açık alacak: carinin tahsilat/iade gibi alacak kayıtları en eski borçtan başlayarak düşülür (FIFO);
         // kalan borçlar vadesine göre yaşlandırılır. Satış faturası borcunun vadesi faturadan, diğer borçlarınki kendi tarihinden alınır.
-        var hareketler = await _baglam.CariHareketler.AsNoTracking().Where(x => x.CariKart!.SirketId == sirketId)
-            .Select(h => new { h.CariKartId, h.Tarih, h.Borc, h.Alacak, h.BelgeNo, h.HareketTuru })
-            .ToListAsync();
-        var faturaVadeleri = (await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
-                .Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi)
-                .Select(f => new { f.CariKartId, f.FaturaNo, Vade = f.VadeTarihi ?? f.Tarih })
-                .ToListAsync())
-            .GroupBy(f => (f.CariKartId, f.FaturaNo)).ToDictionary(g => g.Key, g => g.First().Vade);
+        var hareketler = await IptalsizCariHareketleriAsync(sirketId, null);
+        var faturaVadeleri = await SatisFaturaVadeleriAsync(sirketId);
         var cariIdleri = hareketler.Select(h => h.CariKartId).Distinct().ToList();
         var cariler = await _baglam.CariKartlar.AsNoTracking().Where(c => cariIdleri.Contains(c.Id))
             .Select(c => new { c.Id, c.Kod, c.Unvan, Tur = c.Tur.ToString() }).ToDictionaryAsync(c => c.Id);
@@ -592,26 +586,128 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         return grouped;
     }
 
+    // Seçilen dönemde kesilen satış faturalarının ne zaman tahsil edildiği: carinin alacak kayıtları tarih sırasıyla
+    // en eski vadeli borçtan başlayarak düşülür (yaşlandırmayla aynı FIFO); borcu sıfırlayan kaydın tarihi tahsil tarihidir.
     public async Task<List<TahsilatPerformansiKalemiDto>> GetTahsilatPerformansiAsync(SatisRaporFiltreDto filtre)
     {
         var sirketId = RaporYetkiKontrol(filtre);
         var faturaQuery = _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
-            .Include(f => f.CariKart)
             .Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi);
+        if (filtre.CariId.HasValue)
+            faturaQuery = faturaQuery.Where(f => f.CariKartId == filtre.CariId.Value);
+        if (filtre.BaslangicTarihi.HasValue)
+            faturaQuery = faturaQuery.Where(f => f.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
+        if (filtre.BitisTarihi.HasValue)
+            faturaQuery = faturaQuery.Where(f => f.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi); // bitiş günü dahil
 
-        var list = await faturaQuery.Take(100).Select(f => new TahsilatPerformansiKalemiDto
+        var faturalar = await faturaQuery
+            .OrderBy(f => f.Tarih).ThenBy(f => f.FaturaNo)
+            .Select(f => new
+            {
+                f.CariKartId, f.FaturaNo, f.Tarih, Vade = f.VadeTarihi ?? f.Tarih, f.GenelToplam,
+                CariKod = f.CariKart != null ? f.CariKart.Kod : "", CariUnvan = f.CariKart != null ? f.CariKart.Unvan : ""
+            })
+            .ToListAsync();
+        if (faturalar.Count == 0) return new();
+
+        var cariIdleri = faturalar.Select(f => f.CariKartId).Distinct().ToList();
+        var hareketler = await IptalsizCariHareketleriAsync(sirketId, cariIdleri);
+        var faturaVadeleri = await SatisFaturaVadeleriAsync(sirketId);
+
+        // (cari, fatura no) -> kapandığı tarih ve kalan tutar
+        var kapanislar = new Dictionary<(int, string), (DateTime? Tarih, decimal Kalan)>();
+        foreach (var g in hareketler.GroupBy(h => h.CariKartId))
         {
-            CariId = f.CariKartId,
-            CariKod = f.CariKart != null ? f.CariKart.Kod : "",
-            CariUnvan = f.CariKart != null ? f.CariKart.Unvan : "",
-            FaturaNo = f.FaturaNo,
-            FaturaTarihi = f.Tarih,
-            VadeTarihi = f.VadeTarihi ?? f.Tarih,
-            TahsilTarihi = null
-        }).ToListAsync();
+            var borclar = g.Where(h => h.Borc > 0).Select(h => new AcikBorc
+            {
+                FaturaNo = h.HareketTuru == CariHareketTuru.SatisFaturasi ? h.BelgeNo : null,
+                Vade = h.HareketTuru == CariHareketTuru.SatisFaturasi && h.BelgeNo != null && faturaVadeleri.TryGetValue((g.Key, h.BelgeNo), out var v) ? v : h.Tarih,
+                Kalan = h.Borc
+            }).OrderBy(b => b.Vade).ToList();
+            var sira = 0;
+            foreach (var alacak in g.Where(h => h.Alacak > 0).OrderBy(h => h.Tarih))
+            {
+                var tutar = alacak.Alacak;
+                while (tutar > 0 && sira < borclar.Count)
+                {
+                    var borc = borclar[sira];
+                    var dusulen = Math.Min(tutar, borc.Kalan);
+                    borc.Kalan -= dusulen;
+                    tutar -= dusulen;
+                    if (borc.Kalan > 0) break;
+                    borc.KapanisTarihi = alacak.Tarih;
+                    sira++;
+                }
+            }
+            foreach (var borc in borclar.Where(b => b.FaturaNo != null))
+                kapanislar[(g.Key, borc.FaturaNo!)] = (borc.KapanisTarihi, borc.Kalan);
+        }
+
+        var list = faturalar.Select(f =>
+        {
+            // Cari hareketi bulunmayan fatura cariye işlenmemiştir; tamamı açık sayılır.
+            var kapanis = kapanislar.TryGetValue((f.CariKartId, f.FaturaNo), out var k) ? k : (Tarih: (DateTime?)null, Kalan: f.GenelToplam);
+            return new TahsilatPerformansiKalemiDto
+            {
+                CariId = f.CariKartId,
+                CariKod = f.CariKod,
+                CariUnvan = f.CariUnvan,
+                FaturaNo = f.FaturaNo,
+                FaturaTarihi = f.Tarih,
+                VadeTarihi = f.Vade,
+                Tutar = f.GenelToplam,
+                KalanTutar = kapanis.Kalan,
+                TahsilTarihi = kapanis.Tarih
+            };
+        }).ToList();
+
+        foreach (var cari in list.GroupBy(x => x.CariId))
+        {
+            var kapananlar = cari.Where(x => x.TahsilTarihi.HasValue).ToList();
+            var ortalama = kapananlar.Count == 0 ? 0d
+                : kapananlar.Average(x => Math.Max(0, (x.TahsilTarihi!.Value.Date - x.FaturaTarihi.Date).Days));
+            foreach (var x in cari) x.OrtalamaTahsilSuresiGun = Math.Round(ortalama, 1);
+        }
 
         return list;
     }
+
+    private sealed class AcikBorc
+    {
+        public string? FaturaNo;
+        public DateTime Vade;
+        public decimal Kalan;
+        public DateTime? KapanisTarihi;
+    }
+
+    private sealed record CariHareketOzeti(int CariKartId, DateTime Tarih, decimal Borc, decimal Alacak, string? BelgeNo, CariHareketTuru HareketTuru);
+
+    // İptal edilen faturanın borç kaydı ile "-IPTAL" ters kaydı birbirini götürür; ikisi de FIFO eşleştirmesinden çıkarılır,
+    // yoksa ters kayıt tahsilat gibi başka bir faturayı kapatırdı.
+    private async Task<List<CariHareketOzeti>> IptalsizCariHareketleriAsync(Guid sirketId, List<int>? cariIdleri)
+    {
+        var sorgu = _baglam.CariHareketler.AsNoTracking().Where(x => x.CariKart!.SirketId == sirketId);
+        if (cariIdleri != null)
+            sorgu = sorgu.Where(h => cariIdleri.Contains(h.CariKartId));
+        var hareketler = await sorgu
+            .Select(h => new { h.CariKartId, h.Tarih, h.Borc, h.Alacak, h.BelgeNo, h.HareketTuru, h.IlgiliBelgeId })
+            .ToListAsync();
+        var iptaller = (await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId && x.Durum == BelgeDurumu.Iptal)
+                .Select(f => new { f.Id, f.FaturaNo }).ToListAsync())
+            .SelectMany(f => new[] { (f.Id, f.FaturaNo), (f.Id, f.FaturaNo + "-IPTAL") })
+            .ToHashSet();
+        return hareketler
+            .Where(h => !(h.IlgiliBelgeId.HasValue && h.BelgeNo != null && iptaller.Contains((h.IlgiliBelgeId.Value, h.BelgeNo))))
+            .Select(h => new CariHareketOzeti(h.CariKartId, h.Tarih, h.Borc, h.Alacak, h.BelgeNo, h.HareketTuru))
+            .ToList();
+    }
+
+    private async Task<Dictionary<(int, string), DateTime>> SatisFaturaVadeleriAsync(Guid sirketId) =>
+        (await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
+            .Where(f => f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi)
+            .Select(f => new { f.CariKartId, f.FaturaNo, Vade = f.VadeTarihi ?? f.Tarih })
+            .ToListAsync())
+        .GroupBy(f => (f.CariKartId, f.FaturaNo)).ToDictionary(g => g.Key, g => g.First().Vade);
 
     public async Task<PagedResult<StokRaporuKalemiDto>> GetStokRaporuAsync(SatisRaporFiltreDto filtre)
     {

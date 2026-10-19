@@ -540,6 +540,25 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- TAB 14: Tahsilat Performansı -->
+            <TabItem Header="⏱️ Tahsilat Performansı">
+                <DataGrid ItemsSource="{Binding TahsilatPerformansi}" Style="{StaticResource GridStyle}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cari Kod" Binding="{Binding CariKod}" Width="100"/>
+                        <DataGridTextColumn Header="Ünvan" Binding="{Binding CariUnvan}" Width="200"/>
+                        <DataGridTextColumn Header="Fatura No" Binding="{Binding FaturaNo}" Width="120"/>
+                        <DataGridTextColumn Header="Fatura Tarihi" Binding="{Binding FaturaTarihi, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="Vade" Binding="{Binding VadeTarihi, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="Tutar" Binding="{Binding Tutar, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="Kalan" Binding="{Binding KalanTutar, StringFormat={}{0:N2} TL}" Width="120"/>
+                        <DataGridTextColumn Header="Tahsil Tarihi" Binding="{Binding TahsilTarihi, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
+                        <DataGridTextColumn Header="Durum" Binding="{Binding Durum}" Width="110"/>
+                        <DataGridTextColumn Header="Gecikme (Gün)" Binding="{Binding GecikmeGun}" Width="100"/>
+                        <DataGridTextColumn Header="Cari Ort. Tahsil (Gün)" Binding="{Binding OrtalamaTahsilSuresiGun}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
         </TabControl>
 
         <!-- 4. Status Bar -->
