@@ -111,6 +111,32 @@ public class DepoMagazaTransferIntegrationTests
     }
 
     [Fact]
+    public async Task Stoklu_depo_duzenleme_ekranindan_da_pasife_alinamaz()
+    {
+        await using var context = CreateContext();
+        var sube = await context.Subeler.FirstAsync(s => s.AktifMi);
+        var depo = new Depo { SubeId = sube.Id, DepoKodu = "PSF-" + Guid.NewGuid().ToString("N")[..6], DepoAdi = "Pasif Deneme", DepoTuru = DepoTuru.Depo, AktifMi = true };
+        var urun = new Urun { Kod = $"PS-{Guid.NewGuid():N}", Ad = "Pasif Deneme Ürünü", Birim = "Adet", Aktif = true };
+        context.AddRange(depo, urun);
+        await context.SaveChangesAsync();
+        context.UrunLokasyonStoklari.Add(new UrunLokasyonStogu { UrunId = urun.Id, DepoId = depo.Id, MevcutMiktar = 2 });
+        await context.SaveChangesAsync();
+
+        var servis = CreateService();
+        var duzenleme = new Depo { Id = depo.Id, SubeId = depo.SubeId, DepoKodu = depo.DepoKodu, DepoAdi = depo.DepoAdi, DepoTuru = depo.DepoTuru, AktifMi = false };
+        await Assert.ThrowsAsync<InvalidOperationException>(() => servis.DepoGuncelleAsync(duzenleme));
+
+        await using var kontrol = CreateContext();
+        Assert.True((await kontrol.Depolar.SingleAsync(d => d.Id == depo.Id)).AktifMi);
+
+        // Stok sıfırlanınca pasife alınabilir
+        var lok = await kontrol.UrunLokasyonStoklari.SingleAsync(l => l.DepoId == depo.Id);
+        lok.MevcutMiktar = 0;
+        await kontrol.SaveChangesAsync();
+        await servis.DepoGuncelleAsync(duzenleme);
+    }
+
+    [Fact]
     public async Task DepolarArasiTransfer_KaynakVeHedefStoklariniVeHareketlerini_DogruGuncellemelidir()
     {
         _fixture.RequireDatabase();

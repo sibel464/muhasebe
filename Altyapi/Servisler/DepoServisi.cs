@@ -64,6 +64,12 @@ public class DepoServisi : IDepoServisi
             throw new ArgumentException("Depo kodu ve adı zorunludur.");
         if (await context.Depolar.AnyAsync(d => d.Id != depo.Id && d.SubeId == depo.SubeId && d.DepoKodu.ToUpper() == kod))
             throw new InvalidOperationException($"'{kod}' kodlu depo bu şubede zaten mevcut.");
+        if (depo.SubeId != mevcut.SubeId && !await context.Subeler.AnyAsync(s => s.Id == depo.SubeId && s.AktifMi))
+            throw new InvalidOperationException("Depo için geçerli ve aktif bir şube seçilmelidir.");
+        // Düzenleme ekranından pasife almak da Sil ile aynı kurala uyar: stoklu depo pasif olursa
+        // stoğu hiçbir ekranda görünmez ve kullanılamaz.
+        if (mevcut.AktifMi && !depo.AktifMi && await StokVeyaRezerveVarAsync(context, mevcut.Id))
+            throw new InvalidOperationException("Stoğu veya rezervasyonu bulunan depo pasife alınamaz. Önce stokları başka depoya aktarın.");
         mevcut.SubeId = depo.SubeId;
         mevcut.DepoKodu = kod;
         mevcut.DepoAdi = ad;
@@ -84,9 +90,7 @@ public class DepoServisi : IDepoServisi
         var depo = await context.Depolar.FirstOrDefaultAsync(d => d.Id == id);
         if (depo == null) return false;
 
-        var stokVar = await context.UrunLokasyonStoklari
-            .AnyAsync(s => s.DepoId == id && (s.MevcutMiktar != 0 || s.RezerveMiktar != 0));
-        if (stokVar)
+        if (await StokVeyaRezerveVarAsync(context, id))
             throw new InvalidOperationException("Stoğu veya rezervasyonu bulunan depo pasife alınamaz. Önce stokları başka depoya aktarın.");
 
         depo.AktifMi = false;
@@ -94,6 +98,9 @@ public class DepoServisi : IDepoServisi
         await context.SaveChangesAsync();
         return true;
     }
+
+    private static Task<bool> StokVeyaRezerveVarAsync(MuhasebeBaglami context, int depoId) =>
+        context.UrunLokasyonStoklari.AnyAsync(s => s.DepoId == depoId && (s.MevcutMiktar != 0 || s.RezerveMiktar != 0));
 
     public async Task<List<DepoStokMatrisDto>> DepoStokMatrisiGetirAsync()
     {
@@ -259,7 +266,8 @@ public class DepoServisi : IDepoServisi
             transferFisi.FisNo = $"TRF-{DateTime.Today.Year}-{(count + 1):D5}";
         }
 
-        transferFisi.Tarih = transferFisi.Tarih == default ? DateTime.UtcNow : DateTime.SpecifyKind(transferFisi.Tarih, DateTimeKind.Utc);
+        // Belge tarihi yerel saat (UTC etiketli); gerçek UTC gece yarısına yakın işlemi önceki güne atardı.
+        transferFisi.Tarih = DateTime.SpecifyKind(transferFisi.Tarih == default ? DateTime.Now : transferFisi.Tarih, DateTimeKind.Utc);
         transferFisi.Durum = DepoTransferDurumu.Tamamlandi;
         transferFisi.OlusturmaTarihi = DateTime.UtcNow;
         var kAdi = kaynakDepo.DepoAdi;
@@ -396,7 +404,7 @@ public class DepoServisi : IDepoServisi
         {
             UrunId = urunId,
             DepoId = depoId,
-            Tarih = DateTime.UtcNow,
+            Tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc),
             HareketTuru = fark > 0 ? StokHareketTuru.Giris : StokHareketTuru.Cikis,
             IslemTuru = StokIslemTuru.SayimFarki,
             Miktar = Math.Abs(fark),
