@@ -84,8 +84,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         YedekAlKomutu = new KomutSarici(async _ => await YedekAlAsync(), _ => !YedekAliniyor && _yedekServisi != null);
         YedekKlasoruAcKomutu = new KomutSarici(() => YedekKlasorunuAc());
         SeciliYedegiGeriYukleKomutu = new KomutSarici(async _ => { if (SeciliYedek != null) await GeriYukleAsync(SeciliYedek.TamYol, SeciliYedek.OlusturmaTarihi); },
-            _ => !YedekAliniyor && _yedekServisi != null && SeciliYedek != null);
-        DosyadanGeriYukleKomutu = new KomutSarici(async _ => await DosyadanGeriYukleAsync(), _ => !YedekAliniyor && _yedekServisi != null);
+            _ => !YedekAliniyor && _yedekServisi != null && SeciliYedek != null && App.AgModu != Altyapi.Veri.AgModu.Istemci);
+        // Ağ istemcisinde geri yükleme yapılmaz: sunucudaki ortak veritabanı bu bilgisayardan değiştirilmesin.
+        DosyadanGeriYukleKomutu = new KomutSarici(async _ => await DosyadanGeriYukleAsync(), _ => !YedekAliniyor && _yedekServisi != null && App.AgModu != Altyapi.Veri.AgModu.Istemci);
         YedekleriYenile();
 
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync());

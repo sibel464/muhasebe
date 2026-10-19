@@ -54,7 +54,26 @@
       </Component>
     </StandardDirectory>
 
+    <!-- Ağ sunucusu modunda veritabanı Windows hizmeti olarak çalışır (Ayarlar > Ağ). Kurulum/güncelleme sırasında
+         dosyaları değiştirilebilsin diye durdurulur; program açılınca yeniden başlatır. Hizmet yoksa adım atlanır. -->
+    <Component Id="VeritabaniHizmetiDenetimi" Directory="UYGULAMAKLASORU" Guid="3F6B2D84-9E1A-4C7D-A5B3-8D2E6F1C0B97">
+      <RegistryValue Root="HKLM" Key="Software\MuhasebeYonetim" Name="HizmetDenetimi" Type="integer" Value="1" KeyPath="yes" />
+      <ServiceControl Id="VeritabaniHizmetiDurdur" Name="MuhasebeYonetimVeritabani" Stop="both" Wait="yes" />
+    </Component>
+
+    <!-- Program tamamen kaldırılınca (güncellemede değil) hizmet kaydı ve güvenlik duvarı kuralı silinir; veriler kalır. -->
+    <CustomAction Id="HizmetiSil" Directory="System64Folder" ExeCommand="&quot;[System64Folder]sc.exe&quot; delete MuhasebeYonetimVeritabani"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="GuvenlikDuvariKuraliniSil" Directory="System64Folder"
+                  ExeCommand="&quot;[System64Folder]netsh.exe&quot; advfirewall firewall delete rule &quot;name=Muhasebe Yönetim Veritabanı&quot;"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="HizmetiSil" After="StopServices" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="GuvenlikDuvariKuraliniSil" After="HizmetiSil" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
     <Feature Id="Uygulama" Title="Muhasebe Yönetim Sistemi" Level="1">
+      <ComponentRef Id="VeritabaniHizmetiDenetimi" />
       <!-- Yayınlanan uygulama ve gömülü PostgreSQL (pgsql) klasörünün tamamı -->
       <Files Directory="UYGULAMAKLASORU" Include="$(var.Kaynak)\**" />
       <ComponentRef Id="VeriKlasoruIzinleri" />

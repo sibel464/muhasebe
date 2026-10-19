@@ -28,6 +28,16 @@ public static class VeritabaniKurulumu
         var veriKlasoru = ayarlar["VeritabaniAyarlari:VeriKlasoru"];
         var gomuluBin = UygulamaKlasorleri.GomuluPostgresBin;
 
+        // İstemci: veritabanı sunucu bilgisayardadır; bu bilgisayarda kurulacak ya da başlatılacak bir şey yok.
+        var mod = AgYoneticisi.Mod(ayarlar);
+        if (mod == AgModu.Istemci && AgYoneticisi.IstemciBaglantiDizesi(ayarlar) is { Length: > 0 } istemciDizesi)
+        {
+            var icsb = new NpgsqlConnectionStringBuilder(istemciDizesi);
+            if (ayarlar[AgYoneticisi.IstemciSifreAnahtari] is { Length: > 0 } istemciSifre)
+                icsb.Password = SifreCoz(istemciSifre);
+            return new Sonuc(icsb.ConnectionString, null);
+        }
+
         if (gomuluBin != null && string.IsNullOrWhiteSpace(veriKlasoru))
             veriKlasoru = UygulamaKlasorleri.VarsayilanVeriKlasoru;
 
@@ -42,6 +52,9 @@ public static class VeritabaniKurulumu
             csb.Password = sifre;
         }
 
+        // Sunucu: veritabanı Windows hizmeti olarak çalışır; durmuşsa başlatılır (program kapanınca durdurulmaz).
+        if (mod == AgModu.Sunucu)
+            AgYoneticisi.HizmetiBaslatmayiDene(csb.Port);
         await PostgreSqlSunucuYoneticisi.SunucuyuHazirlaAsync(csb.ConnectionString, veriKlasoru);
         return new Sonuc(csb.ConnectionString, veriKlasoru);
     }
@@ -83,13 +96,13 @@ public static class VeritabaniKurulumu
     private static string SifreUret() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(24)).Replace('+', 'x').Replace('/', 'y').TrimEnd('=');
 
     // Makine kapsamı: bilgisayardaki her Windows kullanıcısı uygulamayı açabilir; dosya başka bilgisayara kopyalanırsa çözülemez.
-    private static string SifreKoru(string sifre) =>
+    internal static string SifreKoru(string sifre) =>
         Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(sifre), Entropi, DataProtectionScope.LocalMachine));
 
-    private static string SifreCoz(string korumali) =>
+    internal static string SifreCoz(string korumali) =>
         Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(korumali), Entropi, DataProtectionScope.LocalMachine));
 
-    private static void AyarYaz(string anahtar, string deger)
+    internal static void AyarYaz(string anahtar, string deger)
     {
         var yol = UygulamaKlasorleri.YerelAyarDosyasi;
         Directory.CreateDirectory(Path.GetDirectoryName(yol)!);

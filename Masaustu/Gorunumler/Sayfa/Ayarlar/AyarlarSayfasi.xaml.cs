@@ -5,6 +5,23 @@ public partial class AyarlarSayfasi : System.Windows.Controls.UserControl
     {
         InitializeComponent();
         LisansDurumunuGoster();
+        AgDurumMetni.Text = App.AgModu switch
+        {
+            Altyapi.Veri.AgModu.Sunucu => "Bu bilgisayar ağ sunucusu: veriler burada, diğer bilgisayarlar bağlantı koduyla bağlanır.",
+            Altyapi.Veri.AgModu.Istemci => "Bu bilgisayar ağ istemcisi: veriler sunucu bilgisayarda.",
+            _ => "Tek bilgisayar: veriler bu bilgisayarda, ağdan erişilemez."
+        };
+    }
+
+    private void AgAyarlari_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var oturum = App.HizmetSaglayici.GetService(typeof(Uygulama.Arayuzler.IKullaniciServisi)) as Uygulama.Arayuzler.IKullaniciServisi;
+        if (oturum?.YetkiliMi(y => y.AyarlariYonet) != true)
+        {
+            System.Windows.MessageBox.Show("Ağ ayarlarını yalnız ayarları yönetme yetkisi olan kullanıcı değiştirebilir.", "Yetki", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        new Masaustu.Gorunumler.Ortak.AgAyarlariPenceresi { Owner = System.Windows.Window.GetWindow(this) }.ShowDialog();
     }
 
     private void LisansDurumunuGoster() => LisansDurumMetni.Text = Masaustu.Servisler.LisansYoneticisi.DenetimGerekli

@@ -27,6 +27,13 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         base.OnStartup(e);
 
+        // Ağ sunucusu kurma/kaldırma: program yönetici olarak bu argümanla açılır, işi yapıp kapanır (arayüz açılmaz).
+        if (e.Args.Length == 1 && e.Args[0] is AgYoneticisi.SunucuKurArgumani or AgYoneticisi.SunucuKaldirArgumani)
+        {
+            Shutdown(AgYoneticisi.YukseltilmisIslem(e.Args[0]));
+            return;
+        }
+
         DispatcherUnhandledException += async (_, args) =>
         {
             await HatayiLoglaAsync(args.Exception, "DispatcherUnhandledException");
@@ -82,8 +89,10 @@ public partial class App : Application
             servisler.AddSingleton<IConfiguration>(konfigurasyon);
 
             // Yerel PostgreSQL sunucusu çalışmıyorsa başlatılır; kurulum paketinde ilk açılışta veritabanı da kurulur.
+            AgModu = AgYoneticisi.Mod(konfigurasyon);
             var veritabani = await VeritabaniKurulumu.HazirlaAsync(konfigurasyon);
             var baglantiDizesi = veritabani.BaglantiDizesi;
+            VeritabaniBaglantiDizesi = baglantiDizesi;
 
             // AddDbContextFactory: hem IDbContextFactory<> hem de Scoped DbContext'i kayıt eder.
             // Singleton KullaniciServisi, kısa ömürlü context'ler oluşturmak için factory kullanır.
@@ -201,7 +210,8 @@ public partial class App : Application
             await VeritabaniSaglikKontroluAsync(
                 string.Equals(ortam, "Development", StringComparison.OrdinalIgnoreCase));
 
-            if (!string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
+            // Günlük yedeği verinin durduğu bilgisayar alır; istemciler almaz.
+            if (AgModu != AgModu.Istemci && !string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
                 OtomatikYedegiBaslat();
 
             // Kurulum sürümünde lisans/deneme denetimi: deneme bitmişse yalnız lisans penceresi açılır.
@@ -224,7 +234,9 @@ public partial class App : Application
         {
             await HatayiLoglaAsync(exception, "OnStartup");
             MessageBox.Show(
-                "Uygulama başlatılamadı. Lütfen veritabanı bağlantısını ve uygulama yapılandırmasını sistem yöneticinizle kontrol edin. Ayrıntılar log dosyasına yazıldı.",
+                exception is EskiSurumException ? exception.Message
+                : AgModu == AgModu.Istemci ? "Sunucu bilgisayardaki veritabanına bağlanılamadı. Sunucu bilgisayarın açık ve aynı ağda olduğundan emin olun. Ayrıntılar log dosyasına yazıldı."
+                : "Uygulama başlatılamadı. Lütfen veritabanı bağlantısını ve uygulama yapılandırmasını sistem yöneticinizle kontrol edin. Ayrıntılar log dosyasına yazıldı.",
                 "Başlangıç Hatası",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -235,6 +247,10 @@ public partial class App : Application
     // Yedekten geri yüklemeden sonra program kendini yeniden açar: yeni süreç veritabanı sunucusu tamamen
     // durduktan sonra başlatılır (aksi halde kapanmakta olan sunucuya bağlanmaya çalışırdı).
     internal static bool YenidenBaslat { get; set; }
+
+    // Tek bilgisayar / ağ sunucusu / ağ istemcisi (Ayarlar > Ağ).
+    internal static AgModu AgModu { get; private set; }
+    internal static string? VeritabaniBaglantiDizesi { get; private set; }
 
     // Ana pencere başlığında gösterilen lisans/deneme durumu (kurulum sürümünde).
     internal static string? LisansMetni { get; private set; }
@@ -286,6 +302,11 @@ public partial class App : Application
 
         // Geliştirmede her açılışta, kurulum sürümünde yeni sürüm kurulunca veritabanı yapısı güncellenir.
         // İçinde veri olan veritabanı güncellenmeden önce otomatik yedeklenir; yedek alınamazsa güncelleme yapılmaz.
+        // Ağda başka bir bilgisayardaki daha yeni sürüm veritabanını güncellemişse eski program onu bozmasın.
+        var bilinenler = baglam.Database.GetMigrations().ToHashSet();
+        if ((await baglam.Database.GetAppliedMigrationsAsync()).Any(m => !bilinenler.Contains(m)))
+            throw new EskiSurumException();
+
         var bekleyenler = (await baglam.Database.GetPendingMigrationsAsync()).ToList();
         if (bekleyenler.Count > 0)
         {
@@ -307,6 +328,12 @@ public partial class App : Application
 
         if (!await baglam.Kullanicilar.AnyAsync())
             throw new InvalidOperationException("Kullanicilar tablosu boş veya veritabanı şeması hazır değil.");
+
+        // Açılış bakımları ağda birden çok bilgisayar aynı anda açılırsa yalnız birinde çalışır (PostgreSQL danışma kilidi).
+        await baglam.Database.OpenConnectionAsync();
+        var bakimKilidi = await baglam.Database.SqlQueryRaw<bool>("SELECT pg_try_advisory_lock(731001) AS \"Value\"").SingleAsync();
+        if (!bakimKilidi)
+            return;
 
         // Otomatik fiş özelliğinden önce girilmiş kasa/banka hareketlerinin fişleri tamamlanır (tekrar çalışması güvenli).
         try
@@ -337,7 +364,13 @@ public partial class App : Application
         {
             await HatayiLoglaAsync(ex, "EskiIptalleriEslestir");
         }
+
+        await baglam.Database.ExecuteSqlRawAsync("SELECT pg_advisory_unlock(731001)");
     }
+
+    private sealed class EskiSurumException() : InvalidOperationException(
+        "Veritabanı, ağdaki başka bir bilgisayarda kurulu daha yeni bir program sürümüyle güncellenmiş. " +
+        "Bu bilgisayardaki programı da aynı sürüme güncelleyin; eski sürümle çalışmak verileri bozabilir.");
 
     internal static async Task HatayiLoglaAsync(Exception exception, string kaynak)
     {

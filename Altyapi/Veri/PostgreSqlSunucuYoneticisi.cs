@@ -88,6 +88,12 @@ public static class PostgreSqlSunucuYoneticisi
         await VeritabaniYoksaOlusturAsync(baglantiDizesi, hedefVeritabani);
     }
 
+    // Ağ sunucusu kurulunca veritabanını artık Windows hizmeti çalıştırır; program kapanırken onu durdurmamalıdır.
+    public static void SahipligiBirak()
+    {
+        lock (_kilit) _sunucuyuBizBaslattik = false;
+    }
+
     public static void SunucuyuDurdur()
     {
         lock (_kilit)
