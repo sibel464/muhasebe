@@ -117,7 +117,7 @@ public class CekSenetGorunumModeli : TemelGorunumModeli
             return;
         }
 
-        var pencere = new CekSenetDurumPenceresi(_cekSenetServisi, _kasaServisi, _bankaServisi, hedef)
+        var pencere = new CekSenetDurumPenceresi(_cekSenetServisi, _kasaServisi, _bankaServisi, _cariServisi, hedef)
         {
             Owner = Application.Current.MainWindow
         };

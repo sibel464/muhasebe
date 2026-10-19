@@ -22,6 +22,7 @@ public interface ICekSenetServisi
 {
     Task<CekSenet> EkleAsync(CekSenetEkleTalebi talep);
     Task<IReadOnlyList<CekSenet>> TumunuGetirAsync(CekSenetTuru? tur = null, CekSenetDurumu? durum = null);
-    Task DurumGuncelleAsync(int cekSenetId, CekSenetDurumu yeniDurum, int? kasaId = null, int? bankaHesabiId = null, string? aciklama = null);
+    // Ciro için ciroCariKartId (çekin verildiği cari, genellikle tedarikçi) zorunludur.
+    Task DurumGuncelleAsync(int cekSenetId, CekSenetDurumu yeniDurum, int? kasaId = null, int? bankaHesabiId = null, string? aciklama = null, int? ciroCariKartId = null);
     Task SilAsync(int id, string neden);
 }

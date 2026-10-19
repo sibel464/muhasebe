@@ -156,8 +156,13 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
         return sonuc.OrderByDescending(x => x.Tarih).ThenByDescending(x => x.HareketId).ToList();
     }
 
-    public async Task IptalEtAsync(string kaynak, int hareketId, string neden)
+    public Task IptalEtAsync(string kaynak, int hareketId, string neden) => IptalCekirdekAsync(kaynak, hareketId, neden, yetkiKontrolu: true, cekSilmeNedeni: null);
+
+    // Çek/Senet ekranından silinen (portföydeki, muhasebeleşmiş) çek de aynı ters kayıtla geri alınır;
+    // o ekran kendi yetkisini denetlediği için burada tahsilat/ödeme yetkisi aranmaz.
+    internal async Task IptalCekirdekAsync(string kaynak, int hareketId, string neden, bool yetkiKontrolu, string? cekSilmeNedeni)
     {
+        void YetkiKontrol(FinansIslemTuru tur) { if (yetkiKontrolu) this.YetkiKontrol(tur); }
         if (string.IsNullOrWhiteSpace(neden)) throw new ArgumentException("İptal nedeni zorunludur.");
         if (kaynak is not ("Kasa" or "Banka" or "Portfoy")) throw new ArgumentException("Geçersiz işlem kaynağı.");
         // İptal (para iadesi) bugün olur; belge tarihleri yerel saatle (UTC etiketli) saklanır.
@@ -182,7 +187,7 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                     c.Tarih == cek.DuzenlemeTarihi && (c.HareketTuru == CariHareketTuru.Tahsilat || c.HareketTuru == CariHareketTuru.Odeme) && c.Borc + c.Alacak == cek.Tutar);
                 cariHareketId = asilCariHareket?.Id;
                 cek.SilindiMi = true;
-                cek.SilmeNedeni = $"Tahsilat/ödeme iptali: {neden.Trim()}";
+                cek.SilmeNedeni = cekSilmeNedeni ?? $"Tahsilat/ödeme iptali: {neden.Trim()}";
             }
             else if (kaynak == "Kasa")
             {

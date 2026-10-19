@@ -1,3 +1,4 @@
+using EtkiAlani.Modeller.Cari;
 using Altyapi.Veri;
 using EtkiAlani.Modeller.Finans;
 using Microsoft.EntityFrameworkCore;
@@ -76,8 +77,28 @@ public class CekSenetServisi : ICekSenetServisi
             DovizTutar = talep.DovizTutar
         };
 
+        await using var tx = _baglam.Database.CurrentTransaction == null ? await _baglam.Database.BeginTransactionAsync() : null;
+        await FinansKurallari.DonemAcikOlmaliAsync(_baglam, cekSenet.DuzenlemeTarihi, cari.SirketId);
         _baglam.CekSenetler.Add(cekSenet);
         await _baglam.SaveChangesAsync();
+
+        // Alınan çek/senet carinin borcunu kapatır (101/121 borç - 120 alacak), verilen çek/senet borcumuzu
+        // (320 borç - 103/321 alacak). Tahsilat/Ödeme ekranıyla aynı kayıt: geçmişte görünür, oradan iptal edilebilir.
+        var alinan = cekSenet.Tur is CekSenetTuru.AlinanCek or CekSenetTuru.AlinanSenet;
+        var cariKodu = alinan ? "120" : "320";
+        var aciklama = string.IsNullOrWhiteSpace(cekSenet.Aciklama) ? $"{DurumAdi(CekSenetDurumu.Portfoyde)} {TurAdi(cekSenet.Tur)} No: {cekSenet.BelgeNo}" : cekSenet.Aciklama;
+        _baglam.CariHareketler.Add(new CariHareket
+        {
+            CariKartId = cari.Id, Tarih = cekSenet.DuzenlemeTarihi, BelgeNo = cekSenet.BelgeNo, IlgiliBelgeId = cekSenet.Id, Aciklama = aciklama,
+            HareketTuru = alinan ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
+            Alacak = alinan ? cekSenet.Tutar : 0, Borc = alinan ? 0 : cekSenet.Tutar
+        });
+        await _baglam.SaveChangesAsync();
+        await FinansMuhasebeKaydi.FisEkleAsync(_baglam, cari.SirketId, "TahsilatOdeme", cekSenet.Id, cekSenet.DuzenlemeTarihi, aciklama, cekSenet.BelgeNo,
+            alinan
+                ? [new FinansMuhasebeKaydi.Satir(PortfoyKodu(cekSenet.Tur), cekSenet.Tutar, 0), new FinansMuhasebeKaydi.Satir(cariKodu, 0, cekSenet.Tutar, cari.Id)]
+                : [new FinansMuhasebeKaydi.Satir(cariKodu, cekSenet.Tutar, 0, cari.Id), new FinansMuhasebeKaydi.Satir(PortfoyKodu(cekSenet.Tur), 0, cekSenet.Tutar)]);
+        if (tx != null) await tx.CommitAsync();
 
         return cekSenet;
     }
@@ -93,7 +114,7 @@ public class CekSenetServisi : ICekSenetServisi
         return await sorgu.OrderBy(x => x.VadeTarihi).ToListAsync();
     }
 
-    public async Task DurumGuncelleAsync(int cekSenetId, CekSenetDurumu yeniDurum, int? kasaId = null, int? bankaHesabiId = null, string? aciklama = null)
+    public async Task DurumGuncelleAsync(int cekSenetId, CekSenetDurumu yeniDurum, int? kasaId = null, int? bankaHesabiId = null, string? aciklama = null, int? ciroCariKartId = null)
     {
         Oturum.YetkiKontrolEt(y => y.CekSenetIslemYap, "Çek/Senet Durum Değişikliği");
 
@@ -117,9 +138,24 @@ public class CekSenetServisi : ICekSenetServisi
                 ? "Tahsilatın gireceği kasa veya banka hesabını seçiniz."
                 : "Ödemenin yapılacağı kasa veya banka hesabını seçiniz.");
 
-        var islemTarihi = DateTime.UtcNow;
+        CariKart? ciroCari = null;
+        if (yeniDurum == CekSenetDurumu.CiroEdildi)
+        {
+            ciroCari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == ciroCariKartId)
+                ?? throw new ArgumentException("Çekin ciro edileceği cariyi seçiniz.");
+            if (ciroCari.Id == cek.CariKartId) throw new InvalidOperationException("Çek, alındığı cariye ciro edilemez; geri vermek için 'İade Edildi' seçin.");
+            if (!ciroCari.Aktif) throw new InvalidOperationException("Pasif cariye ciro yapılamaz.");
+        }
+
+        // Belge tarihleri yerel saatle (UTC etiketli) saklanır.
+        var islemTarihi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
         await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, cek.SirketId);
 
+        // Çek alınırken/verilirken cariye ve muhasebeye işlendiyse ("kayıtlı") durum değişiklikleri o kaydın üzerine kurulur;
+        // bu özellikten önce muhasebeleşmeden girilmiş eski çeklerde tahsil/ödeme doğrudan cariyi kapatır.
+        var kayitli = await PortfoyFisiVarAsync(cek.Id);
+        var eskiDurum = cek.Durum;
+        var cariKodu = alinan ? "120" : "320";
         cek.Durum = yeniDurum;
         var detayAciklama = string.IsNullOrWhiteSpace(aciklama) ? $"{cek.Tur} - Durum Değişikliği: {DurumAdi(yeniDurum)}" : aciklama.Trim();
 
@@ -189,23 +225,85 @@ public class CekSenetServisi : ICekSenetServisi
 
         await _baglam.SaveChangesAsync();
 
-        // Çek/senet tahsili: 100/102 borç - 101/121 alacak; verilen çek/senet ödemesi: 103/321 borç - 100/102 alacak.
-        // Cari hesap çek alındığında/verildiğinde kapandığı için tahsil/ödeme cariye ikinci kez işlenmez.
-        var portfoyKodu = cek.Tur switch
+        var portfoyKodu = PortfoyKodu(cek.Tur);
+
+        // Tahsil/ödeme: portföydeki kayıtlı çekte karşı hesap çek hesabıdır (101/121, 103/321; cari zaten kapanmıştı).
+        // Karşılıksız kalıp borcu yeniden açılmış çekte ya da muhasebeleşmemiş eski çekte para doğrudan cariyi kapatır.
+        var cariyiKapatir = !kayitli || eskiDurum == CekSenetDurumu.Karsiliksiz;
+        if (paraHareketi)
         {
-            CekSenetTuru.AlinanCek => "101",
-            CekSenetTuru.VerilenCek => "103",
-            CekSenetTuru.AlinanSenet => "121",
-            _ => "321"
-        };
-        if (kasaH != null)
-            await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, kasaH, portfoyKodu);
-        if (bankaH != null)
-            await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, bankaH, portfoyKodu);
+            var karsiKod = cariyiKapatir ? cariKodu : portfoyKodu;
+            int? karsiCari = cariyiKapatir ? cek.CariKartId : null;
+            if (cariyiKapatir)
+            {
+                if (kasaH != null) kasaH.CariKartId = cek.CariKartId;
+                if (bankaH != null) bankaH.CariKartId = cek.CariKartId;
+                CariHareketEkle(cek.CariKartId, islemTarihi, cek, alinan ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
+                    borc: alinan ? 0 : cek.Tutar, alacak: alinan ? cek.Tutar : 0, $"{TurAdi(cek.Tur)} {(alinan ? "tahsilatı" : "ödemesi")} No: {cek.BelgeNo}");
+                await _baglam.SaveChangesAsync();
+            }
+            if (kasaH != null)
+                await FinansMuhasebeKaydi.KasaHareketiFisiEkleAsync(_baglam, kasaH, karsiKod, karsiCari);
+            if (bankaH != null)
+                await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, bankaH, karsiKod, karsiCari);
+        }
+        else if (yeniDurum == CekSenetDurumu.CiroEdildi && ciroCari != null)
+        {
+            // Ciro: çekin verildiği carinin (tedarikçi) borcu kapanır (320 borç), çek portföyden çıkar (101/121 alacak).
+            // Muhasebeleşmemiş eski çekte çeki veren müşterinin borcu da burada kapanır (120 alacak).
+            var ciroKodu = ciroCari.Tur == CariTuru.Musteri ? "120" : "320";
+            var ciroAciklama = $"{TurAdi(cek.Tur)} ciro No: {cek.BelgeNo} - {ciroCari.Unvan}";
+            CariHareketEkle(ciroCari.Id, islemTarihi, cek, CariHareketTuru.Odeme, borc: cek.Tutar, alacak: 0, ciroAciklama);
+            if (!kayitli)
+                CariHareketEkle(cek.CariKartId, islemTarihi, cek, CariHareketTuru.Tahsilat, borc: 0, alacak: cek.Tutar, ciroAciklama);
+            await _baglam.SaveChangesAsync();
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, cek.SirketId, "CekSenetCiro", cek.Id, islemTarihi, ciroAciklama, cek.BelgeNo,
+                new FinansMuhasebeKaydi.Satir(ciroKodu, cek.Tutar, 0, ciroCari.Id),
+                kayitli ? new FinansMuhasebeKaydi.Satir(portfoyKodu, 0, cek.Tutar) : new FinansMuhasebeKaydi.Satir(cariKodu, 0, cek.Tutar, cek.CariKartId));
+        }
+        else if (kayitli && eskiDurum != CekSenetDurumu.Karsiliksiz && yeniDurum is CekSenetDurumu.Karsiliksiz or CekSenetDurumu.IadeEdildi)
+        {
+            // Karşılıksız / iade: çek kapattığı borcu geri açar. Alınan: 120 borç - 101/121 alacak (müşteri yeniden borçlu);
+            // verilen: 103/321 borç - 320 alacak (tedarikçiye borcumuz geri gelir). Karşılıksızdan iadeye geçiş ayrıca kayıt üretmez.
+            var neden = yeniDurum == CekSenetDurumu.Karsiliksiz ? "karşılıksız" : "iade";
+            var acik = $"{TurAdi(cek.Tur)} {neden} No: {cek.BelgeNo}";
+            CariHareketEkle(cek.CariKartId, islemTarihi, cek, CariHareketTuru.Diger, borc: alinan ? cek.Tutar : 0, alacak: alinan ? 0 : cek.Tutar, acik);
+            await _baglam.SaveChangesAsync();
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, cek.SirketId, $"CekSenet{yeniDurum}", cek.Id, islemTarihi, acik, cek.BelgeNo,
+                alinan
+                    ? [new FinansMuhasebeKaydi.Satir(cariKodu, cek.Tutar, 0, cek.CariKartId), new FinansMuhasebeKaydi.Satir(portfoyKodu, 0, cek.Tutar)]
+                    : [new FinansMuhasebeKaydi.Satir(portfoyKodu, cek.Tutar, 0), new FinansMuhasebeKaydi.Satir(cariKodu, 0, cek.Tutar, cek.CariKartId)]);
+        }
 
         if (tx != null)
             await tx.CommitAsync();
     }
+
+    private static string PortfoyKodu(CekSenetTuru tur) => tur switch
+    {
+        CekSenetTuru.AlinanCek => "101",
+        CekSenetTuru.VerilenCek => "103",
+        CekSenetTuru.AlinanSenet => "121",
+        _ => "321"
+    };
+
+    private static string TurAdi(CekSenetTuru tur) => tur switch
+    {
+        CekSenetTuru.AlinanCek => "Alınan çek",
+        CekSenetTuru.VerilenCek => "Verilen çek",
+        CekSenetTuru.AlinanSenet => "Alınan senet",
+        _ => "Verilen senet"
+    };
+
+    // Çek alınırken/verilirken muhasebeleşti mi (Tahsilat/Ödeme ya da bu ekrandan girilen çeklerin 101/103/121/321 satırlı fişi).
+    private Task<bool> PortfoyFisiVarAsync(int cekId) => _baglam.YevmiyeFisleri.AnyAsync(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == cekId &&
+        f.Satirlar.Any(s => s.Hesap!.HesapKodu == "101" || s.Hesap.HesapKodu == "103" || s.Hesap.HesapKodu == "121" || s.Hesap.HesapKodu == "321"));
+
+    private void CariHareketEkle(int cariId, DateTime tarih, CekSenet cek, CariHareketTuru tur, decimal borc, decimal alacak, string aciklama) =>
+        _baglam.CariHareketler.Add(new CariHareket
+        {
+            CariKartId = cariId, Tarih = tarih, BelgeNo = cek.BelgeNo, IlgiliBelgeId = cek.Id, HareketTuru = tur, Borc = borc, Alacak = alacak, Aciklama = aciklama
+        });
 
     public async Task SilAsync(int id, string neden)
     {
@@ -219,11 +317,13 @@ public class CekSenetServisi : ICekSenetServisi
         if (cek.Durum != CekSenetDurumu.Portfoyde)
             throw new InvalidOperationException($"'{DurumAdi(cek.Durum)}' durumundaki çek/senet silinemez. Yalnızca portföydeki kayıtlar silinebilir.");
 
-        // Tahsilat/Ödeme ekranından alınan çek cari hesaba ve muhasebeye işlenmiştir; tek başına silinirse cari bakiye bozulur.
-        var tahsilatlaGeldi = await _baglam.YevmiyeFisleri.AnyAsync(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == cek.Id &&
-            f.Satirlar.Any(s => s.Hesap!.HesapKodu == "101" || s.Hesap.HesapKodu == "103" || s.Hesap.HesapKodu == "121" || s.Hesap.HesapKodu == "321"));
-        if (tahsilatlaGeldi)
-            throw new InvalidOperationException("Bu çek/senet Tahsilat/Ödeme ekranından girilmiş ve cari hesaba işlenmiştir; silinemez.");
+        // Cariye ve muhasebeye işlenmiş çek tek başına silinirse cari bakiye bozulur: tahsilat/ödeme iptaliyle aynı
+        // ters kayıtla geri alınır (cari ve muhasebe kaydı ters çevrilir, çek silinmiş olarak işaretlenir).
+        if (await PortfoyFisiVarAsync(cek.Id))
+        {
+            await new TahsilatOdemeServisi(_baglam, Oturum).IptalCekirdekAsync("Portfoy", cek.Id, neden.Trim(), yetkiKontrolu: false, cekSilmeNedeni: neden.Trim());
+            return;
+        }
 
         cek.SilindiMi = true;
         cek.SilmeNedeni = neden.Trim();

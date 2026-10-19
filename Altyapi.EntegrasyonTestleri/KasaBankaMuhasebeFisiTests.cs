@@ -90,7 +90,7 @@ public sealed class KasaBankaMuhasebeFisiTests(IsolatedPostgreSqlFixture fixture
     }
 
     [Fact]
-    public async Task Cek_tahsilati_kasaya_girer_ve_alinan_cekler_hesabindan_duser()
+    public async Task Muhasebelesmemis_eski_cekin_tahsilati_kasaya_girer_ve_cariyi_kapatir()
     {
         fixture.RequireDatabase();
         await using var db = new MuhasebeBaglami(fixture.Options);
@@ -106,7 +106,10 @@ public sealed class KasaBankaMuhasebeFisiTests(IsolatedPostgreSqlFixture fixture
 
         await new CekSenetServisi(db, StabilizasyonTestOturumu.Olustur()).DurumGuncelleAsync(cek.Id, CekSenetDurumu.TahsilEdildi, kasaId: kasa.Id);
 
+        // Çek alınırken 101'e hiç işlenmediği için tahsilat 101'i eksiye düşürmez; müşterinin borcunu (120) kapatır.
         Assert.Equal(750m, await HesapNetiAsync(db, sirket.Id, "100"));
-        Assert.Equal(-750m, await HesapNetiAsync(db, sirket.Id, "101"));
+        Assert.Equal(0m, await HesapNetiAsync(db, sirket.Id, "101"));
+        Assert.Equal(-750m, await HesapNetiAsync(db, sirket.Id, "120"));
+        Assert.Equal(-750m, await db.CariHareketler.Where(h => h.CariKartId == cari.Id).SumAsync(h => h.Borc - h.Alacak));
     }
 }

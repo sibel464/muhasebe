@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Finans;
 using Masaustu.GorunumModelleri;
 using Uygulama.Arayuzler;
@@ -11,7 +12,9 @@ public partial class CekSenetDurumPenceresi : Window
     private readonly ICekSenetServisi _cekSenetServisi;
     private readonly IKasaServisi _kasaServisi;
     private readonly IBankaServisi _bankaServisi;
+    private readonly ICariServisi _cariServisi;
     private readonly CekSenetOzet _kayit;
+    private CariKart? _ciroCari;
 
     private List<HesapSecimOge> _hesaplar = new();
 
@@ -19,12 +22,14 @@ public partial class CekSenetDurumPenceresi : Window
         ICekSenetServisi cekSenetServisi, 
         IKasaServisi kasaServisi, 
         IBankaServisi bankaServisi, 
+        ICariServisi cariServisi,
         CekSenetOzet kayit)
     {
         InitializeComponent();
         _cekSenetServisi = cekSenetServisi;
         _kasaServisi = kasaServisi;
         _bankaServisi = bankaServisi;
+        _cariServisi = cariServisi;
         _kayit = kayit;
 
         BelgeOzetTxt.Text = $"{kayit.Tur} (No: {kayit.BelgeNo})";
@@ -71,6 +76,17 @@ public partial class CekSenetDurumPenceresi : Window
         {
             FinansHesapPanel.Visibility = Visibility.Collapsed;
         }
+        CiroCariPanel.Visibility = DurumCombo.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void CiroCariSec_Click(object sender, RoutedEventArgs e)
+    {
+        var pencere = new CariSecimPenceresi(_cariServisi) { Owner = this };
+        if (pencere.ShowDialog() == true && pencere.SecilenCari != null)
+        {
+            _ciroCari = pencere.SecilenCari;
+            CiroCariTxt.Text = $"{_ciroCari.Kod} - {_ciroCari.Unvan}";
+        }
     }
 
     private async void Kaydet_Click(object sender, RoutedEventArgs e)
@@ -99,7 +115,8 @@ public partial class CekSenetDurumPenceresi : Window
 
         try
         {
-            await _cekSenetServisi.DurumGuncelleAsync(_kayit.Id, yeniDurum, kasaId, bankaHesabiId, AciklamaTxt.Text.Trim());
+            await _cekSenetServisi.DurumGuncelleAsync(_kayit.Id, yeniDurum, kasaId, bankaHesabiId, AciklamaTxt.Text.Trim(),
+                yeniDurum == CekSenetDurumu.CiroEdildi ? _ciroCari?.Id : null);
             DialogResult = true;
             Close();
         }
