@@ -32,6 +32,18 @@ public sealed class SiparistenIrsaliyeIntegrationTests
     [Fact] public async Task Iptal_sonrasi_siparis_durumu_yeniden_hesaplanir() { var x = await Hazirla(10); var i = await Sevk(x, 4, (1, 4)); await Iptal(i.Id); await Kontrol(x, s => Assert.Equal(SiparisDurumu.Onaylandi, s.Durum)); }
     [Fact] public async Task Sevkiyat_finansal_hareket_uretmez() { var x = await Hazirla(2); await using var once = Yeni(); var sayi = new[] { await once.CariHareketler.CountAsync(), await once.KasaHareketleri.CountAsync(), await once.BankaHareketleri.CountAsync(), await once.YevmiyeFisleri.CountAsync() }; await Sevk(x, 2, (1, 2)); await using var sonra = Yeni(); Assert.Equal(sayi, new[] { await sonra.CariHareketler.CountAsync(), await sonra.KasaHareketleri.CountAsync(), await sonra.BankaHareketleri.CountAsync(), await sonra.YevmiyeFisleri.CountAsync() }); }
 
+    [Fact]
+    public async Task Sevk_edilmis_siparis_irsaliye_iptal_edilmeden_iptal_edilemez()
+    {
+        var x = await Hazirla(4); var i = await Sevk(x, 2, (1, 2));
+        async Task SiparisIptal() { await using var c = Yeni(); var s = await c.Siparisler.AsNoTracking().SingleAsync(y => y.Id == x.SiparisId); await new SiparisServisi(c, new KullaniciServisi()).IptalEtAsync(s.Id, s.Versiyon); }
+        var hata = await Assert.ThrowsAsync<InvalidOperationException>(SiparisIptal);
+        Assert.Contains("irsaliye", hata.Message);
+        await Iptal(i.Id);
+        await SiparisIptal();
+        await Kontrol(x, s => Assert.Equal(SiparisDurumu.Iptal, s.Durum));
+    }
+
     private async Task<(int SiparisId, int KalemId, int UrunId)> Hazirla(decimal miktar, decimal magaza = 10)
     {
         await using var c = Yeni();

@@ -62,7 +62,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
     public string FormBasligi => $"{(Form.Id == 0 ? "YENİ" : "DÜZENLE")} {(Form.SiparisTuru == SiparisTuru.Satis ? "SATIŞ SİPARİŞİ" : "ALIŞ SİPARİŞİ")}";
     public SiparisTuru FormSiparisTuru { get => Form.SiparisTuru; set { Form.SiparisTuru = value; BildirimGonder(); BildirimGonder(nameof(FormBasligi)); } }
     public bool Duzenlenebilir => Form.Id == 0 || Form.Durum is SiparisDurumu.Taslak or SiparisDurumu.Beklemede;
-    public int BugunkuSiparis => Siparisler.Count(x => x.SiparisTarihi.ToLocalTime().Date == DateTime.Today);
+    public int BugunkuSiparis => Siparisler.Count(x => x.SiparisTarihi.Date == DateTime.Today);
     public int Bekleyen => Siparisler.Count(x => x.Durum == SiparisDurumu.Beklemede);
     public int Onaylanan => Siparisler.Count(x => x.Durum == SiparisDurumu.Onaylandi);
     public int Tamamlanan => Siparisler.Count(x => x.Durum == SiparisDurumu.Tamamlandi);

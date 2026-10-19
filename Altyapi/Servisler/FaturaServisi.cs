@@ -629,7 +629,7 @@ public class FaturaServisi : IFaturaServisi
                     .FromSqlInterpolated($@"SELECT * FROM ""Siparisler"" WHERE ""Id"" = {fatura.SiparisId!.Value} FOR UPDATE")
                     .SingleOrDefaultAsync()
                     ?? throw new KeyNotFoundException("Sipariş bulunamadı.");
-                if (siparis.Durum == SiparisDurumu.Iptal) throw new InvalidOperationException("İptal sipariş faturalanamaz.");
+                if (siparis.Durum is SiparisDurumu.Iptal or SiparisDurumu.Taslak) throw new InvalidOperationException("İptal veya taslak sipariş faturalanamaz.");
                 fatura.CariKartId = siparis.CariKartId;
             }
             if (fatura.Kalemler.Count == 0) throw new InvalidOperationException("En az bir fatura kalemi seçilmelidir.");

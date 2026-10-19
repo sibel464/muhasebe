@@ -1,4 +1,6 @@
 using Altyapi.Veri;
+using EtkiAlani.Modeller.Fatura;
+using EtkiAlani.Modeller.Irsaliye;
 using EtkiAlani.Modeller.Kurumsal;
 using EtkiAlani.Modeller.Siparis;
 using Microsoft.EntityFrameworkCore;
@@ -40,8 +42,8 @@ public class SiparisServisi : ISiparisServisi
         if (filtre.Durum.HasValue) sorgu = sorgu.Where(x => x.Durum == filtre.Durum);
         if (filtre.CariKartId.HasValue) sorgu = sorgu.Where(x => x.CariKartId == filtre.CariKartId);
         if (filtre.OlusturanKullaniciId.HasValue) sorgu = sorgu.Where(x => x.OlusturanKullaniciId == filtre.OlusturanKullaniciId);
-        if (filtre.BaslangicTarihi.HasValue) sorgu = sorgu.Where(x => x.SiparisTarihi >= filtre.BaslangicTarihi.Value.Date.ToUniversalTime());
-        if (filtre.BitisTarihi.HasValue) sorgu = sorgu.Where(x => x.SiparisTarihi < filtre.BitisTarihi.Value.Date.AddDays(1).ToUniversalTime());
+        if (filtre.BaslangicTarihi.HasValue) sorgu = sorgu.Where(x => x.SiparisTarihi >= Utc(filtre.BaslangicTarihi.Value.Date));
+        if (filtre.BitisTarihi.HasValue) sorgu = sorgu.Where(x => x.SiparisTarihi < Utc(filtre.BitisTarihi.Value.Date.AddDays(1)));
         if (filtre.TeslimTarihi.HasValue) sorgu = sorgu.Where(x => x.TeslimTarihi != null && x.TeslimTarihi.Value.Date == filtre.TeslimTarihi.Value.Date);
         return await sorgu.OrderByDescending(x => x.SiparisTarihi).ThenByDescending(x => x.Id).ToListAsync();
     }
@@ -59,6 +61,7 @@ public class SiparisServisi : ISiparisServisi
         await using var transaction = await _baglam.Database.BeginTransactionAsync();
         try
         {
+            await CariDogrulaAsync(siparis.CariKartId);
             await KalemleriDogrulaVeHesaplaAsync(siparis);
             siparis.SiparisNo = await SiraliSiparisNoUretAsync(siparis.SiparisTarihi);
             siparis.Durum = taslak ? SiparisDurumu.Taslak : SiparisDurumu.Beklemede;
@@ -91,6 +94,7 @@ public class SiparisServisi : ISiparisServisi
             if (mevcut.Durum is not (SiparisDurumu.Taslak or SiparisDurumu.Beklemede))
                 throw new InvalidOperationException("Yalnızca taslak veya bekleyen siparişler düzenlenebilir.");
             _baglam.Entry(mevcut).Property(x => x.Versiyon).OriginalValue = siparis.Versiyon;
+            if (mevcut.CariKartId != siparis.CariKartId) await CariDogrulaAsync(siparis.CariKartId);
             await KalemleriDogrulaVeHesaplaAsync(siparis);
 
             mevcut.SiparisTuru = siparis.SiparisTuru;
@@ -140,6 +144,14 @@ public class SiparisServisi : ISiparisServisi
             ?? throw new KeyNotFoundException("Sipariş bulunamadı.");
         if (!GecisGecerli(siparis.Durum, yeniDurum))
             throw new InvalidOperationException($"{siparis.Durum} durumundan {yeniDurum} durumuna geçilemez.");
+        // Sevk edilmiş ya da faturalanmış sipariş iptal edilirse irsaliye/fatura sahipsiz kalır; önce onlar iptal edilmeli.
+        if (yeniDurum == SiparisDurumu.Iptal)
+        {
+            if (await _baglam.Irsaliyeler.AnyAsync(x => x.SiparisId == id && x.Durum != IrsaliyeDurumu.Iptal))
+                throw new InvalidOperationException("Bu siparişe bağlı irsaliye var; siparişi iptal etmeden önce irsaliyeyi iptal edin.");
+            if (await _baglam.Faturalar.AnyAsync(x => x.SiparisId == id && x.Durum != BelgeDurumu.Iptal))
+                throw new InvalidOperationException("Bu siparişe bağlı fatura var; siparişi iptal etmeden önce faturayı iptal edin.");
+        }
         _baglam.Entry(siparis).Property(x => x.Versiyon).OriginalValue = versiyon;
         siparis.Durum = yeniDurum;
         siparis.GuncelleyenKullaniciId = AktifKullaniciId();
@@ -168,6 +180,13 @@ public class SiparisServisi : ISiparisServisi
         siparis.AraToplam = siparis.BrutToplam - siparis.IskontoToplami;
         siparis.KdvToplami = siparis.Kalemler.Sum(x => x.KdvTutari);
         siparis.GenelToplam = siparis.AraToplam + siparis.KdvToplami;
+    }
+
+    private async Task CariDogrulaAsync(int cariKartId)
+    {
+        var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(x => x.Id == cariKartId)
+            ?? throw new ArgumentException("Seçilen cari bulunamadı.");
+        if (!cari.Aktif) throw new InvalidOperationException("Pasif cariye sipariş girilemez.");
     }
 
     private async Task KalemleriDogrulaVeHesaplaAsync(Siparis siparis)
@@ -226,11 +245,13 @@ public class SiparisServisi : ISiparisServisi
     {
         (SiparisDurumu.Taslak, SiparisDurumu.Beklemede or SiparisDurumu.Iptal) => true,
         (SiparisDurumu.Beklemede, SiparisDurumu.Taslak or SiparisDurumu.Onaylandi or SiparisDurumu.Iptal) => true,
-        (SiparisDurumu.Onaylandi, SiparisDurumu.KismenKarsilandi or SiparisDurumu.Tamamlandi or SiparisDurumu.Iptal) => true,
+        // Kısmen karşılandı yalnız sevkiyatla oluşur; elle yalnız kapatma (Tamamlandı) veya iptal yapılır.
+        (SiparisDurumu.Onaylandi, SiparisDurumu.Tamamlandi or SiparisDurumu.Iptal) => true,
         (SiparisDurumu.KismenKarsilandi, SiparisDurumu.Tamamlandi or SiparisDurumu.Iptal) => true,
         _ => false
     };
 
-    private static DateTime Utc(DateTime tarih) => tarih.Kind == DateTimeKind.Utc ? tarih : DateTime.SpecifyKind(tarih, DateTimeKind.Local).ToUniversalTime();
+    // Belge tarihleri yerel saatle (UTC etiketli) saklanır; saat dilimi çevrimi yapılmaz.
+    private static DateTime Utc(DateTime tarih) => DateTime.SpecifyKind(tarih, DateTimeKind.Utc);
     private static DateTime? Utc(DateTime? tarih) => tarih.HasValue ? Utc(tarih.Value) : null;
 }

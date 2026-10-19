@@ -141,6 +141,24 @@ public sealed class SiparisIntegrationTests
         Assert.False(await kontrol.SiparisKalemleri.AnyAsync(x => x.UrunId == 999999));
     }
 
+    [Fact]
+    public async Task Gece_yarisi_girilen_siparisin_tarihi_kaymaz_ve_tarih_filtresinde_bulunur()
+    {
+        _fixture.RequireDatabase();
+        await using var baglam = YeniBaglam();
+        await VarsayilanVerileriOlusturAsync(baglam);
+        var gun = new DateTime(2026, 3, 15, 0, 30, 0, DateTimeKind.Local);
+        var siparis = YalinSiparis("");
+        siparis.SiparisTarihi = gun; siparis.TeslimTarihi = gun.Date;
+        var eklenen = await Servis(baglam).EkleAsync(siparis, false);
+        await using var kontrol = YeniBaglam();
+        var kayit = await kontrol.Siparisler.AsNoTracking().SingleAsync(x => x.Id == eklenen.Id);
+        Assert.Equal(gun.Date, kayit.SiparisTarihi.Date);
+        Assert.Equal(gun.Date, kayit.TeslimTarihi!.Value.Date);
+        var liste = await Servis(kontrol).ListeleAsync(new SiparisFiltre { BaslangicTarihi = gun.Date, BitisTarihi = gun.Date });
+        Assert.Contains(liste, x => x.Id == eklenen.Id);
+    }
+
     private async Task NegatifEtkiSayimiylaEkleAsync(SiparisTuru tur, bool taslak)
     {
         await using var once = YeniBaglam();
