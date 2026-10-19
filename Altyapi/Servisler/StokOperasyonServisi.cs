@@ -24,9 +24,27 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         _kullaniciServisi.YetkiKontrolEt(yetki, islem);
     }
 
+    // Depo yalnız kendi firmasının şubesine bağlıysa kullanılabilir; başka firmanın deposuna stok yazılmaz.
+    private async Task<EtkiAlani.Modeller.Kurumsal.Depo> FirmaDeposuAsync(int depoId, Guid sirketId, string tanim)
+    {
+        var depo = await _baglam.Depolar.Include(d => d.Sube).FirstOrDefaultAsync(d => d.Id == depoId && d.AktifMi)
+            ?? throw new InvalidOperationException($"{tanim} bulunamadı veya pasif.");
+        if (depo.Sube != null && depo.Sube.SirketId != sirketId)
+            throw new InvalidOperationException($"{tanim} bu firmaya ait değil.");
+        return depo;
+    }
+
+    // Kilitler her zaman aynı sırada alınır; karşılıklı iki transfer birbirini kilitlemesin.
+    private async Task DepoUrunKilitleAsync(int urunId, params int[] depoIdleri)
+    {
+        foreach (var depoId in depoIdleri.Distinct().OrderBy(x => x))
+            await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({depoId}, {urunId})");
+    }
+
     public async Task<List<StokOperasyonMatrisOzetDto>> GetMatrisOzetAsync(Guid sirketId, string? arama = null, int? depoId = null, bool sadeceKritik = false, CancellationToken cancellationToken = default)
     {
         YetkiKontrol(y => y.StokGoruntule, "Stok Operasyon Merkezi Görüntüleme");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         var depolar = await _baglam.Depolar.AsNoTracking()
             .Include(d => d.Sube)
@@ -137,15 +155,15 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         if (string.IsNullOrWhiteSpace(istek.IslemNedeni))
             throw new ArgumentException("Giriş işlemi için neden belirtilmesi zorunludur.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
-        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({istek.DepoId}, {istek.UrunId})");
+        await DepoUrunKilitleAsync(istek.UrunId, istek.DepoId);
 
         var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == istek.UrunId && (u.SirketId == null || u.SirketId == sirketId))
             ?? throw new InvalidOperationException("Ürün bulunamadı veya yetkisiz erişim.");
 
-        var depo = await _baglam.Depolar.FirstOrDefaultAsync(d => d.Id == istek.DepoId && d.AktifMi)
-            ?? throw new InvalidOperationException("Lokasyon/Depo bulunamadı veya pasif.");
+        var depo = await FirmaDeposuAsync(istek.DepoId, sirketId, "Lokasyon/Depo");
 
         var lokasyon = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(l => l.UrunId == istek.UrunId && l.DepoId == istek.DepoId);
         if (lokasyon == null)
@@ -188,15 +206,15 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         if (string.IsNullOrWhiteSpace(istek.IslemNedeni))
             throw new ArgumentException("Çıkış işlemi için neden belirtilmesi zorunludur.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
-        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({istek.DepoId}, {istek.UrunId})");
+        await DepoUrunKilitleAsync(istek.UrunId, istek.DepoId);
 
         var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == istek.UrunId && (u.SirketId == null || u.SirketId == sirketId))
             ?? throw new InvalidOperationException("Ürün bulunamadı veya yetkisiz erişim.");
 
-        var depo = await _baglam.Depolar.FirstOrDefaultAsync(d => d.Id == istek.DepoId && d.AktifMi)
-            ?? throw new InvalidOperationException("Lokasyon/Depo bulunamadı veya pasif.");
+        var depo = await FirmaDeposuAsync(istek.DepoId, sirketId, "Lokasyon/Depo");
 
         var lokasyon = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(l => l.UrunId == istek.UrunId && l.DepoId == istek.DepoId);
         decimal mevcutKullanilabilir = (lokasyon?.MevcutMiktar ?? 0) - (lokasyon?.RezerveMiktar ?? 0);
@@ -241,18 +259,16 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         if (istek.Miktar <= 0)
             throw new ArgumentException("Transfer miktarı 0'dan büyük olmalıdır.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
-        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({istek.KaynakDepoId}, {istek.UrunId})");
+        await DepoUrunKilitleAsync(istek.UrunId, istek.KaynakDepoId, istek.HedefDepoId);
 
         var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == istek.UrunId && (u.SirketId == null || u.SirketId == sirketId))
             ?? throw new InvalidOperationException("Ürün bulunamadı veya yetkisiz erişim.");
 
-        var kDepo = await _baglam.Depolar.FirstOrDefaultAsync(d => d.Id == istek.KaynakDepoId && d.AktifMi)
-            ?? throw new InvalidOperationException("Kaynak depo bulunamadı veya pasif.");
-
-        var hDepo = await _baglam.Depolar.FirstOrDefaultAsync(d => d.Id == istek.HedefDepoId && d.AktifMi)
-            ?? throw new InvalidOperationException("Hedef depo bulunamadı veya pasif.");
+        var kDepo = await FirmaDeposuAsync(istek.KaynakDepoId, sirketId, "Kaynak depo");
+        var hDepo = await FirmaDeposuAsync(istek.HedefDepoId, sirketId, "Hedef depo");
 
         var kLokasyon = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(l => l.UrunId == istek.UrunId && l.DepoId == istek.KaynakDepoId);
         decimal kKullanilabilir = (kLokasyon?.MevcutMiktar ?? 0) - (kLokasyon?.RezerveMiktar ?? 0);
@@ -355,6 +371,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         if (string.IsNullOrWhiteSpace(neden))
             throw new ArgumentException("Transfer iptali için neden belirtilmesi zorunludur.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
 
@@ -367,6 +384,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         foreach (var k in tf.Kalemler)
         {
+            await DepoUrunKilitleAsync(k.UrunId, tf.KaynakDepoId, tf.HedefDepoId);
             // Verify target location has enough stock to reverse the transfer
             var hLokasyon = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(l => l.UrunId == k.UrunId && l.DepoId == tf.HedefDepoId);
             decimal hKullanilabilir = (hLokasyon?.MevcutMiktar ?? 0) - (hLokasyon?.RezerveMiktar ?? 0);
@@ -388,7 +406,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
             kLokasyon.GuncellemeTarihi = DateTime.UtcNow;
 
             // Flag old movements as cancelled
-            var eskiHareketler = await _baglam.StokHareketleri.Where(sh => sh.IlgiliBelgeId == tf.Id && sh.IslemTuru == StokIslemTuru.DepoTransferi).ToListAsync();
+            var eskiHareketler = await _baglam.StokHareketleri.Where(sh => sh.IlgiliBelgeId == tf.Id && sh.UrunId == k.UrunId && sh.IslemTuru == StokIslemTuru.DepoTransferi).ToListAsync();
             foreach (var sh in eskiHareketler)
                 sh.IptalEdildi = true;
         }
@@ -411,11 +429,19 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         if (istek.Kalemler == null || istek.Kalemler.Count == 0)
             throw new ArgumentException("Sayım fişinde en az 1 ürün kalemi bulunmalıdır.");
 
+        if (istek.Kalemler.Any(k => k.SayilanMiktar < 0))
+            throw new ArgumentException("Sayılan miktar eksi olamaz.");
+
+        // Aynı ürün iki satırda olursa onayda depo stoğu iki kez düzeltilir ve ürün kartı toplamı bozulur.
+        if (istek.Kalemler.GroupBy(k => k.UrunId).Any(g => g.Count() > 1))
+            throw new ArgumentException("Sayım fişinde aynı ürün birden fazla satırda olamaz.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
+
         await using var tx = await _baglam.Database.BeginTransactionAsync();
 
-        var depo = await _baglam.Depolar.FirstOrDefaultAsync(d => d.Id == istek.DepoId && d.AktifMi)
-            ?? throw new InvalidOperationException("Depo bulunamadı veya pasif.");
+        var depo = await FirmaDeposuAsync(istek.DepoId, sirketId, "Depo");
 
+        await _baglam.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(5459405)");
         var count = await _baglam.StokSayimlari.IgnoreQueryFilters().CountAsync();
         string sayimNo = $"SYM-{DateTime.Today.Year}-{(count + 1):D5}";
 
@@ -431,7 +457,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         };
 
         var urunIdleri = istek.Kalemler.Select(k => k.UrunId).ToList();
-        var urunler = await _baglam.Urunler.Where(u => urunIdleri.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
+        var urunler = await _baglam.Urunler.Where(u => urunIdleri.Contains(u.Id) && (u.SirketId == null || u.SirketId == sirketId)).ToDictionaryAsync(u => u.Id);
         var lokasyonlar = await _baglam.UrunLokasyonStoklari.Where(l => l.DepoId == istek.DepoId && urunIdleri.Contains(l.UrunId)).ToDictionaryAsync(l => l.UrunId);
 
         foreach (var k in istek.Kalemler)
@@ -458,6 +484,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
     public async Task SayimOnaylaAsync(int sayimId, Guid sirketId, int kullaniciId)
     {
         YetkiKontrol(y => y.StokDuzenle, "Stok Sayımı Onaylama");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
 
@@ -473,18 +500,22 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         foreach (var k in sayim.Kalemler)
         {
-            decimal fark = k.FarkMiktari;
-            if (fark == 0) continue;
-
             var urun = await _baglam.Urunler.FirstOrDefaultAsync(u => u.Id == k.UrunId);
             if (urun == null) continue;
 
+            await DepoUrunKilitleAsync(k.UrunId, sayim.DepoId);
             var lokasyon = await _baglam.UrunLokasyonStoklari.FirstOrDefaultAsync(l => l.UrunId == k.UrunId && l.DepoId == sayim.DepoId);
             if (lokasyon == null)
             {
                 lokasyon = new UrunLokasyonStogu { UrunId = k.UrunId, DepoId = sayim.DepoId, MevcutMiktar = 0, RezerveMiktar = 0 };
                 _baglam.UrunLokasyonStoklari.Add(lokasyon);
             }
+
+            // Fark onay anındaki depo stoğuna göre alınır: sayım açıldıktan sonra satış/alış olduysa
+            // açılıştaki sistem miktarıyla düzeltmek ürün kartı toplamını depo stoğundan ayırırdı.
+            k.SistemMiktari = lokasyon.MevcutMiktar;
+            decimal fark = k.FarkMiktari;
+            if (fark == 0) continue;
 
             lokasyon.MevcutMiktar = k.SayilanMiktar;
             lokasyon.GuncellemeTarihi = DateTime.UtcNow;
@@ -496,7 +527,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
                 UrunId = k.UrunId,
                 DepoId = sayim.DepoId,
                 KullaniciId = kullaniciId,
-                Tarih = DateTime.UtcNow,
+                Tarih = sayim.Tarih,
                 HareketTuru = fark > 0 ? StokHareketTuru.Giris : StokHareketTuru.Cikis,
                 IslemTuru = StokIslemTuru.SayimFarki,
                 FisNo = sayim.SayimNo,
@@ -521,6 +552,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
     public async Task SayimIptalEtAsync(int sayimId, Guid sirketId, int kullaniciId)
     {
         YetkiKontrol(y => y.StokDuzenle || y.StokSil, "Stok Sayımı İptali");
+        sirketId = _baglam.SirketIdCoz(sirketId);
 
         var sayim = await _baglam.StokSayimlari.FirstOrDefaultAsync(s => s.Id == sayimId && s.SirketId == sirketId)
             ?? throw new InvalidOperationException("Sayım fişi bulunamadı veya yetkisiz erişim.");

@@ -43,6 +43,16 @@ public class RevaluasyonServisi : IRevaluasyonServisi
         return sirketId;
     }
 
+    // Kaynağın (cari/banka/kasa) bu değerleme tarihine kadar onaylanmış revalüasyonlarla deftere eklenen kur farkı.
+    // Defter değeri = hareketlerin TL karşılığı + bu toplam; böylece ikinci değerlemede yalnız yeni fark kaydedilir.
+    private async Task<decimal> OncekiKurFarklariAsync(Guid sirketId, string kaynakTuru, int kaynakId, string currency, DateTime date) =>
+        await _baglam.RevaluasyonKalemleri.AsNoTracking()
+            .Where(rk => rk.KaynakTuru == kaynakTuru && rk.KaynakId == kaynakId && !rk.Silindi && rk.RevaluasyonKaydi != null
+                && rk.RevaluasyonKaydi.SirketId == sirketId && !rk.RevaluasyonKaydi.Silindi
+                && rk.RevaluasyonKaydi.Durum == RevaluasyonDurumu.Onaylandi && rk.RevaluasyonKaydi.DegerlemeTarihi <= date
+                && rk.RevaluasyonKaydi.ParaBirimiKodu == currency)
+            .SumAsync(rk => (decimal?)rk.KurFarki) ?? 0m;
+
     public async Task<RevaluasyonOnizleDto> RevaluasyonOnizleAsync(Guid sirketId, string paraBirimiKodu, DateTime? degerlemeTarihi = null)
     {
         var targetSirketId = FirmaDogrula(sirketId);
@@ -89,7 +99,10 @@ public class RevaluasyonServisi : IRevaluasyonServisi
             decimal dovizBakiye = c.DovizBorc - c.DovizAlacak;
             if (Math.Abs(dovizBakiye) > 0.001m)
             {
-                decimal eskiDefterDegeri = c.YerelBorc - c.YerelAlacak;
+                // Revalüasyon farkı cari harekete yazılmaz (yalnız yevmiyeye); önceki farklar eklenmezse
+                // her yeni değerleme eski farkı yeniden kaydederdi.
+                decimal eskiDefterDegeri = c.YerelBorc - c.YerelAlacak
+                    + await OncekiKurFarklariAsync(targetSirketId, "Cari", c.CariKartId, currency, date);
                 decimal oncekiKur = dovizBakiye != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur;
                 decimal yeniYerelDeger = dovizBakiye * yeniKur;
                 decimal kurFarki = yeniYerelDeger - eskiDefterDegeri;
@@ -138,24 +151,15 @@ public class RevaluasyonServisi : IRevaluasyonServisi
 
                 decimal sonRevalKuru = prevKalem?.YeniDegerlemeKuru ?? 0m;
                 decimal eskiDefterDegeri;
-
-                if (prevKalem != null)
+                // Hareketlerin TL karşılığı + önceki onaylı değerleme farkları. Eskiden son değerlemeden sonra
+                // yapılan hareketler son değerleme kuruyla sayılıyordu (bakiye × son kur); farklı kurdan giren
+                // döviz yanlış kur farkı üretiyordu.
+                eskiDefterDegeri = bankaHareketler.Sum(h =>
                 {
-                    eskiDefterDegeri = dovizBakiye * sonRevalKuru;
-                }
-                else if (bankaHareketler.Count > 0)
-                {
-                    eskiDefterDegeri = bankaHareketler.Sum(h =>
-                    {
-                        decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
-                        decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
-                        return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
-                    });
-                }
-                else
-                {
-                    eskiDefterDegeri = 0m;
-                }
+                    decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
+                    decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
+                    return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
+                }) + await OncekiKurFarklariAsync(targetSirketId, "Banka", b.Id, currency, date);
 
                 decimal oncekiKur = sonRevalKuru > 0 ? sonRevalKuru : (dovizBakiye != 0 && eskiDefterDegeri != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur);
                 decimal yeniYerelDeger = dovizBakiye * yeniKur;
@@ -205,24 +209,15 @@ public class RevaluasyonServisi : IRevaluasyonServisi
 
                 decimal sonRevalKuru = prevKalem?.YeniDegerlemeKuru ?? 0m;
                 decimal eskiDefterDegeri;
-
-                if (prevKalem != null)
+                // Hareketlerin TL karşılığı + önceki onaylı değerleme farkları. Eskiden son değerlemeden sonra
+                // yapılan hareketler son değerleme kuruyla sayılıyordu (bakiye × son kur); farklı kurdan giren
+                // döviz yanlış kur farkı üretiyordu.
+                eskiDefterDegeri = kasaHareketler.Sum(h =>
                 {
-                    eskiDefterDegeri = dovizBakiye * sonRevalKuru;
-                }
-                else if (kasaHareketler.Count > 0)
-                {
-                    eskiDefterDegeri = kasaHareketler.Sum(h =>
-                    {
-                        decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
-                        decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
-                        return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
-                    });
-                }
-                else
-                {
-                    eskiDefterDegeri = 0m;
-                }
+                    decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
+                    decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
+                    return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
+                }) + await OncekiKurFarklariAsync(targetSirketId, "Kasa", k.Id, currency, date);
 
                 decimal oncekiKur = sonRevalKuru > 0 ? sonRevalKuru : (dovizBakiye != 0 && eskiDefterDegeri != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur);
                 decimal yeniYerelDeger = dovizBakiye * yeniKur;

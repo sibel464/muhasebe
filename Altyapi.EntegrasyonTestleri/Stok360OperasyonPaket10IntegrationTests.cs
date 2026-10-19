@@ -399,6 +399,59 @@ public sealed class Stok360OperasyonPaket10IntegrationTests
         Assert.Equal(12, await kontrol.UrunLokasyonStoklari.Where(l => l.UrunId == urun.Id).SumAsync(l => l.MevcutMiktar));
     }
 
+    [Fact]
+    public async Task Sayim_acildiktan_sonra_stok_degisirse_onay_farki_guncel_stoktan_alinir()
+    {
+        var (db, sirket, magaza, _, _, urun, _, operasyon, _) = await HazirlaAsync();
+        await using var _ = db;
+
+        await operasyon.StokGirisiYapAsync(new StokGirisIstegi(urun.Id, magaza.Id, 10, 100, DateTime.UtcNow, "Alım", null, "Giriş"), sirket.Id, 100);
+        var sayim = await operasyon.SayimOlusturAsync(new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Sayım", new List<StokSayimKalemIstegi> { new(urun.Id, 8) }), sirket.Id, 100);
+        // Sayım açıkken 3 adet daha çıkış: depoda 7 kaldı, sayılan 8 → fark +1 olmalı (açılıştaki 10'a göre -2 değil).
+        await operasyon.StokCikisiYapAsync(new StokCikisIstegi(urun.Id, magaza.Id, 3, 0, DateTime.UtcNow, "Fire", null, "Çıkış"), sirket.Id, 100);
+        await operasyon.SayimOnaylaAsync(sayim.Id, sirket.Id, 100);
+
+        await using var kontrol = new MuhasebeBaglami(_fixture.Options);
+        Assert.Equal(8, (await kontrol.Urunler.SingleAsync(u => u.Id == urun.Id)).StokMiktari);
+        Assert.Equal(8, await kontrol.UrunLokasyonStoklari.Where(l => l.UrunId == urun.Id).SumAsync(l => l.MevcutMiktar));
+        var duzeltme = await kontrol.StokHareketleri.SingleAsync(h => h.IlgiliBelgeId == sayim.Id && h.IslemTuru == StokIslemTuru.SayimFarki);
+        Assert.Equal(StokHareketTuru.Giris, duzeltme.HareketTuru);
+        Assert.Equal(1, duzeltme.Miktar);
+    }
+
+    [Fact]
+    public async Task Sayimda_ayni_urun_iki_satirda_veya_eksi_miktarla_olamaz()
+    {
+        var (db, sirket, magaza, _, _, urun, _, operasyon, _) = await HazirlaAsync();
+        await using var _ = db;
+
+        await Assert.ThrowsAsync<ArgumentException>(() => operasyon.SayimOlusturAsync(
+            new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Sayım", new List<StokSayimKalemIstegi> { new(urun.Id, 5), new(urun.Id, 6) }), sirket.Id, 100));
+        await Assert.ThrowsAsync<ArgumentException>(() => operasyon.SayimOlusturAsync(
+            new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Sayım", new List<StokSayimKalemIstegi> { new(urun.Id, -1) }), sirket.Id, 100));
+    }
+
+    [Fact]
+    public async Task Baska_firmanin_deposuna_manuel_giris_yapilamaz()
+    {
+        var (db, sirketA, _, _, _, urunA, _, operasyonA, _) = await HazirlaAsync();
+        await using var _ = db;
+
+        var sirketB = new Sirket { Id = Guid.NewGuid(), SirketKodu = "STK-B3-" + Guid.NewGuid().ToString("N")[..6], Unvan = "B3" };
+        var subeB = new Sube { SirketId = sirketB.Id, SubeKodu = "SUB-B3", SubeAdi = "B3 Şube", AktifMi = true };
+        db.AddRange(sirketB, subeB);
+        await db.SaveChangesAsync();
+        var magazaB = new Depo { SubeId = subeB.Id, DepoKodu = "MAG-B3-" + Guid.NewGuid().ToString("N")[..6], DepoAdi = "B3", DepoTuru = DepoTuru.Magaza, AktifMi = true };
+        db.Depolar.Add(magazaB);
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => operasyonA.StokGirisiYapAsync(
+            new StokGirisIstegi(urunA.Id, magazaB.Id, 5, 100, DateTime.UtcNow, "Alım", null, "Giriş"), sirketA.Id, 100));
+
+        await using var kontrol = new MuhasebeBaglami(_fixture.Options);
+        Assert.False(await kontrol.UrunLokasyonStoklari.AnyAsync(l => l.DepoId == magazaB.Id));
+    }
+
     #endregion
 
     #region 5. Multi-Tenant İzolasyon & Güvenlik Testleri

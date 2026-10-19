@@ -601,4 +601,44 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         var buyukDefter = await raporServisi.BuyukDefterAlAsync(sirketId, null, null);
         Assert.NotEmpty(buyukDefter);
     }
+
+    [Fact]
+    public async Task Cari_ikinci_revaluasyonda_yalniz_yeni_kur_farki_kaydedilir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, kullanici, _, _, revaluasyonServisi, _, _, _) = await SetupTestEnvironmentAsync(db);
+
+        var usd = await db.ParaBirimleri.FirstOrDefaultAsync(p => p.Kod == "USD");
+        if (usd == null)
+        {
+            usd = new ParaBirimi { Kod = "USD", Ad = "ABD Doları", Sembol = "$" };
+            db.ParaBirimleri.Add(usd);
+        }
+        var cari = new CariKart { SirketId = sirketId, Kod = "C-RV-" + Guid.NewGuid().ToString("N")[..6], Unvan = "Dövizli Müşteri", Tur = CariTuru.Musteri, Aktif = true };
+        db.CariKartlar.Add(cari);
+        await db.SaveChangesAsync();
+
+        // 1.000 USD alacak, 40 kurdan: defter değeri 40.000 TL
+        db.CariHareketler.Add(new CariHareket { SirketId = sirketId, CariKartId = cari.Id, Tarih = DateTime.UtcNow.AddDays(-10), HareketTuru = CariHareketTuru.SatisFaturasi, Borc = 40000m, ParaBirimiId = usd.Id, Kur = 40m, DovizBorc = 1000m });
+        var gun1 = DateTime.UtcNow.Date.AddDays(10);
+        var gun2 = gun1.AddDays(1);
+        db.DovizKurlari.AddRange(
+            new DovizKuru { ParaBirimiKodu = "USD", Tarih = gun1, DovizAlis = 42m, DovizSatis = 42m },
+            new DovizKuru { ParaBirimiKodu = "USD", Tarih = gun2, DovizAlis = 43m, DovizSatis = 43m });
+        await db.SaveChangesAsync();
+
+        var kayit1 = await revaluasyonServisi.RevaluasyonUygulaAsync(await revaluasyonServisi.RevaluasyonOnizleAsync(sirketId, "USD", gun1), kullanici.Id);
+        Assert.Equal(2000m, kayit1.Kalemler.Single(k => k.KaynakTuru == "Cari" && k.KaynakId == cari.Id).KurFarki);
+
+        // 42 → 43: yalnız +1.000 TL (eskiden önceki 2.000 TL tekrar eklenip +3.000 kaydediliyordu)
+        var onizleme2 = await revaluasyonServisi.RevaluasyonOnizleAsync(sirketId, "USD", gun2);
+        var kalem2 = onizleme2.Kalemler.Single(k => k.KaynakTuru == "Cari" && k.KaynakId == cari.Id);
+        Assert.Equal(42000m, kalem2.EskiDefterDegeri);
+        Assert.Equal(1000m, kalem2.KurFarki);
+
+        // İptal edilen değerleme defter değerine sayılmaz
+        await revaluasyonServisi.RevaluasyonIptalEtAsync(kayit1.Id, "Test", sirketId);
+        var onizleme3 = await revaluasyonServisi.RevaluasyonOnizleAsync(sirketId, "USD", gun2);
+        Assert.Equal(3000m, onizleme3.Kalemler.Single(k => k.KaynakTuru == "Cari" && k.KaynakId == cari.Id).KurFarki);
+    }
 }
