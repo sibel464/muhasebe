@@ -24,6 +24,7 @@
 - **C# / .NET** (WPF masaüstü kullanıcı arayüzü)
 - **PostgreSQL** (İlişkisel veritabanı)
 - **Entity Framework Core / Npgsql** veri erişim katmanı
+- **Material / Modern UI** bileşenleri
 
 ## Kurulum ve çalıştırma
 
@@ -58,9 +59,9 @@ Müşteri bilgisayarında:
 - Program `C:\Program Files\Muhasebe Yönetim Sistemi` klasörüne kurulur; masaüstü ve Başlat menüsü kısayolu açılır.
 - İlk açılışta `C:\ProgramData\MuhasebeYonetim\db-data` klasörüne Türkçe sıralamalı (ICU tr-TR) yeni
   bir veritabanı kurulur. Gömülü sunucu ayrı bir portta (5544) çalışır, bilgisayardaki başka bir
-  PostgreSQL ile çakışmaz ve program kapanınca durur.
+  PostgreSQL ile çakışmaz ve program kapanınca durur (ağ sunucusu modunda Windows hizmeti olarak sürekli çalışır).
 - Veritabanı şifresi rastgele üretilir, Windows DPAPI (makine kapsamı) ile şifrelenip
-  `C:\ProgramData\MuhasebeYonetimppsettings.local.json` dosyasında saklanır. Düz metin şifre yoktur;
+  `C:\ProgramData\MuhasebeYonetim\appsettings.local.json` dosyasında saklanır. Düz metin şifre yoktur;
   dosya başka bilgisayara kopyalanırsa çözülemez.
 - Loglar `C:\ProgramData\MuhasebeYonetim\Loglar`, otomatik yedekler `Belgeler\Muhasebe Yedekleri` altındadır.
 - İlk giriş: kullanıcı `admin`, şifre `admin123`. Program ilk girişte şifrenin değiştirilmesini zorunlu tutar.
@@ -144,4 +145,67 @@ adı `_Test` ile biten ayrı bir veritabanı kullanır:
 ```powershell
 dotnet test Altyapi.EntegrasyonTestleri/Altyapi.EntegrasyonTestleri.csproj
 ```
-- **Material / Modern UI** bileşenleri
+
+## Otomatik güncelleme
+
+Kurulum sürümü, ana pencere açılınca `UygulamaAyarlari:GuncellemeAdresi` adresindeki
+`guncelleme.json` dosyasına bakar (adres boşsa özellik kapalıdır). Daha yeni sürüm varsa
+kullanıcıya sorar, MSI'ı arka planda indirir ve program kapanırken (veritabanı durduktan
+sonra) kurar; kurulumdan sonra program kendiliğinden açılır. Bildirim lisans özel
+anahtarıyla imzalanır ve paketin SHA-256 özetini taşır; imzası ya da özeti tutmayan
+güncelleme kurulmaz. Adres `https` olmalıdır.
+
+Yeni sürüm yayınlamak için (sürüm numarası her seferinde artırılmalıdır):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File kurulum\Paketle.ps1 -Surum 1.0.2 -YayinAdresi https://ornek.com/guncelleme -Notlar "Hata düzeltmeleri"
+```
+
+`kurulum\cikti` içindeki `MuhasebeYonetim-1.0.2.msi` ve `guncelleme.json` dosyaları
+`https://ornek.com/guncelleme/` altına yüklenir. Programdaki adres
+`https://ornek.com/guncelleme/guncelleme.json` olur (`kurulum\appsettings.Kurulum.json`).
+Bildirim elle de üretilebilir: `dotnet run --project LisansUretici -- guncelleme --msi ... --surum ... --adres ...`.
+
+## Ağ (çok kullanıcılı) kullanım
+
+**Ayarlar → 🌐 Ağ** (Ayarları Yönet yetkisi gerekir):
+
+- **Sunucu:** verilerin duracağı bilgisayarda "Bu Bilgisayarı Sunucu Yap". Windows yönetici
+  onayı istenir. Veritabanı `MuhasebeYonetimVeritabani` adlı, otomatik başlayan Windows hizmeti
+  olur (NetworkService hesabıyla), yalnız aynı yerel ağdan (`samenet`) şifreli bağlantı kabul
+  eder; güvenlik duvarında 5544 portu yalnız özel/etki alanı ağları için açılır. Ekranda
+  `MYS1-` ile başlayan bağlantı kodu gösterilir. Adımlar `C:\ProgramData\MuhasebeYonetim\Loglar\ag-kurulum.log`
+  dosyasına yazılır.
+- **İstemci:** diğer bilgisayarlarda "Sunucuya Bağlan" ile kod girilir. İstemci kendi
+  veritabanını kullanmaz (silmez), günlük yedek almaz ve geri yükleme yapamaz.
+- Bağlantı kodu veritabanına tam erişim verir; yalnız kendi bilgisayarlarınıza girin.
+- Ağdaki bir bilgisayar daha yeni sürümle veritabanını güncellemişse eski sürümlü program
+  açılmaz ve güncellenmesini ister. Tüm bilgisayarlar aynı sürümde tutulmalıdır.
+- Sunucu kapalıyken istemciler çalışamaz. Programı tamamen kaldırmak hizmeti ve güvenlik
+  duvarı kuralını siler, verileri silmez.
+
+## KVKK
+
+**Cari Sil** ekranında seçili cari için:
+
+- **KVKK: Kişisel Veri Dökümü** — kişinin hakkında tutulan verilerin (kimlik, iletişim,
+  belge özetleri, teslimat bilgileri, saklama süresi) metin dökümü (KVKK md. 11 bilgi talebi).
+- **KVKK: Anonimleştir** — yalnız hiç işlemi olmayan ya da son kaydının yılından itibaren
+  10 yıllık yasal saklama süresi (VUK md. 253, TTK md. 82) dolmuş caride çalışır. Ad, kimlik ve
+  vergi no, iletişim, adres, IBAN ve fotoğraf kalıcı olarak silinir; sipariş/irsaliye teslimat
+  bilgileri ve değişiklik günlüğündeki eski değerler de maskelenir. Tutarlar ve belgeler kalır.
+  Süre dolmamışsa program gerekçeli ret metnini gösterir.
+
+Aydınlatma metni, VERBİS ve müşteriyle yapılacak veri işleme sözleşmesi hukuki konulardır;
+program bunları üretmez.
+
+## Satış öncesi kontrol listesi
+
+- [ ] Lisans özel anahtarı (`%USERPROFILE%\MuhasebeLisansAnahtari\ozel-anahtar.pem`) şifreli ve
+      bilgisayar dışında en az bir yerde yedekli. Hem lisanslar hem güncellemeler bu anahtara bağlıdır.
+- [ ] `kurulum\Lisans.rtf` hukuken gözden geçirildi.
+- [ ] Ürün/üretici adı (`Paket.wxs`, `appsettings.Kurulum.json`) son haline getirildi.
+- [ ] Güncelleme adresi belirlendi ve `GuncellemeAdresi` dolduruldu.
+- [ ] Kod imzalama sertifikası alındı (yoksa müşteride Windows SmartScreen uyarısı çıkar).
+- [ ] MSI temiz bir bilgisayarda kurulup ilk açılış, lisans, yedek/geri yükleme, güncelleme ve
+      iki bilgisayarlı ağ kurulumu denendi.
