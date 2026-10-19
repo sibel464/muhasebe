@@ -112,6 +112,7 @@ public partial class App : Application
             servisler.AddTransient<IAuditLogServisi, AuditLogServisi>();
             servisler.AddTransient<IUrunServisi, UrunServisi>();
             servisler.AddTransient<ICariServisi, CariServisi>();
+            servisler.AddTransient<IKvkkServisi, KvkkServisi>();
             servisler.AddTransient<ICariDetayServisi>(sp => new CariDetayServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
             servisler.AddTransient<ICariTipiTanimiServisi, CariTipiTanimiServisi>();
             servisler.AddTransient<IMerkeziTanimServisi, MerkeziTanimServisi>();

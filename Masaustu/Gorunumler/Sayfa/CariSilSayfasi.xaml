@@ -96,14 +96,24 @@
                         <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="120"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <Button Grid.Row="1" Command="{Binding SilKomutu}" Background="#DC2626" Foreground="White"
-                        Height="42" Margin="0,12,0,0" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand"
-                        HorizontalAlignment="Right" Width="200">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🗑️" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Seçili Cariyi Sil" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                    <!-- KVKK: üstte veya altta son seçilen cariye uygulanır -->
+                    <Button Command="{Binding KvkkDokumKomutu}" Style="{StaticResource IkinciDugme}" Width="200" Margin="0,0,8,0"
+                            ToolTip="Kişinin hakkında tutulan verilerin dökümünü (KVKK md. 11 bilgi talebi) dosyaya kaydeder">
+                        <TextBlock Text="KVKK: Kişisel Veri Dökümü"/>
+                    </Button>
+                    <Button Command="{Binding KvkkAnonimlestirKomutu}" Style="{StaticResource IkinciDugme}" Width="200" Margin="0,0,8,0"
+                            ToolTip="Yasal saklama süresi (10 yıl) dolmuşsa kişisel verileri kalıcı olarak siler; tutarlar ve belgeler kalır">
+                        <TextBlock Text="KVKK: Anonimleştir"/>
+                    </Button>
+                    <Button Command="{Binding SilKomutu}" Background="#DC2626" Foreground="White"
+                            Height="42" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Width="200">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🗑️" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Seçili Cariyi Sil" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 

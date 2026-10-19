@@ -1393,7 +1393,7 @@ public class MuhasebeBaglami : DbContext
                 auditLog.IslemTuru = AuditIslemTuru.Ekleme;
                 var yeniDegerler = entry.Properties
                     .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
-                    .ToDictionary(p => p.Metadata.Name, p => p.CurrentValue);
+                    .ToDictionary(p => p.Metadata.Name, p => DenetimDegeri(p.Metadata.Name, p.CurrentValue));
                 auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(yeniDegerler);
             }
             else if (entry.State == EntityState.Deleted)
@@ -1401,7 +1401,7 @@ public class MuhasebeBaglami : DbContext
                 auditLog.IslemTuru = AuditIslemTuru.Silme;
                 var eskiDegerler = entry.Properties
                     .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
-                    .ToDictionary(p => p.Metadata.Name, p => p.OriginalValue);
+                    .ToDictionary(p => p.Metadata.Name, p => DenetimDegeri(p.Metadata.Name, p.OriginalValue));
                 auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(eskiDegerler);
             }
             else if (entry.State == EntityState.Modified)
@@ -1419,8 +1419,8 @@ public class MuhasebeBaglami : DbContext
 
                 foreach (var prop in entry.Properties.Where(p => p.IsModified && DenetimAlaninaDahilEt(p.Metadata.Name)))
                 {
-                    degisenEski[prop.Metadata.Name] = prop.OriginalValue;
-                    degisenYeni[prop.Metadata.Name] = prop.CurrentValue;
+                    degisenEski[prop.Metadata.Name] = DenetimDegeri(prop.Metadata.Name, prop.OriginalValue);
+                    degisenYeni[prop.Metadata.Name] = DenetimDegeri(prop.Metadata.Name, prop.CurrentValue);
                 }
 
                 auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(degisenEski);
@@ -1462,6 +1462,22 @@ public class MuhasebeBaglami : DbContext
 
         return sonuc;
     }
+
+    // KVKK: kişiyi tanımlayan alanlar (cari kartı ve sipariş/irsaliye teslimat bilgileri).
+    public static readonly IReadOnlySet<string> KisiselVeriAlanlari = new HashSet<string>(StringComparer.Ordinal)
+    {
+        nameof(CariKart.Unvan), nameof(CariKart.Ad), nameof(CariKart.Soyad), nameof(CariKart.TcNo), nameof(CariKart.VergiNo), nameof(CariKart.VergiDairesi),
+        nameof(CariKart.Telefon), nameof(CariKart.EvTelefonu), nameof(CariKart.IsTelefonu), nameof(CariKart.CepTelefonu), nameof(CariKart.Eposta),
+        nameof(CariKart.WebSitesi), nameof(CariKart.Adres), nameof(CariKart.Il), nameof(CariKart.Ilce), nameof(CariKart.PostaKodu),
+        nameof(CariKart.FotografYolu), nameof(CariKart.Iban), nameof(CariKart.Aciklama),
+        "TeslimatAdSoyad", "TeslimatTelefon", "TeslimatAdres", "TeslimatIl", "TeslimatIlce"
+    };
+
+    // Anonimleştirme kaydedilirken açılır: silinen kişisel değerler değişiklik günlüğüne de yazılmaz.
+    internal bool KisiselVeriMaskele { get; set; }
+
+    private object? DenetimDegeri(string alanAdi, object? deger) =>
+        KisiselVeriMaskele && KisiselVeriAlanlari.Contains(alanAdi) && deger != null ? "***" : deger;
 
     private static bool DenetimAlaninaDahilEt(string alanAdi) =>
         !string.Equals(alanAdi, nameof(Kullanici.SifreHash), StringComparison.Ordinal);

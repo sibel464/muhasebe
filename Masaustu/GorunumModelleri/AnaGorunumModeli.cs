@@ -171,7 +171,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Dashboard", () => new DashboardGorunumModeli(_cariServisi, _urunServisi, _navigasyon, () => CikisYapildi?.Invoke(), _kasaServisi, _faturaServisi));
         _navigasyon.Kaydet("Musteri", () => new MusteriGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon, () => CikisYapildi?.Invoke()));
         _navigasyon.Kaydet("CariEkle", () => new CariEkleGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon));
-        _navigasyon.Kaydet("CariSil", () => new CariSilGorunumModeli(_cariServisi));
+        _navigasyon.Kaydet("CariSil", () => new CariSilGorunumModeli(_cariServisi, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IKvkkServisi>(App.HizmetSaglayici)));
         _navigasyon.Kaydet("UrunEkle", () => new UrunEkleGorunumModeli(_urunServisi, _merkeziTanimServisi, _navigasyon));
         _navigasyon.Kaydet("UrunSil", () => new UrunSilGorunumModeli(_urunServisi));
         _navigasyon.Kaydet("Urun", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<StokOperasyonMerkeziGorunumModeli>(App.HizmetSaglayici));
