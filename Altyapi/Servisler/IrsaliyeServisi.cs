@@ -177,6 +177,8 @@ public class IrsaliyeServisi : IIrsaliyeServisi
 
     public async Task<Irsaliye> GuncelleAsync(Irsaliye irsaliye)
     {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.IrsaliyeOlustur, "İrsaliye Düzenleme");
+
         var mevcut = await _baglam.Irsaliyeler
             .Include(i => i.Kalemler)
             .FirstOrDefaultAsync(i => i.Id == irsaliye.Id);
@@ -204,6 +206,10 @@ public class IrsaliyeServisi : IIrsaliyeServisi
         mevcut.CariKartId = irsaliye.CariKartId;
         mevcut.Tur = irsaliye.Tur;
         mevcut.Tarih = DateTime.SpecifyKind(irsaliye.Tarih, DateTimeKind.Utc);
+        if (irsaliye.SevkTarihi != default)
+            mevcut.SevkTarihi = DateTime.SpecifyKind(irsaliye.SevkTarihi, DateTimeKind.Utc);
+        if (mevcut.SevkTarihi < mevcut.Tarih.AddDays(-1))
+            throw new ArgumentException("Sevk tarihi belge tarihinden önce olamaz.");
         mevcut.Aciklama = irsaliye.Aciklama ?? string.Empty;
 
         // Eski kalemleri sil ve yenilerini ekle
@@ -219,6 +225,12 @@ public class IrsaliyeServisi : IIrsaliyeServisi
             if (!urun.Aktif)
                 throw new InvalidOperationException($"Pasif durumdaki '{urun.Ad}' ürünü irsaliyeye eklenemez.");
 
+            if (kalem.Miktar <= 0)
+                throw new ArgumentException($"Ürün miktarı sıfır veya negatif olamaz ({urun.Ad}).");
+
+            if (kalem.BirimFiyat < 0)
+                throw new ArgumentException($"Birim fiyatı negatif olamaz ({urun.Ad}).");
+
             var yeniKalem = new IrsaliyeKalemi
             {
                 IrsaliyeId = mevcut.Id,
@@ -231,7 +243,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                 KdvOrani = kalem.KdvOrani,
                 KdvTutari = decimal.Round(kalem.Miktar * kalem.BirimFiyat * kalem.KdvOrani / 100, 4, MidpointRounding.AwayFromZero),
                 SatirToplami = decimal.Round((kalem.Miktar * kalem.BirimFiyat) + (kalem.Miktar * kalem.BirimFiyat * kalem.KdvOrani / 100), 4, MidpointRounding.AwayFromZero),
-                OlusturmaTarihi = DateTime.UtcNow
+                OlusturmaTarihi = DateTime.UtcNow,
+                // Seçilen stok yeri korunur; boş bırakılırsa onayda varsayılan mağaza kullanılır.
+                StokDagilimlari = kalem.StokDagilimlari.Select(d => new IrsaliyeKalemiStokDagilimi { DepoId = d.DepoId, Miktar = d.Miktar }).ToList()
             };
             mevcut.Kalemler.Add(yeniKalem);
         }
@@ -404,6 +418,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
             .OrderBy(x => x.DepoId).ToListAsync();
     }
 
+    // Önce mağazalar, sonra depolar (tanım sırası); sevk ekranı sütunlarını bu listeden kurar.
+    public Task<List<Depo>> AktifStokYerleriniGetirAsync() => DepoKurallari.AktifDepolarAsync(_baglam);
+
     public async Task<Irsaliye> SiparistenSevkEtAsync(Irsaliye irsaliye)
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama")).YetkiKontrolEt(y => y.IrsaliyeOlustur, "İrsaliye Oluşturma");
@@ -451,10 +468,12 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                     var stok = await _baglam.UrunLokasyonStoklari
                         .FromSqlInterpolated($@"SELECT * FROM ""UrunLokasyonStoklari"" WHERE ""UrunId"" = {kalem.UrunId} AND ""DepoId"" = {dagilim.DepoId} FOR UPDATE")
                         .SingleOrDefaultAsync();
-                    if (stok == null || stok.MevcutMiktar < dagilim.Miktar)
+                    // Rezerve stok fatura/irsaliye onayında olduğu gibi kullanılamaz.
+                    var kullanilabilir = (stok?.MevcutMiktar ?? 0) - (stok?.RezerveMiktar ?? 0);
+                    if (stok == null || kullanilabilir < dagilim.Miktar)
                     {
                         var depoAdi = await _baglam.Depolar.Where(x => x.Id == dagilim.DepoId).Select(x => x.DepoAdi).FirstOrDefaultAsync() ?? $"Depo {dagilim.DepoId}";
-                        throw new InvalidOperationException($"{depoAdi} için yeterli stok bulunmuyor. Mevcut: {stok?.MevcutMiktar ?? 0:N2}, İstenen: {dagilim.Miktar:N2}");
+                        throw new InvalidOperationException($"{depoAdi} için yeterli stok bulunmuyor. Mevcut: {kullanilabilir:N2}, İstenen: {dagilim.Miktar:N2}");
                     }
                     // Ürün kartındaki toplam stok sevkiyat hareketinden otomatik güncellenir (MuhasebeBaglami).
                     stok.MevcutMiktar -= dagilim.Miktar;

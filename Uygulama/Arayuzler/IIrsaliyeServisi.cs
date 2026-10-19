@@ -20,4 +20,5 @@ public interface IIrsaliyeServisi
     Task<Irsaliye> SiparistenSevkEtAsync(Irsaliye irsaliye);
     Task<List<Irsaliye>> SiparisSevkiyatlariniGetirAsync(int siparisId);
     Task<List<UrunLokasyonStogu>> LokasyonStoklariniGetirAsync(IEnumerable<int> urunIds);
+    Task<List<EtkiAlani.Modeller.Kurumsal.Depo>> AktifStokYerleriniGetirAsync();
 }

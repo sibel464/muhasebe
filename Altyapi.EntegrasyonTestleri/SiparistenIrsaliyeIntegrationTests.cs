@@ -44,6 +44,22 @@ public sealed class SiparistenIrsaliyeIntegrationTests
         await Kontrol(x, s => Assert.Equal(SiparisDurumu.Iptal, s.Durum));
     }
 
+    [Fact]
+    public async Task Rezerve_stok_siparis_sevkiyatinda_kullanilamaz()
+    {
+        var x = await Hazirla(5, 6);
+        await using (var c = Yeni())
+        {
+            var lok = await c.UrunLokasyonStoklari.SingleAsync(l => l.UrunId == x.UrunId && l.DepoId == 1);
+            lok.RezerveMiktar = 3; // kullanılabilir: 3
+            await c.SaveChangesAsync();
+        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Sevk(x, 5, (1, 5)));
+        await Sevk(x, 3, (1, 3));
+        await using var k = Yeni();
+        Assert.Equal(3, (await Stoklar(k, x.UrunId))[0]);
+    }
+
     private async Task<(int SiparisId, int KalemId, int UrunId)> Hazirla(decimal miktar, decimal magaza = 10)
     {
         await using var c = Yeni();

@@ -23,9 +23,24 @@ public partial class SiparistenSevkPenceresi : Window
     {
         try
         {
+            // Sütunlar gerçek aktif stok yerlerine bağlanır: ilk mağaza ve ilk iki depo. Eskiden depo numarası
+            // 1-2-3 sabitti; depolar yeniden tanımlanınca (ör. 4-5-6) sevk "depo bulunamadı veya pasif" hatası veriyordu.
+            var yerler = await _servis.AktifStokYerleriniGetirAsync();
+            var magaza = yerler.FirstOrDefault(d => d.DepoTuru == EtkiAlani.Modeller.Kurumsal.DepoTuru.Magaza);
+            var depolar = yerler.Where(d => d.DepoTuru == EtkiAlani.Modeller.Kurumsal.DepoTuru.Depo).ToList();
+            var sutunDepolari = new[] { magaza, depolar.ElementAtOrDefault(0), depolar.ElementAtOrDefault(1) };
+            if (sutunDepolari.All(d => d == null)) throw new InvalidOperationException("Tanımlı aktif mağaza/depo yok. Önce Depo ekranından stok yeri tanımlayın.");
+            var sutunlar = new[] { MagazaSutunu, Depo1Sutunu, Depo2Sutunu };
+            for (var i = 0; i < 3; i++)
+            {
+                sutunlar[i].Header = sutunDepolari[i]?.DepoAdi.ToUpper(new System.Globalization.CultureInfo("tr-TR")) ?? "";
+                sutunlar[i].Visibility = sutunDepolari[i] == null ? Visibility.Collapsed : Visibility.Visible;
+            }
+            var depoIdleri = sutunDepolari.Select(d => d?.Id).ToArray();
+
             var stoklar = await _servis.LokasyonStoklariniGetirAsync(Siparis.Kalemler.Select(x => x.UrunId));
             foreach (var k in Siparis.Kalemler.Where(x => x.Miktar > x.SevkEdilenMiktar))
-                Satirlar.Add(new SevkSatiri(k, stoklar.Where(x => x.UrunId == k.UrunId).ToDictionary(x => x.DepoId, x => x.MevcutMiktar)));
+                Satirlar.Add(new SevkSatiri(k, stoklar.Where(x => x.UrunId == k.UrunId).ToDictionary(x => x.DepoId, x => x.MevcutMiktar), depoIdleri));
         }
         catch (Exception ex) { MessageBox.Show(ex.Message, "Stoklar yüklenemedi", MessageBoxButton.OK, MessageBoxImage.Error); Close(); }
     }
@@ -76,14 +91,22 @@ public sealed class SevkSatiri : Masaustu.GorunumModelleri.TemelGorunumModeli
     public decimal Depo2Mevcut { get; }
     public string MevcutBilgisi => $"{MagazaMevcut:N2} / {Depo1Mevcut:N2} / {Depo2Mevcut:N2}";
 
-    public SevkSatiri(SiparisKalemi kalem, Dictionary<int, decimal> stok)
+    private readonly int?[] _depoIdleri;
+
+    // depoIdleri: [mağaza, depo 1, depo 2]; olmayan stok yeri null.
+    public SevkSatiri(SiparisKalemi kalem, Dictionary<int, decimal> stok, int?[] depoIdleri)
     {
         _kalem = kalem;
+        _depoIdleri = depoIdleri;
         _buSevk = Kalan;
-        MagazaMevcut = stok.GetValueOrDefault(1);
-        Depo1Mevcut = stok.GetValueOrDefault(2);
-        Depo2Mevcut = stok.GetValueOrDefault(3);
-        _magaza = _buSevk;
+        decimal Mevcut(int? id) => id is int d ? stok.GetValueOrDefault(d) : 0;
+        MagazaMevcut = Mevcut(depoIdleri[0]);
+        Depo1Mevcut = Mevcut(depoIdleri[1]);
+        Depo2Mevcut = Mevcut(depoIdleri[2]);
+        // Varsayılan dağılım: ilk mevcut stok yeri (mağaza yoksa depo 1, o da yoksa depo 2).
+        if (depoIdleri[0] != null) _magaza = _buSevk;
+        else if (depoIdleri[1] != null) _depo1 = _buSevk;
+        else _depo2 = _buSevk;
     }
 
     private static decimal ParseDecimal(string val)
@@ -98,9 +121,9 @@ public sealed class SevkSatiri : Masaustu.GorunumModelleri.TemelGorunumModeli
     {
         SiparisKalemiId = _kalem.Id,
         Miktar = BuSevk,
-        StokDagilimlari = new[] { (1, Magaza), (2, Depo1), (3, Depo2) }
-            .Where(x => x.Item2 > 0)
-            .Select(x => new IrsaliyeKalemiStokDagilimi { DepoId = x.Item1, Miktar = x.Item2 })
+        StokDagilimlari = new[] { (_depoIdleri[0], Magaza), (_depoIdleri[1], Depo1), (_depoIdleri[2], Depo2) }
+            .Where(x => x.Item1 != null && x.Item2 > 0)
+            .Select(x => new IrsaliyeKalemiStokDagilimi { DepoId = x.Item1!.Value, Miktar = x.Item2 })
             .ToList()
     };
 }
