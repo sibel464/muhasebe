@@ -626,6 +626,7 @@ public class KasaServisi : IKasaServisi
     {
         Oturum.YetkiKontrolEt(y => y.KasaYonet, "Kasa Tanımı Ekleme");
         KasaTanimiDogrula(kasa);
+        FinansKurallari.YalnizTlHesapAcilabilir(kasa.ParaBirimi);
 
         if (await _baglam.Kasalar.AnyAsync(k => k.Kod == kasa.Kod))
             throw new InvalidOperationException($"'{kasa.Kod}' kodlu bir kasa zaten var.");
@@ -654,6 +655,7 @@ public class KasaServisi : IKasaServisi
         var kayitli = _baglam.Entry(mevcut).OriginalValues;
         var kayitliParaBirimi = kayitli.GetValue<string>(nameof(Kasa.ParaBirimi));
         var kayitliAktif = kayitli.GetValue<bool>(nameof(Kasa.AktifMi));
+        FinansKurallari.YalnizTlHesapAcilabilir(kasa.ParaBirimi, kayitliParaBirimi);
 
         var hareketVar = await _baglam.KasaHareketleri.AnyAsync(h => h.KasaId == mevcut.Id);
         if (hareketVar && !string.Equals(kayitliParaBirimi, kasa.ParaBirimi, StringComparison.OrdinalIgnoreCase))

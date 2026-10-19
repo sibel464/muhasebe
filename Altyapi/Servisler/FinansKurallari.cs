@@ -11,6 +11,15 @@ internal static class FinansKurallari
     public const decimal EnBuyukTutar = 99999999999999.9999m;
     public const int AciklamaUzunlugu = 500;
 
+    // Kasa/banka hareketleri ve ekranları tutarı TL olarak işler (kur ve döviz tutarı alınmaz); dövizli hesap
+    // açılırsa TL girilen bakiye revalüasyonda döviz sanılıp kurla çarpılırdı. Tam döviz desteği gelene kadar
+    // yeni hesap ve para birimi değişikliği yalnız TRY olabilir; mevcut dövizli hesaplar olduğu gibi kalır.
+    public static void YalnizTlHesapAcilabilir(string paraBirimi, string? kayitliParaBirimi = null)
+    {
+        if (paraBirimi != "TRY" && !string.Equals(paraBirimi, kayitliParaBirimi, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Dövizli kasa/banka hesabı henüz desteklenmiyor; hesap TL (TRY) olarak açılmalıdır. Dövizli tahsilat ve ödemeler cari/fatura üzerinden kurla girilebilir.");
+    }
+
     public static void TutarDogrula(decimal tutar, string islemAdi)
     {
         if (tutar <= 0 || tutar > EnBuyukTutar)

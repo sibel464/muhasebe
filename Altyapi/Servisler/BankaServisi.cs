@@ -664,6 +664,9 @@ public class BankaServisi : IBankaServisi
     {
         Oturum.YetkiKontrolEt(y => y.BankaEkle, "Banka Hesabı Tanımlama");
         BankaHesabiDogrula(hesap);
+        FinansKurallari.YalnizTlHesapAcilabilir(hesap.ParaBirimi);
+        if (hesap.HesapTuru == BankaHesapTuru.VadesizDoviz)
+            throw new InvalidOperationException("Dövizli vadesiz hesap henüz desteklenmiyor; hesap türü olarak Vadesiz TL seçin.");
 
         if (await _baglam.BankaHesaplari.AnyAsync(b => b.Kod == hesap.Kod))
             throw new InvalidOperationException($"'{hesap.Kod}' kodlu bir banka hesabı zaten var.");
@@ -695,6 +698,7 @@ public class BankaServisi : IBankaServisi
         var kayitli = _baglam.Entry(mevcut).OriginalValues;
         var kayitliParaBirimi = kayitli.GetValue<string>(nameof(BankaHesabi.ParaBirimi));
         var kayitliAktif = kayitli.GetValue<bool>(nameof(BankaHesabi.AktifMi));
+        FinansKurallari.YalnizTlHesapAcilabilir(hesap.ParaBirimi, kayitliParaBirimi);
 
         var hareketVar = await _baglam.BankaHareketleri.AnyAsync(h => h.BankaHesabiId == mevcut.Id);
         if (hareketVar && !string.Equals(kayitliParaBirimi, hesap.ParaBirimi, StringComparison.OrdinalIgnoreCase))

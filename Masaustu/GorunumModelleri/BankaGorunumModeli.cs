@@ -249,7 +249,8 @@ public class BankaGorunumModeli : TemelGorunumModeli
     public string YeniKod { get => _yeniKod; set => OzellikAyarla(ref _yeniKod, value); }
     public string YeniAd { get => _yeniAd; set => OzellikAyarla(ref _yeniAd, value); }
     public BankaHesapTuru YeniHesapTuru { get => _yeniHesapTuru; set => OzellikAyarla(ref _yeniHesapTuru, value); }
-    public Array HesapTurleri => Enum.GetValues(typeof(BankaHesapTuru));
+    // Dövizli vadesiz hesap henüz desteklenmiyor (bkz. FinansKurallari.YalnizTlHesapAcilabilir).
+    public BankaHesapTuru[] HesapTurleri => Enum.GetValues<BankaHesapTuru>().Where(t => t != BankaHesapTuru.VadesizDoviz).ToArray();
     public string YeniSube { get => _yeniSube; set => OzellikAyarla(ref _yeniSube, value); }
     public string YeniIban { get => _yeniIban; set => OzellikAyarla(ref _yeniIban, value); }
     public decimal YeniPosKomisyonOrani { get => _yeniPosKomisyonOrani; set => OzellikAyarla(ref _yeniPosKomisyonOrani, value); }

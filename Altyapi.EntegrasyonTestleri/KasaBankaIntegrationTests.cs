@@ -188,6 +188,23 @@ public class KasaBankaIntegrationTests
     }
 
     [Fact]
+    public async Task Dovizli_kasa_ve_banka_hesabi_acilamaz()
+    {
+        _fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var oturum = StabilizasyonTestOturumu.Olustur();
+        var kod = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaEkleAsync(new Kasa { Kod = "K" + kod, Ad = "USD Kasa", ParaBirimi = "USD" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new BankaServisi(db, oturum).BankaHesabiEkleAsync(new BankaHesabi { Kod = "B" + kod, Ad = "USD Banka", ParaBirimi = "USD", HesapNo = "1", Iban = "TR330006100519786457841326" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new BankaServisi(db, oturum).BankaHesabiEkleAsync(new BankaHesabi { Kod = "D" + kod, Ad = "Döviz", HesapTuru = BankaHesapTuru.VadesizDoviz, HesapNo = "2", Iban = "TR330006100519786457841326" }));
+
+        // TL kasa açılır ama sonradan dövize çevrilemez
+        var kasa = await new KasaServisi(db, oturum).KasaEkleAsync(new Kasa { Kod = "T" + kod, Ad = "TL Kasa" });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaGuncelleAsync(new Kasa { Id = kasa.Id, Kod = kasa.Kod, Ad = kasa.Ad, ParaBirimi = "EUR", AktifMi = true }));
+    }
+
+    [Fact]
     public async Task Kasa_secilmeden_eklenen_hareket_varsayilan_kasaya_baglanir()
     {
         _fixture.RequireDatabase();
