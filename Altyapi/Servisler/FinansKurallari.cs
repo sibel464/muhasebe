@@ -40,8 +40,9 @@ internal static class FinansKurallari
 
     public static DateTime TarihNormalizeEt(DateTime? tarih)
     {
-        var deger = DateTime.SpecifyKind(tarih ?? DateTime.UtcNow, DateTimeKind.Utc);
-        if (deger.Date > DateTime.UtcNow.Date.AddDays(1))
+        // Belge tarihi yerel saat (UTC etiketli); tarih verilmezse gerçek UTC gece 00-03 arası işlemi önceki güne atardı.
+        var deger = DateTime.SpecifyKind(tarih ?? DateTime.Now, DateTimeKind.Utc);
+        if (deger.Date > DateTime.Now.Date.AddDays(1))
             throw new ArgumentException("İleri tarihli kasa/banka hareketi girilemez.");
         return deger;
     }
