@@ -248,6 +248,8 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand DetayKomutu { get; }
 	public ICommand ExcelAktarKomutu { get; }
 	public ICommand EBelgeKomutu { get; }
+	public ICommand TopluEBelgeKomutu { get; }
+	public bool EBelgeKullanilabilir => _eBelgeServisi != null;
 
 	public FaturaGorunumModeli(
 		IFaturaServisi faturaServisi, 
@@ -278,15 +280,13 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		{
 			if ((param as Fatura ?? SeciliFatura) is not Fatura f || _eBelgeServisi == null) return;
 			if (await EBelgePenceresi.GosterAsync(_eBelgeServisi, f))
-			{
-				// Liste bu sayfanın bağlamında izleniyor; e-belge alanları başka bağlamda değiştiği için buradan tazelenir.
-				var kontrol = await _eBelgeServisi.OnKontrolAsync(new EBelgeHazirlamaIstegi(f.Id));
-				f.EBelgeDurumu = kontrol.MevcutDurum;
-				f.EBelgeTuru = kontrol.MevcutDurum == EBelgeDurumu.Yok ? EBelgeTuru.Yok : kontrol.Tur;
-				f.EBelgeMesaji = kontrol.SonMesaj;
-				Filtrele();
-			}
+				await YukleAsync();
 		}, param => (param as Fatura ?? SeciliFatura) is { Durum: BelgeDurumu.Onaylandi, Tur: FaturaTuru.Satis or FaturaTuru.AlisIade } && _eBelgeServisi != null);
+		TopluEBelgeKomutu = new KomutSarici(async _ =>
+		{
+			if (_eBelgeServisi != null && await EBelgePenceresi.TopluGosterAsync(_eBelgeServisi))
+				await YukleAsync();
+		}, _ => _eBelgeServisi != null);
 		DetayKomutu = new KomutSarici(param => { if ((param as Fatura ?? SeciliFatura) is Fatura f) FaturaDetayPenceresi.Goster(f); }, param => param is Fatura || SeciliFatura != null);
 		KalemEkleKomutu = new KomutSarici(_ => KalemEkle(), _ => Duzenlenebilir && SeciliUrun != null);
 		KalemSilKomutu = new KomutSarici(_ => { if (SeciliKalem != null) Kalemler.Remove(SeciliKalem); ToplamlariGuncelle(); }, _ => Duzenlenebilir && SeciliKalem != null);

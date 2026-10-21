@@ -73,7 +73,7 @@ public static class UblTrFaturaUretici
             hatalar.Add("Yalnız onaylı fatura e-belge olarak hazırlanabilir.");
         if (!System.Text.RegularExpressions.Regex.IsMatch(f.FaturaNo ?? "", "^[A-Z0-9]{3}20[0-9]{2}[0-9]{9}$"))
             hatalar.Add($"Fatura numarası GİB biçiminde değil (3 harf + yıl + 9 hane, ör. SAT2026000000001): '{f.FaturaNo}'.");
-        else if (f.FaturaNo.Substring(3, 4) != f.Tarih.Year.ToString(Kultur))
+        else if (f.FaturaNo![3..7] != f.Tarih.Year.ToString(Kultur))
             hatalar.Add("Fatura numarasındaki yıl fatura tarihinin yılıyla aynı olmalıdır.");
         if (f.Kalemler.Count == 0)
             hatalar.Add("Faturada kalem yok.");

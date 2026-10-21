@@ -35,6 +35,8 @@ public sealed record EBelgeOnKontrol(
     public bool Hazirlanabilir => Hatalar.Count == 0;
 }
 
+public sealed record EBelgeTopluSonuc(int FaturaId, string FaturaNo, string CariUnvan, bool Basarili, string Mesaj);
+
 public sealed record EBelgeHazirlamaIstegi(int FaturaId, EFaturaSenaryosu? Senaryo = null, string? IadeEdilenFaturaNo = null, DateTime? IadeEdilenFaturaTarihi = null);
 
 public interface IEBelgeServisi
@@ -52,4 +54,8 @@ public interface IEBelgeServisi
     Task DurumIsaretleAsync(int faturaId, EBelgeDurumu durum, string? aciklama = null, CancellationToken cancellationToken = default);
 
     Task<string?> SonXmlGetirAsync(int faturaId, CancellationToken cancellationToken = default);
+
+    // Tarih aralığındaki, e-belgesi hazırlanmamış ya da hatalı onaylı satış faturaları ve alış iadeleri tek tek hazırlanır;
+    // biri hatalı olsa da diğerleri devam eder.
+    Task<IReadOnlyList<EBelgeTopluSonuc>> TopluHazirlaAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
 }

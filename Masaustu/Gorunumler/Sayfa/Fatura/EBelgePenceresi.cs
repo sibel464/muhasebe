@@ -183,6 +183,86 @@ public static class EBelgePenceresi
         return degisti;
     }
 
+    // Tarih aralığındaki bekleyen (hazırlanmamış/hatalı) e-belgeleri toplu hazırlar ve sonucu satır satır gösterir.
+    public static async Task<bool> TopluGosterAsync(IEBelgeServisi servis)
+    {
+        var bugun = DateTime.Today;
+        var bas = new DatePicker { SelectedDate = new DateTime(bugun.Year, bugun.Month, 1), Width = 140 };
+        var bit = new DatePicker { SelectedDate = bugun, Width = 140, Margin = new Thickness(8, 0, 0, 0) };
+        var calistir = Dugme(servis.DogrudanGonderir ? "Hazırla ve Gönder" : "XML Dosyalarını Oluştur", true);
+        calistir.Margin = new Thickness(12, 0, 0, 0);
+        var ozet = new TextBlock { Margin = new Thickness(0, 12, 0, 8), TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold };
+        var tablo = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, HeadersVisibility = DataGridHeadersVisibility.Column, CanUserAddRows = false, Background = Brushes.White };
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Fatura No", Binding = new System.Windows.Data.Binding(nameof(EBelgeTopluSonuc.FaturaNo)), Width = 150 });
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Cari", Binding = new System.Windows.Data.Binding(nameof(EBelgeTopluSonuc.CariUnvan)), Width = 200 });
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Sonuç", Binding = new System.Windows.Data.Binding(nameof(EBelgeTopluSonuc.Basarili)) { Converter = new BasariliMetni() }, Width = 70 });
+        tablo.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Açıklama", Binding = new System.Windows.Data.Binding(nameof(EBelgeTopluSonuc.Mesaj)), Width = new DataGridLength(1, DataGridLengthUnitType.Star),
+            ElementStyle = new Style(typeof(TextBlock)) { Setters = { new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap) } }
+        });
+
+        var ust = new StackPanel
+        {
+            Children =
+            {
+                new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10), Text = "Seçilen tarihler arasındaki onaylı satış faturaları ve alış iadelerinden e-belgesi henüz hazırlanmamış ya da hata almış olanlar hazırlanır. Eksik bilgisi olan fatura atlanır ve nedeni listede yazar." },
+                new StackPanel { Orientation = Orientation.Horizontal, Children = { new TextBlock { Text = "Tarih aralığı:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) }, bas, bit, calistir } },
+                ozet
+            }
+        };
+        var kok = new DockPanel { Margin = new Thickness(20) };
+        DockPanel.SetDock(ust, Dock.Top);
+        kok.Children.Add(ust);
+        kok.Children.Add(tablo);
+
+        var pencere = new Window
+        {
+            Title = "Toplu e-Belge Hazırlama", Width = 900, Height = 560, MinWidth = 640, MinHeight = 400,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false, Background = Brushes.White, Content = kok,
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
+        var degisti = false;
+        calistir.Click += async (_, _) =>
+        {
+            if (bas.SelectedDate is not DateTime b || bit.SelectedDate is not DateTime s || b > s)
+            {
+                MessageBox.Show(pencere, "Geçerli bir tarih aralığı seçin.", "Toplu e-Belge");
+                return;
+            }
+            calistir.IsEnabled = false;
+            pencere.Cursor = System.Windows.Input.Cursors.Wait;
+            ozet.Text = "Hazırlanıyor...";
+            try
+            {
+                var sonuclar = await servis.TopluHazirlaAsync(b, s);
+                tablo.ItemsSource = sonuclar;
+                var basarili = sonuclar.Count(x => x.Basarili);
+                degisti |= basarili > 0;
+                ozet.Text = sonuclar.Count == 0
+                    ? "Bu aralıkta hazırlanacak fatura yok."
+                    : $"{sonuclar.Count} faturadan {basarili} tanesi hazırlandı" + (basarili < sonuclar.Count ? $", {sonuclar.Count - basarili} tanesi atlandı (nedenleri aşağıda)." : ".");
+            }
+            catch (Exception ex)
+            {
+                ozet.Text = "Hazırlanamadı: " + ex.Message;
+            }
+            finally
+            {
+                calistir.IsEnabled = true;
+                pencere.Cursor = null;
+            }
+        };
+        pencere.ShowDialog();
+        return degisti;
+    }
+
+    private sealed class BasariliMetni : System.Windows.Data.IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => value is true ? "✔ Tamam" : "✖ Atlandı";
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => System.Windows.Data.Binding.DoNothing;
+    }
+
     private static Button Dugme(string metin, bool birincil = false) => new()
     {
         Content = metin, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 0, 8, 8), MinHeight = 32,

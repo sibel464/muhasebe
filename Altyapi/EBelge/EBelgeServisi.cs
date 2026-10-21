@@ -114,6 +114,41 @@ public class EBelgeServisi : IEBelgeServisi
             .OrderByDescending(k => k.Id).Select(k => k.Xml).FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<EBelgeTopluSonuc>> TopluHazirlaAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaOnayla, "Toplu e-Belge Hazırlama");
+        var aralik = RaporTarihAraligi.Olustur(baslangic, bitis);
+        var adaylar = await _baglam.Faturalar.AsNoTracking()
+            .Where(f => f.Durum == BelgeDurumu.Onaylandi && (f.Tur == FaturaTuru.Satis || f.Tur == FaturaTuru.AlisIade) &&
+                        (f.EBelgeDurumu == EBelgeDurumu.Yok || f.EBelgeDurumu == EBelgeDurumu.Hata) &&
+                        f.Tarih >= aralik.Baslangic && f.Tarih < aralik.BitisSonrasi)
+            .OrderBy(f => f.Tarih).ThenBy(f => f.FaturaNo)
+            .Select(f => new { f.Id, f.FaturaNo, Unvan = f.CariKart != null ? f.CariKart.Unvan : "" })
+            .ToListAsync(cancellationToken);
+
+        var sonuclar = new List<EBelgeTopluSonuc>();
+        foreach (var a in adaylar)
+        {
+            try
+            {
+                var s = await HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(a.Id), cancellationToken);
+                sonuclar.Add(new EBelgeTopluSonuc(a.Id, a.FaturaNo, a.Unvan, s.Basarili, s.Mesaj ?? string.Empty));
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Doğrulama hatası: bu fatura atlanır, yarım kalan değişiklik sonraki kayda karışmasın.
+                foreach (var giris in _baglam.ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Modified).ToList())
+                {
+                    if (giris.State == EntityState.Added) { giris.State = EntityState.Detached; continue; }
+                    giris.CurrentValues.SetValues(giris.OriginalValues);
+                    giris.State = EntityState.Unchanged;
+                }
+                sonuclar.Add(new EBelgeTopluSonuc(a.Id, a.FaturaNo, a.Unvan, false, ex.Message));
+            }
+        }
+        return sonuclar;
+    }
+
     private static void IadeBilgisiUygula(Fatura fatura, EBelgeHazirlamaIstegi istek)
     {
         if (fatura.Tur != FaturaTuru.AlisIade)

@@ -31,7 +31,10 @@ public class FaturaServisi : IFaturaServisi
 
     public async Task<List<Fatura>> TumunuGetirAsync(FaturaTuru? turFilter = null)
     {
+        // Liste salt okunur ve her çağrıda veritabanından taze okunur: e-belge durumu, ödeme gibi başka ekran/bağlamda
+        // yapılan değişiklikler, bu bağlamda önceden izlenen eski nesneler yüzünden gizlenmesin.
         var sorgu = _baglam.Faturalar
+            .AsNoTrackingWithIdentityResolution()
             .Include(f => f.CariKart)
             .Include(f => f.Kalemler)
             .ThenInclude(k => k.StokDagilimlari)

@@ -213,8 +213,9 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         Assert.Equal("C62", UblTrFaturaUretici.BirimKodu(null));
     }
 
-    [Fact]
-    public async Task Servis_belgeyi_hazirlar_dosyaya_yazar_gonderilmis_fatura_portal_iptali_olmadan_iptal_edilemez()
+    private sealed record Ortam(MuhasebeBaglami Db, Sirket Sirket, CariKart Cari, Urun Urun, Sube Sube, Depo Depo, Cari360TestKullanici Oturum, FaturaServisi FaturaServisi);
+
+    private async Task<Ortam> OrtamHazirlaAsync()
     {
         fixture.RequireDatabase();
         var sirket = new Sirket
@@ -228,7 +229,7 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
             await kurulum.SaveChangesAsync();
         }
 
-        await using var db = new MuhasebeBaglami(fixture.Options) { AktifSirketId = sirket.Id };
+        var db = new MuhasebeBaglami(fixture.Options) { AktifSirketId = sirket.Id };
         var cari = new CariKart
         {
             SirketId = sirket.Id, Kod = $"EB-{Guid.NewGuid():N}"[..12], Unvan = "Mükellef Alıcı A.Ş.", Aktif = true, Tur = CariTuru.Musteri,
@@ -253,12 +254,28 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         oturum.AktifYetkiler.FaturaGoruntule = true;
         oturum.AktifYetkiler.FaturaIptal = true;
         var faturaServisi = new FaturaServisi(db, oturum);
-        var fatura = await faturaServisi.EkleAsync(new Fatura
+        return new Ortam(db, sirket, cari, urun, sube, depo, oturum, faturaServisi);
+    }
+
+    private static async Task<Fatura> SatisFaturasiAsync(Ortam o, CariKart cari)
+    {
+        var fatura = await o.FaturaServisi.EkleAsync(new Fatura
         {
-            CariKartId = cari.Id, Tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc), Tur = FaturaTuru.Satis, FaturaNo = string.Empty, SubeId = sube.Id,
-            Kalemler = [new FaturaKalemi { UrunId = urun.Id, Miktar = 2, BirimFiyat = 150, KdvOrani = 20, StokDagilimlari = [new FaturaKalemiStokDagilimi { DepoId = depo.Id, Miktar = 2 }] }]
+            CariKartId = cari.Id, Tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc), Tur = FaturaTuru.Satis, FaturaNo = string.Empty, SubeId = o.Sube.Id,
+            Kalemler = [new FaturaKalemi { UrunId = o.Urun.Id, Miktar = 1, BirimFiyat = 150, KdvOrani = 20, StokDagilimlari = [new FaturaKalemiStokDagilimi { DepoId = o.Depo.Id, Miktar = 1 }] }]
         });
-        await faturaServisi.OnaylaVeOdemeyiKaydetAsync(fatura.Id);
+        await o.FaturaServisi.OnaylaVeOdemeyiKaydetAsync(fatura.Id);
+        return fatura;
+    }
+
+
+    [Fact]
+    public async Task Servis_belgeyi_hazirlar_dosyaya_yazar_gonderilmis_fatura_portal_iptali_olmadan_iptal_edilemez()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var (sirket, faturaServisi, oturum) = (o.Sirket, o.FaturaServisi, o.Oturum);
+        var fatura = await SatisFaturasiAsync(o, o.Cari);
 
         var klasor = Path.Combine(Path.GetTempPath(), "ebelge-test-" + Guid.NewGuid().ToString("N"));
         var servis = new EBelgeServisi(db, oturum, new DosyaEBelgeEntegratoru(() => klasor));
@@ -300,6 +317,43 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
             await servis.DurumIsaretleAsync(fatura.Id, EBelgeDurumu.IptalEdildi, "Portalda iptal edildi");
             var iptal = await faturaServisi.IptalEtAsync(fatura.Id);
             Assert.Equal(BelgeDurumu.Iptal, iptal.Durum);
+        }
+        finally
+        {
+            if (Directory.Exists(klasor)) Directory.Delete(klasor, true);
+        }
+    }
+
+    [Fact]
+    public async Task Toplu_hazirlama_eksik_bilgili_faturayi_atlar_digerlerini_hazirlar()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var eksikCari = new CariKart { SirketId = o.Sirket.Id, Kod = $"EB-{Guid.NewGuid():N}"[..12], Unvan = "Adressiz Ltd.", Aktif = true, Tur = CariTuru.Musteri, VergiNo = GecerliVkn(Random.Shared.Next()), VergiDairesi = "Konak" };
+        db.CariKartlar.Add(eksikCari);
+        await db.SaveChangesAsync();
+        var iyi = await SatisFaturasiAsync(o, o.Cari);
+        var eksik = await SatisFaturasiAsync(o, eksikCari);
+
+        var klasor = Path.Combine(Path.GetTempPath(), "ebelge-toplu-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var servis = new EBelgeServisi(db, o.Oturum, new DosyaEBelgeEntegratoru(() => klasor));
+            var sonuclar = await servis.TopluHazirlaAsync(DateTime.Today.AddDays(-1), DateTime.Today);
+
+            Assert.True(sonuclar.Single(x => x.FaturaId == iyi.Id).Basarili);
+            var atlanan = sonuclar.Single(x => x.FaturaId == eksik.Id);
+            Assert.False(atlanan.Basarili);
+            Assert.Contains("il ve ilçe", atlanan.Mesaj);
+
+            await using var oku = new MuhasebeBaglami(fixture.Options) { AktifSirketId = o.Sirket.Id };
+            Assert.Equal(EBelgeDurumu.Hazirlandi, (await oku.Faturalar.SingleAsync(f => f.Id == iyi.Id)).EBelgeDurumu);
+            Assert.Equal(EBelgeDurumu.Yok, (await oku.Faturalar.SingleAsync(f => f.Id == eksik.Id)).EBelgeDurumu);
+            Assert.Null((await oku.Faturalar.SingleAsync(f => f.Id == eksik.Id)).Ettn);
+
+            // İkinci çalıştırmada hazırlanmış olan tekrar işlenmez.
+            var ikinci = await servis.TopluHazirlaAsync(DateTime.Today.AddDays(-1), DateTime.Today);
+            Assert.DoesNotContain(ikinci, x => x.FaturaId == iyi.Id);
         }
         finally
         {
