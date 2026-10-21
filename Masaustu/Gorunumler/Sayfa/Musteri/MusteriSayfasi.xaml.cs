@@ -118,4 +118,11 @@ public partial class MusteriSayfasi : UserControl
                 vm.DetayKomutu.Execute(null);
         }
     }
+
+    private async void ExceldenAktar_Click(object sender, RoutedEventArgs e)
+    {
+        if (await Masaustu.Gorunumler.Ortak.TopluAktarimPenceresi.GosterAsync(AktarimTuru.Cari) > 0
+            && DataContext is MusteriGorunumModeli vm && vm.YenileKomutu.CanExecute(null))
+            vm.YenileKomutu.Execute(null);
+    }
 }

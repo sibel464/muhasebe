@@ -43,4 +43,11 @@ public partial class StokOperasyonMerkeziSayfasi : UserControl
             vm.Stok360AcKomutu.Execute(vm.SeciliSatir.UrunId);
         }
     }
+
+    private async void ExceldenAktar_Click(object sender, RoutedEventArgs e)
+    {
+        if (await Masaustu.Gorunumler.Ortak.TopluAktarimPenceresi.GosterAsync(Uygulama.Arayuzler.AktarimTuru.Urun) > 0
+            && DataContext is StokOperasyonMerkeziGorunumModeli vm && vm.YenileKomutu.CanExecute(null))
+            vm.YenileKomutu.Execute(null);
+    }
 }

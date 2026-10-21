@@ -25,8 +25,8 @@
         <!-- 1. ÜST PANEL: Başlık ve Hızlı İşlem Butonları -->
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
@@ -40,39 +40,46 @@
             </StackPanel>
 
             <!-- Hızlı Aksiyon Butonları -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Command="{Binding YeniUrunKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+            <WrapPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="16,0,0,0">
+                <Button Command="{Binding YeniUrunKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,3,8,3">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="➕" Margin="0,0,6,0"/>
                         <TextBlock Text="Yeni Ürün"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding UrunDuzenleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                <Button Click="ExceldenAktar_Click" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3"
+                        ToolTip="Başka programdan geçiş: ürün listesini açılış stoklarıyla Excel/CSV'den aktarır">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" Margin="0,0,6,0"/>
+                        <TextBlock Text="Excel'den Aktar"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding UrunDuzenleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3"
                         ToolTip="Seçili ürünün kartını (ad, fiyat, kategori...) düzenler">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="✏️" Margin="0,0,6,0"/>
                         <TextBlock Text="Ürünü Düzenle"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding Stok360AcKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                <Button Command="{Binding Stok360AcKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔍" Margin="0,0,6,0"/>
                         <TextBlock Text="Stok 360°"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding StokGirisiKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                <Button Command="{Binding StokGirisiKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📥" Margin="0,0,6,0"/>
                         <TextBlock Text="Stok Girişi"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding StokCikisiKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                <Button Command="{Binding StokCikisiKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📤" Margin="0,0,6,0"/>
                         <TextBlock Text="Stok Çıkışı"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding TransferKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                <Button Command="{Binding TransferKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔄" Margin="0,0,6,0"/>
                         <TextBlock Text="Transfer Yap"/>
@@ -84,7 +91,7 @@
                         <TextBlock Text="Stok Sayımı"/>
                     </StackPanel>
                 </Button>
-            </StackPanel>
+            </WrapPanel>
         </Grid>
 
         <!-- 2. ÖZET KPI KARTLARI -->

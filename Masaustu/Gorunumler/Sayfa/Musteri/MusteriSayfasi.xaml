@@ -42,6 +42,10 @@
 
             <!-- 1. ÜST PANEL: Başlık ve Aksiyon Butonları -->
             <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Style="{StaticResource BaslikIkonKutusu}">
                         <TextBlock Text="👥" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -53,15 +57,21 @@
                 </StackPanel>
 
                 <!-- Sağ Üst Aksiyonlar -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0" ToolTip="Cari listesini CSV / Excel dosyası olarak aktarır">
+                <WrapPanel Grid.Row="1" HorizontalAlignment="Left" Margin="0,10,0,0">
+                    <Button Click="ExceldenAktar_Click" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3" ToolTip="Başka programdan geçiş: cari listesini açılış bakiyeleriyle Excel/CSV'den aktarır">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📥" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Excel'den Aktar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3" ToolTip="Cari listesini CSV / Excel dosyası olarak aktarır">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📊" Margin="0,0,6,0" VerticalAlignment="Center"/>
                             <TextBlock Text="Excel'e Aktar" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                    <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🔄" Margin="0,0,6,0" VerticalAlignment="Center"/>
                             <TextBlock Text="Yenile" VerticalAlignment="Center"/>
@@ -74,7 +84,7 @@
                             <TextBlock Text="Yeni Cari Ekle" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                </StackPanel>
+                </WrapPanel>
             </Grid>
 
             <!-- 2. KPI / ÖZET KARTLAR (FINANSAL & SAYI ÖZETLERİ) -->
@@ -339,39 +349,40 @@
             <Border Grid.Row="4" Background="White" CornerRadius="10" Padding="14,10" Margin="0,12,0,0"
                     BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
                 <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="Seçili Cari:" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding SeciliMusteri.Unvan}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Command="{Binding DetayKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+                    <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+                        <Button Command="{Binding DetayKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,2,8,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="↗" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Cari Detay" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <Button Command="{Binding EkstreKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <Button Command="{Binding EkstreKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,2,8,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="📜" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Hesap Ekstresi" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding TahsilatKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <Button Command="{Binding TahsilatKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,2,8,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="💵" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Tahsilat" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <Button Command="{Binding OdemeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <Button Command="{Binding OdemeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,2,8,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="💸" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Ödeme" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding DuzenleKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0">
+                        <Button Command="{Binding DuzenleKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,2,8,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="✏️" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Düzenle" VerticalAlignment="Center"/>
@@ -384,7 +395,7 @@
                                 <TextBlock Text="Sil" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                    </StackPanel>
+                    </WrapPanel>
                 </Grid>
             </Border>
         </Grid>

@@ -40,6 +40,7 @@
   <a class="alt" href="#ilk-giris">İlk giriş ve şifre</a>
   <a class="alt" href="#lisans">Deneme süresi ve lisans</a>
   <a href="#firma">2. Firma bilgileri</a>
+  <a class="alt" href="#gecis">Başka programdan geçiş (Excel)</a>
   <a href="#kullanicilar">3. Kullanıcılar ve yetkiler</a>
   <a href="#cari">4. Cari hesaplar</a>
   <a href="#stok">5. Ürünler ve stok</a>
@@ -102,6 +103,20 @@
 </table>
 <p>Birden fazla firmanın defterini tutuyorsanız <span class="yol">Firma İşlemleri</span> ekranından yeni firma, şube, <b>mali dönem</b> ve belge serisi tanımlayabilirsiniz. Her firmanın carisi, stoğu ve faturaları birbirinden ayrıdır.</p>
 <div class="not"><b>Mali dönem kilidi:</b> Beyannamesi verilmiş bir dönemi <span class="yol">Firma İşlemleri → Mali Dönemler → Kilitle/Aç</span> ile kilitleyin. Kilitli döneme yeni fatura, stok, kasa/banka hareketi ya da muhasebe fişi eklenemez, mevcutları silinemez.</div>
+
+<h3 id="gecis">Başka programdan geçiş: Excel'den aktarım</h3>
+<p>Eski programınızdaki ya da Excel'deki müşteri, tedarikçi ve ürün listelerini tek tek girmeniz gerekmez.</p>
+<ol>
+  <li><span class="yol">Cari Listesi</span> ya da <span class="yol">Ürün Listesi</span> ekranında <b>Excel'den Aktar</b> düğmesine basın.</li>
+  <li><b>Şablonu Kaydet</b> ile örnek dosyayı kaydedin; Excel'de açılır. Kendi listenizi bu sütunlara yapıştırın. Sütunların sırası önemli değildir, "VKN" / "Vergi No" gibi farklı başlık yazımları tanınır. Dosyayı Excel (.xlsx) ya da CSV olarak kaydedin.</li>
+  <li><b>Dosya Seç</b> deyin. Önizlemede her satırın durumu görünür: ✔ aktarılabilir, ⚠ uyarı (ör. KDV boş, varsayılan alındı), ✖ hata (ör. geçersiz vergi no, zaten kayıtlı kod). Hatalı satırlar atlanır; Excel'de düzeltip dosyayı yeniden seçebilirsiniz.</li>
+  <li><b>Aktar</b> deyin. Sonuç listesinde her satırın ne olduğu yazar.</li>
+</ol>
+<ul>
+  <li><b>Cari açılış bakiyesi:</b> artı tutar "cari size borçlu", eksi tutar "siz cariye borçlusunuz" demektir. Seçtiğiniz açılış tarihiyle devir fişi olarak işlenir (karşı hesap 500 Sermaye). Muhasebecinizin farklı bir açılış yöntemi varsa bakiyeleri boş bırakıp cari kartından <b>Cari Fiş → Açılış / Devir</b> ile girebilirsiniz.</li>
+  <li><b>Ürün açılış stoğu</b> varsayılan mağazaya, alış fiyatıyla girilir. Kod boşsa otomatik kod verilir.</li>
+  <li>Aynı dosyayı iki kez aktarsanız bile kayıtlı kodlar, vergi numaraları ve barkodlar tekrar açılmaz.</li>
+</ul>
 
 <!-- ============================================================ -->
 <h2 id="kullanicilar">3. Kullanıcılar ve yetkiler</h2>
