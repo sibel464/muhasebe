@@ -1029,6 +1029,40 @@ public class MuhasebeBaglami : DbContext
         }
     }
 
+    // Kilitli (kapatılmış) mali döneme tarihli belge, hareket ve fiş eklenemez, silinemez; fiş durumu/tarihi değiştirilemez.
+    // Servislerin bir kısmı bunu kendisi denetliyordu, fatura/stok/irsaliye denetlemiyordu; tek noktada her kayıt için uygulanır.
+    // Dönem içindeki kayıtların kapama tutarı gibi alanlarının güncellenmesi (bugünkü tahsilatın eski faturayı kapatması) serbesttir.
+    private async Task KilitliDonemiKoruAsync(CancellationToken cancellationToken)
+    {
+        static bool IzlenenTur(object varlik) => varlik is YevmiyeFis or Fatura or StokHareketi or CariHareket or KasaHareketi or BankaHareketi or Irsaliye;
+        var adaylar = new List<(DateTime Tarih, Guid? SirketId)>();
+        foreach (var e in ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Deleted or EntityState.Modified && IzlenenTur(e.Entity)))
+        {
+            if (!IzlenenTur(e.Entity)) continue;
+            var sirketId = e.Property("SirketId").CurrentValue as Guid?;
+            var tarih = (DateTime)e.Property("Tarih").CurrentValue!;
+            if (e.State == EntityState.Modified)
+            {
+                var silinme = e.Metadata.FindProperty("Silindi") != null && e.Property("Silindi").IsModified;
+                var fisDegisti = e.Entity is YevmiyeFis && (e.Property("Durum").IsModified || e.Property("Tarih").IsModified || e.Property("SirketId").IsModified);
+                if (!silinme && !fisDegisti) continue;
+                adaylar.Add(((DateTime)e.Property("Tarih").OriginalValue!, e.Property("SirketId").OriginalValue as Guid?));
+            }
+            adaylar.Add((tarih, sirketId));
+        }
+        if (adaylar.Count == 0)
+            return;
+
+        var donemler = await MaliDonemler.AsNoTracking().Where(d => d.KilitliMi)
+            .Select(d => new { d.SirketId, d.Baslangic, d.Bitis, d.DonemAdi }).ToListAsync(cancellationToken);
+        foreach (var (tarih, sirketId) in adaylar)
+        {
+            var donem = donemler.FirstOrDefault(d => d.Baslangic <= tarih && d.Bitis >= tarih && (sirketId == null || d.SirketId == sirketId));
+            if (donem != null)
+                throw new InvalidOperationException($"{tarih:dd.MM.yyyy} tarihi kilitli mali döneme ({donem.DonemAdi}) ait. Kapatılmış döneme kayıt eklenemez, silinemez veya değiştirilemez; önce dönem kilidini açın.");
+        }
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await KasaVeBankaBaglantisiniTamamlaAsync(cancellationToken);
@@ -1062,6 +1096,8 @@ public class MuhasebeBaglami : DbContext
 
         foreach (var entry in ChangeTracker.Entries<Fatura>().Where(e => e.State == EntityState.Added))
             entry.Entity.SirketId ??= VarsayilanSirketId;
+
+        await KilitliDonemiKoruAsync(cancellationToken);
 
         // 1. CariKart bakiye güncellemelerini tetikleyen CariHareket değişikliklerini tespit edip delta hesapla
         var cariDeltas = new Dictionary<int, (decimal BorcDelta, decimal AlacakDelta)>();
