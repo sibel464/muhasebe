@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muhasebe Yönetim Sistemi - Kullanım Kılavuzu</title>
+<style>
+  :root { --mavi:#1d4ed8; --koyu:#0f172a; --gri:#475569; --acik:#f1f5f9; --cizgi:#e2e8f0; --uyari:#fef3c7; --uyari-k:#92400e; --bilgi:#e0f2fe; --bilgi-k:#075985; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--koyu); background:#fff; line-height:1.6; font-size:15px; }
+  nav { position:fixed; top:0; left:0; bottom:0; width:270px; overflow-y:auto; background:var(--acik); border-right:1px solid var(--cizgi); padding:20px 14px; }
+  nav h2 { font-size:15px; margin:0 0 10px; }
+  nav input { width:100%; padding:7px 9px; border:1px solid var(--cizgi); border-radius:6px; margin-bottom:12px; font-size:14px; }
+  nav a { display:block; color:var(--gri); text-decoration:none; padding:3px 6px; border-radius:4px; font-size:14px; }
+  nav a:hover { background:#e2e8f0; color:var(--koyu); }
+  nav a.alt { padding-left:18px; font-size:13px; }
+  main { margin-left:270px; padding:28px 48px 80px; max-width:1000px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:21px; margin:40px 0 10px; padding-top:10px; border-top:2px solid var(--cizgi); }
+  h3 { font-size:17px; margin:24px 0 6px; }
+  code, .tus { background:var(--acik); border:1px solid var(--cizgi); border-radius:4px; padding:0 5px; font-family:Consolas, monospace; font-size:13px; }
+  .yol { font-weight:600; color:var(--mavi); }
+  .not, .dikkat { border-radius:8px; padding:10px 14px; margin:12px 0; }
+  .not { background:var(--bilgi); color:var(--bilgi-k); }
+  .dikkat { background:var(--uyari); color:var(--uyari-k); }
+  table { border-collapse:collapse; width:100%; margin:10px 0; font-size:14px; }
+  th, td { border:1px solid var(--cizgi); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:var(--acik); }
+  ol li, ul li { margin:3px 0; }
+  .alt-baslik { color:var(--gri); margin-top:0; }
+  @media print { nav { display:none; } main { margin:0; padding:0; } h2 { page-break-before:auto; } }
+  @media (max-width: 800px) { nav { position:static; width:auto; } main { margin-left:0; padding:20px; } }
+</style>
+</head>
+<body>
+<nav>
+  <h2>İçindekiler</h2>
+  <input id="ara" type="search" placeholder="Kılavuzda ara..." oninput="ara(this.value)">
+  <a href="#baslarken">1. Başlarken</a>
+  <a class="alt" href="#ilk-giris">İlk giriş ve şifre</a>
+  <a class="alt" href="#lisans">Deneme süresi ve lisans</a>
+  <a href="#firma">2. Firma bilgileri</a>
+  <a href="#kullanicilar">3. Kullanıcılar ve yetkiler</a>
+  <a href="#cari">4. Cari hesaplar</a>
+  <a href="#stok">5. Ürünler ve stok</a>
+  <a href="#fatura">6. Fatura</a>
+  <a class="alt" href="#fatura-kes">Fatura kesme</a>
+  <a class="alt" href="#fatura-liste">Fatura listesi ve iptal</a>
+  <a class="alt" href="#pos">Hızlı satış (POS)</a>
+  <a class="alt" href="#irsaliye">İrsaliye ve sipariş</a>
+  <a href="#efatura">7. e-Fatura ve e-Arşiv</a>
+  <a class="alt" href="#efatura-hazirla">Belge hazırlama ve gönderme</a>
+  <a class="alt" href="#efatura-durum">Durum takibi ve iptal</a>
+  <a class="alt" href="#efatura-gelen">Gelen e-Fatura aktarma</a>
+  <a href="#tahsilat">8. Tahsilat, ödeme, çek/senet</a>
+  <a href="#kasabanka">9. Kasa ve banka</a>
+  <a href="#muhasebe">10. Muhasebe</a>
+  <a href="#doviz">11. Döviz ve kur</a>
+  <a href="#raporlar">12. Raporlar</a>
+  <a href="#yedek">13. Yedekleme ve geri yükleme</a>
+  <a href="#ag">14. Ağda birden fazla bilgisayar</a>
+  <a href="#kvkk">15. Kişisel veriler (KVKK)</a>
+  <a href="#sss">16. Sık sorulan sorular</a>
+</nav>
+
+<main>
+<h1>Muhasebe Yönetim Sistemi</h1>
+<p class="alt-baslik">Kullanım Kılavuzu — ön muhasebe, stok, fatura, e-Fatura, kasa/banka ve genel muhasebe</p>
+<div class="not">Bu kılavuzu program içinden her an <span class="tus">F1</span> tuşuyla ya da sol menüdeki <span class="yol">Yardım</span> ile açabilirsiniz. Sol üstteki arama kutusuna bir kelime yazarak (ör. "iptal", "yedek") ilgili bölümleri bulabilirsiniz.</div>
+
+<!-- ============================================================ -->
+<h2 id="baslarken">1. Başlarken</h2>
+<p>Program kurulumla birlikte kendi veritabanını da kurar; ayrıca bir şey yüklemeniz gerekmez. İlk açılışta veritabanı hazırlanır, bu birkaç saniye sürebilir.</p>
+
+<h3 id="ilk-giris">İlk giriş ve şifre</h3>
+<ol>
+  <li>Kullanıcı adı <code>admin</code>, şifre <code>admin123</code> ile giriş yapın.</li>
+  <li>Program ilk girişte şifrenizi değiştirmenizi ister. En az 8 karakterli, tahmin edilmesi zor bir şifre seçin.</li>
+  <li>Birden fazla firma tanımlıysa girişten sonra çalışacağınız firmayı seçersiniz.</li>
+</ol>
+<div class="dikkat">Şifre yanlış girildiğinde Caps Lock tuşunun açık olup olmadığına bakın; giriş ekranı bunu uyarır. Arka arkaya hatalı denemelerde hesap bir süre kilitlenir.</div>
+<p>Program 15 dakika kullanılmazsa ekran kilitlenir; devam etmek için şifrenizi girersiniz. Ekranın sağ üstündeki <span class="tus">🔑</span> ile şifrenizi değiştirebilir, <span class="tus">⏻</span> ile çıkış yapabilirsiniz.</p>
+
+<h3 id="lisans">Deneme süresi ve lisans</h3>
+<ul>
+  <li>Program kurulduğu günden itibaren <b>30 gün</b> deneme olarak tam çalışır.</li>
+  <li>Lisans almak için <span class="yol">Ayarlar → Lisans</span> sekmesindeki <b>makine kodunu</b> satıcınıza iletin. Size gönderilen lisans dosyasını aynı ekrandaki <b>Lisans Dosyası Yükle</b> ile seçin.</li>
+  <li>Deneme süresi bitince program yalnız lisans penceresini açar; <b>verileriniz silinmez</b>, lisans yüklenince kaldığınız yerden devam edersiniz.</li>
+  <li>Lisans bilgisayara bağlıdır; bilgisayar değiştirirseniz yeni makine koduyla satıcınızdan lisans isteyin.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="firma">2. Firma bilgileri</h2>
+<p>İlk iş olarak <span class="yol">Ayarlar → Firma &amp; Parametreler</span> sekmesinde firmanızın künyesini doldurun. Bu bilgiler faturalara, irsaliyelere ve makbuzlara basılır ve e-Fatura için zorunludur.</p>
+<table>
+  <tr><th>Alan</th><th>Açıklama</th></tr>
+  <tr><td>Firma Ünvanı, Vergi Dairesi, Vergi Numarası</td><td>Vergi levhanızdaki gibi yazın. Şahıs firmasında vergi numarası yerine T.C. kimlik numarası (11 hane) kullanılabilir.</td></tr>
+  <tr><td>Adres, İl, İlçe, Posta Kodu</td><td>İl ve ilçe e-Fatura/e-Arşiv için zorunludur.</td></tr>
+  <tr><td>Mersis No, Telefon, E-posta, Web</td><td>Belgelerde gösterilir.</td></tr>
+  <tr><td>Varsayılan KDV, vade günü, belge notları</td><td>Yeni ürün ve faturalarda öneri olarak gelir.</td></tr>
+  <tr><td>e-Belge XML klasörü, varsayılan senaryo</td><td>Bkz. <a href="#efatura">e-Fatura</a>.</td></tr>
+</table>
+<p>Birden fazla firmanın defterini tutuyorsanız <span class="yol">Firma İşlemleri</span> ekranından yeni firma, şube, <b>mali dönem</b> ve belge serisi tanımlayabilirsiniz. Her firmanın carisi, stoğu ve faturaları birbirinden ayrıdır.</p>
+<div class="not"><b>Mali dönem kilidi:</b> Beyannamesi verilmiş bir dönemi <span class="yol">Firma İşlemleri → Mali Dönemler → Kilitle/Aç</span> ile kilitleyin. Kilitli döneme yeni fatura, stok, kasa/banka hareketi ya da muhasebe fişi eklenemez, mevcutları silinemez.</div>
+
+<!-- ============================================================ -->
+<h2 id="kullanicilar">3. Kullanıcılar ve yetkiler</h2>
+<p><span class="yol">Kullanıcı Yönetimi</span> ekranında her çalışana ayrı kullanıcı açın. Ortak şifre kullanmayın; yapılan her değişiklik kimin yaptığıyla birlikte kayıt altına alınır (<span class="yol">Ayarlar → Audit Log</span>).</p>
+<ul>
+  <li><b>+ Yeni Ekle</b> ile kullanıcı adı, ad, rol ve şifre girin.</li>
+  <li><b>Modül Erişim ve İşlem İzinleri</b> listesinden kişinin neleri görebileceğini ve yapabileceğini işaretleyin. "Hazır şablon" ile tipik roller (ör. kasiyer, muhasebe) tek tıkla uygulanır.</li>
+  <li>Şifresini unutan çalışanın şifresini yönetici, kullanıcıyı seçip <b>🔑 Sıfırla</b> ile yeniler.</li>
+  <li>"Maliyet" yetkisi olmayan kullanıcı raporlarda alış maliyetini ve kârı göremez.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="cari">4. Cari hesaplar (müşteri ve tedarikçiler)</h2>
+<h3>Cari ekleme</h3>
+<p><span class="yol">Cari Ekleme</span> ekranında cari tipini (kurumsal / bireysel) ve türünü (müşteri, tedarikçi ya da ikisi) seçin.</p>
+<ul>
+  <li>Kurumsal caride vergi dairesi ve vergi numarası, bireysel caride T.C. kimlik numarası girilir. Program numaraların doğruluğunu (son hane kontrolü) denetler.</li>
+  <li><b>e-Fatura mükellefi</b> kutusu: Müşteriniz GİB e-Fatura sistemine kayıtlıysa işaretleyin; faturası e-Fatura olarak kesilir. İşaretli değilse e-Arşiv fatura kesilir. Emin değilseniz müşterinize ya da entegratörünüzün mükellef sorgulama ekranına danışın.</li>
+  <li>İl ve ilçe e-belgeler için gereklidir.</li>
+  <li>Risk limiti ve vade günü girerseniz satışta limit aşımı uyarısı ve vade hesabı yapılır.</li>
+</ul>
+<h3>Cari listesi ve Cari 360</h3>
+<p><span class="yol">Cari Listesi</span>'nden bir cariyi açtığınızda tüm faturaları, ödemeleri, çek/senetleri, siparişleri, açık belgeleri ve hesap ekstresi tek ekranda görünür. Ekstre yazdırılabilir ve Excel'e aktarılabilir.</p>
+<h3>Cari silme</h3>
+<p>Hareketi olan cari silinemez, pasife alınır. Kişisel veri talepleri için bkz. <a href="#kvkk">KVKK</a>.</p>
+
+<!-- ============================================================ -->
+<h2 id="stok">5. Ürünler ve stok</h2>
+<h3>Ürün ekleme</h3>
+<p><span class="yol">Ürün Ekle</span> ekranında kod (boş bırakılırsa otomatik verilir), barkod, ad, birim, KDV oranı, alış ve satış fiyatlarını girin. Kategori, marka ve birim listelerini yandaki <b>+</b> düğmeleriyle yönetebilirsiniz.</p>
+<p><b>Açılış stoğu</b> yalnız ürün ilk kaydedilirken girilir. Sonraki her stok değişikliği fatura, irsaliye ya da stok fişiyle yapılır; böylece stok her zaman hareketlerden hesaplanır ve geriye dönük izlenebilir.</p>
+<h3>Mağaza ve depolar</h3>
+<p>Stok, mağaza ve depo bazında tutulur (<span class="yol">Mağaza &amp; Depo</span>). Fatura ve irsaliyede malın hangi stok yerinden çıkacağını ya da hangi yere gireceğini seçebilirsiniz; seçmezseniz ilk aktif mağaza kullanılır.</p>
+<h3>Stok işlemleri</h3>
+<p><span class="yol">Ürün Listesi</span> (Stok Operasyon Merkezi) ekranında:</p>
+<ul>
+  <li><b>Stok Girişi / Stok Çıkışı:</b> faturasız giriş-çıkış (ör. numune, fire, sarf).</li>
+  <li><b>Transfer Yap:</b> depolar arası mal aktarımı. Toplam stok değişmez.</li>
+  <li><b>Stok Sayımı:</b> fiili sayımı girersiniz; program farkı sayım fişiyle düzeltir.</li>
+  <li><b>Stok 360°:</b> ürünün tüm hareketleri, yürüyen bakiyesi, depolara dağılımı ve maliyet/kârlılık özeti.</li>
+</ul>
+<div class="not"><b>Maliyet nasıl hesaplanır?</b> Program "hareketli ağırlıklı ortalama" yöntemini kullanır: her alışta ortalama birim maliyet yeniden hesaplanır, her satış o günkü ortalama maliyetle değerlenir. Bu yüzden alış fiyatı sonradan değişse de geçmiş ayların kârı değişmez.</div>
+
+<!-- ============================================================ -->
+<h2 id="fatura">6. Fatura</h2>
+<h3 id="fatura-kes">Fatura kesme</h3>
+<ol>
+  <li><span class="yol">Fatura Kes</span> ekranında fatura türünü seçin: Satış, Alış, Satış İade, Alış İade.</li>
+  <li>Cariyi ve tarihi seçin. Fatura numarasını boş bırakırsanız program sıradaki numarayı verir (ör. <code>SAT2026000000001</code>; GİB biçimindedir).</li>
+  <li>Ürünleri ekleyin; miktar, fiyat, satır iskontosu ve KDV oranını düzenleyin. Gerekirse fatura altı (genel) iskonto girin.</li>
+  <li>Ödeme şeklini seçin: <b>Açık Hesap</b> (veresiye), <b>Nakit</b>, <b>Kredi Kartı</b> ya da <b>Banka</b>. Peşin seçeneklerinde tahsilat/ödeme kaydı faturayla birlikte oluşur.</li>
+  <li><b>Kaydet</b> faturayı <b>taslak</b> olarak saklar; taslak serbestçe düzenlenebilir ve hiçbir hesabı etkilemez.</li>
+  <li><b>Onayla</b> dediğinizde cari hesap, stok ve muhasebe fişi oluşur. Onaylı fatura düzenlenemez; yanlışlık varsa iptal edilip yenisi kesilir.</li>
+</ol>
+<h3 id="fatura-liste">Fatura listesi, yazdırma ve iptal</h3>
+<p><span class="yol">Fatura Listesi</span> ekranında arama ve tür/durum süzgeci vardır. Her satırdaki simgeler: 🖨️ yazdır/PDF, 👁️ detay, 📨 e-Belge, ✓ onayla, ✕ iptal. (Simgenin üzerine gelince ne yaptığı yazar.)</p>
+<p><b>İptal</b> ettiğinizde cari borç/alacağı, stok ve muhasebe kaydı ters kayıtla geri alınır; peşin ödenmiş faturada kasadan/bankadan iade kaydı oluşur. İptal nedeni sorulur ve kayda geçer. Fatura silinmez, "İptal" durumunda listede kalır.</p>
+<div class="dikkat">GİB'e gönderilmiş bir e-Fatura/e-Arşiv programdan doğrudan iptal edilemez. Bkz. <a href="#efatura-durum">e-belge iptali</a>.</div>
+<h3 id="pos">Hızlı satış (POS)</h3>
+<p><span class="yol">Hızlı Satış (POS)</span> ekranı perakende satış içindir: barkod okutun ya da ürün arayın, ödeme yöntemini seçip satışı tamamlayın. Satış, faturası ve tahsilatıyla birlikte kaydedilir. Kartlı satışlar bankanın POS hesabına (blokeli) yazılır; banka parayı hesabınıza geçirdiğinde <span class="yol">Banka → POS Bloke &amp; Valör Takibi</span> ekranından komisyonu düşerek vadesiz hesaba aktarırsınız. "Satışı Beklet" ile yarım kalan satışı sonra devam ettirebilirsiniz.</p>
+<h3 id="irsaliye">İrsaliye ve sipariş</h3>
+<ul>
+  <li><span class="yol">Siparişler</span>: müşteri ve tedarikçi siparişleri. Açık satış siparişleri stokta "rezerve" görünür. Siparişten sevk (irsaliye) ve fatura oluşturulabilir; kısmi sevk desteklenir.</li>
+  <li><span class="yol">İrsaliye Yönetimi</span>: irsaliye onaylanınca stok hareket eder. Faturası sonradan irsaliyeden kesilir; stok ikinci kez düşmez.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="efatura">7. e-Fatura ve e-Arşiv</h2>
+<p>Program faturalarınızı GİB'in standart elektronik fatura biçiminde (UBL-TR 1.2 XML) hazırlar. Belgenin GİB'e iletilmesi ve mali mühürle imzalanması <b>özel entegratörünüz</b> tarafından yapılır.</p>
+<ul>
+  <li>Alıcı cari kartında <b>e-Fatura mükellefi</b> işaretliyse belge <b>e-Fatura</b>, değilse <b>e-Arşiv</b> olarak hazırlanır.</li>
+  <li>Kimlik numarası olmayan son tüketiciye e-Arşiv, GİB'in genel numarasıyla (11111111111) kesilir.</li>
+  <li>e-Belge olarak yalnız <b>satış faturası</b> ve <b>alış iadesi</b> (tedarikçiye iade faturası) düzenlenir. Alış faturası ve müşteri iadesi size karşı taraftan gelir.</li>
+  <li>e-Fatura için iki senaryo vardır: <b>Temel</b> (alıcı kabul/red veremez) ve <b>Ticari</b> (alıcı 8 gün içinde kabul ya da red verebilir). Varsayılanı Ayarlar'dan seçebilirsiniz.</li>
+</ul>
+<div class="not"><b>Çalışma şekli:</b> Entegratörünüzle program arasında doğrudan bağlantı kurulana kadar program XML dosyasını <span class="yol">Ayarlar → e-Belge XML klasörü</span>'ne (boşsa <code>Belgelerim\MuhasebeYonetim\e-Belge</code>) yazar. Dosyayı entegratörünüzün web portalındaki "XML/UBL yükle" bölümünden gönderirsiniz. Entegratör bağlantısı kurulduğunda gönderim tek tıkla programdan yapılır; diğer her şey aynı kalır.</div>
+
+<h3 id="efatura-hazirla">Belge hazırlama ve gönderme</h3>
+<ol>
+  <li>Faturayı onaylayın.</li>
+  <li><span class="yol">Fatura Listesi</span>'nde faturanın satırındaki 📨 düğmesine basın.</li>
+  <li>Açılan pencerede belge türü (e-Fatura/e-Arşiv) ve eksik bilgiler görünür. Kırmızı uyarı varsa (ör. firmanızın ili girilmemiş, alıcının vergi numarası hatalı) önce onu düzeltin.</li>
+  <li>Alış iadesinde iade edilen (tedarikçinin) fatura numarasını ve tarihini girin.</li>
+  <li><b>XML Dosyası Oluştur</b> deyin. Program belgeye benzersiz bir <b>ETTN</b> verir ve dosyayı klasöre yazar. <b>Klasörü Aç</b> ile dosyayı bulabilir, <b>XML'i Görüntüle</b> ile içeriğine bakabilirsiniz.</li>
+  <li>Dosyayı entegratör portalına yükleyip gönderin, ardından pencerede <b>Portala yüklendi (Gönderildi)</b> deyin.</li>
+</ol>
+<p><b>Toplu hazırlama:</b> Fatura Listesi'nin üstündeki <b>Toplu e-Belge</b> ile seçtiğiniz tarih aralığındaki tüm bekleyen faturaların dosyaları tek seferde oluşturulur. Bilgisi eksik olan fatura atlanır ve nedeni listede yazar.</p>
+<p>e-Belgesi hazırlanmış faturanın çıktısında belge türü ve ETTN yazar. Müşteriye gönderilecek resmî görüntü, entegratörün ürettiği PDF'tir.</p>
+
+<h3 id="efatura-durum">Durum takibi ve iptal</h3>
+<table>
+  <tr><th>Durum</th><th>Anlamı</th></tr>
+  <tr><td>Hazırlandı</td><td>XML oluştu, henüz gönderilmedi. Gerekirse fatura iptal edilebilir ya da belge yeniden hazırlanabilir (ETTN aynı kalır).</td></tr>
+  <tr><td>Gönderildi</td><td>Portala yüklendi. Artık programdan iptal edilemez.</td></tr>
+  <tr><td>Kabul edildi / Reddedildi</td><td>Ticari senaryoda alıcının yanıtı.</td></tr>
+  <tr><td>İptal edildi</td><td>Belge portalda iptal edildi.</td></tr>
+  <tr><td>Hata</td><td>Gönderim başarısız oldu; bilgiyi düzeltip yeniden hazırlayın.</td></tr>
+</table>
+<p>Durum, Fatura Listesi'nde fatura durumunun altında küçük yazıyla görünür.</p>
+<div class="dikkat"><b>Gönderilmiş belgenin iptali:</b> e-Arşiv faturayı entegratör/GİB portalından iptal edin. e-Fatura tek taraflı iptal edilemez: ticari faturada alıcı reddeder, aksi halde alıcı size iade faturası keser (ya da GİB portalından iptal talebi yapılır). Sonra 📨 penceresinde <b>Portalda iptal edildi</b> veya <b>Reddedildi</b> deyip faturayı Fatura Listesi'nden iptal edin.</div>
+
+<h3 id="efatura-gelen">Gelen e-Fatura aktarma</h3>
+<p>Tedarikçinizden gelen e-Faturanın XML dosyasını (entegratör portalından indirilebilir) programa aktararak alış faturasını elle girmekten kurtulursunuz.</p>
+<ol>
+  <li>Fatura Listesi'nin üstündeki <b>e-Fatura İçe Aktar</b> düğmesine basın ve bir ya da birden fazla XML dosyası seçin.</li>
+  <li>Önizlemede gönderen firma, kalemler ve her kalemin programdaki hangi ürünle eşleştiği görünür. Ürün kodu/barkodu ya da adı tutan ürün otomatik eşleşir; eşleşmeyen için yeni ürün kartı açılır. Tedarikçi cari kartı yoksa açılır.</li>
+  <li><b>Taslak Fatura Olarak Aktar</b> deyin. Fatura <b>taslak</b> alış faturası olarak listeye gelir (müşteri iade faturasıysa satış iadesi olarak).</li>
+  <li>Faturayı açıp kontrol edin, gerekiyorsa stok yerini düzeltin ve onaylayın. Onayla birlikte stok ve cari hesap işlenir.</li>
+</ol>
+<p>Program şunları kendiliğinden denetler: fatura size mi kesilmiş (vergi numaranız), daha önce aktarılmış mı (aynı ETTN), dövizli ya da tevkifatlı mı (bunlar elle girilmelidir), toplam tutar programın hesabıyla uyuşuyor mu.</p>
+
+<!-- ============================================================ -->
+<h2 id="tahsilat">8. Tahsilat, ödeme, çek ve senet</h2>
+<ul>
+  <li><span class="yol">Tahsilat</span> (müşteriden para alma) ve <span class="yol">Ödeme</span> (tedarikçiye ödeme) ekranlarında cariyi seçin, yöntemi belirleyin: nakit (kasa), havale/EFT (banka), kredi kartı (POS), çek ya da senet.</li>
+  <li><b>Açık belgeler</b> listesinden ödemenin hangi faturaları kapattığını seçebilirsiniz. Seçmezseniz ödeme carinin genel bakiyesinden düşülür; vade ve yaşlandırma raporlarında en eski faturadan başlanarak kapanmış sayılır.</li>
+  <li><span class="yol">Çek ve Senetler</span>: alınan/verilen çek ve senetlerin portföyü. Durum değişiklikleri (tahsil, ciro, karşılıksız, iade vb.) buradan yapılır ve muhasebeye işlenir.</li>
+  <li>Yanlış bir tahsilat/ödeme <span class="yol">Finans Merkezi</span>'nden iptal edilir; ters kayıt oluşur, silinmez.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="kasabanka">9. Kasa ve banka</h2>
+<h3>Kasa</h3>
+<ul>
+  <li><span class="yol">Kasa</span> ekranında tahsilat, tediye, gelir ve gider fişi girersiniz. Masraf kodu ile giderlerinizi gruplayabilirsiniz.</li>
+  <li><b>Virman &amp; Transfer</b>: kasalar arası aktarım ve bankaya para yatırma.</li>
+  <li><b>Gün Sonu Z-Mutabakatı</b>: kasayı sayıp banknot adetlerini girin; program sayım ile kayıtlı bakiye arasındaki farkı gösterir ve kaydeder.</li>
+  <li><b>Ekstre / Gün Sonu Yazdır</b>: seçilen tarih aralığının devreden, giriş, çıkış ve bakiyesi.</li>
+</ul>
+<h3>Banka</h3>
+<ul>
+  <li>Gelen/giden havale, banka gelir ve masraf fişleri; bankalar arası virman; bankadan kasaya nakit çekme.</li>
+  <li><b>POS Bloke &amp; Valör Takibi</b>: kartlı satışlar POS hesabında bloke bekler. Banka parayı geçirdiğinde komisyonu girerek vadesiz hesaba aktarın; bekleyen kartlı satışlar en eskiden başlanarak kapatılır, komisyon gider olarak işlenir.</li>
+</ul>
+<div class="not">Kasa ve banka hesapları şu an yalnız Türk Lirası olarak açılabilir. Dövizli cari ve faturalar kurla girilebilir; bkz. <a href="#doviz">Döviz</a>.</div>
+
+<!-- ============================================================ -->
+<h2 id="muhasebe">10. Muhasebe</h2>
+<p>Fatura, tahsilat/ödeme, kasa/banka, çek/senet ve stok işlemleri <b>muhasebe fişlerini kendiliğinden</b> oluşturur (Tek Düzen Hesap Planı). Ayrıca elle fiş girmeniz gerekmez; muhasebecinizin düzeltme kayıtları için elle mahsup fişi kullanılabilir.</p>
+<ul>
+  <li><span class="yol">Hesap Planı</span>: hesapları görüntüleme, alt hesap açma.</li>
+  <li><span class="yol">Muhasebe Fişleri</span>: <b>Yeni Mahsup Fişi</b>, taslak fişi <b>Onayla</b>, onaylı fişi <b>İptal / Ters Fiş</b>. Belgeden (fatura vb.) gelen fiş buradan değil, belgenin kendisi iptal edilerek geri alınır. <b>Kaynak Belge</b> fişi oluşturan belgeyi açar.</li>
+  <li><span class="yol">Yevmiye Defteri</span>, <span class="yol">Büyük Defter</span>, <span class="yol">Muavin Defter</span>, <span class="yol">Mizan</span>: dönem seçerek görüntüleme, yazdırma ve Excel'e aktarma.</li>
+  <li><span class="yol">Bağlantı Kodları</span>: hangi işlemin hangi hesaba yazılacağı (ör. satışlar 600, KDV 391).</li>
+  <li><span class="yol">Sağlık Paneli</span>: borç-alacak dengesi bozuk fiş, fişsiz belge gibi tutarsızlıkları listeler. Ay sonunda bir göz atmanız önerilir.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="doviz">11. Döviz ve kur</h2>
+<ul>
+  <li><span class="yol">Döviz &amp; Kur Merkezi</span>'nde <b>TCMB Güncelle</b> ile Merkez Bankası kurları alınır (internet gerekir). İnternet yoksa kuru elle girebilirsiniz; elle girilen kur nedeniyle birlikte kayda geçer.</li>
+  <li><b>Dönem sonu revalüasyon</b>: dövizli cari bakiyeleri seçtiğiniz tarihteki kurla değerlenir; kur farkı muhasebeye (646/656) işlenir. Önce <b>Önizle</b> ile sonucu görün, sonra uygulayın. Yanlış uygulanan revalüasyon geçmiş listesinden iptal edilebilir.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="raporlar">12. Raporlar</h2>
+<p><span class="yol">Raporlar</span> ekranında dönem seçerek (bugün, bu ay, geçen yıl...) şunları görürsünüz: yönetici özeti, dönemsel karşılaştırma, satış ve alış raporları (kâr ve maliyetle), cari bakiye ve yaşlandırma, tahsilat performansı, stok, stok değeri, hareketsiz ürünler, KDV ve finans raporları. Her rapor Excel'e, PDF'e aktarılabilir ve yazdırılabilir.</p>
+<p>Tutarlar KDV hariçtir; iadeler eksi olarak düşülür; iptal edilen belgeler istenirse "İptal Edilenleri Dahil Et" ile gösterilir.</p>
+
+<!-- ============================================================ -->
+<h2 id="yedek">13. Yedekleme ve geri yükleme</h2>
+<ul>
+  <li>Program her açılışta, son yedek 24 saatten eskiyse <b>otomatik tam yedek</b> alır. Yedekler <code>Belgeler\Muhasebe Yedekleri</code> klasöründedir; son 30 yedek saklanır.</li>
+  <li><span class="yol">Ayarlar → Yedekleme</span> sekmesinden istediğiniz an elle yedek alabilirsiniz.</li>
+  <li><b>Geri yükleme:</b> aynı sekmede yedeği seçip <b>Seçili Yedeği Geri Yükle</b> (ya da USB'deki dosya için <b>Dosyadan Geri Yükle</b>) deyin ve onay için <code>GERİ YÜKLE</code> yazın. Program önce mevcut verinin yedeğini alır, yedeği doğrular, sonra yeniden başlar. Eski veri silinmez.</li>
+</ul>
+<div class="dikkat"><b>Yedeklerinizi bilgisayar dışına da kopyalayın</b> (USB bellek, harici disk ya da bulut klasörü). Bilgisayar arızalanır ya da çalınırsa yalnız aynı diskteki yedek işe yaramaz. Haftada en az bir kez dışarıya kopya alın.</div>
+
+<!-- ============================================================ -->
+<h2 id="ag">14. Ağda birden fazla bilgisayar</h2>
+<p>Program birden fazla bilgisayardan aynı verilerle kullanılabilir (<span class="yol">Ayarlar → Ağ</span>, yönetici yetkisi gerekir).</p>
+<ol>
+  <li>Verilerin duracağı bilgisayarda <b>Bu Bilgisayarı Sunucu Yap</b> deyin (Windows yönetici onayı istenir). Ekranda <code>MYS1-</code> ile başlayan bir bağlantı kodu çıkar.</li>
+  <li>Diğer bilgisayarlarda <b>Sunucuya Bağlan</b> deyip bu kodu girin.</li>
+</ol>
+<ul>
+  <li>Sunucu bilgisayar kapalıyken diğerleri çalışamaz. Yedekler sunucuda alınır.</li>
+  <li>Bağlantı kodu verilere tam erişim sağlar; yalnız kendi bilgisayarlarınıza girin.</li>
+  <li>Tüm bilgisayarları aynı program sürümünde tutun; bir bilgisayar güncellenince diğerleri de güncellenmelidir.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="kvkk">15. Kişisel veriler (KVKK)</h2>
+<p><span class="yol">Cari Silme</span> ekranında seçili cari için:</p>
+<ul>
+  <li><b>KVKK: Kişisel Veri Dökümü</b> — kişinin "hakkımda hangi veriler var" talebine verilecek dökümü üretir.</li>
+  <li><b>KVKK: Anonimleştir</b> — yasal saklama süresi (son işlemden itibaren 10 yıl) dolmuş ya da hiç işlemi olmayan carinin kimlik, iletişim ve adres bilgilerini kalıcı olarak siler. Tutarlar ve belgeler kalır. Süre dolmamışsa program nedenini açıklayarak reddeder.</li>
+</ul>
+<p>Aydınlatma metni ve VERBİS kaydı firmanızın sorumluluğundadır; hukuk danışmanınıza başvurun.</p>
+
+<!-- ============================================================ -->
+<h2 id="sss">16. Sık sorulan sorular ve sorun giderme</h2>
+<h3>Faturayı yanlış kestim, nasıl düzeltirim?</h3>
+<p>Taslaksa açıp düzeltin. Onaylıysa Fatura Listesi'nden iptal edin (ters kayıt oluşur) ve doğrusunu kesin. e-Belge olarak gönderildiyse önce <a href="#efatura-durum">e-belge iptal adımlarını</a> izleyin.</p>
+<h3>Stok eksiye düşmüyor, satış yapamıyorum.</h3>
+<p>Program stoğun eksiye düşmesine izin vermez. Malı önce alış faturası ya da stok girişiyle girin; farklı depodaysa transfer yapın veya faturada doğru stok yerini seçin.</p>
+<h3>"Kilitli mali dönem" uyarısı alıyorum.</h3>
+<p>İşlem tarihi kilitlenmiş bir döneme düşüyor. Tarihi düzeltin ya da yetkiliniz <span class="yol">Firma İşlemleri → Mali Dönemler</span>'den kilidi açsın.</p>
+<h3>e-Belge penceresinde "il ve ilçe girilmelidir" diyor.</h3>
+<p>Firma için <span class="yol">Ayarlar → Firma &amp; Parametreler</span>, alıcı için cari kartındaki il/ilçe alanlarını doldurun.</p>
+<h3>Şifremi unuttum.</h3>
+<p>Yönetici kullanıcı <span class="yol">Kullanıcı Yönetimi</span>'nden şifrenizi sıfırlar. Yönetici şifresi unutulduysa satıcınıza başvurun.</p>
+<h3>Program açılmıyor ya da hata veriyor.</h3>
+<p>Bilgisayarı yeniden başlatıp tekrar deneyin. Sorun sürerse <code>C:\ProgramData\MuhasebeYonetim\Loglar</code> klasöründeki dosyaları satıcınıza gönderin; hatanın nedeni bu kayıtlarda yazar.</p>
+<h3>Yeni sürüm nasıl kurulur?</h3>
+<p>Güncelleme açıksa program yeni sürümü kendisi bildirir ve kapanırken kurar. Elle kurulumda yeni kurulum dosyasını çalıştırmanız yeterlidir; verileriniz korunur, program açılışta veritabanını yedekleyip günceller.</p>
+</main>
+
+<script>
+  // Basit arama: içindekiler bağlantılarını ve bölüm başlıklarını, bölüm metninde geçen kelimeye göre süzer.
+  function ara(metin) {
+    metin = metin.trim().toLocaleLowerCase('tr');
+    const baglantilar = document.querySelectorAll('nav a');
+    baglantilar.forEach(a => {
+      if (!metin) { a.style.display = ''; return; }
+      const hedef = document.querySelector(a.getAttribute('href'));
+      let icerik = '';
+      if (hedef) {
+        icerik = hedef.textContent;
+        let el = hedef.nextElementSibling;
+        while (el && !/^H[23]$/.test(el.tagName)) { icerik += ' ' + el.textContent; el = el.nextElementSibling; }
+      }
+      a.style.display = icerik.toLocaleLowerCase('tr').includes(metin) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

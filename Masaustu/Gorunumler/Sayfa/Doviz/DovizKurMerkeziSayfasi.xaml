@@ -182,7 +182,6 @@
         <Border Grid.Row="3" Background="#F1F5F9" Padding="10,6" Margin="0,8,0,0">
             <DockPanel>
                 <TextBlock Text="Profesyonel Döviz &amp; Kur Yönetimi • TCMB Entegrasyonu &amp; Dönem Sonu Revalüasyon" Foreground="#64748B" FontSize="11"/>
-                <TextBlock Text="Baseline: 317 PASSing Tests Protected" HorizontalAlignment="Right" Foreground="#059669" FontSize="11" FontWeight="Bold"/>
             </DockPanel>
         </Border>
     </Grid>

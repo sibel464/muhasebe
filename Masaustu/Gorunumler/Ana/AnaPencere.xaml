@@ -19,6 +19,9 @@
         AllowsTransparency="True"
         Background="Transparent">
 
+    <Window.InputBindings>
+        <KeyBinding Key="F1" Command="{Binding YardimKomutu}"/>
+    </Window.InputBindings>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -468,6 +471,14 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙️" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Ayarlar" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding YardimKomutu}" Height="48" ToolTip="Kullanım kılavuzu (F1)"
+                                    Style="{StaticResource MenuOgeDugme}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="❓" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Yardım (F1)" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 

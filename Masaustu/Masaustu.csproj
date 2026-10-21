@@ -35,6 +35,10 @@
     <None Update="appsettings.local.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Kullanım kılavuzu (F1): kurulum klasörüne kopyalanır -->
+    <None Update="Yardim\KullanimKilavuzu.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -48,6 +48,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public ICommand UrunSilKomutu { get; }
     public ICommand UrunKomutu { get; }
     public ICommand SatisKomutu { get; }
+    public ICommand YardimKomutu { get; }
     public ICommand IrsaliyeKomutu { get; }
     public ICommand FaturaEkleKomutu { get; }
     public ICommand FaturaKomutu { get; }
@@ -241,6 +242,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         MuhasebeSaglikKomutu = new KomutSarici(() => MenuGit("MuhasebeSaglik"));
         RaporKomutu = new KomutSarici(() => MenuGit("Rapor"));
         AyarlarKomutu = new KomutSarici(() => MenuGit("Ayarlar"));
+        YardimKomutu = new KomutSarici(() => YardimAc());
         KullanicilarKomutu = new KomutSarici(() => MenuGit("Kullanicilar"));
         FirmaIslemleriKomutu = new KomutSarici(() => MenuGit("FirmaIslemleri"));
         TicariIslemlerKomutu = new KomutSarici(() => MenuGit("TicariIslemler"));
@@ -254,5 +256,17 @@ public class AnaGorunumModeli : TemelGorunumModeli
     {
         AktifMenu = sayfa;
         _navigasyon.Git(sayfa);
+    }
+
+    // Kullanım kılavuzu programla birlikte kurulan HTML dosyasıdır; varsayılan tarayıcıda açılır (F1 / Yardım menüsü).
+    public static void YardimAc()
+    {
+        var yol = System.IO.Path.Combine(AppContext.BaseDirectory, "Yardim", "KullanimKilavuzu.html");
+        if (!System.IO.File.Exists(yol))
+        {
+            System.Windows.MessageBox.Show("Kullanım kılavuzu bulunamadı: " + yol, "Yardım", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(yol) { UseShellExecute = true });
     }
 }
