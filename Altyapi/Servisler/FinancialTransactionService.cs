@@ -219,6 +219,9 @@ public class FinancialTransactionService : IFinancialTransactionService
                         HareketTuru = fatura.Tur is FaturaTuru.Alis or FaturaTuru.SatisIade
                             ? StokHareketTuru.Giris
                             : StokHareketTuru.Cikis,
+                        IslemTuru = fatura.Tur is FaturaTuru.Alis or FaturaTuru.AlisIade
+                            ? StokIslemTuru.AlisFaturasi
+                            : StokIslemTuru.SatisFaturasi,
                         Miktar = dagilim.Miktar,
                         BirimFiyat = kalem.BirimFiyat
                     });

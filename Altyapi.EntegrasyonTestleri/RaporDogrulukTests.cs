@@ -66,6 +66,47 @@ public sealed class RaporDogrulukTests(IsolatedPostgreSqlFixture fixture)
     }
 
     [Fact]
+    public async Task Satis_maliyeti_satis_anindaki_hareketli_ortalamadan_iade_ortalamayi_bozmaz()
+    {
+        var (db, sirket, cari, urun) = await HazirlaAsync();
+        await using var _ = db;
+        var satis = Fatura(sirket.Id, cari.Id, urun.Id, FaturaTuru.Satis, Gun(-5), 100m, 20m);
+        var iade = Fatura(sirket.Id, cari.Id, urun.Id, FaturaTuru.SatisIade, Gun(-4), 100m, 20m);
+        var alis = Fatura(sirket.Id, cari.Id, urun.Id, FaturaTuru.Alis, Gun(-3), 150m, 20m);
+        alis.Kalemler.Single().Miktar = 10m;
+        db.Faturalar.AddRange(satis, iade, alis);
+        await db.SaveChangesAsync();
+        StokHareketi Hareket(DateTime tarih, StokHareketTuru yon, StokIslemTuru tur, decimal miktar, decimal fiyat, Fatura? f = null) => new()
+        {
+            UrunId = urun.Id, SirketId = sirket.Id, Tarih = tarih, HareketTuru = yon, IslemTuru = tur, Miktar = miktar, BirimFiyat = fiyat,
+            BelgeNo = f?.FaturaNo, IlgiliBelgeId = f?.Id
+        };
+        db.StokHareketleri.AddRange(
+            Hareket(Gun(-10), StokHareketTuru.Giris, StokIslemTuru.DevirGiris, 10m, 50m),
+            Hareket(Gun(-5), StokHareketTuru.Cikis, StokIslemTuru.SatisFaturasi, 1m, 100m, satis),
+            // İade satış fiyatını taşır; maliyete ortalamayla (50) dönmeli.
+            Hareket(Gun(-4), StokHareketTuru.Giris, StokIslemTuru.SatisFaturasi, 1m, 100m, iade),
+            Hareket(Gun(-3), StokHareketTuru.Giris, StokIslemTuru.AlisFaturasi, 10m, 150m, alis));
+        urun.AlisFiyati = 150m; // kart son alış fiyatını gösterir
+        await db.SaveChangesAsync();
+        var servis = StabilizasyonTestOturumu.Rapor(db, sirket.Id);
+
+        var rapor = await servis.GetSatisRaporuAsync(new SatisRaporFiltreDto { BaslangicTarihi = DateTime.Today.AddDays(-30), BitisTarihi = DateTime.Today, MaliyetGor = true, PageSize = 50 });
+        var satisSatiri = rapor.Items.Single(x => x.FaturaId == satis.Id);
+        Assert.Equal(50m, satisSatiri.Maliyet);
+        Assert.Equal(50m, satisSatiri.BrutKar);
+        var iadeSatiri = rapor.Items.Single(x => x.FaturaId == iade.Id);
+        Assert.Equal(-50m, iadeSatiri.Maliyet);
+
+        // 10 adet × 50 + 10 adet × 150 = 2000 / 20 = 100 (iade 100 TL'den girseydi ortalama bozulurdu).
+        var stok = await servis.GetStokRaporuAsync(new SatisRaporFiltreDto { MaliyetGor = true, PageSize = 50 });
+        Assert.Equal(100m, stok.Items.Single(x => x.UrunId == urun.Id).BirimMaliyet);
+
+        var enCok = await servis.GetEnCokSatanUrunlerAsync(new SatisRaporFiltreDto { MaliyetGor = true });
+        Assert.Equal(50m, enCok.Single(x => x.UrunId == urun.Id).BrutKar);
+    }
+
+    [Fact]
     public async Task Rezerve_yalniz_acik_satis_siparisinin_sevk_edilmemis_kismi_ve_hareketsiz_urun_son_hareketten()
     {
         var (db, sirket, cari, urun) = await HazirlaAsync();

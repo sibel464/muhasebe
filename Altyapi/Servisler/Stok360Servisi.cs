@@ -361,48 +361,34 @@ public class Stok360Servisi : IStok360Servisi
             .ThenBy(sh => sh.Id)
             .ToListAsync(cancellationToken);
 
-        decimal cariStokMiktari = 0;
-        decimal cariStokDegeri = 0;
-        decimal birimMaliyet = urun?.AlisFiyati ?? 0;
+        // Ortalama maliyet raporlarla aynı hesaplayıcıdan gelir (satış iadesi satış fiyatıyla ortalamayı bozmaz).
+        var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, [urunId], cancellationToken);
+        decimal birimMaliyet = maliyet.GuncelBirimMaliyet(urunId);
         decimal toplamSatilanMiktar = 0;
         decimal toplamSatisCirosu = 0;
         decimal toplamSatilanMalMaliyeti = 0;
 
         foreach (var h in tumHareketler)
         {
-            if (h.IslemTuru == StokIslemTuru.DepoTransferi)
-            {
-                // Transfer moves quantity between locations; company total stock value & average cost remain unchanged
-                continue;
-            }
-
             if (h.HareketTuru == StokHareketTuru.Giris)
             {
-                decimal girenFiyat = h.BirimFiyat > 0 ? h.BirimFiyat : (birimMaliyet > 0 ? birimMaliyet : urun?.AlisFiyati ?? 0);
-                decimal girenTutar = h.Miktar * girenFiyat;
-
-                cariStokMiktari += h.Miktar;
-                cariStokDegeri += girenTutar;
-
-                if (cariStokMiktari > 0)
-                    birimMaliyet = cariStokDegeri / cariStokMiktari;
-
                 if (h.BirimFiyat > 0 && (h.IslemTuru == StokIslemTuru.AlisFaturasi || h.IslemTuru == StokIslemTuru.DevirGiris || h.IslemTuru == StokIslemTuru.AlisIrsaliyesi))
                     sonAlisMaliyeti = h.BirimFiyat;
+                else if (h.IslemTuru == StokIslemTuru.SatisFaturasi)
+                {
+                    // Satış iadesi ya da satış faturası iptali: satıştan düşülür.
+                    toplamSatilanMiktar -= h.Miktar;
+                    toplamSatisCirosu -= h.Miktar * h.BirimFiyat;
+                    toplamSatilanMalMaliyeti -= h.Miktar * maliyet.TarihtekiBirimMaliyet(urunId, h.Tarih);
+                }
             }
             else if (h.HareketTuru == StokHareketTuru.Cikis)
             {
-                decimal cikanMiktar = Math.Min(cariStokMiktari, h.Miktar);
-                decimal cikanMaliyet = (cikanMiktar > 0 ? cikanMiktar : h.Miktar) * birimMaliyet;
-
-                cariStokMiktari = Math.Max(0, cariStokMiktari - h.Miktar);
-                cariStokDegeri = Math.Max(0, cariStokDegeri - cikanMaliyet);
-
                 if (h.IslemTuru == StokIslemTuru.SatisFaturasi || h.IslemTuru == StokIslemTuru.SatisIrsaliyesi || h.IslemTuru == StokIslemTuru.SarfFire || h.IslemTuru == StokIslemTuru.Diger)
                 {
                     toplamSatilanMiktar += h.Miktar;
                     toplamSatisCirosu += h.Miktar * (h.BirimFiyat > 0 ? h.BirimFiyat : urun?.PerakendeSatisFiyati ?? 0);
-                    toplamSatilanMalMaliyeti += cikanMaliyet;
+                    toplamSatilanMalMaliyeti += h.Miktar * maliyet.TarihtekiBirimMaliyet(urunId, h.Tarih);
                 }
             }
         }

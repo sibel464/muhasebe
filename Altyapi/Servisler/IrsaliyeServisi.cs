@@ -314,6 +314,7 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                         IlgiliBelgeId = irsaliye.Id,
                         Aciklama = $"{irsaliye.IrsaliyeNo} Nolu İrsaliye Kalemi ({kalem.UrunAd})",
                         HareketTuru = cikis ? StokHareketTuru.Cikis : StokHareketTuru.Giris,
+                        IslemTuru = cikis ? StokIslemTuru.SatisIrsaliyesi : StokIslemTuru.AlisIrsaliyesi,
                         Miktar = dagilim.Miktar,
                         BirimFiyat = kalem.BirimFiyat
                     });
@@ -500,7 +501,7 @@ public class IrsaliyeServisi : IIrsaliyeServisi
 
             foreach (var kalem in irsaliye.Kalemler)
                 foreach (var dagilim in kalem.StokDagilimlari)
-                    _baglam.StokHareketleri.Add(new StokHareketi { UrunId = kalem.UrunId, DepoId = dagilim.DepoId, Tarih = irsaliye.SevkTarihi, HareketTuru = StokHareketTuru.Cikis, Miktar = dagilim.Miktar, BirimFiyat = kalem.BirimFiyat, BelgeNo = irsaliye.IrsaliyeNo, IlgiliBelgeId = irsaliye.Id, Aciklama = $"İrsaliye sevkiyatı ({irsaliye.IrsaliyeNo})" });
+                    _baglam.StokHareketleri.Add(new StokHareketi { UrunId = kalem.UrunId, DepoId = dagilim.DepoId, Tarih = irsaliye.SevkTarihi, HareketTuru = StokHareketTuru.Cikis, IslemTuru = StokIslemTuru.SatisIrsaliyesi, Miktar = dagilim.Miktar, BirimFiyat = kalem.BirimFiyat, BelgeNo = irsaliye.IrsaliyeNo, IlgiliBelgeId = irsaliye.Id, Aciklama = $"İrsaliye sevkiyatı ({irsaliye.IrsaliyeNo})" });
             SiparisDurumunuHesapla(siparis);
             await _baglam.SaveChangesAsync();
             await tx.CommitAsync();

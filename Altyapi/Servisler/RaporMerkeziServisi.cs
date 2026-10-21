@@ -79,16 +79,13 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
             var buAySatisKalemleri = await _baglam.FaturaKalemleri.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
                 .Where(fk => buAySatilarId.Contains(fk.FaturaId))
-                .Select(fk => new
-                {
-                    fk.SatirToplami,
-                    fk.Miktar,
-                    AlisFiyati = fk.Urun != null ? fk.Urun.AlisFiyati : 0m
-                })
+                .Select(fk => new { fk.FaturaId, fk.UrunId, FaturaTarihi = fk.Fatura!.Tarih, fk.SatirToplami, fk.KdvTutari, fk.Miktar })
                 .ToListAsync();
 
-            var buAyCiroNet = buAySatisKalemleri.Sum(k => k.SatirToplami);
-            var buAyMaliyet = buAySatisKalemleri.Sum(k => k.Miktar * k.AlisFiyati);
+            // Kâr KDV hariç ciro ile satış anındaki ortalama maliyet farkıdır.
+            var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, buAySatisKalemleri.Select(k => k.UrunId).Distinct().ToList());
+            var buAyCiroNet = buAySatisKalemleri.Sum(k => k.SatirToplami - k.KdvTutari);
+            var buAyMaliyet = buAySatisKalemleri.Sum(k => k.Miktar * maliyet.FaturaBirimMaliyeti(k.FaturaId, k.UrunId, k.FaturaTarihi));
             brutKar = buAyCiroNet - buAyMaliyet;
         }
 
@@ -336,11 +333,14 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 NetTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * (x.Kalem.SatirToplami - x.Kalem.KdvTutari),
                 KdvTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.KdvTutari,
                 ToplamTutar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.SatirToplami,
-                Maliyet = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * x.Kalem.Miktar * x.Urun.AlisFiyati,
-                BrutKar = (x.Fatura.Tur == FaturaTuru.SatisIade ? -1 : 1) * (x.Kalem.SatirToplami - x.Kalem.KdvTutari - x.Kalem.Miktar * x.Urun.AlisFiyati),
+                UrunId = x.Urun.Id,
                 Durum = x.Fatura.Durum.ToString()
             })
             .ToListAsync();
+
+        var maliyet = filtre.MaliyetGor
+            ? await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, itemsRaw.Select(x => x.UrunId).Distinct().ToList())
+            : null;
 
         var items = itemsRaw.Select(x => new SatisRaporuKalemiDto
         {
@@ -361,8 +361,9 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             NetTutar = x.NetTutar,
             KdvTutar = x.KdvTutar,
             ToplamTutar = x.ToplamTutar,
-            Maliyet = filtre.MaliyetGor ? x.Maliyet : null,
-            BrutKar = filtre.MaliyetGor ? x.BrutKar : null,
+            // Miktar iadelerde eksi işaretli olduğundan maliyet de eksi çıkar.
+            Maliyet = maliyet == null ? null : x.Miktar * maliyet.FaturaBirimMaliyeti(x.FaturaId, x.UrunId, x.Tarih),
+            BrutKar = maliyet == null ? null : x.NetTutar - x.Miktar * maliyet.FaturaBirimMaliyeti(x.FaturaId, x.UrunId, x.Tarih),
             Durum = x.Durum
         }).ToList();
 
@@ -389,7 +390,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var query = from f in faturaQuery
                     join fk in _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId) on f.Id equals fk.FaturaId
                     join u in _baglam.Urunler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisUrunFiltresi]).AsNoTracking().Where(x => x.SirketId == sirketId) on fk.UrunId equals u.Id
-                    group new { fk, u } by new { u.Id, u.Kod, u.Ad, u.Kategori, u.AlisFiyati, u.StokMiktari } into g
+                    group new { fk, u } by new { u.Id, u.Kod, u.Ad, u.Kategori, u.StokMiktari } into g
                     select new TopUrunRaporKalemiDto
                     {
                         UrunId = g.Key.Id,
@@ -399,11 +400,25 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                         SatilanMiktar = g.Sum(x => x.fk.Miktar),
                         // Ciro ve kâr KDV hariç.
                         Ciro = g.Sum(x => x.fk.SatirToplami - x.fk.KdvTutari),
-                        BrutKar = filtre.MaliyetGor ? (g.Sum(x => x.fk.SatirToplami - x.fk.KdvTutari) - g.Sum(x => x.fk.Miktar * g.Key.AlisFiyati)) : null,
                         MevcutStok = g.Key.StokMiktari
                     };
 
-        return await query.OrderByDescending(x => x.SatilanMiktar).Take(topCount).ToListAsync();
+        var sonuc = await query.OrderByDescending(x => x.SatilanMiktar).Take(topCount).ToListAsync();
+        if (filtre.MaliyetGor && sonuc.Count > 0)
+        {
+            // Maliyet her satışın kendi tarihindeki ortalama maliyetiyle toplanır.
+            var urunIds = sonuc.Select(x => x.UrunId).ToList();
+            var kalemler = await (from f in faturaQuery
+                                  join fk in _baglam.FaturaKalemleri.AsNoTracking() on f.Id equals fk.FaturaId
+                                  where urunIds.Contains(fk.UrunId)
+                                  select new { f.Id, f.Tarih, fk.UrunId, fk.Miktar }).ToListAsync();
+            var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, urunIds);
+            var maliyetler = kalemler.GroupBy(k => k.UrunId)
+                .ToDictionary(g => g.Key, g => g.Sum(k => k.Miktar * maliyet.FaturaBirimMaliyeti(k.Id, k.UrunId, k.Tarih)));
+            foreach (var x in sonuc)
+                x.BrutKar = x.Ciro - maliyetler.GetValueOrDefault(x.UrunId);
+        }
+        return sonuc;
     }
 
     public async Task<List<TopUrunRaporKalemiDto>> GetEnKarliUrunlerAsync(SatisRaporFiltreDto filtre, bool enDusukKar = false, int topCount = 10)
@@ -435,24 +450,33 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         var totalCount = await query.CountAsync();
 
-        var items = await query.OrderByDescending(x => x.Fatura.Tarih)
+        var satirlar = await query.OrderByDescending(x => x.Fatura.Tarih)
             .Skip((filtre.PageNumber - 1) * filtre.PageSize)
             .Take(filtre.PageSize)
-            .Select(x => new AlisRaporuKalemiDto
+            .Select(x => new
             {
-                FaturaId = x.Fatura.Id,
-                Tarih = x.Fatura.Tarih,
-                BelgeNo = x.Fatura.FaturaNo,
-                TedarikciKod = x.Fatura.CariKart != null ? x.Fatura.CariKart.Kod : "",
-                TedarikciUnvan = x.Fatura.CariKart != null ? x.Fatura.CariKart.Unvan : "",
-                UrunKod = x.Urun.Kod,
-                UrunAd = x.Urun.Ad,
-                Kategori = x.Urun.Kategori ?? "",
-                Miktar = x.Kalem.Miktar,
-                ToplamTutar = x.Kalem.SatirToplami,
-                SonAlisFiyati = x.Kalem.BirimFiyat,
-                OrtalamaAlisMaliyeti = x.Urun.AlisFiyati
+                UrunId = x.Urun.Id,
+                Kalem = new AlisRaporuKalemiDto
+                {
+                    FaturaId = x.Fatura.Id,
+                    Tarih = x.Fatura.Tarih,
+                    BelgeNo = x.Fatura.FaturaNo,
+                    TedarikciKod = x.Fatura.CariKart != null ? x.Fatura.CariKart.Kod : "",
+                    TedarikciUnvan = x.Fatura.CariKart != null ? x.Fatura.CariKart.Unvan : "",
+                    UrunKod = x.Urun.Kod,
+                    UrunAd = x.Urun.Ad,
+                    Kategori = x.Urun.Kategori ?? "",
+                    Miktar = x.Kalem.Miktar,
+                    ToplamTutar = x.Kalem.SatirToplami,
+                    SonAlisFiyati = x.Kalem.BirimFiyat
+                }
             }).ToListAsync();
+
+        // Ortalama maliyet: alış tarihindeki (o alış dahil) hareketli ağırlıklı ortalama.
+        var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, satirlar.Select(x => x.UrunId).Distinct().ToList());
+        foreach (var s in satirlar)
+            s.Kalem.OrtalamaAlisMaliyeti = maliyet.TarihtekiBirimMaliyet(s.UrunId, s.Kalem.Tarih);
+        var items = satirlar.Select(s => s.Kalem).ToList();
 
         return new PagedResult<AlisRaporuKalemiDto>
         {
@@ -750,17 +774,20 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .ToDictionaryAsync(x => x.UrunId, x => x.Rezerve);
 
         // COGS & Stok Devir Hızı Formülü: COGS / Ortalama Stok Değeri
-        var cogsMap = await _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
+        var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, urunIds);
+        var satisKalemleri = await _baglam.FaturaKalemleri.AsNoTracking().Where(x => x.Fatura!.SirketId == sirketId)
             .Where(fk => urunIds.Contains(fk.UrunId) && fk.Fatura != null && fk.Fatura.Tur == FaturaTuru.Satis && fk.Fatura.Durum == BelgeDurumu.Onaylandi)
-            .GroupBy(fk => fk.UrunId)
-            .Select(g => new { UrunId = g.Key, Cogs = g.Sum(x => x.Miktar * (x.Urun != null ? x.Urun.AlisFiyati : 0m)) })
-            .ToDictionaryAsync(x => x.UrunId, x => x.Cogs);
+            .Select(fk => new { fk.FaturaId, fk.UrunId, fk.Miktar, fk.Fatura!.Tarih })
+            .ToListAsync();
+        var cogsMap = satisKalemleri.GroupBy(k => k.UrunId)
+            .ToDictionary(g => g.Key, g => g.Sum(k => k.Miktar * maliyet.FaturaBirimMaliyeti(k.FaturaId, k.UrunId, k.Tarih)));
 
         var sonHareketMap = await SonStokHareketleriAsync(sirketId, urunIds);
 
         var result = urunler.Select(u =>
         {
-            decimal stokDegeri = u.StokMiktari * u.AlisFiyati;
+            decimal birimMaliyet = maliyet.GuncelBirimMaliyet(u.Id);
+            decimal stokDegeri = u.StokMiktari * birimMaliyet;
             decimal cogs = cogsMap.TryGetValue(u.Id, out var c) ? c : 0m;
             decimal devirHizi = stokDegeri > 0 ? Math.Round(cogs / stokDegeri, 2) : 0m;
 
@@ -774,7 +801,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 LokasyonAd = u.Depo != null ? u.Depo.DepoAdi : "Ana Depo",
                 FizikselStok = u.StokMiktari,
                 RezerveStok = rezerveMap.TryGetValue(u.Id, out var rez) ? rez : 0m,
-                BirimMaliyet = filtre.MaliyetGor ? u.AlisFiyati : null,
+                BirimMaliyet = filtre.MaliyetGor ? birimMaliyet : null,
                 KritikStokSeviyesi = u.MinimumStok,
                 SonHareketTarihi = sonHareketMap.TryGetValue(u.Id, out var son) ? son : null,
                 StokDevirHizi = devirHizi
@@ -801,14 +828,18 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 UrunKod = u.Kod,
                 UrunAd = u.Ad,
                 Kategori = u.Kategori ?? "",
-                StokMiktari = u.StokMiktari,
-                StokDegeri = filtre.MaliyetGor ? (u.StokMiktari * u.AlisFiyati) : 0m
+                StokMiktari = u.StokMiktari
             })
             .ToListAsync();
 
-        var sonHareketMap = await SonStokHareketleriAsync(sirketId, urunler.Select(u => u.UrunId).ToList());
+        var urunIds = urunler.Select(u => u.UrunId).ToList();
+        var sonHareketMap = await SonStokHareketleriAsync(sirketId, urunIds);
+        var maliyet = filtre.MaliyetGor ? await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, urunIds) : null;
         foreach (var u in urunler)
+        {
             u.SonHareketTarihi = sonHareketMap.TryGetValue(u.UrunId, out var son) ? son : null;
+            u.StokDegeri = maliyet == null ? 0m : u.StokMiktari * maliyet.GuncelBirimMaliyet(u.UrunId);
+        }
         return urunler.Where(x => x.HareketsizGunSayisi >= gunFilter).OrderByDescending(x => x.HareketsizGunSayisi).ToList();
     }
 
@@ -829,7 +860,8 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var result = new List<StokDegerRaporuKalemiDto>();
 
         // Depo bazında gerçek lokasyon stokları (ürünün varsayılan deposu değil).
-        var fiyatlar = urunler.ToDictionary(u => u.Id, u => u.AlisFiyati);
+        var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(_baglam, sirketId, urunler.Select(u => u.Id).ToList());
+        var fiyatlar = urunler.ToDictionary(u => u.Id, u => maliyet.GuncelBirimMaliyet(u.Id));
         var depoIdleri = depos.Select(d => d.Id).ToList();
         var lokasyonlar = await _baglam.UrunLokasyonStoklari.AsNoTracking()
             .Where(l => depoIdleri.Contains(l.DepoId) && l.MevcutMiktar != 0)
@@ -854,7 +886,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 LokasyonAd = "Ana Depo",
                 UrunCesidiSayisi = urunler.Count,
                 ToplamMiktar = urunler.Sum(u => u.StokMiktari),
-                ToplamStokDegeri = filtre.MaliyetGor ? urunler.Sum(u => u.StokMiktari * u.AlisFiyati) : 0m
+                ToplamStokDegeri = filtre.MaliyetGor ? urunler.Sum(u => u.StokMiktari * fiyatlar[u.Id]) : 0m
             });
         }
 

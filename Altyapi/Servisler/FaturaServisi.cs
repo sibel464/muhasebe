@@ -518,7 +518,7 @@ public class FaturaServisi : IFaturaServisi
                     UrunId = hareket.UrunId, DepoId = hareket.DepoId, Tarih = fatura.Tarih, BelgeNo = iptalBelgeNo,
                     IlgiliBelgeId = fatura.Id, Aciklama = $"{fatura.FaturaNo} nolu fatura iptal ters kaydı{nedenEki}",
                     HareketTuru = hareket.HareketTuru == StokHareketTuru.Giris ? StokHareketTuru.Cikis : StokHareketTuru.Giris,
-                    Miktar = hareket.Miktar, BirimFiyat = hareket.BirimFiyat
+                    IslemTuru = hareket.IslemTuru, Miktar = hareket.Miktar, BirimFiyat = hareket.BirimFiyat
                 });
             }
 
