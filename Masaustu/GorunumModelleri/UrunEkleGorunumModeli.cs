@@ -50,6 +50,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     private decimal _fiyat9Taksit = 0;
 
     private decimal _kdvOrani = 20;
+    private decimal _varsayilanKdv = 20;
     private decimal _magazaStok = 0;
     private decimal _depo1Stok = 0;
     private decimal _depo2Stok = 0;
@@ -198,11 +199,29 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
 
     private readonly SemaphoreSlim _yuklemeKilidi = new(1, 1);
 
+    // Yeni ürünün KDV oranı Ayarlar'daki varsayılan KDV'den gelir.
+    private async Task VarsayilanKdvYukleAsync()
+    {
+        try
+        {
+            if (App.HizmetSaglayici?.GetService(typeof(ISistemAyarlariServisi)) is not ISistemAyarlariServisi ayarlar) return;
+            var kdv = (await ayarlar.AyarlariGetirAsync()).VarsayilanKdv;
+            if (kdv is < 0 or > 100) return;
+            _varsayilanKdv = kdv;
+            if (!DuzenlemeModu) KdvOrani = kdv;
+        }
+        catch
+        {
+            // Ayar okunamazsa %20 kalır.
+        }
+    }
+
     private async Task BaslatAsync()
     {
         await _yuklemeKilidi.WaitAsync();
         try
         {
+            await VarsayilanKdvYukleAsync();
             await TanimlariYukleAsync();
             await DepolariYukleAsync();
             await KullanilanKodlariYukleAsync();
@@ -538,7 +557,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         Aciklama = string.Empty;
         SeciliKategori = null;
         SeciliMarka = null;
-        KdvOrani = 20;
+        KdvOrani = _varsayilanKdv;
         AlisFiyati = 0;
         ToptanSatisFiyati = 0;
         for (var t = 1; t <= 9; t++) FiyatAta(t, 0);
