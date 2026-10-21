@@ -497,6 +497,18 @@ public class BankaServisi : IBankaServisi
             await _baglam.SaveChangesAsync();
 
             posCikis.TersKayitId = vadesizGiris.Id;
+
+            // Toplu geçiş, Finans Merkezi'nde bekleyen kartlı satışları en eskiden başlayarak aktarılan tutar kadar
+            // kapatır; aynı para oradan ikinci kez aktarılmasın.
+            var kalan = tutar;
+            foreach (var pos in await _baglam.PosIslemleri.Where(p => p.BankaHesabiId == posHesapId && p.Durum == PosIslemDurumu.Bekliyor)
+                         .OrderBy(p => p.IslemTarihi).ThenBy(p => p.Id).ToListAsync())
+            {
+                if (pos.BrutTutar > kalan) break;
+                kalan -= pos.BrutTutar;
+                pos.Durum = PosIslemDurumu.HesabaGecti;
+                pos.HesabaGecisTarihi = islemTarihi;
+            }
             await _baglam.SaveChangesAsync();
 
             // 102 Bankalar (net) + 653 Komisyon / 108 POS (brüt)

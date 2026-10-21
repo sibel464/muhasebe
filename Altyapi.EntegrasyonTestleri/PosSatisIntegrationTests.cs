@@ -170,6 +170,37 @@ public sealed class PosSatisIntegrationTests
         Assert.Equal(PosIslemDurumu.Iptal, (await verify.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId)).Durum);
     }
 
+    [Fact]
+    public async Task Banka_ekranindan_pos_gecisi_bekleyen_kartli_satislari_kapatir()
+    {
+        var veri = await SeedAsync();
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            context.BankaHesaplari.AddRange(
+                new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}"[..20], Ad = "Test POS", HesapTuru = BankaHesapTuru.POSHesabi, MuhasebeKodu = "108" },
+                new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"VDS-{Guid.NewGuid():N}"[..20], Ad = "Test Vadesiz", HesapTuru = BankaHesapTuru.VadesizTL, MuhasebeKodu = "102" });
+            await context.SaveChangesAsync();
+        }
+
+        int faturaId;
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+            faturaId = (await new FaturaServisi(context, new AuthorizedUserService()).PosSatisiniTamamlaAsync(FaturaOlustur(veri, "Kredi Kartı"), "Kredi Kartı")).Id;
+
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            var posHesapId = (await context.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId)).BankaHesabiId;
+            var vadesizId = await context.BankaHesaplari.Where(x => x.AktifMi && x.HesapTuru == BankaHesapTuru.VadesizTL && x.SirketId == MuhasebeBaglami.VarsayilanSirketId)
+                .OrderBy(x => x.Id).Select(x => x.Id).FirstAsync();
+            var bekleyen = await context.PosIslemleri.Where(x => x.BankaHesabiId == posHesapId && x.Durum == PosIslemDurumu.Bekliyor).SumAsync(x => x.BrutTutar);
+            await new BankaServisi(context, StabilizasyonTestOturumu.Olustur()).PosBlokeHesabaGecirAsync(posHesapId, vadesizId, bekleyen, 0m, "Test geçiş");
+        }
+
+        await using var verify = new MuhasebeBaglami(_fixture.Options);
+        var islem = await verify.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId);
+        Assert.Equal(PosIslemDurumu.HesabaGecti, islem.Durum);
+        Assert.NotNull(islem.HesabaGecisTarihi);
+    }
+
     private async Task<SeedData> SeedAsync()
     {
         _fixture.RequireDatabase();
