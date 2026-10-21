@@ -425,6 +425,19 @@ public class DepoServisi : IDepoServisi
         if (depoId.HasValue)
             sorgu = sorgu.Where(s => s.DepoId == depoId.Value);
 
-        return await sorgu.SumAsync(s => s.MevcutMiktar * s.Urun!.AlisFiyati);
+        // Değer raporlarla aynı hareketli ağırlıklı ortalama maliyetten hesaplanır.
+        var satirlar = await sorgu.Select(s => new { s.UrunId, s.Urun!.SirketId, s.Urun.AlisFiyati, s.MevcutMiktar }).ToListAsync();
+        decimal toplam = 0;
+        foreach (var grup in satirlar.GroupBy(s => s.SirketId))
+        {
+            if (grup.Key is not Guid sirketId)
+            {
+                toplam += grup.Sum(s => s.MevcutMiktar * s.AlisFiyati);
+                continue;
+            }
+            var maliyet = await HareketliOrtalamaMaliyet.HesaplaAsync(context, sirketId, grup.Select(s => s.UrunId).Distinct().ToList());
+            toplam += grup.Sum(s => s.MevcutMiktar * maliyet.GuncelBirimMaliyet(s.UrunId));
+        }
+        return toplam;
     }
 }
