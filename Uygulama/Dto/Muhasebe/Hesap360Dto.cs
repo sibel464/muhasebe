@@ -14,6 +14,7 @@ public class Hesap360Dto
     public decimal ToplamBorc => DevirBorc + DonemBorc;
     public decimal ToplamAlacak => DevirAlacak + DonemAlacak;
     public decimal NetBakiye => Math.Abs(ToplamBorc - ToplamAlacak);
+    public decimal DevirNetBakiye => Math.Abs(DevirBorc - DevirAlacak);
     public string BakiyeYonuStr => ToplamBorc >= ToplamAlacak ? "Borç" : "Alacak";
     public DateTime? SonHareketTarihi { get; set; }
 

@@ -3,7 +3,11 @@ using System.Text;
 using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Fatura;
 using EtkiAlani.Modeller.Finans;
+using EtkiAlani.Modeller.Ayar;
+using EtkiAlani.Modeller.Kurumsal;
 using EtkiAlani.Modeller.Ortak;
+using Altyapi.Veri;
+using Microsoft.EntityFrameworkCore;
 using Uygulama.Arayuzler;
 
 namespace Altyapi.Servisler;
@@ -12,11 +16,16 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 {
     private FirmaBilgisi _firmaBilgisi = new();
     private readonly ISistemAyarlariServisi? _ayarlarServisi;
+    private readonly IDbContextFactory<MuhasebeBaglami>? _baglamFabrikasi;
+    private readonly IAktifFirmaBaglami? _aktifFirma;
 
-    public BelgeYazdirmaServisi(ISistemAyarlariServisi? ayarlarServisi = null)
+    public BelgeYazdirmaServisi(ISistemAyarlariServisi? ayarlarServisi = null, IDbContextFactory<MuhasebeBaglami>? baglamFabrikasi = null, IAktifFirmaBaglami? aktifFirma = null)
     {
         _ayarlarServisi = ayarlarServisi;
-        _ = FirmaBilgisiniYukleAsync();
+        _baglamFabrikasi = baglamFabrikasi;
+        _aktifFirma = aktifFirma;
+        if (_baglamFabrikasi == null)
+            _ = FirmaBilgisiniYukleAsync();
     }
 
     private async Task FirmaBilgisiniYukleAsync()
@@ -26,22 +35,71 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
         try
         {
-            var ayar = await _ayarlarServisi.AyarlariGetirAsync();
-            _firmaBilgisi = new FirmaBilgisi
-            {
-                FirmaUnvani = ayar.FirmaUnvani,
-                VergiDairesi = ayar.VergiDairesi ?? string.Empty,
-                VergiNo = ayar.VergiNo ?? string.Empty,
-                Telefon = ayar.Telefon ?? string.Empty,
-                Eposta = ayar.Eposta ?? string.Empty,
-                WebSitesi = ayar.WebSitesi ?? string.Empty,
-                Adres = ayar.Adres ?? string.Empty
-            };
+            _firmaBilgisi = FirmaBilgisiOlustur(await _ayarlarServisi.AyarlariGetirAsync(), null, true);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Firma bilgileri yüklenemedi: {ex.Message}");
         }
+    }
+
+    // Her yazdırmada güncel künye okunur: Ayarlar'da yapılan değişiklik programı kapatıp açmadan belgeye yansır,
+    // belge hangi şirketinse o şirketin künyesi basılır.
+    public async Task<FirmaBilgisi> FirmaBilgisiGetirAsync(Guid? sirketId = null)
+    {
+        if (_baglamFabrikasi == null)
+            return _firmaBilgisi;
+        try
+        {
+            var id = sirketId is Guid g && g != Guid.Empty ? g
+                : _aktifFirma?.SirketId is Guid a && a != Guid.Empty ? a : MuhasebeBaglami.VarsayilanSirketId;
+            await using var baglam = await _baglamFabrikasi.CreateDbContextAsync();
+            var ayar = await baglam.SistemAyarlari.AsNoTracking().FirstOrDefaultAsync(x => x.Id == 1);
+            var sirket = await baglam.Sirketler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            return _firmaBilgisi = FirmaBilgisiOlustur(ayar, sirket, id == MuhasebeBaglami.VarsayilanSirketId);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Firma bilgileri yüklenemedi: {ex.Message}");
+            return _firmaBilgisi;
+        }
+    }
+
+    // Varsayılan şirkette künye Ayarlar sayfasından gelir, boş alan şirket kartından tamamlanır. Diğer şirketlerde künye
+    // yalnız o şirketin kartıdır (başka şirketin vergi numarası basılmasın). Belge notları ve web sitesi Ayarlar'dandır.
+    public static FirmaBilgisi FirmaBilgisiOlustur(SistemAyarlari? ayar, Sirket? sirket, bool varsayilanSirket)
+    {
+        string Sec(string? ayarDegeri, string? sirketDegeri) =>
+            (varsayilanSirket && !string.IsNullOrWhiteSpace(ayarDegeri) ? ayarDegeri : sirketDegeri)?.Trim() ?? string.Empty;
+        return new FirmaBilgisi
+        {
+            FirmaUnvani = Sec(ayar?.FirmaUnvani, sirket?.Unvan),
+            VergiDairesi = Sec(ayar?.VergiDairesi, sirket?.VergiDairesi),
+            VergiNo = Sec(ayar?.VergiNo, sirket?.VergiNo),
+            Telefon = Sec(ayar?.Telefon, sirket?.Telefon),
+            Eposta = Sec(ayar?.Eposta, sirket?.Email),
+            Adres = Sec(ayar?.Adres, sirket?.Adres),
+            MersisNo = varsayilanSirket ? ayar?.MersisNo?.Trim() ?? string.Empty : string.Empty,
+            WebSitesi = ayar?.WebSitesi?.Trim() ?? string.Empty,
+            BelgeNotu = ayar?.FisFooter?.Trim() ?? string.Empty,
+            FaturaNotu = ayar?.FaturaNotu?.Trim() ?? string.Empty,
+            IrsaliyeNotu = ayar?.IrsaliyeNotu?.Trim() ?? string.Empty
+        };
+    }
+
+    private static string H(string? metin) => System.Net.WebUtility.HtmlEncode(metin ?? string.Empty);
+
+    // Belge başlığındaki firma künyesi; boş alanlar yazılmaz.
+    public static string FirmaKunyesiHtml(FirmaBilgisi f, bool vergiBilgisi = true)
+    {
+        var satirlar = new List<string>();
+        if (!string.IsNullOrWhiteSpace(f.Adres)) satirlar.Add(H(f.Adres));
+        var iletisim = new[] { string.IsNullOrWhiteSpace(f.Telefon) ? null : "Tel: " + f.Telefon, f.Eposta }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(H).ToList();
+        if (iletisim.Count > 0) satirlar.Add(string.Join(" | ", iletisim));
+        if (vergiBilgisi && (!string.IsNullOrWhiteSpace(f.VergiDairesi) || !string.IsNullOrWhiteSpace(f.VergiNo)))
+            satirlar.Add("Vergi Dairesi: " + H(f.VergiDairesi) + " - No: " + H(f.VergiNo));
+        if (vergiBilgisi && !string.IsNullOrWhiteSpace(f.MersisNo)) satirlar.Add("Mersis No: " + H(f.MersisNo));
+        return "<div class='company-title'>" + H(f.FirmaUnvani) + "</div><div class='company-info'>" + string.Join("<br>", satirlar) + "</div>";
     }
 
     public FirmaBilgisi FirmaBilgisiGetir() => _firmaBilgisi;
@@ -111,7 +169,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         var durumBadge = fatura.Durum == BelgeDurumu.Onaylandi ? "<span class='doc-badge badge-success'>ONAYLANDI</span>" : (fatura.Durum == BelgeDurumu.Taslak ? "<span class='doc-badge badge-warning'>TASLAK</span>" : "<span class='doc-badge badge-danger'>İPTAL</span>");
 
         var sb = new StringBuilder();
-        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Fatura - " + fatura.FaturaNo + "</title><style>" + GetCommonCss() + "</style></head><body>");
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Fatura - " + H(fatura.FaturaNo) + "</title><style>" + GetCommonCss() + "</style></head><body>");
         
         // Toolbar
         sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
@@ -120,14 +178,14 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
         // Header Table
         sb.AppendLine("<table class='header-table'><tr>");
-        sb.AppendLine("<td><div class='company-title'>" + f.FirmaUnvani + "</div><div class='company-info'>" + f.Adres + "<br>Tel: " + f.Telefon + " | E-posta: " + f.Eposta + "<br>Vergi Dairesi: " + f.VergiDairesi + " - No: " + f.VergiNo + "</div></td>");
-        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + turAdi + "</div><div>" + durumBadge + "</div><div style='margin-top:6px; font-weight:700; color:#1E293B;'>No: " + fatura.FaturaNo + "</div><div style='color:#64748B; font-size:12px;'>Tarih: " + fatura.Tarih.ToString("dd.MM.yyyy") + "</div></td>");
+        sb.AppendLine("<td>" + FirmaKunyesiHtml(f) + "</td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + turAdi + "</div><div>" + durumBadge + "</div><div style='margin-top:6px; font-weight:700; color:#1E293B;'>No: " + H(fatura.FaturaNo) + "</div><div style='color:#64748B; font-size:12px;'>Tarih: " + fatura.Tarih.ToString("dd.MM.yyyy") + "</div></td>");
         sb.AppendLine("</tr></table>");
 
         // Customer Info Grid
         sb.AppendLine("<table class='info-grid'><tr>");
-        sb.AppendLine("<td><div class='info-label'>MÜŞTERİ / CARİ BİLGİLERİ</div><div class='info-value'><strong>" + (fatura.CariKart?.Unvan ?? "Perakende Müşteri") + "</strong><br>" + (fatura.CariKart?.Adres ?? "-") + "<br>V.D.: " + (fatura.CariKart?.VergiDairesi ?? "-") + " / No: " + (fatura.CariKart?.VergiNo ?? "-") + "<br>Tel: " + (fatura.CariKart?.Telefon ?? "-") + "</div></td>");
-        sb.AppendLine("<td><div class='info-label'>BELGE & SEVK BİLGİLERİ</div><div class='info-value'>Düzenleme Tarihi: <strong>" + fatura.Tarih.ToString("dd.MM.yyyy HH:mm") + "</strong><br>Belge Türü: <strong>" + fatura.Tur + "</strong><br>Açıklama: " + (string.IsNullOrWhiteSpace(fatura.Aciklama) ? "-" : fatura.Aciklama) + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>MÜŞTERİ / CARİ BİLGİLERİ</div><div class='info-value'><strong>" + H(fatura.CariKart?.Unvan ?? "Perakende Müşteri") + "</strong><br>" + H(fatura.CariKart?.Adres ?? "-") + "<br>V.D.: " + H(fatura.CariKart?.VergiDairesi ?? "-") + " / No: " + H(fatura.CariKart?.VergiNo ?? "-") + "<br>Tel: " + H(fatura.CariKart?.Telefon ?? "-") + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>BELGE & SEVK BİLGİLERİ</div><div class='info-value'>Düzenleme Tarihi: <strong>" + fatura.Tarih.ToString("dd.MM.yyyy HH:mm") + "</strong><br>Belge Türü: <strong>" + turAdi + "</strong><br>Açıklama: " + H(string.IsNullOrWhiteSpace(fatura.Aciklama) ? "-" : fatura.Aciklama) + "</div></td>");
         sb.AppendLine("</tr></table>");
 
         // Line Items Table
@@ -140,9 +198,9 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         {
             sb.AppendLine("<tr>");
             sb.AppendLine("<td class='text-center'>" + sira++ + "</td>");
-            sb.AppendLine("<td><strong>" + k.UrunAd + "</strong><br><small style='color:#64748B;'>" + k.UrunKodu + "</small></td>");
+            sb.AppendLine("<td><strong>" + H(k.UrunAd) + "</strong><br><small style='color:#64748B;'>" + H(k.UrunKodu) + "</small></td>");
             sb.AppendLine("<td class='text-center'>" + k.Miktar.ToString("N2") + "</td>");
-            sb.AppendLine("<td class='text-center'>" + k.Birim + "</td>");
+            sb.AppendLine("<td class='text-center'>" + H(k.Birim) + "</td>");
             sb.AppendLine("<td class='text-right'>" + k.BirimFiyat.ToString("N2") + " ₺</td>");
             sb.AppendLine("<td class='text-center'>%" + k.KdvOrani.ToString("0") + "</td>");
             sb.AppendLine("<td class='text-right'><strong>" + k.SatirToplami.ToString("N2") + " ₺</strong></td>");
@@ -163,12 +221,13 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
         // Signatures
         sb.AppendLine("<table class='signature-table'><tr>");
-        sb.AppendLine("<td><div class='signature-line'>TESLİM EDEN<br><small>" + f.FirmaUnvani + "</small></div></td>");
-        sb.AppendLine("<td><div class='signature-line'>TESLİM ALAN<br><small>" + (fatura.CariKart?.Unvan ?? "Müşteri") + "</small></div></td>");
+        sb.AppendLine("<td><div class='signature-line'>TESLİM EDEN<br><small>" + H(f.FirmaUnvani) + "</small></div></td>");
+        sb.AppendLine("<td><div class='signature-line'>TESLİM ALAN<br><small>" + H(fatura.CariKart?.Unvan ?? "Müşteri") + "</small></div></td>");
         sb.AppendLine("</tr></table>");
 
         // Footer Note
-        sb.AppendLine("<div class='footer-note'>" + f.BelgeNotu + "<br><small>" + f.WebSitesi + " | Bu belge bilgisayar çıktısıdır.</small></div>");
+        var faturaNotu = string.IsNullOrWhiteSpace(f.FaturaNotu) ? f.BelgeNotu : f.FaturaNotu;
+        sb.AppendLine("<div class='footer-note'>" + H(faturaNotu) + "<br><small>" + (string.IsNullOrWhiteSpace(f.WebSitesi) ? "" : H(f.WebSitesi) + " | ") + "Bu belge bilgisayar çıktısıdır.</small></div>");
 
         sb.AppendLine("</div></body></html>");
         return sb.ToString();
@@ -178,20 +237,20 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
     {
         var f = firma ?? _firmaBilgisi;
         var sb = new StringBuilder();
-        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Cari Hesap Ekstresi - " + cari.Unvan + "</title><style>" + GetCommonCss() + "</style></head><body>");
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Cari Hesap Ekstresi - " + H(cari.Unvan) + "</title><style>" + GetCommonCss() + "</style></head><body>");
         
         sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
         sb.AppendLine("<div class='container'>");
 
         // Header Table
         sb.AppendLine("<table class='header-table'><tr>");
-        sb.AppendLine("<td><div class='company-title'>" + f.FirmaUnvani + "</div><div class='company-info'>" + f.Adres + "<br>Tel: " + f.Telefon + " | " + f.Eposta + "</div></td>");
+        sb.AppendLine("<td>" + FirmaKunyesiHtml(f, false) + "</td>");
         sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>CARİ HESAP EKSTRESİ</div><div style='color:#64748B; font-size:12px;'>Rapor Tarihi: " + DateTime.Now.ToString("dd.MM.yyyy HH:mm") + "</div></td>");
         sb.AppendLine("</tr></table>");
 
         // Info Grid
         sb.AppendLine("<table class='info-grid'><tr>");
-        sb.AppendLine("<td><div class='info-label'>CARİ HESAP KÜNYESİ</div><div class='info-value'><strong>" + cari.Unvan + "</strong> (Kod: " + cari.Kod + ")<br>V.D.: " + cari.VergiDairesi + " / No: " + cari.VergiNo + "<br>Tel: " + cari.Telefon + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>CARİ HESAP KÜNYESİ</div><div class='info-value'><strong>" + H(cari.Unvan) + "</strong> (Kod: " + H(cari.Kod) + ")<br>V.D.: " + H(cari.VergiDairesi) + " / No: " + H(cari.VergiNo) + "<br>Tel: " + H(cari.Telefon) + "</div></td>");
         sb.AppendLine("<td><div class='info-label'>FİNANSAL DURUM ÖZETİ</div><div class='info-value'>Toplam Borç: <strong>" + cari.Borc.ToString("N2") + " ₺</strong><br>Toplam Alacak: <strong>" + cari.Alacak.ToString("N2") + " ₺</strong><br>Güncel Bakiye: <strong style='font-size:14px; color:" + (cari.Bakiye > 0 ? "#2563EB" : (cari.Bakiye < 0 ? "#DC2626" : "#16A34A")) + ";'>" + Math.Abs(cari.Bakiye).ToString("N2") + " ₺ " + (cari.Bakiye > 0 ? "(Borçlu)" : (cari.Bakiye < 0 ? "(Alacaklı)" : "(Bakiye Sıfır)")) + "</strong></div></td>");
         sb.AppendLine("</tr></table>");
 
@@ -207,8 +266,8 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             sb.AppendLine("<tr>");
             sb.AppendLine("<td>" + h.Tarih.ToString("dd.MM.yyyy") + "</td>");
             sb.AppendLine("<td><span style='font-weight:600; font-size:11px;'>" + h.HareketTuru + "</span></td>");
-            sb.AppendLine("<td>" + h.Aciklama + "</td>");
-            sb.AppendLine("<td>" + (string.IsNullOrWhiteSpace(h.BelgeNo) ? "-" : h.BelgeNo) + "</td>");
+            sb.AppendLine("<td>" + H(h.Aciklama) + "</td>");
+            sb.AppendLine("<td>" + H(string.IsNullOrWhiteSpace(h.BelgeNo) ? "-" : h.BelgeNo) + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Borc > 0 ? h.Borc.ToString("N2") : "-") + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Alacak > 0 ? h.Alacak.ToString("N2") : "-") + "</td>");
             sb.AppendLine("<td class='text-right'><strong>" + kumuBakiye.ToString("N2") + " ₺</strong></td>");
@@ -223,7 +282,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<tr class='grand-total'><td>SON BAKİYE:</td><td class='text-right'>" + kumuBakiye.ToString("N2") + " ₺</td></tr>");
         sb.AppendLine("</table>");
 
-        sb.AppendLine("<div class='footer-note'>Bu ekstre ticari kayıtlarımıza göre düzenlenmiştir. Mutabakatsızlık halinde lütfen 7 gün içinde bildiriniz.<br><small>" + f.FirmaUnvani + " | " + f.Telefon + "</small></div>");
+        sb.AppendLine("<div class='footer-note'>Bu ekstre ticari kayıtlarımıza göre düzenlenmiştir. Mutabakatsızlık halinde lütfen 7 gün içinde bildiriniz.<br><small>" + H(f.FirmaUnvani) + (string.IsNullOrWhiteSpace(f.Telefon) ? "" : " | " + H(f.Telefon)) + "</small></div>");
         sb.AppendLine("</div></body></html>");
         return sb.ToString();
     }
@@ -246,13 +305,13 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<div class='container' style='border: 2px solid #E2E8F0; padding: 24px; border-radius: 12px;'>");
 
         sb.AppendLine("<table class='header-table'><tr>");
-        sb.AppendLine("<td><div class='company-title'>" + f.FirmaUnvani + "</div><div class='company-info'>" + f.Adres + "<br>Tel: " + f.Telefon + "</div></td>");
-        sb.AppendLine("<td class='doc-title-box'><div class='doc-title' style='font-size:18px; color:" + (isTahsilat ? "#16A34A" : "#DC2626") + ";'>" + makbuzBaslik + "</div><div style='font-weight:700;'>No: " + (string.IsNullOrWhiteSpace(belgeNo) ? "MKB-" + islemTarihi.ToString("yyyyMMddHHmm") : belgeNo) + "</div><div style='color:#64748B;'>Tarih: " + islemTarihi.ToString("dd.MM.yyyy") + "</div></td>");
+        sb.AppendLine("<td>" + FirmaKunyesiHtml(f, false) + "</td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title' style='font-size:18px; color:" + (isTahsilat ? "#16A34A" : "#DC2626") + ";'>" + makbuzBaslik + "</div><div style='font-weight:700;'>No: " + H(string.IsNullOrWhiteSpace(belgeNo) ? "MKB-" + islemTarihi.ToString("yyyyMMddHHmm") : belgeNo) + "</div><div style='color:#64748B;'>Tarih: " + islemTarihi.ToString("dd.MM.yyyy") + "</div></td>");
         sb.AppendLine("</tr></table>");
 
         sb.AppendLine("<table class='info-grid'><tr>");
-        sb.AppendLine("<td><div class='info-label'>" + (isTahsilat ? "ÖDEMEYİ YAPAN (CARİ)" : "ÖDEME YAPILAN (CARİ)") + "</div><div class='info-value'><strong>" + cari.Unvan + "</strong><br>V.D.: " + cari.VergiDairesi + " - " + cari.VergiNo + "<br>Tel: " + cari.Telefon + "</div></td>");
-        sb.AppendLine("<td><div class='info-label'>ÖDEME VE HESAP KANALI</div><div class='info-value'>Kanal: <strong>" + (kasaBankaAdi ?? "Nakit Kasa") + "</strong><br>İşlem Türü: <strong>" + (isTahsilat ? "Tahsilat" : "Ödeme") + "</strong><br>Açıklama: " + aciklama + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>" + (isTahsilat ? "ÖDEMEYİ YAPAN (CARİ)" : "ÖDEME YAPILAN (CARİ)") + "</div><div class='info-value'><strong>" + H(cari.Unvan) + "</strong><br>V.D.: " + H(cari.VergiDairesi) + " - " + H(cari.VergiNo) + "<br>Tel: " + H(cari.Telefon) + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>ÖDEME VE HESAP KANALI</div><div class='info-value'>Kanal: <strong>" + H(kasaBankaAdi ?? "Nakit Kasa") + "</strong><br>İşlem Türü: <strong>" + (isTahsilat ? "Tahsilat" : "Ödeme") + "</strong><br>Açıklama: " + H(aciklama) + "</div></td>");
         sb.AppendLine("</tr></table>");
 
         // Amount Box
@@ -263,11 +322,11 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
         // Signatures
         sb.AppendLine("<table class='signature-table'><tr>");
-        sb.AppendLine("<td><div class='signature-line'>TESLİM EDEN<br><small>" + (isTahsilat ? cari.Unvan : f.FirmaUnvani) + "</small></div></td>");
-        sb.AppendLine("<td><div class='signature-line'>TESLİM ALAN<br><small>" + (isTahsilat ? f.FirmaUnvani : cari.Unvan) + "</small></div></td>");
+        sb.AppendLine("<td><div class='signature-line'>TESLİM EDEN<br><small>" + H(isTahsilat ? cari.Unvan : f.FirmaUnvani) + "</small></div></td>");
+        sb.AppendLine("<td><div class='signature-line'>TESLİM ALAN<br><small>" + H(isTahsilat ? f.FirmaUnvani : cari.Unvan) + "</small></div></td>");
         sb.AppendLine("</tr></table>");
 
-        sb.AppendLine("<div class='footer-note' style='margin-top:20px;'>" + f.BelgeNotu + "</div>");
+        sb.AppendLine("<div class='footer-note' style='margin-top:20px;'>" + H(f.BelgeNotu) + "</div>");
         sb.AppendLine("</div></body></html>");
         return sb.ToString();
     }
@@ -281,7 +340,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<div class='container'>");
 
         sb.AppendLine("<table class='header-table'><tr>");
-        sb.AppendLine("<td><div class='company-title'>" + f.FirmaUnvani + "</div><div class='company-info'>" + f.Adres + "</div></td>");
+        sb.AppendLine("<td>" + FirmaKunyesiHtml(f, false) + "</td>");
         sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>KASA HAREKET DÖKÜMÜ</div><div style='color:#64748B;'>Rapor Tarihi: " + DateTime.Now.ToString("dd.MM.yyyy HH:mm") + "</div></td>");
         sb.AppendLine("</tr></table>");
 
@@ -294,8 +353,8 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             sb.AppendLine("<tr>");
             sb.AppendLine("<td>" + h.Tarih.ToString("dd.MM.yyyy") + "</td>");
             sb.AppendLine("<td><span class='doc-badge " + (h.Tur == HareketTuru.Gelir ? "badge-success" : "badge-danger") + "'>" + h.Tur + "</span></td>");
-            sb.AppendLine("<td>" + h.Aciklama + "</td>");
-            sb.AppendLine("<td>" + (h.Belge ?? "-") + "</td>");
+            sb.AppendLine("<td>" + H(h.Aciklama) + "</td>");
+            sb.AppendLine("<td>" + H(h.Belge ?? "-") + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Tur == HareketTuru.Gelir ? h.Tutar.ToString("N2") + " ₺" : "-") + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Tur == HareketTuru.Gider ? h.Tutar.ToString("N2") + " ₺" : "-") + "</td>");
             sb.AppendLine("</tr>");
@@ -321,7 +380,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<div class='container'>");
 
         sb.AppendLine("<table class='header-table'><tr>");
-        sb.AppendLine("<td><div class='company-title'>" + f.FirmaUnvani + "</div><div class='company-info'>" + (bankaAdi ?? "Tüm Bankalar") + " Hesap Dökümü</div></td>");
+        sb.AppendLine("<td><div class='company-title'>" + H(f.FirmaUnvani) + "</div><div class='company-info'>" + H(bankaAdi ?? "Tüm Bankalar") + " Hesap Dökümü</div></td>");
         sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>BANKA HAREKET DÖKÜMÜ</div><div style='color:#64748B;'>Rapor Tarihi: " + DateTime.Now.ToString("dd.MM.yyyy HH:mm") + "</div></td>");
         sb.AppendLine("</tr></table>");
 
@@ -333,9 +392,9 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         {
             sb.AppendLine("<tr>");
             sb.AppendLine("<td>" + h.Tarih.ToString("dd.MM.yyyy") + "</td>");
-            sb.AppendLine("<td><strong>" + (h.BankaAdi ?? "Banka") + "</strong><br><small>" + (h.HesapNo ?? "-") + "</small></td>");
+            sb.AppendLine("<td><strong>" + H(h.BankaAdi ?? "Banka") + "</strong><br><small>" + H(h.HesapNo ?? "-") + "</small></td>");
             sb.AppendLine("<td><span class='doc-badge " + (h.Tur == HareketTuru.Gelir ? "badge-success" : "badge-danger") + "'>" + (h.Tur == HareketTuru.Gelir ? "Gelen EFT" : "Giden EFT") + "</span></td>");
-            sb.AppendLine("<td>" + h.Aciklama + "</td>");
+            sb.AppendLine("<td>" + H(h.Aciklama) + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Tur == HareketTuru.Gelir ? h.Tutar.ToString("N2") + " ₺" : "-") + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Tur == HareketTuru.Gider ? h.Tutar.ToString("N2") + " ₺" : "-") + "</td>");
             sb.AppendLine("</tr>");
@@ -354,42 +413,41 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
     public async Task<string> FaturaYazdirAsync(Fatura fatura, string? dosyaYolu = null, FirmaBilgisi? firma = null)
     {
-        var html = FaturaHtmlUret(fatura, firma);
+        var html = FaturaHtmlUret(fatura, firma ?? await FirmaBilgisiGetirAsync(fatura.SirketId));
         var dosyaAdi = "Fatura_" + fatura.FaturaNo.Replace(" ", "_").Replace("/", "_") + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
     public async Task<string> CariEkstreYazdirAsync(CariKart cari, List<CariHareket> hareketler, string? dosyaYolu = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null)
     {
-        var html = CariEkstreHtmlUret(cari, hareketler, baslangic, bitis, firma);
+        var html = CariEkstreHtmlUret(cari, hareketler, baslangic, bitis, firma ?? await FirmaBilgisiGetirAsync(cari.SirketId));
         var dosyaAdi = "CariEkstre_" + cari.Kod.Replace(" ", "_") + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
     public async Task<string> MakbuzYazdirAsync(CariKart cari, decimal tutar, bool isTahsilat, string aciklama, string? dosyaYolu = null, string? belgeNo = null, DateTime? tarih = null, string? kasaBankaAdi = null, FirmaBilgisi? firma = null)
     {
-        var html = MakbuzHtmlUret(cari, tutar, isTahsilat, aciklama, belgeNo, tarih, kasaBankaAdi, firma);
+        var html = MakbuzHtmlUret(cari, tutar, isTahsilat, aciklama, belgeNo, tarih, kasaBankaAdi, firma ?? await FirmaBilgisiGetirAsync(cari.SirketId));
         var dosyaAdi = (isTahsilat ? "TahsilatMakbuzu_" : "OdemeMakbuzu_") + (belgeNo ?? DateTime.Now.ToString("yyyyMMddHHmm")) + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
     public async Task<string> KasaDokumuYazdirAsync(List<KasaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null)
     {
-        var html = KasaHareketDokumuHtmlUret(hareketler, toplamBakiye, baslangic, bitis, firma);
+        var html = KasaHareketDokumuHtmlUret(hareketler, toplamBakiye, baslangic, bitis, firma ?? await FirmaBilgisiGetirAsync());
         var dosyaAdi = "KasaDokumu_" + DateTime.Now.ToString("yyyyMMdd") + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
     public async Task<string> BankaDokumuYazdirAsync(List<BankaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, string? bankaAdi = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null)
     {
-        var html = BankaHareketDokumuHtmlUret(hareketler, toplamBakiye, bankaAdi, baslangic, bitis, firma);
+        var html = BankaHareketDokumuHtmlUret(hareketler, toplamBakiye, bankaAdi, baslangic, bitis, firma ?? await FirmaBilgisiGetirAsync());
         var dosyaAdi = "BankaDokumu_" + (bankaAdi ?? "Genel") + "_" + DateTime.Now.ToString("yyyyMMdd") + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
     }
 
     public string HesapEkstresiHtmlUret(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null)
     {
-        static string H(string? metin) => System.Net.WebUtility.HtmlEncode(metin ?? string.Empty);
         var f = firma ?? _firmaBilgisi;
         var donem = belge.Baslangic is DateTime b && belge.Bitis is DateTime s
             ? (b.Date == s.Date ? b.ToString("dd.MM.yyyy") : $"{b:dd.MM.yyyy} - {s:dd.MM.yyyy}")
@@ -429,7 +487,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
     public async Task<string> HesapEkstresiYazdirAsync(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null)
     {
-        var html = HesapEkstresiHtmlUret(belge, firma);
+        var html = HesapEkstresiHtmlUret(belge, firma ?? await FirmaBilgisiGetirAsync());
         var guvenliAd = string.Concat(belge.HesapAdi.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
         var dosyaAdi = $"{(belge.Baslik.StartsWith("Gün Sonu") ? "GunSonu" : "Ekstre")}_{guvenliAd}_{DateTime.Now:yyyyMMddHHmm}.html";
         return await DosyayaKaydetVeAcAsync(html, null, dosyaAdi);
@@ -437,7 +495,9 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
 
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), geciciBelgeAdi);
+        // Uzantısız dosyayı Windows tarayıcıda açamaz, "hangi programla açılsın" diye sorar.
+        var dosyaAdi = geciciBelgeAdi.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ? geciciBelgeAdi : geciciBelgeAdi + ".html";
+        var tempPath = Path.Combine(Path.GetTempPath(), string.Concat(dosyaAdi.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)));
         File.WriteAllText(tempPath, htmlIcerik, Encoding.UTF8);
         Process.Start(new ProcessStartInfo(tempPath) { UseShellExecute = true });
         return Task.CompletedTask;

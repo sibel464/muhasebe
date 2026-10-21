@@ -13,6 +13,8 @@ public sealed record HesapEkstresiBelgesi(string Baslik, string HesapAdi, DateTi
 public interface IBelgeYazdirmaServisi
 {
     FirmaBilgisi FirmaBilgisiGetir();
+    // Belgenin şirketine ait güncel künye (boşsa aktif şirket).
+    Task<FirmaBilgisi> FirmaBilgisiGetirAsync(Guid? sirketId = null);
     void FirmaBilgisiGuncelle(FirmaBilgisi bilgi);
 
     // HTML / Vektör Çıktı Üretimi

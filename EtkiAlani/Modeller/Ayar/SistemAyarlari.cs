@@ -4,14 +4,15 @@ namespace EtkiAlani.Modeller.Ayar;
 
 public class SistemAyarlari : TemelVarlik
 {
-    public string FirmaUnvani { get; set; } = "Örnek Ticaret Ltd. Şti.";
-    public string? VergiDairesi { get; set; } = "Kadıköy V.D.";
-    public string? VergiNo { get; set; } = "1234567890";
-    public string? Telefon { get; set; } = "0216 555 00 00";
-    public string? Eposta { get; set; } = "info@ornekticaret.com";
-    public string? WebSitesi { get; set; } = "www.ornekticaret.com";
-    public string? Adres { get; set; } = "Atatürk Cad. No: 15/A Kadıköy / İstanbul";
-    public string? FisHeader { get; set; } = "Örnek Ticaret Ltd. Şti.";
+    public string FirmaUnvani { get; set; } = string.Empty;
+    public string? VergiDairesi { get; set; }
+    public string? VergiNo { get; set; }
+    public string? MersisNo { get; set; }
+    public string? Telefon { get; set; }
+    public string? Eposta { get; set; }
+    public string? WebSitesi { get; set; }
+    public string? Adres { get; set; }
+    public string? FisHeader { get; set; }
     public string? FisFooter { get; set; } = "Bizi tercih ettiğiniz için teşekkür ederiz!";
     public decimal VarsayilanKdv { get; set; } = 20.00m;
     public string ParaBirimiSembolu { get; set; } = "₺";

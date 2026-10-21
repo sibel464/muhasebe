@@ -22,17 +22,17 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
         var ayarlar = await _baglam.SistemAyarlari.FirstOrDefaultAsync(a => a.Id == 1);
         if (ayarlar == null)
         {
+            // İlk kayıt varsayılan şirketin kartından doldurulur; örnek (uydurma) firma bilgisi belgeye basılmasın.
+            var sirket = await _baglam.Sirketler.AsNoTracking().FirstOrDefaultAsync(s => s.Id == MuhasebeBaglami.VarsayilanSirketId);
             ayarlar = new SistemAyarlari
             {
                 Id = 1,
-                FirmaUnvani = "Örnek Ticaret Ltd. Şti.",
-                VergiDairesi = "Kadıköy V.D.",
-                VergiNo = "1234567890",
-                Telefon = "0216 555 00 00",
-                Eposta = "info@ornekticaret.com",
-                WebSitesi = "www.ornekticaret.com",
-                Adres = "Atatürk Cad. No: 15/A Kadıköy / İstanbul",
-                FisHeader = "Örnek Ticaret Ltd. Şti.",
+                FirmaUnvani = sirket?.Unvan ?? string.Empty,
+                VergiDairesi = sirket?.VergiDairesi,
+                VergiNo = sirket?.VergiNo,
+                Telefon = sirket?.Telefon,
+                Eposta = sirket?.Email,
+                Adres = sirket?.Adres,
                 FisFooter = "Bizi tercih ettiğiniz için teşekkür ederiz!",
                 VarsayilanKdv = 20.00m,
                 ParaBirimiSembolu = "₺",
@@ -65,6 +65,7 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
             mevcut.FirmaUnvani = guncelAyarlar.FirmaUnvani.Trim();
             mevcut.VergiDairesi = guncelAyarlar.VergiDairesi?.Trim();
             mevcut.VergiNo = guncelAyarlar.VergiNo?.Trim();
+            mevcut.MersisNo = guncelAyarlar.MersisNo?.Trim();
             mevcut.Telefon = guncelAyarlar.Telefon?.Trim();
             mevcut.Eposta = guncelAyarlar.Eposta?.Trim();
             mevcut.WebSitesi = guncelAyarlar.WebSitesi?.Trim();

@@ -121,22 +121,27 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="Varsayılan Para Birimi" Style="{StaticResource EtiketMetin}"/>
-                                        <TextBox Text="{Binding ParaBirimi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                        <TextBox Text="{Binding ParaBirimiKodu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <TextBlock Text="Varsayılan KDV Oranı (%)" Style="{StaticResource EtiketMetin}"/>
-                                        <TextBox Text="{Binding VarsayilanKdvOrani, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                        <TextBox Text="{Binding VarsayilanKdv, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
                                     </StackPanel>
                                 </Grid>
 
                                 <StackPanel Margin="0,0,0,12">
-                                    <TextBlock Text="Fatura &amp; İrsaliye Alt Bilgi (Footer Notu)" Style="{StaticResource EtiketMetin}"/>
-                                    <TextBox Text="{Binding BelgeAltBilgi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    <TextBlock Text="Fatura Alt Bilgi (Footer Notu)" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Text="{Binding FaturaNotu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                </StackPanel>
+
+                                <StackPanel Margin="0,0,0,12">
+                                    <TextBlock Text="İrsaliye Alt Bilgi" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Text="{Binding IrsaliyeNotu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Satış Fişi / POS Alt Teşekkür Notu" Style="{StaticResource EtiketMetin}"/>
-                                    <TextBox Text="{Binding FisAltNotu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    <TextBlock Text="Makbuz Alt Notu" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Text="{Binding FisFooter, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>

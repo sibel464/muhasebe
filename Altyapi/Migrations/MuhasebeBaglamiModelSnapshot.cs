@@ -55,6 +55,9 @@ namespace Altyapi.Migrations
                     b.Property<string>("IrsaliyeNotu")
                         .HasColumnType("text");
 
+                    b.Property<string>("MersisNo")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("OlusturmaTarihi")
                         .HasColumnType("timestamp with time zone");
 
@@ -101,23 +104,16 @@ namespace Altyapi.Migrations
                         new
                         {
                             Id = 1,
-                            Adres = "Atatürk Cad. No: 15/A Kadıköy / İstanbul",
-                            Eposta = "info@ornekticaret.com",
                             FaturaNotu = "Mal tesliminde faturanın ibrazı zorunludur.",
-                            FirmaUnvani = "Örnek Ticaret Ltd. Şti.",
+                            FirmaUnvani = "",
                             FisFooter = "Bizi tercih ettiğiniz için teşekkür ederiz!",
-                            FisHeader = "Örnek Ticaret Ltd. Şti.",
                             IrsaliyeNotu = "İrsaliye muhteviyatı ürünler eksiksiz teslim alınmıştır.",
                             OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, 0, DateTimeKind.Utc),
                             ParaBirimiKodu = "TRY",
                             ParaBirimiSembolu = "₺",
                             Silindi = false,
-                            Telefon = "0216 555 00 00",
                             VarsayilanKdv = 20.00m,
-                            VarsayilanVadeGunu = 30,
-                            VergiDairesi = "Kadıköy V.D.",
-                            VergiNo = "1234567890",
-                            WebSitesi = "www.ornekticaret.com"
+                            VarsayilanVadeGunu = 30
                         });
                 });
 

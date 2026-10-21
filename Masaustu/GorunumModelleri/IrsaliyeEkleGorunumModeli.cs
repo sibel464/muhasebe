@@ -144,8 +144,32 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
         set
         {
             if (OzellikAyarla(ref _seciliUrun, value))
+            {
+                // Seçilen ürünün fiyatı ve KDV'si satır kutularına önerilir; kullanıcı değiştirebilir.
+                if (value != null)
+                {
+                    KalemMiktar = "1";
+                    KalemBirimFiyat = (IsSatisIrsaliyesi ? value.PerakendeSatisFiyati : value.AlisFiyati).ToString("0.####");
+                    KalemKdv = value.KdvOrani.ToString("0.####");
+                }
                 (KalemEkleKomutu as KomutSarici)?.BildirimGonder();
+            }
         }
+    }
+
+    private string _kalemMiktar = "1";
+    private string _kalemBirimFiyat = string.Empty;
+    private string _kalemKdv = string.Empty;
+    public string KalemMiktar { get => _kalemMiktar; set => OzellikAyarla(ref _kalemMiktar, value); }
+    public string KalemBirimFiyat { get => _kalemBirimFiyat; set => OzellikAyarla(ref _kalemBirimFiyat, value); }
+    public string KalemKdv { get => _kalemKdv; set => OzellikAyarla(ref _kalemKdv, value); }
+
+    private static decimal? MetinDecimalParse(string val)
+    {
+        if (string.IsNullOrWhiteSpace(val)) return null;
+        if (decimal.TryParse(val.Trim(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), out var d)) return d;
+        if (decimal.TryParse(val.Trim(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out d)) return d;
+        return null;
     }
 
     public IrsaliyeKalemiGorunumModeli? SeciliKalem
@@ -320,14 +344,22 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
     {
         if (SeciliUrun == null) return;
 
-        var fiyat = IsSatisIrsaliyesi ? SeciliUrun.PerakendeSatisFiyati : SeciliUrun.AlisFiyati;
+        var miktar = MetinDecimalParse(KalemMiktar);
+        var fiyat = string.IsNullOrWhiteSpace(KalemBirimFiyat)
+            ? (IsSatisIrsaliyesi ? SeciliUrun.PerakendeSatisFiyati : SeciliUrun.AlisFiyati)
+            : MetinDecimalParse(KalemBirimFiyat);
+        var kdv = string.IsNullOrWhiteSpace(KalemKdv) ? SeciliUrun.KdvOrani : MetinDecimalParse(KalemKdv);
+        if (miktar is not > 0) { DurumMesaji = "Miktar 0'dan büyük bir sayı olmalıdır."; return; }
+        if (fiyat is not >= 0) { DurumMesaji = "Birim fiyat geçerli bir sayı olmalıdır."; return; }
+        if (kdv is not (>= 0 and <= 100)) { DurumMesaji = "KDV oranı 0 ile 100 arasında olmalıdır."; return; }
+        DurumMesaji = string.Empty;
 
         var yeniKalem = new IrsaliyeKalemiGorunumModeli
         {
             Urun = SeciliUrun,
-            Miktar = 1,
-            BirimFiyat = fiyat,
-            KdvOrani = SeciliUrun.KdvOrani,
+            Miktar = miktar.Value,
+            BirimFiyat = fiyat.Value,
+            KdvOrani = kdv.Value,
             Degisti = ToplamlariGuncelle
         };
 
@@ -337,6 +369,9 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
 
         SeciliUrun = null;
         UrunAramaMetni = string.Empty;
+        KalemMiktar = "1";
+        KalemBirimFiyat = string.Empty;
+        KalemKdv = string.Empty;
     }
 
     private void KalemSil()

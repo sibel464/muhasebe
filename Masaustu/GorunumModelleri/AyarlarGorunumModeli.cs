@@ -12,14 +12,17 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     private readonly ISistemAyarlariServisi? _ayarlarServisi;
     private readonly IAuditLogServisi? _auditLogServisi;
 
-    private string _firmaUnvani = "Örnek Ticaret Ltd. Şti.";
-    private string _vergiDairesi = "Kadıköy V.D.";
-    private string _vergiNo = "1234567890";
-    private string _telefon = "0216 555 00 00";
-    private string _eposta = "info@ornekticaret.com";
-    private string _webSitesi = "www.ornekticaret.com";
-    private string _adres = "Atatürk Cad. No: 15/A Kadıköy / İstanbul";
-    private string _fisHeader = "Örnek Ticaret Ltd. Şti.";
+    private string _firmaUnvani = string.Empty;
+    private string _vergiDairesi = string.Empty;
+    private string _vergiNo = string.Empty;
+    private string _mersisNo = string.Empty;
+    private string _auditTabloArama = string.Empty;
+    private string _auditKullaniciArama = string.Empty;
+    private string _telefon = string.Empty;
+    private string _eposta = string.Empty;
+    private string _webSitesi = string.Empty;
+    private string _adres = string.Empty;
+    private string _fisHeader = string.Empty;
     private string _fisFooter = "Bizi tercih ettiğiniz için teşekkür ederiz!";
     private decimal _varsayilanKdv = 20;
     private string _paraBirimiSembolu = "₺";
@@ -35,6 +38,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string FirmaUnvani { get => _firmaUnvani; set => OzellikAyarla(ref _firmaUnvani, value); }
     public string VergiDairesi { get => _vergiDairesi; set => OzellikAyarla(ref _vergiDairesi, value); }
     public string VergiNo { get => _vergiNo; set => OzellikAyarla(ref _vergiNo, value); }
+    public string MersisNo { get => _mersisNo; set => OzellikAyarla(ref _mersisNo, value); }
+    public string AuditTabloArama { get => _auditTabloArama; set => OzellikAyarla(ref _auditTabloArama, value); }
+    public string AuditKullaniciArama { get => _auditKullaniciArama; set => OzellikAyarla(ref _auditKullaniciArama, value); }
     public string Telefon { get => _telefon; set => OzellikAyarla(ref _telefon, value); }
     public string Eposta { get => _eposta; set => OzellikAyarla(ref _eposta, value); }
     public string WebSitesi { get => _webSitesi; set => OzellikAyarla(ref _webSitesi, value); }
@@ -116,6 +122,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             FirmaUnvani = ayar.FirmaUnvani;
             VergiDairesi = ayar.VergiDairesi ?? string.Empty;
             VergiNo = ayar.VergiNo ?? string.Empty;
+            MersisNo = ayar.MersisNo ?? string.Empty;
             Telefon = ayar.Telefon ?? string.Empty;
             Eposta = ayar.Eposta ?? string.Empty;
             WebSitesi = ayar.WebSitesi ?? string.Empty;
@@ -145,9 +152,12 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
 
         try
         {
-            var loglar = await _auditLogServisi.LoglariGetirAsync(limit: 50);
+            var tablo = string.IsNullOrWhiteSpace(AuditTabloArama) ? null : AuditTabloArama.Trim();
+            var kullanici = AuditKullaniciArama.Trim();
+            // Kullanıcı süzgeci ada göre yapılır; süzgeç varken daha geniş bir pencereden aranır.
+            var loglar = await _auditLogServisi.LoglariGetirAsync(tabloAdi: tablo, limit: kullanici.Length > 0 ? 1000 : 50);
             AuditLoglar.Clear();
-            foreach (var log in loglar)
+            foreach (var log in loglar.Where(l => kullanici.Length == 0 || (l.KullaniciAdi ?? string.Empty).Contains(kullanici, StringComparison.CurrentCultureIgnoreCase)).Take(50))
             {
                 AuditLoglar.Add(log);
             }
@@ -183,6 +193,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
                 FirmaUnvani = FirmaUnvani,
                 VergiDairesi = VergiDairesi,
                 VergiNo = VergiNo,
+                MersisNo = MersisNo,
                 Telefon = Telefon,
                 Eposta = Eposta,
                 WebSitesi = WebSitesi,

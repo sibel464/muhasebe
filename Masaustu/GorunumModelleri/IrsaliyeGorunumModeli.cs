@@ -1,3 +1,4 @@
+using Altyapi.Servisler;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
@@ -360,8 +361,22 @@ public class IrsaliyeGorunumModeli : TemelGorunumModeli
     private async Task YazdirAsync(Irsaliye? irsaliye)
     {
         if (irsaliye == null || _yazdirmaServisi == null) return;
-        var kalemler = string.Join("", irsaliye.Kalemler.Select(k => $"<tr><td>{System.Net.WebUtility.HtmlEncode(k.UrunKodu)}</td><td>{System.Net.WebUtility.HtmlEncode(k.UrunAd)}</td><td>{k.Miktar:N2} {k.Birim}</td><td>{k.BirimFiyat:N2} ₺</td><td>{k.SatirToplami:N2} ₺</td></tr>"));
-        var html = $$"""<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Segoe UI,Arial;margin:32px;color:#172033}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px}th{background:#eef2ff;text-align:left}.right{text-align:right}</style></head><body><h1>Sevk İrsaliyesi</h1><p><b>Belge:</b> {{irsaliye.IrsaliyeNo}} &nbsp; <b>Tarih:</b> {{irsaliye.Tarih:dd.MM.yyyy HH:mm}}</p><p><b>Cari:</b> {{System.Net.WebUtility.HtmlEncode(irsaliye.CariKart?.Unvan)}}<br><b>Teslimat:</b> {{System.Net.WebUtility.HtmlEncode(irsaliye.TeslimatAdres)}}</p><table><thead><tr><th>Kod</th><th>Malzeme</th><th>Miktar</th><th>Fiyat</th><th>Toplam</th></tr></thead><tbody>{{kalemler}}</tbody></table><p class="right"><b>Genel Toplam: {{irsaliye.GenelToplam:N2}} ₺</b></p><p><b>Taşıyıcı:</b> {{System.Net.WebUtility.HtmlEncode(irsaliye.Tasiyici)}} &nbsp; <b>Plaka:</b> {{System.Net.WebUtility.HtmlEncode(irsaliye.AracPlaka)}}</p></body></html>""";
+        static string H(string? m) => System.Net.WebUtility.HtmlEncode(m ?? string.Empty);
+        // Sevk irsaliyesinde düzenleyen ve alıcının unvanı, adresi, vergi bilgisi, düzenleme ve fiili sevk tarihi bulunmalıdır (VUK 230).
+        var firma = await _yazdirmaServisi.FirmaBilgisiGetirAsync(irsaliye.SirketId);
+        var cari = irsaliye.CariKart;
+        var kalemler = string.Join("", irsaliye.Kalemler.Select((k, i) => $"<tr><td>{i + 1}</td><td>{H(k.UrunKodu)}</td><td>{H(k.UrunAd)}</td><td class=\"right\">{k.Miktar:N2} {H(k.Birim)}</td><td class=\"right\">{k.BirimFiyat:N2} ₺</td><td class=\"right\">{k.SatirToplami:N2} ₺</td></tr>"));
+        var baslik = irsaliye.Tur == IrsaliyeTuru.Satis ? "Sevk İrsaliyesi" : "Alış İrsaliyesi";
+        var teslimat = string.Join(" ", new[] { irsaliye.TeslimatAdres, irsaliye.TeslimatIlce, irsaliye.TeslimatIl }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        var html = $$"""
+            <!doctype html><html lang="tr"><head><meta charset="utf-8"><title>{{baslik}} {{H(irsaliye.IrsaliyeNo)}}</title><style>body{font-family:Segoe UI,Arial;margin:32px;color:#172033;font-size:13px}table{width:100%;border-collapse:collapse}.kalem th,.kalem td{border:1px solid #cbd5e1;padding:6px 8px}.kalem th{background:#eef2ff;text-align:left}.right{text-align:right}.ust td{vertical-align:top;padding:0 0 16px 0}.company-title{font-size:18px;font-weight:700}.company-info{color:#475569;font-size:12px}h1{margin:0;font-size:22px;color:#2563EB}.not{margin-top:24px;color:#64748B;font-size:11px;border-top:1px solid #e2e8f0;padding-top:8px}@media print{ body{margin:0} }</style></head><body>
+            <table class="ust"><tr><td>{{BelgeYazdirmaServisi.FirmaKunyesiHtml(firma)}}</td><td class="right"><h1>{{baslik}}</h1><div><b>No:</b> {{H(irsaliye.IrsaliyeNo)}}</div><div><b>Düzenleme:</b> {{irsaliye.Tarih:dd.MM.yyyy HH:mm}}</div><div><b>Fiili sevk:</b> {{H(irsaliye.SevkTarihiMetni)}}</div></td></tr></table>
+            <table class="ust"><tr><td><b>{{(irsaliye.Tur == IrsaliyeTuru.Satis ? "Alıcı" : "Gönderen")}}:</b> {{H(cari?.Unvan)}}<br>{{H(cari?.Adres)}}<br>V.D.: {{H(cari?.VergiDairesi)}} - No: {{H(cari?.VergiNo)}}</td><td><b>Teslimat:</b> {{H(irsaliye.TeslimatAdSoyad)}} {{H(irsaliye.TeslimatTelefon)}}<br>{{H(teslimat)}}<br><b>Taşıyıcı:</b> {{H(irsaliye.Tasiyici)}} &nbsp; <b>Plaka:</b> {{H(irsaliye.AracPlaka)}} &nbsp; <b>Şoför:</b> {{H(irsaliye.SoforAdi)}}</td></tr></table>
+            <table class="kalem"><thead><tr><th>#</th><th>Kod</th><th>Malın cinsi</th><th class="right">Miktar</th><th class="right">Fiyat</th><th class="right">Tutar</th></tr></thead><tbody>{{kalemler}}</tbody></table>
+            <p class="right"><b>Genel Toplam: {{irsaliye.GenelToplam:N2}} ₺</b></p>
+            <table class="ust" style="margin-top:40px"><tr><td>Teslim Eden<br><br>İmza</td><td class="right">Teslim Alan<br><br>İmza</td></tr></table>
+            <div class="not">{{H(string.IsNullOrWhiteSpace(irsaliye.Aciklama) ? firma.IrsaliyeNotu : irsaliye.Aciklama + " — " + firma.IrsaliyeNotu)}}</div></body></html>
+            """;
         await _yazdirmaServisi.BelgeyiGoruntuleVeYazdirAsync(html, $"Irsaliye-{irsaliye.IrsaliyeNo}");
     }
 

@@ -193,7 +193,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="KDV" Binding="{Binding Kdv, StringFormat='%{0}'}" Width="80">
+                        <DataGridTextColumn Header="KDV" Binding="{Binding KdvOrani, StringFormat='%{0:0.##}'}" Width="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -201,7 +201,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="TOPLAM" Binding="{Binding Toplam, StringFormat='{}{0:N2} ₺'}" Width="130">
+                        <DataGridTextColumn Header="TOPLAM" Binding="{Binding SatirToplami, StringFormat='{}{0:N2} ₺'}" Width="130">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>

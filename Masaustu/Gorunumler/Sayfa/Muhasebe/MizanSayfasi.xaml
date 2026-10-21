@@ -71,8 +71,8 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Hesap Kodu" Binding="{Binding HesapKodu}" Width="140" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Hesap Adı" Binding="{Binding HesapAdi}" Width="*"/>
-                    <DataGridTextColumn Header="Borç Toplamı" Binding="{Binding BorcToplam, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
-                    <DataGridTextColumn Header="Alacak Toplamı" Binding="{Binding AlacakToplam, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    <DataGridTextColumn Header="Borç Toplamı" Binding="{Binding ToplamBorc, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                    <DataGridTextColumn Header="Alacak Toplamı" Binding="{Binding ToplamAlacak, StringFormat={}{0:N2} TL}" Width="150" ElementStyle="{StaticResource SagHizaliMetin}"/>
                     <DataGridTextColumn Header="Borç Bakiye" Binding="{Binding BorcBakiye, StringFormat={}{0:N2} TL}" Width="150" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
                     <DataGridTextColumn Header="Alacak Bakiye" Binding="{Binding AlacakBakiye, StringFormat={}{0:N2} TL}" Width="150" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
                 </DataGrid.Columns>

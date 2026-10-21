@@ -277,7 +277,12 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 			var hedefFatura = (param as Fatura) ?? SeciliFatura;
 			if (hedefFatura != null && _yazdirmaServisi != null)
 			{
-				await _yazdirmaServisi.FaturaYazdirAsync(hedefFatura);
+				var firma = await _yazdirmaServisi.FirmaBilgisiGetirAsync(hedefFatura.SirketId);
+				if ((string.IsNullOrWhiteSpace(firma.VergiNo) || string.IsNullOrWhiteSpace(firma.Adres)) &&
+				    System.Windows.MessageBox.Show("Firmanızın vergi numarası veya adresi girilmemiş; fatura bu bilgiler olmadan basılacak.\n\nBilgileri Ayarlar > Firma & Parametreler sekmesinden girebilirsiniz. Yine de yazdırılsın mı?",
+				        "Firma bilgileri eksik", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+					return;
+				await _yazdirmaServisi.FaturaYazdirAsync(hedefFatura, firma: firma);
 			}
 		});
 		Yeni();
