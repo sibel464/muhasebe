@@ -523,7 +523,7 @@ public class FaturaServisi : IFaturaServisi
             }
 
             // Fatura fişi daha önce Muhasebe ekranından elle iptal edildiyse ters kaydı zaten vardır; ikinci kez ters çevrilmez.
-            if (kaynakFis.Durum != YevmiyeDurumu.Iptal)
+            if (kaynakFis.Durum != YevmiyeDurumu.Iptal && kaynakFis.TersFisId == null)
             {
                 _baglam.YevmiyeFisleri.Add(new YevmiyeFis
                 {

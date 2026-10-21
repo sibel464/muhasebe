@@ -364,6 +364,80 @@ public sealed class Paket13MuhasebeCekirdegiIntegrationTests
     }
 
     [Fact]
+    public async Task Onayli_fis_iptali_hesap_bakiyesini_sifirlar_iki_kez_geri_almaz()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, kullanici, _, yevmiyeServisi, raporServisi, _) = await SetupTestEnvironmentAsync(db);
+        var h100 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "100");
+        var h102 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "102");
+
+        var fis = await yevmiyeServisi.FisOlusturAsync(new YevmiyeFisDto
+        {
+            SirketId = sirketId, FisTuru = FisTuru.Mahsup, Tarih = DateTime.UtcNow, Aciklama = "Bakiye testi", Durum = YevmiyeDurumu.Onaylandi,
+            Satirlar = new List<YevmiyeSatiriDto>
+            {
+                new YevmiyeSatiriDto { HesapId = h100.Id, Borc = 1000m, Alacak = 0m },
+                new YevmiyeSatiriDto { HesapId = h102.Id, Borc = 0m, Alacak = 1000m }
+            }
+        }, sirketId, kullanici.Id);
+        await yevmiyeServisi.FisIptalEtTersKayitUretAsync(fis.Id, "Hatalı", sirketId);
+
+        var muavin = await raporServisi.MuavinAlAsync(h100.Id, sirketId);
+        Assert.Equal(muavin.Satirlar.Sum(x => x.Borc), muavin.Satirlar.Sum(x => x.Alacak));
+        Assert.Equal(2, muavin.Satirlar.Count);
+        var mizan = await raporServisi.MizanAlAsync(sirketId, null, null);
+        Assert.True(mizan.DengedeMi);
+
+        // Ters fiş de iptal edilemez.
+        var iptal = await yevmiyeServisi.GetirFisByIdAsync(fis.Id, sirketId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => yevmiyeServisi.FisIptalEtAsync(iptal!.TersFisId!.Value, "Ters", sirketId));
+    }
+
+    [Fact]
+    public async Task Taslak_fis_iptali_ters_fis_kesmez()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, kullanici, _, yevmiyeServisi, _, _) = await SetupTestEnvironmentAsync(db);
+        var h100 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "100");
+        var h102 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "102");
+
+        var fis = await yevmiyeServisi.FisOlusturAsync(new YevmiyeFisDto
+        {
+            SirketId = sirketId, FisTuru = FisTuru.Mahsup, Tarih = DateTime.UtcNow, Aciklama = "Taslak", Durum = YevmiyeDurumu.Taslak,
+            Satirlar = new List<YevmiyeSatiriDto>
+            {
+                new YevmiyeSatiriDto { HesapId = h100.Id, Borc = 500m, Alacak = 0m },
+                new YevmiyeSatiriDto { HesapId = h102.Id, Borc = 0m, Alacak = 500m }
+            }
+        }, sirketId, kullanici.Id);
+        var sonuc = await yevmiyeServisi.FisIptalEtAsync(fis.Id, "Vazgeçildi", sirketId);
+
+        Assert.Equal(YevmiyeDurumu.Iptal, sonuc.Durum);
+        Assert.Null(sonuc.TersFisId);
+        Assert.False(await db.YevmiyeFisleri.AnyAsync(f => f.IptalEdilenFisId == fis.Id));
+    }
+
+    [Fact]
+    public async Task Belgeden_uretilen_fis_muhasebe_ekranindan_iptal_edilemez()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirketId, _, _, yevmiyeServisi, _, _) = await SetupTestEnvironmentAsync(db);
+        var h100 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "100");
+        var h102 = await db.HesapPlanlari.FirstAsync(h => h.SirketId == sirketId && h.HesapKodu == "102");
+        var fis = new YevmiyeFis
+        {
+            SirketId = sirketId, FisNo = $"KH-{Guid.NewGuid():N}"[..15], Tarih = DateTime.UtcNow, BelgeTipi = "KasaHareketi", BelgeId = 987654,
+            Aciklama = "Belge fişi", Durum = YevmiyeDurumu.Onaylandi,
+            Satirlar = { new YevmiyeSatiri { HesapId = h100.Id, Borc = 10m }, new YevmiyeSatiri { HesapId = h102.Id, Alacak = 10m } }
+        };
+        db.YevmiyeFisleri.Add(fis);
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => yevmiyeServisi.FisIptalEtTersKayitUretAsync(fis.Id, "Deneme", sirketId));
+        Assert.False(await db.YevmiyeFisleri.AnyAsync(f => f.IptalEdilenFisId == fis.Id));
+    }
+
+    [Fact]
     public async Task Test_16_17_18_19_Yevmiye_Muavin_BuyukDefter_GenelMizan()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);

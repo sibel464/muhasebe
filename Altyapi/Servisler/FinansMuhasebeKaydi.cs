@@ -90,7 +90,7 @@ public static class FinansMuhasebeKaydi
     {
         var belgeTipleri = kasaMi ? new[] { KasaBelgeTipi, "TahsilatOdeme" } : new[] { BankaBelgeTipi, "TahsilatOdeme" };
         var adaylar = await baglam.YevmiyeFisleri.AsNoTracking().Include(f => f.Satirlar).ThenInclude(s => s.Hesap)
-            .Where(f => belgeTipleri.Contains(f.BelgeTipi) && f.BelgeId == asilHareketId && f.Durum == YevmiyeDurumu.Onaylandi)
+            .Where(f => belgeTipleri.Contains(f.BelgeTipi) && f.BelgeId == asilHareketId && f.Durum == YevmiyeDurumu.Onaylandi && f.TersFisId == null)
             .ToListAsync();
         // "10" ile başlayan çek hesapları (101/103) banka sayılmaz; aynı BelgeId'yi çek fişi de taşıyabilir.
         var asilFis = adaylar.FirstOrDefault(f => f.Satirlar.Any(s => kasaMi

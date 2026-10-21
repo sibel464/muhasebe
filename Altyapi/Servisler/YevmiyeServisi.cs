@@ -118,7 +118,7 @@ public class YevmiyeServisi : IYevmiyeServisi
         if (fis.Durum == YevmiyeDurumu.Onaylandi)
             throw new InvalidOperationException("Bu yevmiye fişi zaten onaylanmıştır.");
 
-        if (fis.Durum == YevmiyeDurumu.Iptal)
+        if (fis.Durum == YevmiyeDurumu.Iptal || fis.TersFisId != null)
             throw new InvalidOperationException("İptal edilmiş bir yevmiye fişi onaylanamaz.");
 
         await MaliDonemAcikMiDogrulaAsync(fis.Tarih, sirketId);
@@ -146,10 +146,20 @@ public class YevmiyeServisi : IYevmiyeServisi
         if (fis == null)
             throw new KeyNotFoundException("İptal edilecek yevmiye fişi bulunamadı.");
 
-        if (fis.Durum == YevmiyeDurumu.Iptal)
+        if (fis.Durum == YevmiyeDurumu.Iptal || fis.TersFisId != null)
             throw new InvalidOperationException("Bu yevmiye fişi daha önce iptal edilmiştir. İkinci kez iptal edilemez.");
+        if (fis.IptalEdilenFisId != null)
+            throw new InvalidOperationException("Bu fiş bir iptalin ters kaydıdır; iptal edilemez.");
 
         await MaliDonemAcikMiDogrulaAsync(fis.Tarih, sirketId);
+
+        // Taslak fiş deftere hiç girmemiştir: ters kayıt gerekmez, yalnız iptal edilir.
+        if (fis.Durum == YevmiyeDurumu.Taslak)
+        {
+            fis.Durum = YevmiyeDurumu.Iptal;
+            await _baglam.SaveChangesAsync();
+            return MapToDto(fis);
+        }
 
         var transactionSahibi = _baglam.Database.CurrentTransaction == null;
         await using var transaction = transactionSahibi ? await _baglam.Database.BeginTransactionAsync() : null;
@@ -158,8 +168,8 @@ public class YevmiyeServisi : IYevmiyeServisi
         {
             var kullaniciAdi = _kullaniciServisi?.AktifKullanici?.KullaniciAdi ?? "Sistem";
 
-            // Mark original as cancelled
-            fis.Durum = YevmiyeDurumu.Iptal;
+            // Onaylı fiş defterde kalır, iptal ters fişle yapılır (TersFisId dolu = iptal edildi). Asıl fiş "İptal" durumuna
+            // alınsaydı raporlar onu saymaz, ters fişi sayardı; tutar iki kez geri alınırdı.
 
             // Generate reversing entry (Ters Fiş)
             // Ters fiş tarihi yerel gün (UTC etiketli); gerçek UTC gece yarısı sonrası iptali önceki güne/yıla atardı.
@@ -250,7 +260,9 @@ public class YevmiyeServisi : IYevmiyeServisi
         if (filtre.FisTuru.HasValue)
             query = query.Where(s => s.Fis!.FisTuru == filtre.FisTuru.Value);
 
-        if (filtre.Durum.HasValue)
+        if (filtre.Durum == YevmiyeDurumu.Iptal)
+            query = query.Where(s => s.Fis!.Durum == YevmiyeDurumu.Iptal || s.Fis.TersFisId != null);
+        else if (filtre.Durum.HasValue)
             query = query.Where(s => s.Fis!.Durum == filtre.Durum.Value);
 
         if (!string.IsNullOrWhiteSpace(filtre.HesapKodu))
@@ -427,7 +439,7 @@ public class YevmiyeServisi : IYevmiyeServisi
             BelgeId = f.BelgeId,
             Referans = f.Referans,
             Aciklama = f.Aciklama,
-            Durum = f.Durum,
+            Durum = f.TersFisId != null ? YevmiyeDurumu.Iptal : f.Durum,
             TersFisId = f.TersFisId,
             IptalEdilenFisId = f.IptalEdilenFisId,
             KullaniciId = f.KullaniciId,
@@ -456,9 +468,15 @@ public class YevmiyeServisi : IYevmiyeServisi
         };
     }
 
+    // Muhasebe ekranından iptal: belgeden (fatura, kasa/banka hareketi, tahsilat...) üretilen fiş burada iptal edilemez;
+    // belge açık kalırken fişi ters çevrilirse belge ile defter ayrışır ve belgenin kendi iptali ikinci ters kayıt keser.
     public async Task<YevmiyeFisDto?> FisIptalEtTersKayitUretAsync(int fisId, string iptalNedeni, Guid sirketId = default)
     {
         var targetSirketId = _baglam.SirketIdCoz(sirketId);
+        var belge = await _baglam.YevmiyeFisleri.AsNoTracking().Where(f => f.Id == fisId && f.SirketId == targetSirketId)
+            .Select(f => new { f.BelgeTipi, f.BelgeId }).FirstOrDefaultAsync();
+        if (belge != null && belge.BelgeId > 0 && !string.IsNullOrEmpty(belge.BelgeTipi) && !belge.BelgeTipi.StartsWith("MANUEL", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Bu fiş bir belgeden ({belge.BelgeTipi}) otomatik oluşturuldu. Fişi değil, belgenin kendisini kendi ekranından iptal edin.");
         return await FisIptalEtAsync(fisId, iptalNedeni, targetSirketId);
     }
 
