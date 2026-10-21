@@ -81,6 +81,11 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
     public string Ad { get => _ad; set => OzellikAyarla(ref _ad, value); }
     public string Soyad { get => _soyad; set => OzellikAyarla(ref _soyad, value); }
     public string VergiDairesi { get => _vergiDairesi; set => OzellikAyarla(ref _vergiDairesi, value); }
+    // GİB e-Fatura sistemine kayıtlıysa faturası e-Fatura, değilse e-Arşiv olarak kesilir.
+    private bool _eFaturaMukellefi;
+    private string _eFaturaEtiketi = string.Empty;
+    public bool EFaturaMukellefi { get => _eFaturaMukellefi; set => OzellikAyarla(ref _eFaturaMukellefi, value); }
+    public string EFaturaEtiketi { get => _eFaturaEtiketi; set => OzellikAyarla(ref _eFaturaEtiketi, value); }
     public string VergiNo { get => _vergiNo; set => OzellikAyarla(ref _vergiNo, value); }
     public string TcNo { get => _tcNo; set => OzellikAyarla(ref _tcNo, value); }
     public string Telefon { get => _telefon; set => OzellikAyarla(ref _telefon, value); }
@@ -208,7 +213,8 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
             {
                 Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0,
                 Unvan = string.IsNullOrWhiteSpace(Unvan) ? $"{Ad} {Soyad}".Trim() : Unvan,
-                Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
+                Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi, EFaturaMukellefi = EFaturaMukellefi,
+                EFaturaEtiketi = string.IsNullOrWhiteSpace(EFaturaEtiketi) ? null : EFaturaEtiketi.Trim(),
                 VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
                 CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, 
                 Eposta = Eposta, WebSitesi = WebSitesi,

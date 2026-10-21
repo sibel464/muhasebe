@@ -127,6 +127,7 @@ public partial class App : Application
             servisler.AddTransient<IMerkeziTanimServisi, MerkeziTanimServisi>();
             servisler.AddTransient<ICariHareketServisi, CariHareketServisi>();
             servisler.AddTransient<IFaturaServisi, FaturaServisi>();
+            servisler.AddTransient<IEBelgeServisi>(sp => new Altyapi.EBelge.EBelgeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
             servisler.AddTransient<ISiparisServisi, SiparisServisi>();
             servisler.AddTransient<IFinancialTransactionService, FinancialTransactionService>();
             servisler.AddTransient<IIrsaliyeServisi, IrsaliyeServisi>();

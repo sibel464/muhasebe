@@ -162,6 +162,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	private readonly ICariServisi _cariServisi;
 	private readonly IUrunServisi _urunServisi;
 	private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
+	private readonly IEBelgeServisi? _eBelgeServisi;
 	private ObservableCollection<Fatura> _faturalar = new();
 	private ObservableCollection<CariKart> _cariler = new();
 	private ObservableCollection<Urun> _urunler = new();
@@ -246,14 +247,17 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand FaturaYazdirKomutu { get; }
 	public ICommand DetayKomutu { get; }
 	public ICommand ExcelAktarKomutu { get; }
+	public ICommand EBelgeKomutu { get; }
 
 	public FaturaGorunumModeli(
 		IFaturaServisi faturaServisi, 
 		ICariServisi cariServisi, 
 		IUrunServisi urunServisi, 
 		NavigasyonServisi? navigasyon = null,
-		IBelgeYazdirmaServisi? yazdirmaServisi = null)
+		IBelgeYazdirmaServisi? yazdirmaServisi = null,
+		IEBelgeServisi? eBelgeServisi = null)
 	{
+		_eBelgeServisi = eBelgeServisi;
 		_faturaServisi = faturaServisi;
 		_cariServisi = cariServisi;
 		_urunServisi = urunServisi;
@@ -269,6 +273,20 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		SilKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await SilAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Taslak);
 		OnaylaKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await OnaylaAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Taslak);
 		IptalKomutu = new KomutSarici(async param => { if (param is Fatura f) SeciliFatura = f; await IptalAsync(); }, param => (param as Fatura ?? SeciliFatura)?.Durum == BelgeDurumu.Onaylandi);
+		// e-Belge yalnız onaylı satış faturası ve alış iadesi için (diğerleri karşı taraftan gelir).
+		EBelgeKomutu = new KomutSarici(async param =>
+		{
+			if ((param as Fatura ?? SeciliFatura) is not Fatura f || _eBelgeServisi == null) return;
+			if (await EBelgePenceresi.GosterAsync(_eBelgeServisi, f))
+			{
+				// Liste bu sayfanın bağlamında izleniyor; e-belge alanları başka bağlamda değiştiği için buradan tazelenir.
+				var kontrol = await _eBelgeServisi.OnKontrolAsync(new EBelgeHazirlamaIstegi(f.Id));
+				f.EBelgeDurumu = kontrol.MevcutDurum;
+				f.EBelgeTuru = kontrol.MevcutDurum == EBelgeDurumu.Yok ? EBelgeTuru.Yok : kontrol.Tur;
+				f.EBelgeMesaji = kontrol.SonMesaj;
+				Filtrele();
+			}
+		}, param => (param as Fatura ?? SeciliFatura) is { Durum: BelgeDurumu.Onaylandi, Tur: FaturaTuru.Satis or FaturaTuru.AlisIade } && _eBelgeServisi != null);
 		DetayKomutu = new KomutSarici(param => { if ((param as Fatura ?? SeciliFatura) is Fatura f) FaturaDetayPenceresi.Goster(f); }, param => param is Fatura || SeciliFatura != null);
 		KalemEkleKomutu = new KomutSarici(_ => KalemEkle(), _ => Duzenlenebilir && SeciliUrun != null);
 		KalemSilKomutu = new KomutSarici(_ => { if (SeciliKalem != null) Kalemler.Remove(SeciliKalem); ToplamlariGuncelle(); }, _ => Duzenlenebilir && SeciliKalem != null);

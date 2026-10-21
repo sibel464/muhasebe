@@ -51,6 +51,10 @@ public class CariKart : TemelVarlik
     public int? GuncelleyenKullaniciId { get; set; }
     public Kullanici.Kullanici? GuncelleyenKullanici { get; set; }
 
+    // GİB e-Fatura sistemine kayıtlı alıcıya e-Fatura, diğerlerine e-Arşiv fatura kesilir.
+    public bool EFaturaMukellefi { get; set; }
+    public string? EFaturaEtiketi { get; set; } // Posta kutusu etiketi, ör. urn:mail:defaultpk@firma.com.tr
+
     public decimal? RiskLimiti { get; set; }
     public int? VadeGunu { get; set; }
     public string? Iban { get; set; }

@@ -70,6 +70,11 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
             mevcut.Eposta = guncelAyarlar.Eposta?.Trim();
             mevcut.WebSitesi = guncelAyarlar.WebSitesi?.Trim();
             mevcut.Adres = guncelAyarlar.Adres?.Trim();
+            mevcut.Il = guncelAyarlar.Il?.Trim();
+            mevcut.Ilce = guncelAyarlar.Ilce?.Trim();
+            mevcut.PostaKodu = guncelAyarlar.PostaKodu?.Trim();
+            mevcut.EBelgeKlasoru = string.IsNullOrWhiteSpace(guncelAyarlar.EBelgeKlasoru) ? null : guncelAyarlar.EBelgeKlasoru.Trim();
+            mevcut.EFaturaVarsayilanSenaryo = guncelAyarlar.EFaturaVarsayilanSenaryo;
             mevcut.FisHeader = guncelAyarlar.FisHeader?.Trim();
             mevcut.FisFooter = guncelAyarlar.FisFooter?.Trim();
             mevcut.VarsayilanKdv = guncelAyarlar.VarsayilanKdv;

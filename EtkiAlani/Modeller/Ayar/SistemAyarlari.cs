@@ -12,6 +12,13 @@ public class SistemAyarlari : TemelVarlik
     public string? Eposta { get; set; }
     public string? WebSitesi { get; set; }
     public string? Adres { get; set; }
+    public string? Il { get; set; }
+    public string? Ilce { get; set; }
+    public string? PostaKodu { get; set; }
+
+    // e-Fatura / e-Arşiv
+    public string? EBelgeKlasoru { get; set; }                    // Boşsa Belgelerim\MuhasebeYonetim\e-Belge
+    public EtkiAlani.Modeller.Fatura.EFaturaSenaryosu EFaturaVarsayilanSenaryo { get; set; } = EtkiAlani.Modeller.Fatura.EFaturaSenaryosu.Temel;
     public string? FisHeader { get; set; }
     public string? FisFooter { get; set; } = "Bizi tercih ettiğiniz için teşekkür ederiz!";
     public decimal VarsayilanKdv { get; set; } = 20.00m;

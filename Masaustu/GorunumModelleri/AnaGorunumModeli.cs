@@ -112,6 +112,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
     private readonly ISistemAyarlariServisi? _ayarlarServisi;
     private readonly IAuditLogServisi? _auditLogServisi;
+    private readonly IEBelgeServisi? _eBelgeServisi;
 
     public AnaGorunumModeli(
         NavigasyonServisi navigasyon, 
@@ -134,8 +135,10 @@ public class AnaGorunumModeli : TemelGorunumModeli
         IBelgeYazdirmaServisi? yazdirmaServisi = null,
         ISistemAyarlariServisi? ayarlarServisi = null,
         IAuditLogServisi? auditLogServisi = null,
-        ICekSenetServisi? cekSenetServisi = null)
+        ICekSenetServisi? cekSenetServisi = null,
+        IEBelgeServisi? eBelgeServisi = null)
     {
+        _eBelgeServisi = eBelgeServisi;
         _navigasyon = navigasyon;
         _urunServisi = urunServisi;
         _cariServisi = cariServisi;
@@ -179,7 +182,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Satis", () => new SatisGorunumModeli(_urunServisi, _cariServisi, _faturaServisi, _cariHareketServisi));
         _navigasyon.Kaydet("Irsaliye", () => new IrsaliyeGorunumModeli(_irsaliyeServisi, _cariServisi, _urunServisi, _faturaServisi, _navigasyon, _yazdirmaServisi));
         _navigasyon.Kaydet("FaturaEkle", () => new FaturaEkleGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon));
-        _navigasyon.Kaydet("Fatura", () => new FaturaGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon, _yazdirmaServisi));
+        _navigasyon.Kaydet("Fatura", () => new FaturaGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon, _yazdirmaServisi, _eBelgeServisi));
         _navigasyon.Kaydet("Siparis", () => new SiparisGorunumModeli(_siparisServisi, _cariServisi, _urunServisi));
         _navigasyon.Kaydet("Kasa", () => new KasaGorunumModeli(_kasaServisi, _yazdirmaServisi, _cariServisi, _bankaServisi));
         _navigasyon.Kaydet("Banka", () => new BankaGorunumModeli(_bankaServisi, _yazdirmaServisi, _cariServisi, _kasaServisi));

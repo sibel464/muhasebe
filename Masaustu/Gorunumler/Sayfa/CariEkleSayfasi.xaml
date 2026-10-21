@@ -128,6 +128,20 @@
                         </StackPanel>
                     </Grid>
 
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding EFaturaMukellefi}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                  Content="e-Fatura mükellefi (faturası e-Fatura olarak kesilir)"
+                                  ToolTip="Alıcı GİB e-Fatura sistemine kayıtlıysa işaretleyin. İşaretli değilse fatura e-Arşiv olarak düzenlenir."/>
+                        <StackPanel Grid.Column="1" Visibility="{Binding EFaturaMukellefi, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="e-Fatura Posta Kutusu Etiketi (isteğe bağlı)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding EFaturaEtiketi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" ToolTip="Ör. urn:mail:defaultpk@firma.com.tr"/>
+                        </StackPanel>
+                    </Grid>
+
                     <TextBlock Text="İletişim &amp; Adres Bilgileri" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,14"/>
 
                     <Grid Margin="0,0,0,14">

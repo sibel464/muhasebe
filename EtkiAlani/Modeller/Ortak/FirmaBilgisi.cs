@@ -8,6 +8,9 @@ public class FirmaBilgisi
     public string Telefon { get; set; } = string.Empty;
     public string Eposta { get; set; } = string.Empty;
     public string Adres { get; set; } = string.Empty;
+    public string Il { get; set; } = string.Empty;
+    public string Ilce { get; set; } = string.Empty;
+    public string PostaKodu { get; set; } = string.Empty;
     public string WebSitesi { get; set; } = string.Empty;
     public string BelgeBasligi { get; set; } = "RESMİ TİCARİ BELGE";
     public string BelgeNotu { get; set; } = string.Empty;

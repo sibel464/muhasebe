@@ -62,5 +62,17 @@ public class Fatura : TemelVarlik
     public string Aciklama { get; set; } = string.Empty;
     public int Versiyon { get; set; } = 0;                   // Concurrency Token
 
+    // e-Fatura / e-Arşiv. ETTN belge ilk hazırlandığında verilir ve bir daha değişmez.
+    public Guid? Ettn { get; set; }
+    public EBelgeTuru EBelgeTuru { get; set; } = EBelgeTuru.Yok;
+    public EFaturaSenaryosu EFaturaSenaryosu { get; set; } = EFaturaSenaryosu.Temel;
+    public EBelgeDurumu EBelgeDurumu { get; set; } = EBelgeDurumu.Yok;
+    public DateTime? EBelgeTarihi { get; set; }
+    public string? EBelgeMesaji { get; set; }
+
+    // İade faturasında iade edilen (karşı tarafın) faturanın numarası ve tarihi; e-belgede zorunludur.
+    public string? IadeEdilenFaturaNo { get; set; }
+    public DateTime? IadeEdilenFaturaTarihi { get; set; }
+
     public List<FaturaKalemi> Kalemler { get; set; } = new();
 }

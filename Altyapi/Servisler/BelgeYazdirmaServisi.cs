@@ -79,6 +79,9 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             Telefon = Sec(ayar?.Telefon, sirket?.Telefon),
             Eposta = Sec(ayar?.Eposta, sirket?.Email),
             Adres = Sec(ayar?.Adres, sirket?.Adres),
+            Il = Sec(ayar?.Il, sirket?.Il),
+            Ilce = Sec(ayar?.Ilce, sirket?.Ilce),
+            PostaKodu = Sec(ayar?.PostaKodu, sirket?.PostaKodu),
             MersisNo = varsayilanSirket ? ayar?.MersisNo?.Trim() ?? string.Empty : string.Empty,
             WebSitesi = ayar?.WebSitesi?.Trim() ?? string.Empty,
             BelgeNotu = ayar?.FisFooter?.Trim() ?? string.Empty,
@@ -86,6 +89,14 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             IrsaliyeNotu = ayar?.IrsaliyeNotu?.Trim() ?? string.Empty
         };
     }
+
+    // e-belgesi hazırlanmış faturada türü ve ETTN'si basılır; asıl (geçerli) görüntü entegratör/GİB portalındaki belgedir.
+    private static string EBelgeSatiri(EtkiAlani.Modeller.Fatura.Fatura fatura) =>
+        fatura.Ettn is Guid ettn && fatura.EBelgeTuru != EtkiAlani.Modeller.Fatura.EBelgeTuru.Yok
+            ? "<div style='color:#1E293B; font-size:11px; margin-top:4px;'><strong>" +
+              (fatura.EBelgeTuru == EtkiAlani.Modeller.Fatura.EBelgeTuru.EArsiv ? "e-Arşiv Fatura" : "e-Fatura") +
+              "</strong><br>ETTN: " + ettn.ToString().ToUpperInvariant() + "</div>"
+            : string.Empty;
 
     private static string H(string? metin) => System.Net.WebUtility.HtmlEncode(metin ?? string.Empty);
 
@@ -179,7 +190,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         // Header Table
         sb.AppendLine("<table class='header-table'><tr>");
         sb.AppendLine("<td>" + FirmaKunyesiHtml(f) + "</td>");
-        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + turAdi + "</div><div>" + durumBadge + "</div><div style='margin-top:6px; font-weight:700; color:#1E293B;'>No: " + H(fatura.FaturaNo) + "</div><div style='color:#64748B; font-size:12px;'>Tarih: " + fatura.Tarih.ToString("dd.MM.yyyy") + "</div></td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + turAdi + "</div><div>" + durumBadge + "</div><div style='margin-top:6px; font-weight:700; color:#1E293B;'>No: " + H(fatura.FaturaNo) + "</div><div style='color:#64748B; font-size:12px;'>Tarih: " + fatura.Tarih.ToString("dd.MM.yyyy") + "</div>" + EBelgeSatiri(fatura) + "</td>");
         sb.AppendLine("</tr></table>");
 
         // Customer Info Grid

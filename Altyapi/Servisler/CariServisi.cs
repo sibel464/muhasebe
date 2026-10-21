@@ -189,6 +189,8 @@ public class CariServisi : ICariServisi
         mevcutCari.Ad = cari.Ad?.Trim();
         mevcutCari.Soyad = cari.Soyad?.Trim();
         mevcutCari.VergiDairesi = cari.VergiDairesi;
+        mevcutCari.EFaturaMukellefi = cari.EFaturaMukellefi;
+        mevcutCari.EFaturaEtiketi = string.IsNullOrWhiteSpace(cari.EFaturaEtiketi) ? null : cari.EFaturaEtiketi.Trim();
         mevcutCari.VergiNo = cari.VergiNo;
         mevcutCari.TcNo = cari.TcNo;
         mevcutCari.Telefon = cari.Telefon;

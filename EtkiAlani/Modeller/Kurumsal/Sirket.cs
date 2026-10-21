@@ -10,6 +10,9 @@ public class Sirket
     public string? Telefon { get; set; }
     public string? Email { get; set; }
     public string? Adres { get; set; }
+    public string? Il { get; set; }
+    public string? Ilce { get; set; }
+    public string? PostaKodu { get; set; }
     public bool AktifMi { get; set; } = true;
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 }

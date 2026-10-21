@@ -104,6 +104,47 @@
                                     <TextBlock Text="Firma Açık Adresi" Style="{StaticResource EtiketMetin}"/>
                                     <TextBox Text="{Binding Adres, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
                                 </StackPanel>
+
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="İl (e-Fatura için zorunlu)" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding Il, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                        <TextBlock Text="İlçe (e-Fatura için zorunlu)" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding Ilce, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Posta Kodu" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding PostaKodu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" MaxLength="5"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="e-Fatura / e-Arşiv" FontSize="15" FontWeight="Bold" Margin="0,18,0,8"/>
+                                <TextBlock TextWrapping="Wrap" Foreground="#64748B" FontSize="12" Margin="0,0,0,8"
+                                           Text="Entegratör bağlantısı kurulana kadar e-belgeler GİB standardında (UBL-TR) XML dosyası olarak bu klasöre yazılır; dosyayı entegratörünüzün web portalına yükleyebilirsiniz."/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="e-Belge XML klasörü (boşsa Belgelerim\MuhasebeYonetim\e-Belge)" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding EBelgeKlasoru, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" ToolTip="{Binding EBelgeVarsayilanKlasor}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Varsayılan e-Fatura senaryosu" Style="{StaticResource EtiketMetin}"/>
+                                        <ComboBox SelectedIndex="{Binding EFaturaSenaryoIndex}" Height="36">
+                                            <ComboBoxItem Content="Temel fatura"/>
+                                            <ComboBoxItem Content="Ticari fatura"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                         </Border>
 

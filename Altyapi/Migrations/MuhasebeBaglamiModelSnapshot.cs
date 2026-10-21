@@ -33,6 +33,12 @@ namespace Altyapi.Migrations
                     b.Property<string>("Adres")
                         .HasColumnType("text");
 
+                    b.Property<string>("EBelgeKlasoru")
+                        .HasColumnType("text");
+
+                    b.Property<int>("EFaturaVarsayilanSenaryo")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Eposta")
                         .HasColumnType("text");
 
@@ -52,6 +58,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("GuncellemeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Il")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ilce")
+                        .HasColumnType("text");
+
                     b.Property<string>("IrsaliyeNotu")
                         .HasColumnType("text");
 
@@ -67,6 +79,9 @@ namespace Altyapi.Migrations
 
                     b.Property<string>("ParaBirimiSembolu")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PostaKodu")
                         .HasColumnType("text");
 
                     b.Property<bool>("Silindi")
@@ -104,6 +119,7 @@ namespace Altyapi.Migrations
                         new
                         {
                             Id = 1,
+                            EFaturaVarsayilanSenaryo = 0,
                             FaturaNotu = "Mal tesliminde faturanın ibrazı zorunludur.",
                             FirmaUnvani = "",
                             FisFooter = "Bizi tercih ettiğiniz için teşekkür ederiz!",
@@ -243,6 +259,12 @@ namespace Altyapi.Migrations
                     b.Property<string>("CepTelefonu")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("EFaturaEtiketi")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("EFaturaMukellefi")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Eposta")
                         .HasMaxLength(100)
@@ -499,6 +521,65 @@ namespace Altyapi.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EtkiAlani.Modeller.Fatura.EBelgeKaydi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DosyaYolu")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Durum")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Entegrator")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("Ettn")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("FaturaId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("KullaniciId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Mesaj")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OlusturmaTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Silindi")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SilinmeNedeni")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SilinmeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Tur")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Xml")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FaturaId");
+
+                    b.ToTable("EBelgeKayitlari", (string)null);
+                });
+
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.Fatura", b =>
                 {
                     b.Property<int>("Id")
@@ -522,6 +603,24 @@ namespace Altyapi.Migrations
                     b.Property<int>("Durum")
                         .HasColumnType("integer");
 
+                    b.Property<int>("EBelgeDurumu")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EBelgeMesaji")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EBelgeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EBelgeTuru")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EFaturaSenaryosu")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("Ettn")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FaturaNo")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -540,6 +639,12 @@ namespace Altyapi.Migrations
                         .HasColumnType("numeric(18,4)");
 
                     b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IadeEdilenFaturaNo")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("IadeEdilenFaturaTarihi")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("IrsaliyeId")
@@ -606,6 +711,10 @@ namespace Altyapi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CariKartId");
+
+                    b.HasIndex("Ettn")
+                        .IsUnique()
+                        .HasFilter("\"Ettn\" IS NOT NULL");
 
                     b.HasIndex("FaturaNo")
                         .IsUnique()
@@ -2618,8 +2727,17 @@ namespace Altyapi.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("Il")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ilce")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("OlusturmaTarihi")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PostaKodu")
+                        .HasColumnType("text");
 
                     b.Property<string>("SirketKodu")
                         .IsRequired()
@@ -4466,6 +4584,17 @@ namespace Altyapi.Migrations
                         .IsRequired();
 
                     b.Navigation("CariKart");
+                });
+
+            modelBuilder.Entity("EtkiAlani.Modeller.Fatura.EBelgeKaydi", b =>
+                {
+                    b.HasOne("EtkiAlani.Modeller.Fatura.Fatura", "Fatura")
+                        .WithMany()
+                        .HasForeignKey("FaturaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Fatura");
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Fatura.Fatura", b =>

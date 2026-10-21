@@ -139,6 +139,9 @@ public sealed class KvkkServisi : IKvkkServisi
         foreach (var s in siparisler) s.TeslimatAdSoyad = s.TeslimatTelefon = s.TeslimatAdres = s.TeslimatIl = s.TeslimatIlce = "";
         var irsaliyeler = await _baglam.Irsaliyeler.IgnoreQueryFilters([Silinmis]).Where(x => x.CariKartId == cariId).ToListAsync();
         foreach (var i in irsaliyeler) i.TeslimatAdSoyad = i.TeslimatTelefon = i.TeslimatAdres = i.TeslimatIl = i.TeslimatIlce = "";
+        // e-Belge XML kopyaları alıcının kimlik ve adresini içerir; saklama süresi dolduğundan silinir (asıl belge GİB/entegratördedir).
+        await _baglam.EBelgeKayitlari.IgnoreQueryFilters().Where(k => k.Fatura!.CariKartId == cariId)
+            .ExecuteUpdateAsync(x => x.SetProperty(k => k.Xml, "").SetProperty(k => k.DosyaYolu, (string?)null));
 
         _baglam.KisiselVeriMaskele = true;
         try { await _baglam.SaveChangesAsync(); }

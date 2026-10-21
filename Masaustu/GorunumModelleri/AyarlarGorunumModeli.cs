@@ -45,6 +45,15 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string Eposta { get => _eposta; set => OzellikAyarla(ref _eposta, value); }
     public string WebSitesi { get => _webSitesi; set => OzellikAyarla(ref _webSitesi, value); }
     public string Adres { get => _adres; set => OzellikAyarla(ref _adres, value); }
+    private string _il = string.Empty, _ilce = string.Empty, _postaKodu = string.Empty, _eBelgeKlasoru = string.Empty;
+    private int _eFaturaSenaryoIndex;
+    public string Il { get => _il; set => OzellikAyarla(ref _il, value); }
+    public string Ilce { get => _ilce; set => OzellikAyarla(ref _ilce, value); }
+    public string PostaKodu { get => _postaKodu; set => OzellikAyarla(ref _postaKodu, value); }
+    public string EBelgeKlasoru { get => _eBelgeKlasoru; set => OzellikAyarla(ref _eBelgeKlasoru, value); }
+    public string EBelgeVarsayilanKlasor => Altyapi.EBelge.DosyaEBelgeEntegratoru.VarsayilanKlasor;
+    // 0: Temel fatura, 1: Ticari fatura
+    public int EFaturaSenaryoIndex { get => _eFaturaSenaryoIndex; set => OzellikAyarla(ref _eFaturaSenaryoIndex, value); }
     public string FisHeader { get => _fisHeader; set => OzellikAyarla(ref _fisHeader, value); }
     public string FisFooter { get => _fisFooter; set => OzellikAyarla(ref _fisFooter, value); }
     public decimal VarsayilanKdv { get => _varsayilanKdv; set => OzellikAyarla(ref _varsayilanKdv, value); }
@@ -127,6 +136,11 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             Eposta = ayar.Eposta ?? string.Empty;
             WebSitesi = ayar.WebSitesi ?? string.Empty;
             Adres = ayar.Adres ?? string.Empty;
+            Il = ayar.Il ?? string.Empty;
+            Ilce = ayar.Ilce ?? string.Empty;
+            PostaKodu = ayar.PostaKodu ?? string.Empty;
+            EBelgeKlasoru = ayar.EBelgeKlasoru ?? string.Empty;
+            EFaturaSenaryoIndex = (int)ayar.EFaturaVarsayilanSenaryo;
             FisHeader = ayar.FisHeader ?? string.Empty;
             FisFooter = ayar.FisFooter ?? string.Empty;
             VarsayilanKdv = ayar.VarsayilanKdv;
@@ -198,6 +212,11 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
                 Eposta = Eposta,
                 WebSitesi = WebSitesi,
                 Adres = Adres,
+                Il = Il,
+                Ilce = Ilce,
+                PostaKodu = PostaKodu,
+                EBelgeKlasoru = EBelgeKlasoru,
+                EFaturaVarsayilanSenaryo = (EtkiAlani.Modeller.Fatura.EFaturaSenaryosu)EFaturaSenaryoIndex,
                 FisHeader = FisHeader,
                 FisFooter = FisFooter,
                 VarsayilanKdv = VarsayilanKdv,

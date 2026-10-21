@@ -63,7 +63,7 @@ public sealed class SirketServisi : ISirketServisi
             throw new InvalidOperationException("Geçerli bir e-posta adresi girilmelidir.");
         var mevcut = await _db.Sirketler.FirstOrDefaultAsync(x => x.Id == sirket.Id);
         if (mevcut == null) _db.Sirketler.Add(sirket);
-        else { mevcut.SirketKodu=sirket.SirketKodu; mevcut.Unvan=sirket.Unvan; mevcut.VergiNo=sirket.VergiNo; mevcut.VergiDairesi=sirket.VergiDairesi; mevcut.Telefon=sirket.Telefon; mevcut.Email=sirket.Email; mevcut.Adres=sirket.Adres; mevcut.AktifMi=sirket.AktifMi; sirket=mevcut; }
+        else { mevcut.SirketKodu=sirket.SirketKodu; mevcut.Unvan=sirket.Unvan; mevcut.VergiNo=sirket.VergiNo; mevcut.VergiDairesi=sirket.VergiDairesi; mevcut.Telefon=sirket.Telefon; mevcut.Email=sirket.Email; mevcut.Adres=sirket.Adres; mevcut.Il=BosIseNull(sirket.Il); mevcut.Ilce=BosIseNull(sirket.Ilce); mevcut.PostaKodu=BosIseNull(sirket.PostaKodu); mevcut.AktifMi=sirket.AktifMi; sirket=mevcut; }
         await _db.SaveChangesAsync();
         if (mevcut == null) await YeniFirmaTanimlariniAcAsync(_db, sirket);
         await tx.CommitAsync(); return sirket;

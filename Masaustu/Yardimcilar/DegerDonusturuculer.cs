@@ -70,8 +70,31 @@ public class FaturaMetinDonusturucu : IValueConverter
         FaturaOdemeSekli.Nakit => "Nakit",
         FaturaOdemeSekli.KrediKarti => "Kredi Kartı",
         FaturaOdemeSekli.Banka => "Banka",
+        EBelgeTuru.Yok => "Kağıt",
+        EBelgeTuru.EFatura => "e-Fatura",
+        EBelgeTuru.EArsiv => "e-Arşiv",
+        EBelgeDurumu.Yok => "-",
+        EBelgeDurumu.Hazirlandi => "Hazırlandı",
+        EBelgeDurumu.Gonderildi => "Gönderildi",
+        EBelgeDurumu.KabulEdildi => "Kabul edildi",
+        EBelgeDurumu.Reddedildi => "Reddedildi",
+        EBelgeDurumu.Hata => "Hata",
+        EBelgeDurumu.IptalEdildi => "İptal edildi",
         _ => value?.ToString() ?? string.Empty
     };
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+// Fatura listesindeki e-belge sütunu: "e-Fatura · Gönderildi"; e-belge hazırlanmamışsa boş.
+public class EBelgeOzetDonusturucu : IValueConverter
+{
+    private static readonly FaturaMetinDonusturucu Metin = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is Fatura { EBelgeDurumu: not EBelgeDurumu.Yok } f
+            ? $"{Metin.Convert(f.EBelgeTuru, typeof(string), parameter, culture)} · {Metin.Convert(f.EBelgeDurumu, typeof(string), parameter, culture)}"
+            : string.Empty;
+
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 

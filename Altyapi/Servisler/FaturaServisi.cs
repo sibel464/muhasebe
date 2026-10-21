@@ -424,6 +424,17 @@ public class FaturaServisi : IFaturaServisi
             if (fatura.Durum != BelgeDurumu.Onaylandi)
                 throw new InvalidOperationException("Yalnızca onaylanmış durumdaki faturalar iptal edilebilir.");
 
+            // Alıcıya ulaşmış e-belge programdan tek taraflı iptal edilemez: önce GİB/entegratör portalında iptal
+            // (e-Arşiv) ya da alıcının reddi/iade faturası (e-Fatura) gerekir, sonra e-belge durumu işaretlenir.
+            // Durum başka bir bağlamda (e-Belge servisi) değişmiş olabilir; izlenen nesne yerine veritabanından okunur.
+            var eBelge = await _baglam.Faturalar.AsNoTracking().Where(f => f.Id == id)
+                .Select(f => new { f.EBelgeDurumu, f.EBelgeTuru }).SingleAsync();
+            if (eBelge.EBelgeDurumu is EBelgeDurumu.Gonderildi or EBelgeDurumu.KabulEdildi)
+                throw new InvalidOperationException(
+                    $"Bu fatura {(eBelge.EBelgeTuru == EBelgeTuru.EArsiv ? "e-Arşiv" : "e-Fatura")} olarak gönderildi; programdan doğrudan iptal edilemez. " +
+                    "Önce entegratör/GİB portalında iptal edin (e-Fatura için alıcı reddetmeli ya da iade faturası kesmelidir), " +
+                    "ardından e-Belge menüsünden 'İptal edildi' ya da 'Reddedildi' olarak işaretleyip faturayı iptal edin.");
+
             // Durumu güncelle
             fatura.Durum = BelgeDurumu.Iptal;
             fatura.GuncellemeTarihi = DateTime.UtcNow;

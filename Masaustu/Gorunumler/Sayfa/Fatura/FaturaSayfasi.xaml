@@ -17,6 +17,7 @@
             <yardimci:BosBoslukDonusturucu x:Key="BosBoslukDonusturucu"/>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <yardimci:FaturaMetinDonusturucu x:Key="FaturaMetin"/>
+            <yardimci:EBelgeOzetDonusturucu x:Key="EBelgeOzet"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -222,8 +223,18 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
+                    <DataGridTextColumn Header="E-BELGE" Binding="{Binding Converter={StaticResource EBelgeOzet}}" Width="150">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="11"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryFirca}"/>
+                                <Setter Property="ToolTip" Value="{Binding EBelgeMesaji}"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
                     <!-- İşlemler -->
-                    <DataGridTemplateColumn Header="İŞLEMLER" Width="260">
+                    <DataGridTemplateColumn Header="İŞLEMLER" Width="340">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -242,6 +253,15 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="👁️" Margin="0,0,4,0"/>
                                             <TextBlock Text="Detay"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.EBelgeKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}" ToolTip="e-Fatura / e-Arşiv hazırla, gönder ve durumunu takip et"
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,6,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📨" Margin="0,0,4,0"/>
+                                            <TextBlock Text="e-Belge"/>
                                         </StackPanel>
                                     </Button>
 

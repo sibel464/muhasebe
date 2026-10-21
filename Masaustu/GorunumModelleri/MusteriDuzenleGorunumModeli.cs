@@ -126,6 +126,11 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     }
 
     public string? VergiDairesi { get => _vergiDairesi; set => OzellikAyarla(ref _vergiDairesi, value); }
+    // GİB e-Fatura sistemine kayıtlıysa faturası e-Fatura, değilse e-Arşiv olarak kesilir.
+    private bool _eFaturaMukellefi;
+    private string? _eFaturaEtiketi;
+    public bool EFaturaMukellefi { get => _eFaturaMukellefi; set => OzellikAyarla(ref _eFaturaMukellefi, value); }
+    public string? EFaturaEtiketi { get => _eFaturaEtiketi; set => OzellikAyarla(ref _eFaturaEtiketi, value); }
     
     public string? VergiNo 
     { 
@@ -277,6 +282,8 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
             _ad = mevcutCari.Ad;
             _soyad = mevcutCari.Soyad;
             _vergiDairesi = mevcutCari.VergiDairesi;
+            _eFaturaMukellefi = mevcutCari.EFaturaMukellefi;
+            _eFaturaEtiketi = mevcutCari.EFaturaEtiketi;
             _vergiNo = mevcutCari.VergiNo;
             _tcNo = mevcutCari.TcNo;
             _telefon = mevcutCari.Telefon;
@@ -441,7 +448,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
                     Id = _mevcutCari.Id,
                     OlusturmaTarihi = _mevcutCari.OlusturmaTarihi,
                     Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0, Unvan = Unvan,
-                    Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
+                    Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi, EFaturaMukellefi = EFaturaMukellefi, EFaturaEtiketi = EFaturaEtiketi,
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
                     CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,
@@ -451,7 +458,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
                 : new CariKart
                 {
                     Kod = Kod, GrupKodu = GrupKodu, Tur = SeciliCariTuru, CariTipiId = SeciliCariTipi?.Id ?? 0, Unvan = Unvan,
-                    Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi,
+                    Ad = Ad, Soyad = Soyad, VergiDairesi = VergiDairesi, EFaturaMukellefi = EFaturaMukellefi, EFaturaEtiketi = EFaturaEtiketi,
                     VergiNo = VergiNo, TcNo = TcNo, Telefon = Telefon,
                     CepTelefonu = CepTelefonu, EvTelefonu = EvTelefonu, IsTelefonu = IsTelefonu, Eposta = Eposta, WebSitesi = WebSitesi,
                     Adres = Adres, Il = Il, Ilce = Ilce, PostaKodu = PostaKodu,

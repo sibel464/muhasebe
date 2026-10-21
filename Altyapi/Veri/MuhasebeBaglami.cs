@@ -70,6 +70,7 @@ public class MuhasebeBaglami : DbContext
     public DbSet<Fatura> Faturalar => Set<Fatura>();
     public DbSet<FaturaKalemi> FaturaKalemleri => Set<FaturaKalemi>();
     public DbSet<FaturaKalemiStokDagilimi> FaturaKalemiStokDagilimleri => Set<FaturaKalemiStokDagilimi>();
+    public DbSet<EBelgeKaydi> EBelgeKayitlari => Set<EBelgeKaydi>();
 
     // Siparis
     public DbSet<Siparis> Siparisler => Set<Siparis>();
@@ -132,6 +133,10 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<UrunLokasyonStogu>().ToTable("UrunLokasyonStoklari");
         modelBuilder.Entity<FaturaKalemiStokDagilimi>().ToTable("FaturaKalemiStokDagilimleri");
         modelBuilder.Entity<Fatura>().ToTable("Faturalar");
+        modelBuilder.Entity<Fatura>().HasIndex(f => f.Ettn).IsUnique().HasFilter("\"Ettn\" IS NOT NULL");
+        modelBuilder.Entity<EBelgeKaydi>().ToTable("EBelgeKayitlari");
+        modelBuilder.Entity<EBelgeKaydi>().HasIndex(x => x.FaturaId);
+        modelBuilder.Entity<EBelgeKaydi>().HasOne(x => x.Fatura).WithMany().HasForeignKey(x => x.FaturaId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<FaturaKalemi>().ToTable("FaturaKalemleri");
         modelBuilder.Entity<Siparis>().ToTable("Siparisler");
         modelBuilder.Entity<SiparisKalemi>().ToTable("SiparisKalemleri");
@@ -405,6 +410,7 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<FaturaKalemiStokDagilimi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Fatura>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<FaturaKalemi>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<EBelgeKaydi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Siparis>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<SiparisKalemi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<Irsaliye>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
@@ -1509,6 +1515,8 @@ public class MuhasebeBaglami : DbContext
     private object? DenetimDegeri(string alanAdi, object? deger) =>
         KisiselVeriMaskele && KisiselVeriAlanlari.Contains(alanAdi) && deger != null ? "***" : deger;
 
+    // Şifre özeti ve e-belge XML'i (kişisel veri içeren, belge kaydında zaten saklanan büyük metin) denetim kaydına yazılmaz.
     private static bool DenetimAlaninaDahilEt(string alanAdi) =>
-        !string.Equals(alanAdi, nameof(Kullanici.SifreHash), StringComparison.Ordinal);
+        !string.Equals(alanAdi, nameof(Kullanici.SifreHash), StringComparison.Ordinal) &&
+        !string.Equals(alanAdi, nameof(EBelgeKaydi.Xml), StringComparison.Ordinal);
 }
