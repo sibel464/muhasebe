@@ -149,6 +149,157 @@ public class EBelgeServisi : IEBelgeServisi
         return sonuclar;
     }
 
+    // ---- Gelen e-Fatura ----
+
+    private sealed record GelenHazirlik(
+        GelenFatura Belge, FaturaTuru Tur, CariKart? Cari,
+        List<(GelenFaturaSatiri Satir, EtkiAlani.Modeller.Stok.Urun? Urun, decimal IskontoOrani)> Satirlar,
+        List<string> Uyarilar, List<string> Hatalar);
+
+    private static readonly string[] AlisOlarakAlinanTipler = ["SATIS", "ISTISNA", "IHRACKAYITLI", "OZELMATRAH"];
+
+    private async Task<GelenHazirlik> GelenHazirlaAsync(string xml, CancellationToken cancellationToken)
+    {
+        var belge = UblTrFaturaOkuyucu.Oku(xml);
+        var hatalar = new List<string>();
+        var uyarilar = new List<string>();
+
+        var tur = belge.Tip == "IADE" ? FaturaTuru.SatisIade : FaturaTuru.Alis;
+        if (belge.Tip != "IADE" && !AlisOlarakAlinanTipler.Contains(belge.Tip))
+            hatalar.Add($"'{belge.Tip}' tipindeki fatura otomatik aktarılamıyor (ör. tevkifatlı fatura); lütfen elle girin.");
+        if (belge.Tip is "IHRACKAYITLI" or "OZELMATRAH")
+            uyarilar.Add($"Fatura tipi {belge.Tip}: KDV tutarlarını kontrol edin.");
+        if (!string.Equals(belge.ParaBirimi, "TRY", StringComparison.OrdinalIgnoreCase))
+            hatalar.Add($"Dövizli ({belge.ParaBirimi}) fatura henüz otomatik aktarılamıyor; lütfen elle girin.");
+
+        // Fatura bu firmaya kesilmiş olmalı.
+        var ayar = await _baglam.SistemAyarlari.AsNoTracking().FirstOrDefaultAsync(a => a.Id == 1, cancellationToken);
+        var sirketId = _baglam.SirketIdCoz(Guid.Empty);
+        var sirket = await _baglam.Sirketler.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sirketId, cancellationToken);
+        var firma = BelgeYazdirmaServisi.FirmaBilgisiOlustur(ayar, sirket, sirketId == MuhasebeBaglami.VarsayilanSirketId);
+        var firmaVkn = Rakamlar(firma.VergiNo);
+        if (firmaVkn.Length > 0 && Rakamlar(belge.Alici.VknTckn) != firmaVkn)
+            hatalar.Add($"Bu fatura firmanıza kesilmemiş: alıcı {belge.Alici.Unvan} ({belge.Alici.VknTckn}), firmanızın vergi no'su {firmaVkn}.");
+        else if (firmaVkn.Length == 0)
+            uyarilar.Add("Firmanızın vergi numarası Ayarlar'da girilmemiş; faturanın size kesildiği doğrulanamadı.");
+
+        var mevcut = await _baglam.Faturalar.IgnoreQueryFilters().AsNoTracking()
+            .Where(f => f.Ettn == belge.Ettn).Select(f => f.FaturaNo).FirstOrDefaultAsync(cancellationToken);
+        if (mevcut != null)
+            hatalar.Add($"Bu e-Fatura daha önce aktarılmış ({mevcut}).");
+        else if (await _baglam.Faturalar.IgnoreQueryFilters().AnyAsync(f => f.FaturaNo == belge.FaturaNo, cancellationToken))
+            hatalar.Add($"'{belge.FaturaNo}' numaralı başka bir fatura kayıtlı; aynı numara ikinci kez kullanılamaz.");
+
+        var vkn = Rakamlar(belge.Satici.VknTckn);
+        var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.VergiNo == vkn || c.TcNo == vkn, cancellationToken);
+
+        var urunler = await _baglam.Urunler.AsNoTracking().Where(u => u.Aktif).ToListAsync(cancellationToken);
+        var satirlar = belge.Satirlar.Select(s =>
+        {
+            var urun = (s.SaticiUrunKodu is { Length: > 0 } kod
+                    ? urunler.FirstOrDefault(u => string.Equals(u.Kod, kod, StringComparison.OrdinalIgnoreCase) || u.Barkod == kod)
+                    : null)
+                ?? urunler.FirstOrDefault(u => string.Equals(u.Ad.Trim(), s.UrunAdi, StringComparison.CurrentCultureIgnoreCase));
+            var brut = s.Miktar * s.BirimFiyat;
+            var iskonto = brut > 0 && s.Indirim > 0 ? decimal.Round(s.Indirim / brut * 100m, 4) : 0m;
+            return (Satir: s, Urun: urun, IskontoOrani: iskonto);
+        }).ToList();
+        if (belge.Satirlar.Any(s => s.Miktar <= 0))
+            hatalar.Add("Faturada miktarı sıfır olan satır var.");
+
+        // Program toplamı kendi kurallarıyla (satır bazında kuruş yuvarlaması) hesaplar; fark varsa kullanıcı görsün.
+        var hesap = EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla(
+            satirlar.Select(x => new EtkiAlani.Yardimcilar.FaturaHesaplayici.Girdi(x.Satir.Miktar, x.Satir.BirimFiyat, x.IskontoOrani, x.Satir.KdvOrani)).ToList(), 0);
+        if (Math.Abs(hesap.GenelToplam - belge.OdenecekTutar) > 0.05m)
+            uyarilar.Add($"Programın hesapladığı toplam ({hesap.GenelToplam:N2} ₺) faturadaki ödenecek tutardan ({belge.OdenecekTutar:N2} ₺) farklı; taslağı onaylamadan önce kontrol edin.");
+        if (cari == null)
+            uyarilar.Add($"'{belge.Satici.Unvan}' için yeni cari kart açılacak.");
+        var yeniUrun = satirlar.Count(x => x.Urun == null);
+        if (yeniUrun > 0)
+            uyarilar.Add($"{yeniUrun} satır için yeni ürün kartı açılacak.");
+
+        return new GelenHazirlik(belge, tur, cari, satirlar, uyarilar, hatalar);
+    }
+
+    public async Task<GelenFaturaOnizleme> GelenFaturaOnizleAsync(string xml, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "Gelen e-Fatura Önizleme");
+        var h = await GelenHazirlaAsync(xml, cancellationToken);
+        var b = h.Belge;
+        var turAciklama = (b.Profil == "EARSIVFATURA" ? "e-Arşiv" : "e-Fatura") + " • " +
+                          (h.Tur == FaturaTuru.SatisIade ? "müşteri iadesi → Satış İade faturası" : "alış → Alış faturası");
+        return new GelenFaturaOnizleme(b.FaturaNo, b.Ettn, b.Tarih, turAciklama, b.Satici.Unvan, b.Satici.VknTckn,
+            h.Cari is { } c ? $"{c.Kod} - {c.Unvan}" : null, b.OdenecekTutar,
+            h.Satirlar.Select(x => new GelenFaturaSatirOnizleme(x.Satir.SiraNo, x.Satir.UrunAdi, x.Satir.SaticiUrunKodu, x.Satir.Miktar,
+                UblTrFaturaOkuyucu.BirimAdi(x.Satir.BirimKodu), x.Satir.BirimFiyat, x.IskontoOrani, x.Satir.KdvOrani, x.Satir.SatirTutari,
+                x.Urun is { } u ? $"{u.Kod} - {u.Ad}" : "Yeni ürün açılacak")).ToList(),
+            h.Uyarilar, h.Hatalar);
+    }
+
+    public async Task<Fatura> GelenFaturaAktarAsync(string xml, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaOlustur, "Gelen e-Fatura Aktarma");
+        var h = await GelenHazirlaAsync(xml, cancellationToken);
+        if (h.Hatalar.Count > 0)
+            throw new InvalidOperationException("e-Fatura aktarılamadı:\n- " + string.Join("\n- ", h.Hatalar));
+        var b = h.Belge;
+
+        var cari = h.Cari;
+        if (cari == null)
+        {
+            var s = b.Satici;
+            var vkn = Rakamlar(s.VknTckn);
+            var gercekKisi = vkn.Length == 11;
+            var parcalar = s.Unvan.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            cari = await new CariServisi(_baglam, _kullaniciServisi).OtomatikKodlaEkleAsync(new CariKart
+            {
+                Tur = h.Tur == FaturaTuru.SatisIade ? CariTuru.Musteri : CariTuru.Tedarikci,
+                CariTipiId = gercekKisi ? CariTipiTanimi.BireyselId : CariTipiTanimi.KurumsalId,
+                Unvan = s.Unvan,
+                Ad = gercekKisi && parcalar.Length > 1 ? string.Join(' ', parcalar[..^1]) : null,
+                Soyad = gercekKisi && parcalar.Length > 1 ? parcalar[^1] : null,
+                VergiNo = gercekKisi ? null : vkn, TcNo = gercekKisi ? vkn : null, VergiDairesi = s.VergiDairesi,
+                Adres = s.Adres, Il = s.Il, Ilce = s.Ilce, PostaKodu = s.PostaKodu, Telefon = s.Telefon, Eposta = s.Eposta,
+                EFaturaMukellefi = b.Profil != "EARSIVFATURA", Aktif = true,
+                Aciklama = $"{b.FaturaNo} numaralı e-Faturadan otomatik açıldı."
+            });
+        }
+
+        var urunServisi = new UrunServisi(_baglam, _kullaniciServisi);
+        var kalemler = new List<FaturaKalemi>();
+        foreach (var (satir, bulunan, iskonto) in h.Satirlar)
+        {
+            var urun = bulunan;
+            if (urun == null)
+            {
+                urun = await urunServisi.GuvenliEkleAsync(new EtkiAlani.Modeller.Stok.Urun
+                {
+                    Ad = satir.UrunAdi.Length > 200 ? satir.UrunAdi[..200] : satir.UrunAdi,
+                    Birim = UblTrFaturaOkuyucu.BirimAdi(satir.BirimKodu),
+                    KdvOrani = satir.KdvOrani, AlisFiyati = satir.BirimFiyat, Aktif = true,
+                    Aciklama = $"{b.Satici.Unvan} e-Faturasından ({b.FaturaNo}) otomatik açıldı." + (satir.SaticiUrunKodu is { } k ? $" Tedarikçi kodu: {k}" : "")
+                }, otomatikKod: true, otomatikBarkod: false);
+            }
+            kalemler.Add(new FaturaKalemi
+            {
+                UrunId = urun.Id, UrunKodu = urun.Kod, UrunAd = urun.Ad, Birim = urun.Birim,
+                Miktar = satir.Miktar, BirimFiyat = satir.BirimFiyat, IskontoOrani = iskonto, KdvOrani = satir.KdvOrani
+            });
+        }
+
+        var fatura = new Fatura
+        {
+            Tur = h.Tur, FaturaNo = b.FaturaNo, Tarih = DateTime.SpecifyKind(b.Tarih, DateTimeKind.Utc), CariKartId = cari.Id,
+            Ettn = b.Ettn, EBelgeTuru = b.Profil == "EARSIVFATURA" ? EBelgeTuru.EArsiv : EBelgeTuru.EFatura,
+            IadeEdilenFaturaNo = b.IadeEdilenFaturaNo,
+            IadeEdilenFaturaTarihi = b.IadeEdilenFaturaTarihi is DateTime t ? DateTime.SpecifyKind(t, DateTimeKind.Utc) : null,
+            Aciklama = $"Gelen {(b.Profil == "EARSIVFATURA" ? "e-Arşiv" : "e-Fatura")}: {b.FaturaNo} (ETTN {b.Ettn.ToString().ToUpperInvariant()})",
+            Kalemler = kalemler
+        };
+        return await new FaturaServisi(_baglam, _kullaniciServisi).EkleAsync(fatura);
+    }
+
+
     private static void IadeBilgisiUygula(Fatura fatura, EBelgeHazirlamaIstegi istek)
     {
         if (fatura.Tur != FaturaTuru.AlisIade)

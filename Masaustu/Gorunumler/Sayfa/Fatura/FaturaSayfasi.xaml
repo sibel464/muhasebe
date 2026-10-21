@@ -42,6 +42,13 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Command="{Binding GelenEFaturaKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                        ToolTip="Tedarikçiden gelen e-Fatura XML dosyasından alış faturası oluştur">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" Margin="0,0,6,0"/>
+                        <TextBlock Text="e-Fatura İçe Aktar"/>
+                    </StackPanel>
+                </Button>
                 <Button Command="{Binding TopluEBelgeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
                         ToolTip="Bekleyen e-Fatura / e-Arşiv belgelerini toplu hazırla">
                     <StackPanel Orientation="Horizontal">

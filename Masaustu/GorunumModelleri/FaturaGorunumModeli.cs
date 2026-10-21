@@ -249,6 +249,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand ExcelAktarKomutu { get; }
 	public ICommand EBelgeKomutu { get; }
 	public ICommand TopluEBelgeKomutu { get; }
+	public ICommand GelenEFaturaKomutu { get; }
 	public bool EBelgeKullanilabilir => _eBelgeServisi != null;
 
 	public FaturaGorunumModeli(
@@ -285,6 +286,11 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		TopluEBelgeKomutu = new KomutSarici(async _ =>
 		{
 			if (_eBelgeServisi != null && await EBelgePenceresi.TopluGosterAsync(_eBelgeServisi))
+				await YukleAsync();
+		}, _ => _eBelgeServisi != null);
+		GelenEFaturaKomutu = new KomutSarici(async _ =>
+		{
+			if (_eBelgeServisi != null && await EBelgePenceresi.GelenAktarAsync(_eBelgeServisi) > 0)
 				await YukleAsync();
 		}, _ => _eBelgeServisi != null);
 		DetayKomutu = new KomutSarici(param => { if ((param as Fatura ?? SeciliFatura) is Fatura f) FaturaDetayPenceresi.Goster(f); }, param => param is Fatura || SeciliFatura != null);

@@ -257,6 +257,105 @@ public static class EBelgePenceresi
         return degisti;
     }
 
+    // Tedarikçiden gelen e-Fatura XML dosyalarını seçtirir; her biri için önizleme gösterip onaylananı taslak fatura yapar.
+    // Aktarılan fatura sayısını döner.
+    public static async Task<int> GelenAktarAsync(IEBelgeServisi servis)
+    {
+        var secim = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Gelen e-Fatura XML dosyalarını seçin", Filter = "e-Fatura XML (*.xml)|*.xml|Tüm dosyalar (*.*)|*.*", Multiselect = true
+        };
+        if (secim.ShowDialog() != true)
+            return 0;
+
+        var aktarilan = 0;
+        foreach (var dosya in secim.FileNames)
+        {
+            string xml;
+            GelenFaturaOnizleme onizleme;
+            try
+            {
+                xml = await File.ReadAllTextAsync(dosya);
+                onizleme = await servis.GelenFaturaOnizleAsync(xml);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{Path.GetFileName(dosya)} okunamadı:\n\n{ex.Message}", "Gelen e-Fatura", MessageBoxButton.OK, MessageBoxImage.Warning);
+                continue;
+            }
+
+            var sonuc = GelenOnizlemeGoster(Path.GetFileName(dosya), onizleme);
+            if (sonuc == null) break;      // vazgeç: kalan dosyalar da bırakılır
+            if (sonuc == false) continue;  // bu dosyayı atla
+            try
+            {
+                var fatura = await servis.GelenFaturaAktarAsync(xml);
+                aktarilan++;
+                MessageBox.Show($"{fatura.FaturaNo} taslak {M(fatura.Tur)} faturası olarak kaydedildi.\n\nFatura listesinden kontrol edip onaylayın; onaylanınca stok ve cari hesap işlenir.",
+                    "Gelen e-Fatura", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{Path.GetFileName(dosya)} aktarılamadı:\n\n{ex.Message}", "Gelen e-Fatura", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        return aktarilan;
+    }
+
+    // true: aktar, false: bu dosyayı atla, null: vazgeç.
+    private static bool? GelenOnizlemeGoster(string dosyaAdi, GelenFaturaOnizleme o)
+    {
+        var bilgi = new TextBlock
+        {
+            FontSize = 14, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10),
+            Text = $"{o.FaturaNo}  •  {o.Tarih:dd.MM.yyyy}  •  {o.TurAciklamasi}\n" +
+                   $"Gönderen: {o.SaticiUnvan} ({o.SaticiVknTckn})\n" +
+                   $"Cari kart: {o.EslesenCari ?? "yok, yeni cari açılacak"}\n" +
+                   $"Ödenecek tutar: {o.OdenecekTutar:N2} ₺   •   ETTN: {o.Ettn.ToString().ToUpperInvariant()}"
+        };
+        var hatalar = new TextBlock { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Text = string.Join("\n", o.Hatalar.Select(h => "✖ " + h)), Visibility = o.Hatalar.Count > 0 ? Visibility.Visible : Visibility.Collapsed };
+        var uyarilar = new TextBlock { Foreground = Brushes.DarkGoldenrod, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 8), Text = string.Join("\n", o.Uyarilar.Select(h => "• " + h)), Visibility = o.Uyarilar.Count > 0 ? Visibility.Visible : Visibility.Collapsed };
+
+        var tablo = new DataGrid { ItemsSource = o.Satirlar, AutoGenerateColumns = false, IsReadOnly = true, HeadersVisibility = DataGridHeadersVisibility.Column, CanUserAddRows = false, Background = Brushes.White };
+        void Kolon(string ad, string yol, string? bicim = null, double genislik = 90) =>
+            tablo.Columns.Add(new DataGridTextColumn { Header = ad, Binding = new System.Windows.Data.Binding(yol) { StringFormat = bicim }, Width = genislik });
+        Kolon("#", nameof(GelenFaturaSatirOnizleme.SiraNo), genislik: 35);
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Ürün (faturada)", Binding = new System.Windows.Data.Binding(nameof(GelenFaturaSatirOnizleme.UrunAdi)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+        Kolon("Miktar", nameof(GelenFaturaSatirOnizleme.Miktar), "N2", 70);
+        Kolon("Birim", nameof(GelenFaturaSatirOnizleme.Birim), genislik: 60);
+        Kolon("Birim Fiyat", nameof(GelenFaturaSatirOnizleme.BirimFiyat), "N2");
+        Kolon("İsk. %", nameof(GelenFaturaSatirOnizleme.IskontoOrani), "N2", 60);
+        Kolon("KDV %", nameof(GelenFaturaSatirOnizleme.KdvOrani), "N0", 55);
+        Kolon("Tutar", nameof(GelenFaturaSatirOnizleme.Tutar), "N2");
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Programdaki ürün", Binding = new System.Windows.Data.Binding(nameof(GelenFaturaSatirOnizleme.EslesenUrun)), Width = 220 });
+
+        var aktar = Dugme("Taslak Fatura Olarak Aktar", true);
+        aktar.IsEnabled = o.Aktarilabilir;
+        var atla = Dugme("Bu Dosyayı Atla");
+        var vazgec = Dugme("Vazgeç");
+        var ust = new StackPanel { Children = { bilgi, hatalar, uyarilar } };
+        var alt = new WrapPanel { Margin = new Thickness(0, 12, 0, 0), Children = { aktar, atla, vazgec } };
+        var kok = new DockPanel { Margin = new Thickness(20) };
+        DockPanel.SetDock(ust, Dock.Top);
+        DockPanel.SetDock(alt, Dock.Bottom);
+        kok.Children.Add(ust);
+        kok.Children.Add(alt);
+        kok.Children.Add(tablo);
+
+        bool? sonuc = null;
+        var pencere = new Window
+        {
+            Title = $"Gelen e-Fatura - {dosyaAdi}", Width = 1000, Height = 600, MinWidth = 700, MinHeight = 420,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false, Background = Brushes.White, Content = kok,
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
+        aktar.Click += (_, _) => { sonuc = true; pencere.Close(); };
+        atla.Click += (_, _) => { sonuc = false; pencere.Close(); };
+        vazgec.Click += (_, _) => { sonuc = null; pencere.Close(); };
+        pencere.ShowDialog();
+        return sonuc;
+    }
+
     private sealed class BasariliMetni : System.Windows.Data.IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => value is true ? "✔ Tamam" : "✖ Atlandı";

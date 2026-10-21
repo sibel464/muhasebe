@@ -360,4 +360,62 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
             if (Directory.Exists(klasor)) Directory.Delete(klasor, true);
         }
     }
+
+    [Fact]
+    public async Task Gelen_e_fatura_taslak_alis_faturasi_olarak_aktarilir_ikinci_kez_aktarilamaz()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var servis = new EBelgeServisi(db, o.Oturum);
+
+        // Tedarikçinin kestiği fatura: satıcı tedarikçi, alıcı bizim firmamız.
+        var tedarikci = new UblTaraf(GecerliVkn(Random.Shared.Next()), "Toptancı Gıda A.Ş.", VergiDairesi: "Bayrampaşa", Adres: "Hal Yolu 3",
+            Ilce: "Bayrampaşa", Il: "İstanbul", Eposta: "satis@toptanci.com.tr");
+        var biz = new UblTaraf(o.Sirket.VergiNo!, o.Sirket.Unvan, VergiDairesi: o.Sirket.VergiDairesi, Il: o.Sirket.Il, Ilce: o.Sirket.Ilce);
+        var gelen = Fatura(FaturaTuru.Satis, 0m, ("Zeytinyağı 5 Lt", "Adet", 4m, 750m, 10m, 10m), (o.Urun.Ad, "Adet", 3m, 100m, 0m, 20m));
+        gelen.FaturaNo = "TPT2026" + Random.Shared.Next(100000000, 999999999);
+        gelen.Kalemler[1].UrunKodu = o.Urun.Kod; // mevcut ürünle kodundan eşleşir
+        var ettn = Guid.NewGuid();
+        var xml = UblTrFaturaUretici.UretMetin(new UblFaturaGirdisi(gelen, ettn, EBelgeTuru.EFatura, EFaturaSenaryosu.Ticari, tedarikci, biz));
+
+        var onizleme = await servis.GelenFaturaOnizleAsync(xml);
+        Assert.True(onizleme.Aktarilabilir, string.Join("; ", onizleme.Hatalar));
+        Assert.Null(onizleme.EslesenCari);
+        Assert.Equal("Yeni ürün açılacak", onizleme.Satirlar[0].EslesenUrun);
+        Assert.StartsWith(o.Urun.Kod, onizleme.Satirlar[1].EslesenUrun);
+        Assert.Equal(10m, onizleme.Satirlar[0].IskontoOrani);
+
+        var fatura = await servis.GelenFaturaAktarAsync(xml);
+        Assert.Equal(FaturaTuru.Alis, fatura.Tur);
+        Assert.Equal(BelgeDurumu.Taslak, fatura.Durum);
+        Assert.Equal(gelen.FaturaNo, fatura.FaturaNo);
+        Assert.Equal(ettn, fatura.Ettn);
+        Assert.Equal(gelen.GenelToplam, fatura.GenelToplam);
+        Assert.Equal(gelen.KdvToplam, fatura.KdvToplam);
+
+        await using var oku = new MuhasebeBaglami(fixture.Options) { AktifSirketId = o.Sirket.Id };
+        var cari = await oku.CariKartlar.SingleAsync(c => c.Id == fatura.CariKartId);
+        Assert.Equal(tedarikci.VknTckn, cari.VergiNo);
+        Assert.Equal(CariTuru.Tedarikci, cari.Tur);
+        Assert.True(cari.EFaturaMukellefi);
+        var kalemler = await oku.FaturaKalemleri.Where(k => k.FaturaId == fatura.Id).OrderBy(k => k.Id).ToListAsync();
+        Assert.Equal(o.Urun.Id, kalemler[1].UrunId);
+        var yeniUrun = await oku.Urunler.SingleAsync(u => u.Id == kalemler[0].UrunId);
+        Assert.Equal("Zeytinyağı 5 Lt", yeniUrun.Ad);
+        Assert.Equal(750m, yeniUrun.AlisFiyati);
+
+        // Aynı ETTN ikinci kez aktarılamaz.
+        var tekrar = await servis.GelenFaturaOnizleAsync(xml);
+        Assert.Contains(tekrar.Hatalar, h => h.Contains("daha önce aktarılmış"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => servis.GelenFaturaAktarAsync(xml));
+
+        // Başka firmaya kesilmiş fatura reddedilir.
+        var baskasi = biz with { VknTckn = GecerliVkn(Random.Shared.Next()) };
+        gelen.FaturaNo = "TPT2026" + Random.Shared.Next(100000000, 999999999);
+        var yanlis = UblTrFaturaUretici.UretMetin(new UblFaturaGirdisi(gelen, Guid.NewGuid(), EBelgeTuru.EFatura, EFaturaSenaryosu.Temel, tedarikci, baskasi));
+        Assert.Contains((await servis.GelenFaturaOnizleAsync(yanlis)).Hatalar, h => h.Contains("firmanıza kesilmemiş"));
+
+        // XML olmayan dosya anlaşılır hatayla reddedilir.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => servis.GelenFaturaOnizleAsync("bu bir xml değil"));
+    }
 }
