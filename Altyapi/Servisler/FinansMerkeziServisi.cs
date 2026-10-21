@@ -347,6 +347,13 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             var islemTarihi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
             pos.HesabaGecisTarihi = islemTarihi;
 
+            if (pos.BankaHesabi?.HesapTuru == BankaHesapTuru.POSHesabi)
+            {
+                await PosHesabindanVadesizeAktarAsync(pos, pos.BankaHesabi, islemTarihi, cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+                return;
+            }
+
             // Banka Hareketi Gelir ekle (Net Tutar)
             var bh = new BankaHareketi
             {
@@ -382,6 +389,53 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             await tx.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    // Kartlı satıştan gelen işlemde para POS (bloke) hesabındadır: brüt tutar POS hesabından çıkar, net tutar şirketin
+    // vadesiz TL hesabına girer. Banka ekranındaki "POS hesaba geçiş" ile aynı kayıt: banka borç net, 653 komisyon, 108 alacak brüt.
+    private async Task PosHesabindanVadesizeAktarAsync(PosIslemi pos, BankaHesabi posHesap, DateTime islemTarihi, CancellationToken cancellationToken)
+    {
+        var vadesiz = await _baglam.BankaHesaplari
+            .Where(b => b.AktifMi && b.HesapTuru == BankaHesapTuru.VadesizTL && b.SirketId == posHesap.SirketId)
+            .OrderBy(b => b.Id).FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("POS tahsilatının aktarılacağı vadesiz TL banka hesabı yok. Önce Banka ekranından bir vadesiz hesap tanımlayın.");
+
+        foreach (var id in new[] { posHesap.Id, vadesiz.Id }.Order())
+            await FinansKurallari.BankaHesabiKilitleAsync(_baglam, id);
+        await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, posHesap.SirketId);
+        await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, posHesap, pos.BrutTutar);
+
+        var komisyon = Math.Max(0, pos.BrutTutar - pos.NetTutar);
+        var fisNo = FinansKurallari.FisNoUret("POS-GEC");
+        var posCikis = new BankaHareketi
+        {
+            SirketId = posHesap.SirketId, BankaHesabiId = posHesap.Id, BankaAdi = posHesap.Ad, HesapNo = posHesap.Iban,
+            Tarih = islemTarihi, Tur = HareketTuru.Gider, FisTuru = BankaFisTuru.PosHesabaGecis, FisNo = fisNo,
+            OdemeYontemi = OdemeYontemi.KrediKarti, Tutar = pos.BrutTutar, KomisyonTutari = komisyon,
+            Aciklama = $"POS Tahsilat Aktarımı -> {vadesiz.Ad} ({pos.Aciklama})".Replace(" ()", string.Empty),
+            IslemDurumu = FinansIslemDurumu.Tamamlandi
+        };
+        _baglam.BankaHareketleri.Add(posCikis);
+        await _baglam.SaveChangesAsync(cancellationToken);
+
+        var vadesizGiris = new BankaHareketi
+        {
+            SirketId = vadesiz.SirketId, BankaHesabiId = vadesiz.Id, BankaAdi = vadesiz.Ad, HesapNo = vadesiz.Iban,
+            Tarih = islemTarihi, Tur = HareketTuru.Gelir, FisTuru = BankaFisTuru.PosHesabaGecis, FisNo = fisNo,
+            OdemeYontemi = OdemeYontemi.KrediKarti, Tutar = pos.NetTutar, KomisyonTutari = komisyon,
+            Aciklama = $"POS Tahsilat Aktarımı <- {posHesap.Ad} (Net: {pos.NetTutar:N2} ₺, Komisyon: {komisyon:N2} ₺)",
+            TersKayitId = posCikis.Id, IslemDurumu = FinansIslemDurumu.Tamamlandi
+        };
+        _baglam.BankaHareketleri.Add(vadesizGiris);
+        await _baglam.SaveChangesAsync(cancellationToken);
+        posCikis.TersKayitId = vadesizGiris.Id;
+        await _baglam.SaveChangesAsync(cancellationToken);
+
+        var satirlar = new List<FinansMuhasebeKaydi.Satir> { new(await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, vadesiz), pos.NetTutar, 0) };
+        if (komisyon > 0) satirlar.Add(new FinansMuhasebeKaydi.Satir("653", komisyon, 0));
+        satirlar.Add(new FinansMuhasebeKaydi.Satir(await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, posHesap), 0, pos.BrutTutar));
+        await FinansMuhasebeKaydi.FisEkleAsync(_baglam, posHesap.SirketId, FinansMuhasebeKaydi.BankaBelgeTipi, posCikis.Id, islemTarihi,
+            posCikis.Aciklama, fisNo, satirlar.ToArray());
     }
 
     public async Task<List<VadeKalemOzetDto>> GetVadeMerkeziAsync(Guid sirketId, CancellationToken cancellationToken = default)

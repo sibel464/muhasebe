@@ -306,7 +306,7 @@ public class FaturaServisi : IFaturaServisi
             var fatura = await OnaylaAsync(id);
             if (fatura.OdemeSekli != FaturaOdemeSekli.AcikHesap)
             {
-                var (kasa, banka, karsiKod) = OdemeHareketleriniEkle(fatura);
+                var (kasa, banka, karsiKod) = await OdemeHareketleriniEkleAsync(fatura);
                 await _baglam.SaveChangesAsync();
                 if (kasa != null)
                 {
@@ -359,12 +359,17 @@ public class FaturaServisi : IFaturaServisi
                 }
                 else if (odemeYontemi is "Kredi Kartı" or "Banka")
                 {
+                    var krediKarti = odemeYontemi == "Kredi Kartı";
+                    var hesap = await TahsilatHesabiSecAsync(eklenenFatura.SirketId, krediKarti);
                     _baglam.BankaHareketleri.Add(posBanka = new BankaHareketi
                     {
                         Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
-                        Aciklama = $"POS {odemeYontemi} Tahsilatı", BankaAdi = odemeYontemi == "Kredi Kartı" ? "POS" : "Banka",
+                        Aciklama = $"POS {odemeYontemi} Tahsilatı", BankaAdi = hesap?.Ad ?? (krediKarti ? "POS" : "Banka"),
+                        SirketId = hesap?.SirketId, BankaHesabiId = hesap?.Id, HesapNo = hesap?.Iban,
+                        OdemeYontemi = krediKarti ? OdemeYontemi.KrediKarti : OdemeYontemi.Banka,
                         CariKartId = eklenenFatura.CariKartId, FaturaId = eklenenFatura.Id, IlgiliBelgeId = eklenenFatura.Id
                     });
+                    if (krediKarti && hesap != null) PosIslemiEkle(eklenenFatura, hesap);
                 }
                 else
                     throw new ArgumentException("Desteklenmeyen POS ödeme yöntemi.", nameof(odemeYontemi));
@@ -554,6 +559,9 @@ public class FaturaServisi : IFaturaServisi
                 if (ters.Tur == HareketTuru.Gider && ters.KasaId is int kasaId && await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
                     throw new InvalidOperationException("Fatura iptali için kasada iade edilecek kadar bakiye yok.");
             }
+            // Hesaba geçmemiş kart tahsilatı POS listesinden düşer.
+            foreach (var pos in await _baglam.PosIslemleri.Where(p => p.FaturaId == fatura.Id && p.Durum == PosIslemDurumu.Bekliyor).ToListAsync())
+                pos.Durum = PosIslemDurumu.Iptal;
             foreach (var asil in await _baglam.BankaHareketleri.Where(h => h.FaturaId == fatura.Id && h.IslemDurumu == FinansIslemDurumu.Tamamlandi).ToListAsync())
             {
                 var ters = new BankaHareketi
@@ -680,7 +688,7 @@ public class FaturaServisi : IFaturaServisi
 
             (KasaHareketi? Kasa, BankaHareketi? Banka, string KarsiKod)? odeme = null;
             if (fatura.OdemeSekli != FaturaOdemeSekli.AcikHesap)
-                odeme = OdemeHareketleriniEkle(fatura);
+                odeme = await OdemeHareketleriniEkleAsync(fatura);
             if (irsaliye != null)
             {
                 var tumu = irsaliye.Kalemler.All(ik => _baglam.FaturaKalemleri.Local.Where(x => x.IrsaliyeKalemiId == ik.Id).Sum(x => x.Miktar) +
@@ -706,7 +714,7 @@ public class FaturaServisi : IFaturaServisi
     }
 
     // Peşin faturanın ödemesi: satış ve alış iadesinde para girer (tahsilat), alış ve satış iadesinde para çıkar (ödeme).
-    private (KasaHareketi? Kasa, BankaHareketi? Banka, string KarsiKod) OdemeHareketleriniEkle(Fatura fatura)
+    private async Task<(KasaHareketi? Kasa, BankaHareketi? Banka, string KarsiKod)> OdemeHareketleriniEkleAsync(Fatura fatura)
     {
         var giris = fatura.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade;
         var karsiKod = fatura.Tur is FaturaTuru.Satis or FaturaTuru.SatisIade ? "120" : "320";
@@ -730,15 +738,46 @@ public class FaturaServisi : IFaturaServisi
             return (kasa, null, karsiKod);
         }
 
+        // Kartla tahsilat POS hesabına, havale vadesiz hesaba yazılır. Kartla ödemede (şirket kartı) hesap seçilmez.
+        var krediKarti = fatura.OdemeSekli == FaturaOdemeSekli.KrediKarti;
+        var hesap = giris || !krediKarti ? await TahsilatHesabiSecAsync(fatura.SirketId, krediKarti) : null;
         var banka = new BankaHareketi
         {
             Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? BankaFisTuru.GelenHavale : BankaFisTuru.GidenHavale,
             Tutar = fatura.GenelToplam, Aciklama = $"{OdemeAdi(fatura.OdemeSekli)} fatura {islem}",
-            BankaAdi = fatura.OdemeSekli == FaturaOdemeSekli.KrediKarti ? "POS" : "Banka",
+            BankaAdi = hesap?.Ad ?? (krediKarti ? "POS" : "Banka"),
+            SirketId = hesap?.SirketId, BankaHesabiId = hesap?.Id, HesapNo = hesap?.Iban,
             CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id
         };
         _baglam.BankaHareketleri.Add(banka);
+        if (giris && krediKarti && hesap != null) PosIslemiEkle(fatura, hesap);
         return (null, banka, karsiKod);
+    }
+
+    // Seçim ekranı olmayan satış/fatura tahsilatının yazılacağı hesap: kart için POS hesabı (108, bloke), havale için
+    // vadesiz TL hesap; aynı türden birden çok hesap varsa ilk açılan. Uygun hesap yoksa null döner ve
+    // MuhasebeBaglami hareketi yalnız tek aktif hesap varsa ona bağlar.
+    private async Task<BankaHesabi?> TahsilatHesabiSecAsync(Guid? sirketId, bool krediKarti)
+    {
+        var tur = krediKarti ? BankaHesapTuru.POSHesabi : BankaHesapTuru.VadesizTL;
+        var hesaplar = _baglam.BankaHesaplari.AsNoTracking().Where(b => b.AktifMi && b.HesapTuru == tur);
+        if (sirketId is Guid id && id != Guid.Empty)
+            hesaplar = hesaplar.Where(b => b.SirketId == id);
+        return await hesaplar.OrderBy(b => b.Id).FirstOrDefaultAsync();
+    }
+
+    // Kartlı satış Finans Merkezi'ndeki POS listesine "hesaba geçmeyi bekliyor" olarak düşer.
+    private void PosIslemiEkle(Fatura fatura, BankaHesabi posHesap)
+    {
+        var komisyon = decimal.Round(fatura.GenelToplam * posHesap.PosKomisyonOrani / 100m, 2);
+        _baglam.PosIslemleri.Add(new PosIslemi
+        {
+            SirketId = posHesap.SirketId, BankaHesabiId = posHesap.Id, BankaAdi = posHesap.Ad, PosCihazAdi = posHesap.Ad,
+            BrutTutar = fatura.GenelToplam, KomisyonOrani = posHesap.PosKomisyonOrani, KomisyonTutar = komisyon,
+            NetTutar = fatura.GenelToplam - komisyon, IslemTarihi = fatura.Tarih,
+            BeklenenHesabaGecisTarihi = fatura.Tarih.AddDays(Math.Max(0, posHesap.ValorGunu)),
+            FaturaId = fatura.Id, CariKartId = fatura.CariKartId, Aciklama = fatura.FaturaNo
+        });
     }
     private static string OdemeAdi(FaturaOdemeSekli x) => x switch { FaturaOdemeSekli.AcikHesap => "Açık Hesap", FaturaOdemeSekli.KrediKarti => "Kredi Kartı", _ => x.ToString() };
 

@@ -2,6 +2,7 @@ using Altyapi.Servisler;
 using Altyapi.Veri;
 using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Fatura;
+using EtkiAlani.Modeller.Finans;
 using EtkiAlani.Modeller.Kullanici;
 using EtkiAlani.Modeller.Stok;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +37,7 @@ public sealed class PosSatisIntegrationTests
         Assert.Equal(BelgeDurumu.Onaylandi, fatura.Durum);
         Assert.Equal(kasaSayisi, await verify.KasaHareketleri.CountAsync(x => x.FaturaId == fatura.Id));
         Assert.Equal(bankaSayisi, await verify.BankaHareketleri.CountAsync(x => x.FaturaId == fatura.Id));
-        Assert.Equal(cariSayisi, await verify.CariHareketler.CountAsync(x => x.IlgiliBelgeId == fatura.Id));
+        Assert.Equal(cariSayisi, await verify.CariHareketler.CountAsync(x => x.IlgiliBelgeId == fatura.Id && x.CariKartId == veri.CariId));
         Assert.Single(await verify.YevmiyeFisleri.Where(x => x.BelgeTipi == "Fatura" && x.BelgeId == fatura.Id).ToListAsync());
         // Peşin tahsilat da muhasebeleşir: 100/102 borç - 120 alacak
         var kasaIdleri = await verify.KasaHareketleri.Where(x => x.FaturaId == fatura.Id).Select(x => x.Id).ToListAsync();
@@ -96,6 +97,79 @@ public sealed class PosSatisIntegrationTests
         Assert.All(await verify.UrunLokasyonStoklari.Where(x => x.UrunId == veri.UrunId).ToListAsync(), x => Assert.Equal(20, x.MevcutMiktar));
     }
 
+    [Fact]
+    public async Task Kartli_satis_pos_hesabina_yazilir_ve_finans_merkezinden_vadesize_aktarilir()
+    {
+        var veri = await SeedAsync();
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            context.BankaHesaplari.AddRange(
+                new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}"[..20], Ad = "Test POS", HesapTuru = BankaHesapTuru.POSHesabi, PosKomisyonOrani = 2, ValorGunu = 1, MuhasebeKodu = "108" },
+                new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"VDS-{Guid.NewGuid():N}"[..20], Ad = "Test Vadesiz", HesapTuru = BankaHesapTuru.VadesizTL, MuhasebeKodu = "102" });
+            await context.SaveChangesAsync();
+        }
+
+        int faturaId;
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+            faturaId = (await new FaturaServisi(context, new AuthorizedUserService()).PosSatisiniTamamlaAsync(FaturaOlustur(veri, "Kredi Kartı"), "Kredi Kartı")).Id;
+
+        await using (var verify = new MuhasebeBaglami(_fixture.Options))
+        {
+            var satis = await verify.BankaHareketleri.Include(x => x.BankaHesabi).SingleAsync(x => x.FaturaId == faturaId);
+            Assert.Equal(BankaHesapTuru.POSHesabi, satis.BankaHesabi!.HesapTuru);
+            var pos = await verify.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId);
+            Assert.Equal(PosIslemDurumu.Bekliyor, pos.Durum);
+            Assert.Equal(satis.BankaHesabiId, pos.BankaHesabiId);
+            Assert.Equal(satis.Tutar, pos.BrutTutar);
+            Assert.Equal(decimal.Round(pos.BrutTutar * satis.BankaHesabi.PosKomisyonOrani / 100m, 2), pos.KomisyonTutar);
+        }
+
+        int posId;
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            posId = (await context.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId)).Id;
+            await new FinansMerkeziServisi(context, new AuthorizedUserService()).PosIslemiHesabaGecirAsync(posId, MuhasebeBaglami.VarsayilanSirketId, 1);
+        }
+
+        await using var son = new MuhasebeBaglami(_fixture.Options);
+        var islem = await son.PosIslemleri.SingleAsync(x => x.Id == posId);
+        Assert.Equal(PosIslemDurumu.HesabaGecti, islem.Durum);
+        var cikis = await son.BankaHareketleri.SingleAsync(x => x.FisTuru == BankaFisTuru.PosHesabaGecis && x.BankaHesabiId == islem.BankaHesabiId && x.Tur == HareketTuru.Gider && x.Tarih == islem.HesabaGecisTarihi);
+        Assert.Equal(islem.BrutTutar, cikis.Tutar);
+        var giris = await son.BankaHareketleri.Include(x => x.BankaHesabi).SingleAsync(x => x.Id == cikis.TersKayitId);
+        Assert.Equal(BankaHesapTuru.VadesizTL, giris.BankaHesabi!.HesapTuru);
+        Assert.Equal(islem.NetTutar, giris.Tutar);
+        var satirlar = await son.YevmiyeSatirlari.Include(s => s.Hesap).Where(s => s.Fis!.BelgeTipi == "BankaHareketi" && s.Fis.BelgeId == cikis.Id).ToListAsync();
+        Assert.Equal(satirlar.Sum(s => s.Borc), satirlar.Sum(s => s.Alacak));
+        Assert.Equal(islem.BrutTutar, satirlar.Where(s => s.Hesap!.HesapKodu.StartsWith("108")).Sum(s => s.Alacak));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new FinansMerkeziServisi(son, new AuthorizedUserService()).PosIslemiHesabaGecirAsync(posId, MuhasebeBaglami.VarsayilanSirketId, 1));
+    }
+
+    [Fact]
+    public async Task Kartli_satis_iptalinde_bekleyen_pos_islemi_iptal_olur()
+    {
+        var veri = await SeedAsync();
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            if (!await context.BankaHesaplari.AnyAsync(x => x.AktifMi && x.HesapTuru == BankaHesapTuru.POSHesabi && x.SirketId == MuhasebeBaglami.VarsayilanSirketId))
+            {
+                context.BankaHesaplari.Add(new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}"[..20], Ad = "Test POS", HesapTuru = BankaHesapTuru.POSHesabi, MuhasebeKodu = "108" });
+                await context.SaveChangesAsync();
+            }
+        }
+
+        int faturaId;
+        await using (var context = new MuhasebeBaglami(_fixture.Options))
+        {
+            var service = new FaturaServisi(context, new AuthorizedUserService());
+            faturaId = (await service.PosSatisiniTamamlaAsync(FaturaOlustur(veri, "Kredi Kartı"), "Kredi Kartı")).Id;
+            await service.IptalEtAsync(faturaId);
+        }
+
+        await using var verify = new MuhasebeBaglami(_fixture.Options);
+        Assert.Equal(PosIslemDurumu.Iptal, (await verify.PosIslemleri.SingleAsync(x => x.FaturaId == faturaId)).Durum);
+    }
+
     private async Task<SeedData> SeedAsync()
     {
         _fixture.RequireDatabase();
@@ -135,7 +209,7 @@ public sealed class PosSatisIntegrationTests
     private sealed class AuthorizedUserService : IKullaniciServisi
     {
         public Kullanici? AktifKullanici => new() { Yetkiler = AktifYetkiler };
-        public KullaniciYetkileri? AktifYetkiler => new() { FaturaOlustur = true, FaturaOnayla = true, FaturaIptal = true };
+        public KullaniciYetkileri? AktifYetkiler => new() { FaturaOlustur = true, FaturaOnayla = true, FaturaIptal = true, POSYonet = true };
         public Task<bool> GirisYapAsync(string a, string b, CancellationToken c = default) => Task.FromResult(false);
         public void CikisYap() { }
         public bool YetkiliMi(Func<KullaniciYetkileri, bool> sorgu) => sorgu(AktifYetkiler!);
