@@ -1091,6 +1091,22 @@ public class MuhasebeBaglami : DbContext
         }
     }
 
+    // Defter satırlarının (yevmiye fişi, cari/stok/kasa/banka hareketi) metinleri çoğunlukla belgeden türetilir
+    // ("cari ünvanı • açıklama" gibi); sütun sınırını aşınca asıl işlem (tahsilat, fatura onayı) de reddediliyordu.
+    // Bu satırlarda metin sınırda kısaltılır; faturanın/irsaliyenin kendi açıklaması kısaltılmaz (sınırı aşarsa uyarı).
+    private void TuretilmisFisMetinleriniKisalt()
+    {
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.Entity is YevmiyeFis or YevmiyeSatiri or CariHareket or StokHareketi or KasaHareketi or BankaHareketi && e.State is EntityState.Added or EntityState.Modified))
+        {
+            foreach (var p in entry.Properties.Where(p => p.Metadata.Name is "Aciklama" or "Referans" or "BelgeNo" or "Belge" && p.Metadata.GetMaxLength() is int))
+            {
+                var sinir = p.Metadata.GetMaxLength()!.Value;
+                if (p.CurrentValue is string metin && metin.Length > sinir)
+                    p.CurrentValue = metin[..(sinir - 1)] + "…";
+            }
+        }
+    }
+
     // Veritabanının reddettiği kayıt, kullanıcıya EF'nin İngilizce teknik metniyle değil anlaşılır Türkçe mesajla döner.
     // Hata türü ve asıl PostgreSQL hatası (InnerException) korunur: servislerdeki "benzersizlik ihlali" yakalamaları çalışır.
     private async Task<int> TabanaKaydetAsync(CancellationToken cancellationToken)
@@ -1123,6 +1139,10 @@ public class MuhasebeBaglami : DbContext
             "Aynı kayıtlar üzerinde başka bir kullanıcının işlemi sürüyordu; işleminiz kaydedilmedi. Lütfen tekrar deneyin.",
         Npgsql.PostgresErrorCodes.CheckViolation =>
             "Girilen değer izin verilen sınırların dışında; kayıt yapılmadı.",
+        Npgsql.PostgresErrorCodes.NumericValueOutOfRange =>
+            "Girilen tutar ya da miktar çok büyük (en fazla 99.999.999.999.999 olabilir); kayıt yapılmadı.",
+        Npgsql.PostgresErrorCodes.StringDataRightTruncation =>
+            "Girilen metinlerden biri izin verilen uzunluktan fazla; kısaltıp tekrar deneyin.",
         _ => null
     };
 
@@ -1174,6 +1194,7 @@ public class MuhasebeBaglami : DbContext
             entry.Entity.SirketId ??= VarsayilanSirketId;
 
         await KilitliDonemiKoruAsync(cancellationToken);
+        TuretilmisFisMetinleriniKisalt();
 
         // 1. CariKart bakiye güncellemelerini tetikleyen CariHareket değişikliklerini tespit edip delta hesapla
         var cariDeltas = new Dictionary<int, (decimal BorcDelta, decimal AlacakDelta)>();
