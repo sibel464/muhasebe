@@ -168,10 +168,15 @@ public partial class App : Application
             if (args.Exception is DbUpdateConcurrencyException || args.Exception.InnerException is DbUpdateConcurrencyException)
             {
                 MessageBox.Show(
-                    "Bu kayıt başka bir kullanıcı tarafından güncellenmiştir. Lütfen sayfayı yenileyip işleminizi tekrar deneyiniz.",
-                    "Eşzamanlılık Uyarısı (Concurrency)",
+                    Altyapi.Veri.MuhasebeBaglami.EszamanliDegisiklikMesaji,
+                    "Kayıt Başka Bir İşlemle Değişti",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
+            }
+            else if ((args.Exception as DbUpdateException ?? args.Exception.InnerException as DbUpdateException)?.InnerException is Npgsql.PostgresException pg
+                     && Altyapi.Veri.MuhasebeBaglami.VeritabaniHataMesaji(pg) is { } vtMesaji)
+            {
+                MessageBox.Show(vtMesaji, "Kayıt Yapılamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             else if (args.Exception is YetkisizErisimException yetkiEx)
             {

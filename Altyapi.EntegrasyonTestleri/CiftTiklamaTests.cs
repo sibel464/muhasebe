@@ -291,7 +291,14 @@ public sealed class CiftTiklamaTests
             await db.Database.OpenConnectionAsync();
             await baslat.Task;
             try { await islem(db); return true; }
-            catch (Exception ex) when (ex is InvalidOperationException or DbUpdateException) { return false; }
+            catch (Exception ex) when (ex is InvalidOperationException or DbUpdateException)
+            {
+                // Engellenen kullanıcı EF/PostgreSQL'in İngilizce teknik metnini değil Türkçe açıklama görmeli.
+                Assert.DoesNotContain("database operation", ex.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("duplicate key", ex.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("See the inner exception", ex.Message, StringComparison.OrdinalIgnoreCase);
+                return false;
+            }
         }
         var gorevler = Enumerable.Range(0, 6).Select(_ => Task.Run(Dene)).ToList();
         await Task.Delay(300);

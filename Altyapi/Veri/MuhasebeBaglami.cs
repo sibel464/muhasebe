@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using EtkiAlani.Modeller.Kullanici;
 using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Stok;
@@ -1090,6 +1091,41 @@ public class MuhasebeBaglami : DbContext
         }
     }
 
+    // Veritabanının reddettiği kayıt, kullanıcıya EF'nin İngilizce teknik metniyle değil anlaşılır Türkçe mesajla döner.
+    // Hata türü ve asıl PostgreSQL hatası (InnerException) korunur: servislerdeki "benzersizlik ihlali" yakalamaları çalışır.
+    private async Task<int> TabanaKaydetAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new DbUpdateConcurrencyException(EszamanliDegisiklikMesaji, ex, ex.Entries.Select(e => e.GetInfrastructure()).ToList());
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pg && VeritabaniHataMesaji(pg) is { } mesaj)
+        {
+            throw new DbUpdateException(mesaj, pg, ex.Entries.Select(e => e.GetInfrastructure()).ToList());
+        }
+    }
+
+    public const string EszamanliDegisiklikMesaji =
+        "Bu kayıt, siz işlem yaparken başka bir kullanıcı ya da aynı anda yapılan başka bir işlem tarafından değiştirildi. " +
+        "İşleminiz kaydedilmedi; ekranı yenileyip tekrar deneyin.";
+
+    public static string? VeritabaniHataMesaji(Npgsql.PostgresException pg) => pg.SqlState switch
+    {
+        Npgsql.PostgresErrorCodes.UniqueViolation =>
+            "Aynı numara ya da kodla bir kayıt zaten var (başka bir kullanıcı aynı anda kaydetmiş olabilir). İşleminiz kaydedilmedi; ekranı yenileyip tekrar deneyin.",
+        Npgsql.PostgresErrorCodes.ForeignKeyViolation =>
+            "Kayıt, bağlı olduğu ya da kendisine bağlı başka kayıtlar nedeniyle kaydedilemedi (ilgili kayıt silinmiş veya kullanımda olabilir). Ekranı yenileyip tekrar deneyin.",
+        Npgsql.PostgresErrorCodes.DeadlockDetected or Npgsql.PostgresErrorCodes.SerializationFailure =>
+            "Aynı kayıtlar üzerinde başka bir kullanıcının işlemi sürüyordu; işleminiz kaydedilmedi. Lütfen tekrar deneyin.",
+        Npgsql.PostgresErrorCodes.CheckViolation =>
+            "Girilen değer izin verilen sınırların dışında; kayıt yapılmadı.",
+        _ => null
+    };
+
     // Ağ modunda aynı cariye/ürüne eşzamanlı işlem gelince iyimser sürüm kontrolü birini "kayıt değişti" hatasıyla
     // düşürüyordu. Açık bir işlem içindeysek satırı kilitleyip en güncel bakiyeyi okuruz: işlemler sırayla işlenir,
     // eksi stok/bakiye kontrolü de güncel değerle yapılır. Kullanıcının kendisi değiştirdiği kayıt yenilenmez.
@@ -1508,7 +1544,7 @@ public class MuhasebeBaglami : DbContext
             ? await Database.BeginTransactionAsync(cancellationToken)
             : null;
 
-        var sonuc = await base.SaveChangesAsync(cancellationToken);
+        var sonuc = await TabanaKaydetAsync(cancellationToken);
 
         // Save sonrası: Yeni eklenen kayıtların oluşan gerçek Primary Key (Id) değerlerini güncelle
         if (auditKayitlari.Count > 0)
@@ -1526,7 +1562,7 @@ public class MuhasebeBaglami : DbContext
                 AuditLoglar.Add(item.log);
             }
 
-            await base.SaveChangesAsync(cancellationToken);
+            await TabanaKaydetAsync(cancellationToken);
         }
 
         if (auditTransaction != null)
