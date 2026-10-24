@@ -24,7 +24,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
     {
         _kullanici.YetkiKontrolEt(x => x.FinansGoruntule, "Finans Görüntüleme");
 
-        var bugun = DateTime.UtcNow.Date;
+        var bugun = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc); // belge tarihleri yerel saat "UTC" etiketli
         var yarinki = bugun.AddDays(1);
 
         var kasalar = await GetKasalarAsync(sirketId, cancellationToken);
@@ -112,7 +112,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
     {
         _kullanici.YetkiKontrolEt(x => x.KasaGoruntule, "Kasa Görüntüleme");
 
-        var bugun = DateTime.UtcNow.Date;
+        var bugun = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc); // belge tarihleri yerel saat "UTC" etiketli
         var yarinki = bugun.AddDays(1);
 
         var kasalar = await _baglam.Kasalar
@@ -442,7 +442,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
     {
         _kullanici.YetkiKontrolEt(x => x.FinansGoruntule, "Finans Görüntüleme");
 
-        var bugun = DateTime.UtcNow.Date;
+        var bugun = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc); // belge tarihleri yerel saat "UTC" etiketli
         var sonuc = new List<VadeKalemOzetDto>();
 
         // 1. Açık Faturalar
