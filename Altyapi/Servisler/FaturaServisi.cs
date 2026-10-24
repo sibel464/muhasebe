@@ -38,6 +38,7 @@ public class FaturaServisi : IFaturaServisi
             .Include(f => f.CariKart)
             .Include(f => f.Kalemler)
             .ThenInclude(k => k.StokDagilimlari)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (turFilter.HasValue)
@@ -50,6 +51,20 @@ public class FaturaServisi : IFaturaServisi
             .ThenByDescending(f => f.OlusturmaTarihi)
             .ToListAsync();
     }
+
+    public async Task<List<Fatura>> ListeGetirAsync(FaturaTuru? turFilter = null, BelgeDurumu? durum = null)
+    {
+        var sorgu = _baglam.Faturalar.AsNoTracking().Include(f => f.CariKart).AsQueryable();
+        if (turFilter.HasValue) sorgu = sorgu.Where(f => f.Tur == turFilter.Value);
+        if (durum.HasValue) sorgu = sorgu.Where(f => f.Durum == durum.Value);
+        return await sorgu.OrderByDescending(f => f.Tarih).ThenByDescending(f => f.Id).ToListAsync();
+    }
+
+    public Task<Fatura?> DetayGetirAsync(int id) =>
+        _baglam.Faturalar.AsNoTracking().Include(f => f.CariKart).Include(f => f.Kalemler).ThenInclude(k => k.StokDagilimlari)
+            .AsSplitQuery().FirstOrDefaultAsync(f => f.Id == id);
+
+    public Task<int> SayAsync(DateTime baslangic) => _baglam.Faturalar.CountAsync(f => f.Tarih >= baslangic);
 
     public async Task<Fatura?> IdIleGetirAsync(int id)
     {

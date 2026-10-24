@@ -10,7 +10,7 @@ public partial class BekleyenSatislarPenceresi : Window
     private readonly IFaturaServisi _servis;
     public Fatura? SecilenSatis { get; private set; }
     public BekleyenSatislarPenceresi(IFaturaServisi servis) { InitializeComponent(); _servis = servis; Loaded += async (_, _) => await YukleAsync(); }
-    private async Task YukleAsync() { var liste = (await _servis.TumunuGetirAsync(FaturaTuru.Satis)).Where(f => f.Durum == BelgeDurumu.Beklemede).ToList(); SatisGrid.ItemsSource = liste; Durum.Text = $"{liste.Count} bekleyen satış"; if (liste.Count > 0) SatisGrid.SelectedIndex = 0; }
+    private async Task YukleAsync() { var liste = new List<Fatura>(); foreach (var f in await _servis.ListeGetirAsync(FaturaTuru.Satis, BelgeDurumu.Beklemede)) if (await _servis.DetayGetirAsync(f.Id) is { } d) liste.Add(d); SatisGrid.ItemsSource = liste; Durum.Text = $"{liste.Count} bekleyen satış"; if (liste.Count > 0) SatisGrid.SelectedIndex = 0; }
     private void Ac() { if (SatisGrid.SelectedItem is Fatura f) { SecilenSatis = f; DialogResult = true; } }
     private void Ac_Click(object sender, RoutedEventArgs e) => Ac();
     private void SatisGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) => Ac();

@@ -59,6 +59,25 @@ public sealed class FaturaHesapVeNumaraIntegrationTests
     }
 
     [Fact]
+    public async Task Liste_kalemsiz_ve_cari_bilgili_gelir_detay_kalemleri_getirir()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (cariId, urunId) = await CariVeUrunAsync(db, CariTuru.Musteri);
+        var servis = new FaturaServisi(db, Oturum());
+        var f = await servis.EkleAsync(Fatura(cariId, urunId, FaturaTuru.Satis));
+
+        await using var k = new MuhasebeBaglami(_fixture.Options);
+        var k_servis = new FaturaServisi(k, Oturum());
+        var satir = Assert.Single((await k_servis.ListeGetirAsync(FaturaTuru.Satis, BelgeDurumu.Taslak)).Where(x => x.Id == f.Id));
+        Assert.Empty(satir.Kalemler);
+        Assert.Equal("Numara Test Cari", satir.CariKart!.Unvan);
+        Assert.DoesNotContain(await k_servis.ListeGetirAsync(FaturaTuru.Alis), x => x.Id == f.Id);
+        var detay = await k_servis.DetayGetirAsync(f.Id);
+        Assert.Equal(urunId, Assert.Single(detay!.Kalemler).UrunId);
+        Assert.True(await k_servis.SayAsync(DateTime.UtcNow.AddDays(-1)) >= 1);
+    }
+
+    [Fact]
     public async Task Pesin_alis_faturasi_onayda_odemeyi_ve_kasa_cikisini_kaydeder()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);

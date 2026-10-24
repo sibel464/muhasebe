@@ -33,13 +33,14 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 				StokDagiliminiGuncelle(); 
 				StokDagilimiOzetiGuncelle(); 
 				Hesapla(); 
+				Degisti?.Invoke();
 				BildirimGonder(nameof(MiktarMetni));
 			} 
 		} 
 	}
-	public decimal BirimFiyat { get => _birimFiyat; set { if (OzellikAyarla(ref _birimFiyat, value)) { Hesapla(); BildirimGonder(nameof(BirimFiyatMetni)); } } }
-	public decimal IskontoOrani { get => _iskontoOrani; set { if (OzellikAyarla(ref _iskontoOrani, value)) { Hesapla(); BildirimGonder(nameof(IskontoOraniMetni)); } } }
-	public decimal KdvOrani { get => _kdvOrani; set { if (OzellikAyarla(ref _kdvOrani, value)) { Hesapla(); BildirimGonder(nameof(KdvOraniMetni)); } } }
+	public decimal BirimFiyat { get => _birimFiyat; set { if (OzellikAyarla(ref _birimFiyat, value)) { Hesapla(); Degisti?.Invoke(); BildirimGonder(nameof(BirimFiyatMetni)); } } }
+	public decimal IskontoOrani { get => _iskontoOrani; set { if (OzellikAyarla(ref _iskontoOrani, value)) { Hesapla(); Degisti?.Invoke(); BildirimGonder(nameof(IskontoOraniMetni)); } } }
+	public decimal KdvOrani { get => _kdvOrani; set { if (OzellikAyarla(ref _kdvOrani, value)) { Hesapla(); Degisti?.Invoke(); BildirimGonder(nameof(KdvOraniMetni)); } } }
 
 	public string MiktarMetni { get => _miktar == 0 ? string.Empty : _miktar.ToString("0.####"); set => Miktar = ParseDecimalSafe(value); }
 	public string BirimFiyatMetni { get => _birimFiyat == 0 ? string.Empty : _birimFiyat.ToString("0.####"); set => BirimFiyat = ParseDecimalSafe(value); }
@@ -135,7 +136,9 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 		BildirimGonder(nameof(IskontoTutari));
 		BildirimGonder(nameof(KdvTutari));
 		BildirimGonder(nameof(SatirToplami));
-		Degisti?.Invoke();
+		// Üst toplamı burada tetiklemeyiz: ToplamlariGuncelle her satırın Hesapla'sını çağırır; burada Degisti çağrılınca
+		// ikisi birbirini sonsuza dek çağırıp programı (yığın taşmasıyla) kapatıyordu — faturaya tıklamak yetiyordu.
+		// Değeri değişen ayarlayıcılar Degisti'yi ayrıca çağırır.
 	}
 
 	public FaturaKalemi ToEntity() 
@@ -195,7 +198,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ObservableCollection<CariKart> Cariler { get => _cariler; private set => OzellikAyarla(ref _cariler, value); }
 	public ObservableCollection<Urun> Urunler { get => _urunler; private set => OzellikAyarla(ref _urunler, value); }
 	public ObservableCollection<FaturaKalemiGorunumModeli> Kalemler { get => _kalemler; private set => OzellikAyarla(ref _kalemler, value); }
-	public Fatura? SeciliFatura { get => _seciliFatura; set { if (OzellikAyarla(ref _seciliFatura, value)) { if (value != null) Duzenle(value); BildirimGonder(nameof(Duzenlenebilir)); KomutlariGuncelle(); } } }
+	public Fatura? SeciliFatura { get => _seciliFatura; set { if (OzellikAyarla(ref _seciliFatura, value)) { if (value != null) _ = DuzenleAsync(value); BildirimGonder(nameof(Duzenlenebilir)); KomutlariGuncelle(); } } }
 	public CariKart? SeciliCari { get => _seciliCari; set => OzellikAyarla(ref _seciliCari, value); }
 	public Urun? SeciliUrun { get => _seciliUrun; set { if (OzellikAyarla(ref _seciliUrun, value)) (KalemEkleKomutu as KomutSarici)?.BildirimGonder(); } }
 	public FaturaKalemiGorunumModeli? SeciliKalem { get => _seciliKalem; set { if (OzellikAyarla(ref _seciliKalem, value)) (KalemSilKomutu as KomutSarici)?.BildirimGonder(); } }
@@ -299,6 +302,8 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		FaturaYazdirKomutu = new KomutSarici(async param => 
 		{
 			var hedefFatura = (param as Fatura) ?? SeciliFatura;
+			if (hedefFatura is { Id: > 0, Kalemler.Count: 0 })
+				hedefFatura = await _faturaServisi.DetayGetirAsync(hedefFatura.Id) ?? hedefFatura;
 			if (hedefFatura != null && _yazdirmaServisi != null)
 			{
 				var firma = await _yazdirmaServisi.FirmaBilgisiGetirAsync(hedefFatura.SirketId);
@@ -329,7 +334,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		Yukleniyor = true;
 		try
 		{
-			_tumFaturalar = (await _faturaServisi.TumunuGetirAsync()).OrderByDescending(f => f.Tarih).ThenByDescending(f => f.Id).ToList();
+			_tumFaturalar = await _faturaServisi.ListeGetirAsync();
 
 			var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 			BuAySatisToplam = _tumFaturalar.Where(f => f.Tarih >= ayBaslangic && f.Tur == FaturaTuru.Satis && f.Durum == BelgeDurumu.Onaylandi).Sum(f => f.GenelToplam);
@@ -366,6 +371,22 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		SeciliFatura = null; Tur = FaturaTuru.Satis; Durum = BelgeDurumu.Taslak; FaturaNo = string.Empty; Tarih = DateTime.Today; SeciliCari = null; Kalemler = new(); GenelIskontoOrani = 0; Aciklama = string.Empty;
 		BildirimGonder(nameof(Duzenlenebilir));
 		KomutlariGuncelle();
+	}
+
+	// Liste kalemsiz yüklenir; seçilen faturanın kalemleri o an okunur.
+	private async Task DuzenleAsync(Fatura fatura)
+	{
+		if (fatura.Kalemler.Count == 0 && fatura.Id > 0)
+		{
+			try
+			{
+				var detay = await _faturaServisi.DetayGetirAsync(fatura.Id);
+				if (detay == null || !ReferenceEquals(SeciliFatura, fatura)) return;
+				fatura.Kalemler = detay.Kalemler;
+			}
+			catch (Exception ex) { DurumMesaji = $"Fatura kalemleri yüklenemedi: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.DuzenleAsync"); return; }
+		}
+		Duzenle(fatura);
 	}
 
 	private void Duzenle(Fatura fatura)

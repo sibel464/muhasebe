@@ -90,8 +90,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
             if (_faturaServisi != null)
             {
                 var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-                var faturalar = await _faturaServisi.TumunuGetirAsync();
-                AylikFatura = faturalar.Count(f => f.Tarih >= ayBaslangic);
+                AylikFatura = await _faturaServisi.SayAsync(DateTime.SpecifyKind(ayBaslangic, DateTimeKind.Utc));
             }
         }
         catch (Exception ex)
