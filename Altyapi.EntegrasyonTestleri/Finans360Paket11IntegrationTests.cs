@@ -58,6 +58,8 @@ public sealed class Finans360Paket11IntegrationTests
             db.ParaBirimleri.Add(new EtkiAlani.Modeller.Kurumsal.ParaBirimi { Id = 2, Kod = "USD", Sembol = "$", Ad = "Amerikan Doları" });
 
         await db.SaveChangesAsync();
+        // Numarası elle verilen kayıt sayacı ilerletmez; sonraki testlerin para birimi eklemesi çakışmasın.
+        await db.Database.ExecuteSqlRawAsync("SELECT setval(pg_get_serial_sequence('\"ParaBirimleri\"', 'Id'), (SELECT MAX(\"Id\") FROM \"ParaBirimleri\"))");
         return (sirket.Id, cari, kasa, banka);
     }
 
