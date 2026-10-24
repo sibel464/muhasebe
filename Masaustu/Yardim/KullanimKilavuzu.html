@@ -287,11 +287,12 @@
 <!-- ============================================================ -->
 <h2 id="yedek">13. Yedekleme ve geri yükleme</h2>
 <ul>
-  <li>Program her açılışta, son yedek 24 saatten eskiyse <b>otomatik tam yedek</b> alır. Yedekler <code>Belgeler\Muhasebe Yedekleri</code> klasöründedir; son 30 yedek saklanır.</li>
+  <li>Son yedek 24 saatten eskiyse program <b>otomatik tam yedek</b> alır: açılışta ve program açık kaldığı sürece saatte bir bakılır. Yedekler <code>Belgeler\Muhasebe Yedekleri</code> klasöründedir; son 30 yedek saklanır.</li>
+  <li>Her yedek alındıktan hemen sonra baştan sona açılarak denetlenir; bozuk ya da yarım çıkan yedek saklanmaz, hata bildirilir.</li>
   <li><span class="yol">Ayarlar → Yedekleme</span> sekmesinden istediğiniz an elle yedek alabilirsiniz.</li>
   <li><b>Geri yükleme:</b> aynı sekmede yedeği seçip <b>Seçili Yedeği Geri Yükle</b> (ya da USB'deki dosya için <b>Dosyadan Geri Yükle</b>) deyin ve onay için <code>GERİ YÜKLE</code> yazın. Program önce mevcut verinin yedeğini alır, yedeği doğrular, sonra yeniden başlar. Eski veri silinmez.</li>
 </ul>
-<div class="dikkat"><b>Yedeklerinizi bilgisayar dışına da kopyalayın</b> (USB bellek, harici disk ya da bulut klasörü). Bilgisayar arızalanır ya da çalınırsa yalnız aynı diskteki yedek işe yaramaz. Haftada en az bir kez dışarıya kopya alın.</div>
+<div class="dikkat"><b>Yedeklerinizi bilgisayar dışına da kopyalayın.</b> Bilgisayar arızalanır ya da çalınırsa yalnız aynı diskteki yedek işe yaramaz. <span class="yol">Ayarlar → Yedekleme</span> sekmesindeki <b>İkinci yedek konumu</b> alanına bir harici disk, USB bellek ya da ağ klasörü seçin: bundan sonra her yedeğin bir kopyası oraya da yazılır (orada da son 30 kopya saklanır). USB takılı değilse asıl yedek yine alınır, ekranda "kopyalanamadı" uyarısı görünür; belleği takıp <b>Şimdi Yedek Al</b> deyin. İkinci konumdaki bir yedeği <b>Dosyadan Geri Yükle</b> ile açabilirsiniz.</div>
 
 <!-- ============================================================ -->
 <h2 id="ag">14. Ağda birden fazla bilgisayar</h2>

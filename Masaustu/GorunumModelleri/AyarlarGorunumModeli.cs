@@ -77,7 +77,13 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string YedekKlasoru => _yedekServisi?.YedekKlasoru ?? string.Empty;
     public string YedekBilgisi => _yedekServisi == null
         ? string.Empty
-        : $"Program her açılışta son yedek 24 saatten eskiyse otomatik yedek alır. Son {_yedekServisi.SaklanacakYedekSayisi} yedek saklanır, daha eskiler silinir.";
+        : $"Son yedek 24 saatten eskiyse program otomatik yedek alır (açılışta ve açık kaldığı sürece saatte bir bakılır). Her yedek alındıktan sonra açılarak denetlenir. Son {_yedekServisi.SaklanacakYedekSayisi} yedek saklanır, daha eskiler silinir.";
+    private string _ikinciYedekKlasoru = string.Empty;
+    public string IkinciYedekKlasoru { get => _ikinciYedekKlasoru; set => OzellikAyarla(ref _ikinciYedekKlasoru, value); }
+    private string _ikinciKopyaDurumu = string.Empty;
+    public string IkinciKopyaDurumu { get => _ikinciKopyaDurumu; set => OzellikAyarla(ref _ikinciKopyaDurumu, value); }
+    public ICommand IkinciKonumSecKomutu { get; }
+    public ICommand IkinciKonumKaydetKomutu { get; }
     public string YedekDurumu { get => _yedekDurumu; set => OzellikAyarla(ref _yedekDurumu, value); }
     public bool YedekAliniyor { get => _yedekAliniyor; set => OzellikAyarla(ref _yedekAliniyor, value); }
     public ICommand YedekAlKomutu { get; }
@@ -102,6 +108,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             _ => !YedekAliniyor && _yedekServisi != null && SeciliYedek != null && App.AgModu != Altyapi.Veri.AgModu.Istemci);
         // Ağ istemcisinde geri yükleme yapılmaz: sunucudaki ortak veritabanı bu bilgisayardan değiştirilmesin.
         DosyadanGeriYukleKomutu = new KomutSarici(async _ => await DosyadanGeriYukleAsync(), _ => !YedekAliniyor && _yedekServisi != null && App.AgModu != Altyapi.Veri.AgModu.Istemci);
+        IkinciKonumSecKomutu = new KomutSarici(() => IkinciKonumSec(), () => _yedekServisi != null);
+        IkinciKonumKaydetKomutu = new KomutSarici(() => IkinciKonumKaydet(), () => _yedekServisi != null);
+        IkinciYedekKlasoru = _yedekServisi?.IkinciYedekKlasoru ?? string.Empty;
         YedekleriYenile();
 
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync());
@@ -250,6 +259,36 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         YedekDurumu = Yedekler.Count == 0
             ? "Henüz yedek alınmamış."
             : $"Son yedek: {Yedekler[0].OlusturmaTarihi:dd.MM.yyyy HH:mm} ({Yedekler[0].BoyutMetni})";
+        IkinciKopyaDurumu = _yedekServisi.IkinciYedekKlasoru == null
+            ? "⚠ İkinci konum tanımlı değil: bu bilgisayarın diski bozulursa veriler ve yedekler birlikte kaybolur. Bir harici disk, USB bellek veya ağ klasörü seçmeniz önerilir."
+            : _yedekServisi.IkinciKopyaDurumu;
+    }
+
+    private void IkinciKonumSec()
+    {
+        var secim = new Microsoft.Win32.OpenFolderDialog { Title = "İkinci yedek konumunu seçin" };
+        if (System.IO.Directory.Exists(IkinciYedekKlasoru)) secim.InitialDirectory = IkinciYedekKlasoru;
+        if (secim.ShowDialog() == true)
+        {
+            IkinciYedekKlasoru = secim.FolderName;
+            IkinciKonumKaydet();
+        }
+    }
+
+    private void IkinciKonumKaydet()
+    {
+        if (_yedekServisi == null) return;
+        try
+        {
+            _yedekServisi.IkinciYedekKlasoruAyarla(IkinciYedekKlasoru);
+            YedekleriYenile();
+            if (_yedekServisi.IkinciYedekKlasoru != null && _yedekServisi.IkinciKopyaDurumu.Length == 0)
+                IkinciKopyaDurumu = "✅ Kaydedildi. Bundan sonraki her yedeğin kopyası bu konuma da yazılacak; hemen kopyalamak için \"Şimdi Yedek Al\".";
+        }
+        catch (Exception ex)
+        {
+            IkinciKopyaDurumu = $"❌ {ex.Message}";
+        }
     }
 
     private async Task YedekAlAsync()

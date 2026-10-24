@@ -292,19 +292,24 @@ public partial class App : Application
     }
 
     // Günlük yedek arka planda alınır; başarısız olursa uygulama çalışmaya devam eder, hata log'a yazılır.
+    // Dükkânda program günlerce kapatılmadan açık kalabildiği için yalnız açılışta değil, saatte bir de bakılır.
     private static void OtomatikYedegiBaslat()
     {
         var yedekServisi = HizmetSaglayici.GetRequiredService<IVeritabaniYedekServisi>();
         _ = Task.Run(async () =>
         {
-            try
+            using var zamanlayici = new PeriodicTimer(TimeSpan.FromHours(1));
+            do
             {
-                await yedekServisi.GerekirseGunlukYedekAlAsync();
-            }
-            catch (Exception ex)
-            {
-                await HatayiLoglaAsync(ex, "OtomatikGunlukYedek");
-            }
+                try
+                {
+                    await yedekServisi.GerekirseGunlukYedekAlAsync();
+                }
+                catch (Exception ex)
+                {
+                    await HatayiLoglaAsync(ex, "OtomatikGunlukYedek");
+                }
+            } while (await zamanlayici.WaitForNextTickAsync());
         });
     }
 

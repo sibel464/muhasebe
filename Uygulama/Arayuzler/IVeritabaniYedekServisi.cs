@@ -10,6 +10,14 @@ public interface IVeritabaniYedekServisi
     string YedekKlasoru { get; }
     int SaklanacakYedekSayisi { get; }
 
+    // Her yedeğin ikinci kopyasının yazıldığı klasör (harici disk, USB bellek, ağ klasörü); boşsa kopya alınmaz.
+    // Disk bozulduğunda veri ile yedeğin birlikte kaybolmaması için.
+    string? IkinciYedekKlasoru { get; }
+    // Son ikinci kopya denemesinin sonucu veya uyarı (kullanıcıya gösterilir); yoksa boş.
+    string IkinciKopyaDurumu { get; }
+    // Klasör yazılabilir değilse hata verir; boş/null ikinci kopyayı kapatır. Sistem ayarlarını yönetme yetkisi gerekir.
+    void IkinciYedekKlasoruAyarla(string? klasor);
+
     // Kullanıcının elle başlattığı yedek; sistem ayarlarını yönetme yetkisi gerekir.
     Task<YedekDosyasi> ElleYedekAlAsync(CancellationToken cancellationToken = default);
 

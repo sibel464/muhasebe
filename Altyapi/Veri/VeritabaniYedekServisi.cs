@@ -17,6 +17,12 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     public string YedekKlasoru { get; }
     public int SaklanacakYedekSayisi { get; }
+    public string? IkinciYedekKlasoru { get; private set; }
+    public string IkinciKopyaDurumu { get; private set; } = string.Empty;
+
+    // İkinci konum makineye özeldir (bu bilgisayarın USB/harici diski); veritabanına değil yedek klasörüne yazılır,
+    // böylece eski bir yedek geri yüklenince ayar değişmez.
+    private string IkinciKonumAyarDosyasi => Path.Combine(YedekKlasoru, "ikinci-yedek-konumu.txt");
 
     public VeritabaniYedekServisi(string baglantiDizesi, string? yedekKlasoru = null, int saklanacakYedekSayisi = 30, IKullaniciServisi? kullaniciServisi = null)
     {
@@ -26,6 +32,49 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Muhasebe Yedekleri")
             : Environment.ExpandEnvironmentVariables(yedekKlasoru.Trim());
         SaklanacakYedekSayisi = Math.Clamp(saklanacakYedekSayisi, 3, 365);
+        try
+        {
+            if (File.Exists(IkinciKonumAyarDosyasi))
+                IkinciYedekKlasoru = File.ReadAllText(IkinciKonumAyarDosyasi).Trim() is { Length: > 0 } k ? k : null;
+        }
+        catch { }
+    }
+
+    public void IkinciYedekKlasoruAyarla(string? klasor)
+    {
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama"))
+            .YetkiKontrolEt(y => y.AyarlariYonet, "Yedek Konumu Değiştirme");
+        klasor = string.IsNullOrWhiteSpace(klasor) ? null : Environment.ExpandEnvironmentVariables(klasor.Trim());
+        if (klasor != null)
+        {
+            if (!Path.IsPathFullyQualified(klasor))
+                throw new ArgumentException(@"İkinci yedek konumu tam bir klasör yolu olmalıdır (ör. E:\Muhasebe Yedekleri veya \\sunucu\yedek).");
+            if (string.Equals(Path.GetFullPath(klasor).TrimEnd('\\'), Path.GetFullPath(YedekKlasoru).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("İkinci yedek konumu asıl yedek klasöründen farklı olmalıdır.");
+            if (string.Equals(Path.GetPathRoot(Path.GetFullPath(klasor)), Path.GetPathRoot(Path.GetFullPath(YedekKlasoru)), StringComparison.OrdinalIgnoreCase))
+                IkinciKopyaDurumu = "⚠ İkinci konum asıl yedekle aynı diskte; disk bozulursa ikisi birden kaybolur. Harici disk, USB bellek veya ağ klasörü önerilir.";
+            else
+                IkinciKopyaDurumu = string.Empty;
+            // Yazılabilir mi? (USB takılı değilse ya da yetki yoksa şimdi söylenir, ilk yedekte değil)
+            try
+            {
+                Directory.CreateDirectory(klasor);
+                var deneme = Path.Combine(klasor, $".yazma-denemesi-{Guid.NewGuid():N}");
+                File.WriteAllText(deneme, "ok");
+                File.Delete(deneme);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"İkinci yedek konumuna yazılamıyor: {ex.Message}", ex);
+            }
+        }
+        else
+            IkinciKopyaDurumu = string.Empty;
+
+        Directory.CreateDirectory(YedekKlasoru);
+        if (klasor == null) File.Delete(IkinciKonumAyarDosyasi);
+        else File.WriteAllText(IkinciKonumAyarDosyasi, klasor);
+        IkinciYedekKlasoru = klasor;
     }
 
     private string DosyaOneki => $"{_baglanti.Database}_";
@@ -113,8 +162,17 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
                 throw new InvalidOperationException($"Veritabanı yedeği alınamadı: {(hata.Length > 0 ? hata : $"pg_dump çıkış kodu {surec.ExitCode}")}");
             }
 
+            // Dosya gerçekten açılabiliyor mu? Bozuk/yarım yedek, ihtiyaç anında fark edilmesin diye şimdi reddedilir.
+            try { await YedekDosyasiniDogrulaAsync(gecici, cancellationToken); }
+            catch (InvalidDataException ex)
+            {
+                File.Delete(gecici);
+                throw new InvalidOperationException($"Alınan yedek doğrulanamadı, dosya silindi. {ex.Message}", ex);
+            }
+
             File.Move(gecici, hedef);
             EskiYedekleriTemizle();
+            IkinciKonumaKopyala(hedef);
 
             var dosya = new FileInfo(hedef);
             return new YedekDosyasi(dosya.Name, dosya.FullName, dosya.LastWriteTime, dosya.Length);
@@ -224,6 +282,59 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         await using var komut = baglanti.CreateCommand();
         komut.CommandText = sql;
         await komut.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    // Yedek baştan sona açılır (SQL'e çevrilip atılır): her veri bloğu okunur, yarım ya da bozuk dosya burada yakalanır.
+    public static async Task YedekDosyasiniDogrulaAsync(string yol, CancellationToken cancellationToken = default)
+    {
+        var pgRestore = PostgreSqlSunucuYoneticisi.AracBul("pg_restore.exe");
+        if (pgRestore == null) return; // Araç yoksa doğrulama atlanır; geri yükleme zaten aynı aracı ister.
+        var bilgi = new ProcessStartInfo(pgRestore) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
+        bilgi.ArgumentList.Add("-f"); bilgi.ArgumentList.Add("-");
+        bilgi.ArgumentList.Add(yol);
+        using var surec = Process.Start(bilgi) ?? throw new InvalidOperationException("pg_restore başlatılamadı.");
+        var cikti = surec.StandardOutput.BaseStream.CopyToAsync(Stream.Null, cancellationToken);
+        var hata = surec.StandardError.ReadToEndAsync(cancellationToken);
+        using var zamanAsimi = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        zamanAsimi.CancelAfter(YedekZamanAsimi);
+        try { await surec.WaitForExitAsync(zamanAsimi.Token); await cikti; }
+        catch (OperationCanceledException)
+        {
+            try { surec.Kill(entireProcessTree: true); } catch { }
+            throw new TimeoutException("Yedek doğrulaması zaman aşımına uğradı.");
+        }
+        if (surec.ExitCode != 0)
+        {
+            var mesaj = (await hata).Trim();
+            throw new InvalidDataException($"Yedek dosyası okunamıyor (bozuk veya yarım): {(mesaj.Length > 0 ? mesaj : $"pg_restore çıkış kodu {surec.ExitCode}")}");
+        }
+    }
+
+    // Asıl yedek alındıktan sonra ikinci konuma kopyalanır. Kopyalanamazsa (USB takılı değil, ağ yok) yedek yine de
+    // geçerlidir; hata yalnız durum olarak gösterilir. Kopya da önce geçici adla yazılır.
+    private void IkinciKonumaKopyala(string kaynak)
+    {
+        var klasor = IkinciYedekKlasoru;
+        if (klasor == null) return;
+        try
+        {
+            Directory.CreateDirectory(klasor);
+            var hedef = Path.Combine(klasor, Path.GetFileName(kaynak));
+            var gecici = hedef + ".tmp";
+            File.Copy(kaynak, gecici, overwrite: true);
+            if (new FileInfo(gecici).Length != new FileInfo(kaynak).Length)
+                throw new IOException("Kopyalanan dosyanın boyutu asıl yedekle aynı değil.");
+            File.Move(gecici, hedef, overwrite: true);
+            foreach (var eski in new DirectoryInfo(klasor).GetFiles($"{DosyaOneki}*.dump").OrderByDescending(f => f.LastWriteTime).Skip(SaklanacakYedekSayisi))
+            {
+                try { eski.Delete(); } catch { }
+            }
+            IkinciKopyaDurumu = $"✅ Son kopya: {DateTime.Now:dd.MM.yyyy HH:mm} → {klasor}";
+        }
+        catch (Exception ex)
+        {
+            IkinciKopyaDurumu = $"❌ {DateTime.Now:dd.MM.yyyy HH:mm} ikinci konuma kopyalanamadı ({klasor}): {ex.Message}";
+        }
     }
 
     private void YarimKalanlariTemizle()
