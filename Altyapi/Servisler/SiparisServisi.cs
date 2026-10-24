@@ -229,6 +229,8 @@ public class SiparisServisi : ISiparisServisi
     {
         const string belgeTipi = "Siparis";
         const string seriKodu = "SIP";
+        // Seri satırı henüz yokken (ilk belge) satır kilidi işe yaramaz; eşzamanlı iki ilk belge ikisi de seri açmasın.
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(1111836499, hashtext({_baglam.SirketIdCoz(null).ToString() + belgeTipi + seriKodu}))");
         var seri = await _baglam.BelgeSerileri
             .FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {_baglam.SirketIdCoz(null)} AND ""BelgeTipi"" = {belgeTipi} AND ""Seri"" = {seriKodu} FOR UPDATE")
             .SingleOrDefaultAsync();

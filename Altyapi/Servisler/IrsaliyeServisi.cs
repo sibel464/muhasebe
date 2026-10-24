@@ -131,8 +131,13 @@ public class IrsaliyeServisi : IIrsaliyeServisi
         if (irsaliye.SevkTarihi < irsaliye.Tarih.AddDays(-1))
             throw new ArgumentException("Sevk tarihi belge tarihinden önce olamaz.");
 
+        // Numara verme ile kayıt aynı işlemde ve kilit altında: eşzamanlı iki irsaliye aynı sıra numarasını alamaz.
+        var transactionSahibi = _baglam.Database.CurrentTransaction == null;
+        await using var tx = transactionSahibi ? await _baglam.Database.BeginTransactionAsync() : null;
+
         if (string.IsNullOrWhiteSpace(irsaliye.IrsaliyeNo))
         {
+            await _baglam.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1230131027)");
             irsaliye.IrsaliyeNo = await SiraliIrsaliyeNoUretAsync(irsaliye.Tur, irsaliye.Tarih);
         }
         else
@@ -171,6 +176,8 @@ public class IrsaliyeServisi : IIrsaliyeServisi
 
         _baglam.Irsaliyeler.Add(irsaliye);
         await _baglam.SaveChangesAsync();
+        if (tx != null)
+            await tx.CommitAsync();
 
         return irsaliye;
     }
@@ -518,6 +525,8 @@ public class IrsaliyeServisi : IIrsaliyeServisi
     private async Task<string> SiraliSiparisIrsaliyeNoUretAsync(DateTime tarih)
     {
         const string tip = "Irsaliye"; const string seriKodu = "IRS";
+        // Seri satırı henüz yokken (ilk belge) satır kilidi işe yaramaz; eşzamanlı iki ilk belge ikisi de seri açmasın.
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(1111836499, hashtext({_baglam.SirketIdCoz(null).ToString() + tip + seriKodu}))");
         var seri = await _baglam.BelgeSerileri.FromSqlInterpolated($@"SELECT * FROM ""BelgeSerileri"" WHERE ""SirketId"" = {_baglam.SirketIdCoz(null)} AND ""BelgeTipi"" = {tip} AND ""Seri"" = {seriKodu} FOR UPDATE").SingleOrDefaultAsync();
         if (seri == null) { seri = new BelgeSerisi { SirketId = _baglam.SirketIdCoz(null), BelgeTipi = tip, Seri = seriKodu, Prefix = seriKodu }; _baglam.BelgeSerileri.Add(seri); }
         seri.SonNumara++;

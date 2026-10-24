@@ -403,6 +403,10 @@ public class YevmiyeServisi : IYevmiyeServisi
         var yil = tarih.Year;
         var serikod = $"{prefix}-{yil}";
 
+        // "Son numara + 1" kilit altında: aynı anda iki kullanıcı fiş girerse ikisi aynı numarayı almasın (ikincisi
+        // benzersizlik hatasıyla düşüyordu). Kilit çağıranın işlemi bitene dek sürer; çağıranlar işlem içinde çağırır.
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(1497451088, hashtext({sirketId.ToString() + serikod}))");
+
         var sonFis = await _baglam.YevmiyeFisleri
             .AsNoTracking()
             .Where(f => (f.SirketId == sirketId) && f.FisNo.StartsWith(serikod))

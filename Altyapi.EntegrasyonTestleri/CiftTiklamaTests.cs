@@ -215,6 +215,46 @@ public sealed class CiftTiklamaTests
     }
 
     [Fact]
+    public async Task Ayni_anda_girilen_elle_muhasebe_fisleri_farkli_numara_alir()
+    {
+        _fixture.RequireDatabase();
+        await HazirlaAsync(stok: 0);
+        int h100, h102;
+        await using (var db = Yeni())
+        {
+            h100 = (await db.HesapPlanlari.FirstAsync(h => h.SirketId == SirketId && h.HesapKodu == "100")).Id;
+            h102 = (await db.HesapPlanlari.FirstAsync(h => h.SirketId == SirketId && h.HesapKodu == "102")).Id;
+        }
+        var numaralar = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        var basari = await IkiKezAsync(async db => numaralar.Add((await YevmiyeServisi(db).FisOlusturAsync(new Uygulama.Dto.Muhasebe.YevmiyeFisDto
+        {
+            SirketId = SirketId, FisTuru = EtkiAlani.Modeller.Muhasebe.FisTuru.Tediye, Tarih = Simdi, Aciklama = "Eşzamanlı elle fiş",
+            Durum = EtkiAlani.Modeller.Muhasebe.YevmiyeDurumu.Onaylandi,
+            Satirlar = [new() { HesapId = h102, Borc = 10m, Aciklama = "B" }, new() { HesapId = h100, Alacak = 10m, Aciklama = "A" }]
+        }, SirketId, 1)).FisNo));
+
+        Assert.Equal(6, basari);
+        Assert.Equal(6, numaralar.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Ayni_anda_girilen_irsaliyeler_farkli_numara_alir()
+    {
+        var v = await HazirlaAsync(stok: 50);
+        var numaralar = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        var basari = await IkiKezAsync(async db => numaralar.Add((await new IrsaliyeServisi(db, new TamYetkili()).EkleAsync(new Irsaliye
+        {
+            CariKartId = v.CariId, Tur = IrsaliyeTuru.Satis, Tarih = Simdi, SevkTarihi = Simdi,
+            Kalemler = [new IrsaliyeKalemi { UrunId = v.UrunId, Miktar = 1, BirimFiyat = 10, StokDagilimlari = [new IrsaliyeKalemiStokDagilimi { DepoId = v.DepoId, Miktar = 1 }] }]
+        })).IrsaliyeNo));
+
+        Assert.Equal(6, basari);
+        Assert.Equal(6, numaralar.Distinct().Count());
+    }
+
+    [Fact]
     public async Task Ayni_belgeye_ayni_anda_yapilan_kapamalar_acik_tutari_asamaz()
     {
         var v = await HazirlaAsync(stok: 0);
