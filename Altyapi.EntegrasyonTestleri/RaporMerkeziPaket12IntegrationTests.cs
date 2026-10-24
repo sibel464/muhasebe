@@ -36,12 +36,18 @@ public sealed class RaporMerkeziPaket12IntegrationTests
         var urun = new Urun { SirketId = sirket.Id, DepoId = depo.Id, Kod = $"U-{Guid.NewGuid():N}"[..8], Ad = "Laptop i7", AlisFiyati = 10000m, PerakendeSatisFiyati = 15000m, StokMiktari = 50m, MinimumStok = 5m, KdvOrani = 20m, Aktif = true };
         db.Urunler.Add(urun);
 
-        var kasa = new Kasa { SirketId = sirket.Id, Kod = $"K-{Guid.NewGuid():N}"[..6], Ad = "Merkez Kasa", Bakiye = 5000m, AktifMi = true };
+        var kasa = new Kasa { SirketId = sirket.Id, Kod = $"K-{Guid.NewGuid():N}"[..6], Ad = "Merkez Kasa", AktifMi = true };
         db.Kasalar.Add(kasa);
 
-        var banka = new BankaHesabi { SirketId = sirket.Id, Kod = $"B-{Guid.NewGuid():N}"[..6], Ad = "İş Bankası", Bakiye = 20000m, AktifMi = true };
+        var banka = new BankaHesabi { SirketId = sirket.Id, Kod = $"B-{Guid.NewGuid():N}"[..6], Ad = "İş Bankası", AktifMi = true };
         db.BankaHesaplari.Add(banka);
 
+        await db.SaveChangesAsync();
+
+        // Kasa/banka bakiyesi hareketlerden hesaplanır (kart üzerindeki Bakiye alanı tutulmaz); geçmiş yıldan devir olarak girilir.
+        var acilisTarihi = DateTime.SpecifyKind(DateTime.Now.AddYears(-2), DateTimeKind.Utc);
+        db.KasaHareketleri.Add(new KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = acilisTarihi, Tur = HareketTuru.Gelir, Tutar = 5000m, Aciklama = "Açılış" });
+        db.BankaHareketleri.Add(new BankaHareketi { SirketId = sirket.Id, BankaHesabiId = banka.Id, Tarih = acilisTarihi, Tur = HareketTuru.Gelir, Tutar = 20000m, Aciklama = "Açılış" });
         await db.SaveChangesAsync();
         return (sirket, sube, cari, urun, kasa, banka);
     }
@@ -468,11 +474,18 @@ public sealed class RaporMerkeziPaket12IntegrationTests
         await db.SaveChangesAsync();
 
         var servis = StabilizasyonTestOturumu.Rapor(db, data.Sirket.Id);
-        var list = await servis.GetKasaBankaRaporuAsync(new SatisRaporFiltreDto());
+        var list = await servis.GetKasaBankaRaporuAsync(new SatisRaporFiltreDto { BaslangicTarihi = DateTime.Today.AddMonths(-1), BitisTarihi = DateTime.Today });
 
+        // Geçmiş yıldaki 5.000 açılış devire, bugünkü 2.000 girişe yazılır.
         var k = list.FirstOrDefault(x => x.HesapId == data.Kasa.Id && x.Hesapturu == "Kasa");
         Assert.NotNull(k);
+        Assert.Equal(5000m, k.Devir);
         Assert.Equal(2000m, k.Giris);
+        Assert.Equal(7000m, k.Bakiye);
+
+        // Bitiş tarihi geçmişteyse sonraki hareketler katılmaz.
+        var eski = await servis.GetKasaBankaRaporuAsync(new SatisRaporFiltreDto { BitisTarihi = DateTime.Today.AddYears(-1) });
+        Assert.Equal(5000m, eski.Single(x => x.HesapId == data.Kasa.Id && x.Hesapturu == "Kasa").Bakiye);
     }
 
     [Fact]
@@ -604,8 +617,9 @@ public sealed class RaporMerkeziPaket12IntegrationTests
         var servis = StabilizasyonTestOturumu.Rapor(db, data1.Sirket.Id);
         var ozet1 = await servis.GetYoneticiOzetiAsync(new SatisRaporFiltreDto { SirketId = 1 });
         Assert.NotNull(ozet1);
-        Assert.Equal(data1.Kasa.Bakiye, ozet1.KasaToplami);
-        Assert.Equal(data1.Banka.Bakiye, ozet1.BankaToplami);
+        // İkinci şirketin aynı tutarlı hareketleri toplama karışmaz.
+        Assert.Equal(5000m, ozet1.KasaToplami);
+        Assert.Equal(20000m, ozet1.BankaToplami);
     }
 
     [Fact]

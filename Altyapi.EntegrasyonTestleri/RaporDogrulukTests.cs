@@ -107,6 +107,58 @@ public sealed class RaporDogrulukTests(IsolatedPostgreSqlFixture fixture)
     }
 
     [Fact]
+    public async Task Yonetici_ozetinde_kasa_ve_banka_toplami_hareketlerden_hesaplanir()
+    {
+        var (db, sirket, _, _) = await HazirlaAsync();
+        await using var _ = db;
+        var kasa = new EtkiAlani.Modeller.Finans.Kasa { SirketId = sirket.Id, Kod = $"K{Guid.NewGuid():N}"[..8], Ad = "Merkez Kasa" };
+        var banka = new EtkiAlani.Modeller.Finans.BankaHesabi { SirketId = sirket.Id, Kod = $"B{Guid.NewGuid():N}"[..8], Ad = "Vadesiz", HesapNo = "1", Iban = "TR330006100519786457841326" };
+        db.AddRange(kasa, banka);
+        await db.SaveChangesAsync();
+        db.KasaHareketleri.AddRange(
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-2), Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 1000m, Aciklama = "Giriş" },
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-1), Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gider, Tutar = 250m, Aciklama = "Çıkış" },
+            // İptal edilen işlem ile ters kaydı bakiyeye katılmaz.
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-1), Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 999m, Aciklama = "İptal", IslemDurumu = EtkiAlani.Modeller.Finans.FinansIslemDurumu.IptalEdildi });
+        db.BankaHareketleri.Add(new EtkiAlani.Modeller.Finans.BankaHareketi { SirketId = sirket.Id, BankaHesabiId = banka.Id, Tarih = Gun(-1), Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 5000m, Aciklama = "Havale" });
+        await db.SaveChangesAsync();
+
+        var ozet = await StabilizasyonTestOturumu.Rapor(db, sirket.Id).GetYoneticiOzetiAsync(new SatisRaporFiltreDto());
+        Assert.Equal(750m, ozet.KasaToplami);
+        Assert.Equal(5000m, ozet.BankaToplami);
+    }
+
+    [Fact]
+    public async Task Nakit_akisi_kasa_ve_bankayi_birlikte_tarih_araligina_gore_hesaplar()
+    {
+        var (db, sirket, _, _) = await HazirlaAsync();
+        await using var _ = db;
+        var kasa = new EtkiAlani.Modeller.Finans.Kasa { SirketId = sirket.Id, Kod = $"K{Guid.NewGuid():N}"[..8], Ad = "Merkez Kasa" };
+        var banka = new EtkiAlani.Modeller.Finans.BankaHesabi { SirketId = sirket.Id, Kod = $"B{Guid.NewGuid():N}"[..8], Ad = "Vadesiz", HesapNo = "1", Iban = "TR330006100519786457841326" };
+        db.AddRange(kasa, banka);
+        await db.SaveChangesAsync();
+        db.KasaHareketleri.AddRange(
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-40), FisTuru = EtkiAlani.Modeller.Finans.KasaFisTuru.AcilisDevir, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 1000m, Aciklama = "Açılış" },
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-2), FisTuru = EtkiAlani.Modeller.Finans.KasaFisTuru.Tahsilat, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 300m, Aciklama = "Tahsilat" },
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(-1), FisTuru = EtkiAlani.Modeller.Finans.KasaFisTuru.Gider, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gider, Tutar = 50m, Aciklama = "Kırtasiye" },
+            new EtkiAlani.Modeller.Finans.KasaHareketi { SirketId = sirket.Id, KasaId = kasa.Id, Tarih = Gun(1), FisTuru = EtkiAlani.Modeller.Finans.KasaFisTuru.Tahsilat, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 7777m, Aciklama = "Aralık dışı" });
+        db.BankaHareketleri.AddRange(
+            new EtkiAlani.Modeller.Finans.BankaHareketi { SirketId = sirket.Id, BankaHesabiId = banka.Id, Tarih = Gun(-2), FisTuru = EtkiAlani.Modeller.Finans.BankaFisTuru.GelenHavale, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gelir, Tutar = 2000m, Aciklama = "Havale" },
+            new EtkiAlani.Modeller.Finans.BankaHareketi { SirketId = sirket.Id, BankaHesabiId = banka.Id, Tarih = Gun(-1), FisTuru = EtkiAlani.Modeller.Finans.BankaFisTuru.GidenHavale, Tur = EtkiAlani.Modeller.Finans.HareketTuru.Gider, Tutar = 400m, Aciklama = "Ödeme" });
+        await db.SaveChangesAsync();
+
+        var nakit = await StabilizasyonTestOturumu.Rapor(db, sirket.Id)
+            .GetNakitAkisRaporuAsync(new SatisRaporFiltreDto { BaslangicTarihi = Gun(-10), BitisTarihi = Gun(0) });
+        Assert.Equal(1000m, nakit.DonemBasiNakit);
+        Assert.Equal(2300m, nakit.Tahsilatlar);
+        Assert.Equal(400m, nakit.Odemeler);
+        Assert.Equal(50m, nakit.DigerCikislar);
+        Assert.Equal(0m, nakit.DigerGirisler);
+        Assert.Equal(2850m, nakit.DonemSonuNakit);
+        Assert.Equal(nakit.DonemSonuNakit, nakit.KasaBankaDetaylari.Sum(x => x.Bakiye));
+    }
+
+    [Fact]
     public async Task Rezerve_yalniz_acik_satis_siparisinin_sevk_edilmemis_kismi_ve_hareketsiz_urun_son_hareketten()
     {
         var (db, sirket, cari, urun) = await HazirlaAsync();

@@ -136,8 +136,13 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         var toplamBorc = cariBakiyeler.Where(c => c.Alacak > c.Borc).Sum(c => c.Alacak - c.Borc);
 
         // Kasa Toplamı & Banka Toplamı
-        var kasaToplami = await _baglam.Kasalar.AsNoTracking().Where(x => x.SirketId == sirketId).SumAsync(k => (decimal?)k.Bakiye) ?? 0m;
-        var bankaToplami = await _baglam.BankaHesaplari.AsNoTracking().Where(x => x.SirketId == sirketId).SumAsync(b => (decimal?)b.Bakiye) ?? 0m;
+        // Bakiye hareketlerden hesaplanır (kart üzerindeki Bakiye alanı tutulmaz); iptal ile ters kaydı birbirini götürür.
+        var kasaToplami = await _baglam.KasaHareketleri.AsNoTracking()
+            .Where(h => h.Kasa!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi)
+            .SumAsync(h => (decimal?)(h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar)) ?? 0m;
+        var bankaToplami = await _baglam.BankaHareketleri.AsNoTracking()
+            .Where(h => h.BankaHesabi!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi)
+            .SumAsync(h => (decimal?)(h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar)) ?? 0m;
 
         // Vadesi Geçmiş Alacak
         // Ödenmiş faturalar düşülerek (yaşlandırmayla aynı hesap) yalnız vadesi geçmiş açık tutar.
@@ -926,37 +931,39 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
     public async Task<NakitAkisRaporuDto> GetNakitAkisRaporuAsync(SatisRaporFiltreDto filtre)
     {
         var sirketId = RaporYetkiKontrol(filtre);
-        var bugün = DateTime.Today;
-        var ayBasiiUtc = EnsureUtc(new DateTime(bugün.Year, bugün.Month, 1));
+        var aralik = RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, filtre.BitisTarihi);
 
-        var kasaQuery = _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Tahsilat && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi);
+        // Kasa ve banka birlikte: cari tahsilat/ödemeleri ayrı, geri kalanı (gelir/gider, virman, POS geçişi, açılış) "diğer".
+        // Dönem başı = başlangıçtan önceki bakiye, dönem sonu = kasa/banka raporundaki bakiyelerin toplamı.
+        var kasa = await _baglam.KasaHareketleri.AsNoTracking()
+            .Where(h => h.Kasa!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi
+                && h.Tarih >= aralik.Baslangic && h.Tarih < aralik.BitisSonrasi)
+            .GroupBy(h => new { h.FisTuru, h.Tur })
+            .Select(g => new { g.Key.FisTuru, g.Key.Tur, Tutar = g.Sum(h => h.Tutar) })
+            .ToListAsync();
+        var banka = await _baglam.BankaHareketleri.AsNoTracking()
+            .Where(h => h.BankaHesabi!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi
+                && h.Tarih >= aralik.Baslangic && h.Tarih < aralik.BitisSonrasi)
+            .GroupBy(h => new { h.FisTuru, h.Tur })
+            .Select(g => new { g.Key.FisTuru, g.Key.Tur, Tutar = g.Sum(h => h.Tutar) })
+            .ToListAsync();
 
-        // Nakit akışında CariId filtresi kasa seçimi olarak kullanılır.
-        if (filtre.CariId.HasValue)
-            kasaQuery = kasaQuery.Where(kh => kh.KasaId == filtre.CariId.Value);
-
-        var tahsilatlar = await kasaQuery
-            .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
-
-        var odemeQuery = _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId)
-            .Where(kh => kh.Tarih >= ayBasiiUtc && kh.FisTuru == KasaFisTuru.Odeme && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi);
-
-        if (filtre.CariId.HasValue)
-            odemeQuery = odemeQuery.Where(kh => kh.KasaId == filtre.CariId.Value);
-
-        var odemeler = await odemeQuery
-            .SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
+        var tahsilatlar = kasa.Where(x => x.FisTuru == KasaFisTuru.Tahsilat && x.Tur == HareketTuru.Gelir).Sum(x => x.Tutar)
+            + banka.Where(x => x.FisTuru == BankaFisTuru.GelenHavale && x.Tur == HareketTuru.Gelir).Sum(x => x.Tutar);
+        var odemeler = kasa.Where(x => x.FisTuru == KasaFisTuru.Odeme && x.Tur == HareketTuru.Gider).Sum(x => x.Tutar)
+            + banka.Where(x => x.FisTuru == BankaFisTuru.GidenHavale && x.Tur == HareketTuru.Gider).Sum(x => x.Tutar);
+        var toplamGiris = kasa.Where(x => x.Tur == HareketTuru.Gelir).Sum(x => x.Tutar) + banka.Where(x => x.Tur == HareketTuru.Gelir).Sum(x => x.Tutar);
+        var toplamCikis = kasa.Where(x => x.Tur == HareketTuru.Gider).Sum(x => x.Tutar) + banka.Where(x => x.Tur == HareketTuru.Gider).Sum(x => x.Tutar);
 
         var detaylar = await GetKasaBankaRaporuAsync(filtre);
 
         return new NakitAkisRaporuDto
         {
-            DonemBasiNakit = 0m,
+            DonemBasiNakit = detaylar.Sum(x => x.Devir),
             Tahsilatlar = tahsilatlar,
-            DigerGirisler = 0m,
+            DigerGirisler = toplamGiris - tahsilatlar,
             Odemeler = odemeler,
-            DigerCikislar = 0m,
+            DigerCikislar = toplamCikis - odemeler,
             KasaBankaDetaylari = detaylar
         };
     }
@@ -964,39 +971,62 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
     public async Task<List<KasaBankaRaporKalemiDto>> GetKasaBankaRaporuAsync(SatisRaporFiltreDto filtre)
     {
         var sirketId = RaporYetkiKontrol(filtre);
+        var aralik = RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, filtre.BitisTarihi);
         var kasalar = await _baglam.Kasalar.AsNoTracking().Where(x => x.SirketId == sirketId).ToListAsync();
         var bankalar = await _baglam.BankaHesaplari.AsNoTracking().Where(x => x.SirketId == sirketId).ToListAsync();
 
-        var result = new List<KasaBankaRaporKalemiDto>();
+        // Devir: başlangıç gününden önceki hareketler; giriş/çıkış: aralıktaki hareketler; bitişten sonrası katılmaz.
+        // İptal edilen işlem ile ters kaydı birbirini götürdüğünden yalnız tamamlananlar alınır.
+        var kasaOzet = await _baglam.KasaHareketleri.AsNoTracking()
+            .Where(h => h.Kasa!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih < aralik.BitisSonrasi)
+            .GroupBy(h => h.KasaId)
+            .Select(g => new
+            {
+                HesapId = g.Key,
+                Devir = g.Where(h => h.Tarih < aralik.Baslangic).Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar),
+                Giris = g.Where(h => h.Tarih >= aralik.Baslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar),
+                Cikis = g.Where(h => h.Tarih >= aralik.Baslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar)
+            })
+            .ToDictionaryAsync(x => x.HesapId);
+        var bankaOzet = await _baglam.BankaHareketleri.AsNoTracking()
+            .Where(h => h.BankaHesabi!.SirketId == sirketId && h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih < aralik.BitisSonrasi)
+            .GroupBy(h => h.BankaHesabiId)
+            .Select(g => new
+            {
+                HesapId = g.Key,
+                Devir = g.Where(h => h.Tarih < aralik.Baslangic).Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar),
+                Giris = g.Where(h => h.Tarih >= aralik.Baslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar),
+                Cikis = g.Where(h => h.Tarih >= aralik.Baslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar)
+            })
+            .ToDictionaryAsync(x => x.HesapId);
 
+        var result = new List<KasaBankaRaporKalemiDto>();
         foreach (var k in kasalar)
         {
-            var giris = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gelir && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
-            var cikis = await _baglam.KasaHareketleri.AsNoTracking().Where(x => x.Kasa!.SirketId == sirketId).Where(kh => kh.KasaId == k.Id && kh.Tur == HareketTuru.Gider && kh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(kh => (decimal?)kh.Tutar) ?? 0m;
+            kasaOzet.TryGetValue(k.Id, out var o);
             result.Add(new KasaBankaRaporKalemiDto
             {
                 HesapId = k.Id,
                 HesapAd = k.Ad,
                 Hesapturu = "Kasa",
-                Devir = 0m,
-                Giris = giris,
-                Cikis = cikis,
+                Devir = o?.Devir ?? 0m,
+                Giris = o?.Giris ?? 0m,
+                Cikis = o?.Cikis ?? 0m,
                 ParaBirimi = k.ParaBirimi
             });
         }
 
         foreach (var b in bankalar)
         {
-            var giris = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gelir && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
-            var cikis = await _baglam.BankaHareketleri.AsNoTracking().Where(x => x.BankaHesabi!.SirketId == sirketId).Where(bh => bh.BankaHesabiId == b.Id && bh.Tur == HareketTuru.Gider && bh.IslemDurumu == FinansIslemDurumu.Tamamlandi).SumAsync(bh => (decimal?)bh.Tutar) ?? 0m;
+            bankaOzet.TryGetValue(b.Id, out var o);
             result.Add(new KasaBankaRaporKalemiDto
             {
                 HesapId = b.Id,
                 HesapAd = b.Ad,
                 Hesapturu = "Banka",
-                Devir = 0m,
-                Giris = giris,
-                Cikis = cikis,
+                Devir = o?.Devir ?? 0m,
+                Giris = o?.Giris ?? 0m,
+                Cikis = o?.Cikis ?? 0m,
                 ParaBirimi = b.ParaBirimi
             });
         }
