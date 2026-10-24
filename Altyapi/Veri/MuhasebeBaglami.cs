@@ -972,41 +972,6 @@ public class MuhasebeBaglami : DbContext
             }
         );
 
-        modelBuilder.Entity<Urun>().HasData(
-            new Urun 
-            { 
-                Id = 1, 
-                Kod = "URN001", 
-                Ad = "A4 Kağıt (500'lü)", 
-                Kategori = "Kırtasiye", 
-                Birim = "Paket", 
-                AlisFiyati = 45.0000m, 
-                PerakendeSatisFiyati = 65.0000m, 
-                ToptanSatisFiyati = 60.0000m, 
-                KdvOrani = 20.00m, 
-                StokMiktari = 150.0000m, 
-                MinimumStok = 20.0000m, 
-                Aktif = true,
-                Versiyon = 1,
-                OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
-            },
-            new Urun 
-            { 
-                Id = 2, 
-                Kod = "URN002", 
-                Ad = "Laptop Çantası", 
-                Kategori = "Elektronik", 
-                Birim = "Adet", 
-                AlisFiyati = 250.0000m, 
-                PerakendeSatisFiyati = 399.0000m, 
-                ToptanSatisFiyati = 350.0000m,
-                KdvOrani = 20.00m, 
-                StokMiktari = 25.0000m, 
-                MinimumStok = 5.0000m, 
-                Aktif = true,
-                OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, DateTimeKind.Utc)
-            }
-        );
     }
 
     // Fatura, çek/senet gibi modüller kasa/hesap seçmeden hareket oluşturabiliyor; böyle bir hareket

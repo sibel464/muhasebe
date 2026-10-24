@@ -4322,44 +4322,6 @@ namespace Altyapi.Migrations
                     b.HasIndex("SirketId", "DepoId");
 
                     b.ToTable("Urunler", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Ad = "A4 Kağıt (500'lü)",
-                            Aktif = true,
-                            AlisFiyati = 45.0000m,
-                            Birim = "Paket",
-                            Kategori = "Kırtasiye",
-                            KdvOrani = 20.00m,
-                            Kod = "URN001",
-                            MinimumStok = 20.0000m,
-                            OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            PerakendeSatisFiyati = 65.0000m,
-                            Silindi = false,
-                            StokMiktari = 150.0000m,
-                            ToptanSatisFiyati = 60.0000m,
-                            Versiyon = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Ad = "Laptop Çantası",
-                            Aktif = true,
-                            AlisFiyati = 250.0000m,
-                            Birim = "Adet",
-                            Kategori = "Elektronik",
-                            KdvOrani = 20.00m,
-                            Kod = "URN002",
-                            MinimumStok = 5.0000m,
-                            OlusturmaTarihi = new DateTime(2026, 8, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            PerakendeSatisFiyati = 399.0000m,
-                            Silindi = false,
-                            StokMiktari = 25.0000m,
-                            ToptanSatisFiyati = 350.0000m,
-                            Versiyon = 1
-                        });
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Stok.UrunLokasyonStogu", b =>

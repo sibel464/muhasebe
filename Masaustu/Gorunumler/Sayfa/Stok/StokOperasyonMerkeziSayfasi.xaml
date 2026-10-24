@@ -99,37 +99,37 @@
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Toplam Stok" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding ToplamFizikselStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                    <TextBlock Text="{Binding ToplamFizikselStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Kullanılabilir" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding ToplamKullanilabilirStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                    <TextBlock Text="{Binding ToplamKullanilabilirStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Rezerve" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding ToplamRezerveStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource WarningDarkFirca}"/>
+                    <TextBlock Text="{Binding ToplamRezerveStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource WarningDarkFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Mağaza" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding MagazaToplamStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                    <TextBlock Text="{Binding MagazaToplamStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Depo 1" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding Depo1ToplamStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                    <TextBlock Text="{Binding Depo1ToplamStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Margin="0,0,8,0" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="Depo 2" Style="{StaticResource EtiketMetin}" FontSize="11"/>
-                    <TextBlock Text="{Binding Depo2ToplamStok, StringFormat={}{0:N0}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                    <TextBlock Text="{Binding Depo2ToplamStok, StringFormat={}{0:#,##0.##}}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiKarti}" Padding="12,10">
@@ -208,14 +208,14 @@
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="KOD" Binding="{Binding UrunKodu}" Width="100" FontWeight="Bold"/>
-                        <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="110"/>
-                        <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding UrunAdi}" Width="2*"/>
-                        <DataGridTextColumn Header="KATEGORİ" Binding="{Binding Kategori}" Width="110"/>
-                        <DataGridTextColumn Header="MARKA" Binding="{Binding Marka}" Width="100"/>
-                        <DataGridTextColumn Header="BİRİM" Binding="{Binding Birim}" Width="65"/>
+                        <DataGridTextColumn Header="KOD" Binding="{Binding UrunKodu}" Width="85" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="100"/>
+                        <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding UrunAdi}" Width="2*" MinWidth="180"/>
+                        <DataGridTextColumn Header="KATEGORİ" Binding="{Binding Kategori}" Width="95"/>
+                        <DataGridTextColumn Header="MARKA" Binding="{Binding Marka}" Width="85"/>
+                        <DataGridTextColumn Header="BİRİM" Binding="{Binding Birim}" Width="55"/>
 
-                        <DataGridTextColumn Header="MAĞAZA" Binding="{Binding MagazaFiziksel, StringFormat={}{0:N0}}" Width="85">
+                        <DataGridTextColumn Header="MAĞAZA" Binding="{Binding MagazaFiziksel, StringFormat={}{0:#,##0.##}}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -224,7 +224,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="DEPO 1" Binding="{Binding Depo1Fiziksel, StringFormat={}{0:N0}}" Width="85">
+                        <DataGridTextColumn Header="DEPO 1" Binding="{Binding Depo1Fiziksel, StringFormat={}{0:#,##0.##}}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -233,7 +233,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="DEPO 2" Binding="{Binding Depo2Fiziksel, StringFormat={}{0:N0}}" Width="85">
+                        <DataGridTextColumn Header="DEPO 2" Binding="{Binding Depo2Fiziksel, StringFormat={}{0:#,##0.##}}" Width="70">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -242,7 +242,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="TOPLAM STOK" Binding="{Binding ToplamFiziksel, StringFormat={}{0:N0}}" Width="105">
+                        <DataGridTextColumn Header="TOPLAM STOK" Binding="{Binding ToplamFiziksel, StringFormat={}{0:#,##0.##}}" Width="85">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -252,7 +252,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="KULLANILABİLİR" Binding="{Binding ToplamKullanilabilir, StringFormat={}{0:N0}}" Width="110">
+                        <DataGridTextColumn Header="KULLANILABİLİR" Binding="{Binding ToplamKullanilabilir, StringFormat={}{0:#,##0.##}}" Width="95">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -261,7 +261,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="ALIŞ FİYATI" Binding="{Binding AlisFiyati, StringFormat={}{0:N2} ₺}" Width="105">
+                        <DataGridTextColumn Header="ALIŞ FİYATI" Binding="{Binding AlisFiyati, StringFormat={}{0:N2} ₺}" Width="95">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -269,7 +269,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="SATIŞ FİYATI" Binding="{Binding SatisFiyati, StringFormat={}{0:N2} ₺}" Width="105">
+                        <DataGridTextColumn Header="SATIŞ FİYATI" Binding="{Binding SatisFiyati, StringFormat={}{0:N2} ₺}" Width="95">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -278,7 +278,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTemplateColumn Header="DURUM" Width="100">
+                        <DataGridTemplateColumn Header="DURUM" Width="85">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="5" Padding="6,2" HorizontalAlignment="Center">

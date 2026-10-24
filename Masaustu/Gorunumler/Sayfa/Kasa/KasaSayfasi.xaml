@@ -76,7 +76,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="KASA BAKİYESİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding ToplamBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="ToplamBakiye"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="💵" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -88,7 +88,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="BU AYKİ NAKİT GİRİŞİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding BuAyGelir, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="BuAyGelir"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="📈" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -100,7 +100,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="BU AYKİ NAKİT ÇIKIŞI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding BuAyGider, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="BuAyGider"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource DangerLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="📉" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -132,8 +132,11 @@
                                 <TextBlock Text="Fiş Tipi *" Style="{StaticResource EtiketMetin}"/>
                                 <ComboBox Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
                                           ItemsSource="{Binding FisTurleri}"
-                                          SelectedItem="{Binding SeciliFisTuru}"
-                                          IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"/>
+                                          SelectedItem="{Binding SeciliFisTuru}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding Converter={StaticResource FinansMetin}}"/></DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
 
                                 <!-- Cari Seçimi -->
                                 <TextBlock Text="Cari Kart (Müşteri / Tedarikçi)" Style="{StaticResource EtiketMetin}"/>
@@ -153,9 +156,7 @@
                                     <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Kur (1 "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/><Run Text=" = ? ₺) *"/></TextBlock>
                                     <TextBox Style="{StaticResource FormGirisKutusu}"
                                              Text="{Binding YeniKur, UpdateSourceTrigger=LostFocus, Converter={StaticResource ParaTutariDonusturucu}, ConverterParameter=N4, ValidatesOnExceptions=True}"/>
-                                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,4,0,0">
-                                        <Run Text="TL karşılığı:"/> <Run Text="{Binding YeniTlKarsiligi, Mode=OneWay, StringFormat={}{0:N2} ₺}" FontWeight="SemiBold"/>
-                                    </TextBlock>
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,4,0,0" Text="{Binding YeniTlKarsiligi, StringFormat=TL karşılığı: {0:N2} ₺}"/>
                                 </StackPanel>
 
                                 <!-- Makbuz No / Belge No -->
@@ -219,19 +220,19 @@
                                 <UniformGrid Columns="4">
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="DEVREDEN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock FontSize="15" FontWeight="Bold"><Run Text="{Binding DevirBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                                        <TextBlock FontSize="15" FontWeight="Bold"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="DevirBakiye"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="GİRİŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"><Run Text="{Binding DonemGiris, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="DonemGiris"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="ÇIKIŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"><Run Text="{Binding DonemCikis, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="DonemCikis"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                                     </StackPanel>
                                     <StackPanel>
                                         <TextBlock Text="DÖNEM SONU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock FontSize="15" FontWeight="Bold"><Run Text="{Binding DonemSonuBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
+                                        <TextBlock FontSize="15" FontWeight="Bold"><TextBlock.Text><MultiBinding StringFormat="{}{0:N2} {1}"><Binding Path="DonemSonuBakiye"/><Binding Path="ParaSimgesi"/></MultiBinding></TextBlock.Text></TextBlock>
                                     </StackPanel>
                                 </UniformGrid>
                             </StackPanel>

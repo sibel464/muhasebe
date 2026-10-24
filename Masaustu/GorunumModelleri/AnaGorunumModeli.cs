@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Masaustu.Servisler;
 using Masaustu.Yardimcilar;
 using Uygulama.Arayuzler;
@@ -171,45 +172,47 @@ public class AnaGorunumModeli : TemelGorunumModeli
             else if (gm is DepoGorunumModeli) AktifMenu = "Depo";
         };
 
-        // Sayfa fabrikalarını kaydet
-        _navigasyon.Kaydet("Dashboard", () => new DashboardGorunumModeli(_cariServisi, _urunServisi, _navigasyon, () => CikisYapildi?.Invoke(), _kasaServisi, _faturaServisi));
-        _navigasyon.Kaydet("Musteri", () => new MusteriGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon, () => CikisYapildi?.Invoke()));
-        _navigasyon.Kaydet("CariEkle", () => new CariEkleGorunumModeli(_cariServisi, _cariTipiServisi, _navigasyon));
-        _navigasyon.Kaydet("CariSil", () => new CariSilGorunumModeli(_cariServisi, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IKvkkServisi>(App.HizmetSaglayici)));
-        _navigasyon.Kaydet("UrunEkle", () => new UrunEkleGorunumModeli(_urunServisi, _merkeziTanimServisi, _navigasyon));
-        _navigasyon.Kaydet("UrunSil", () => new UrunSilGorunumModeli(_urunServisi));
-        _navigasyon.Kaydet("Urun", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<StokOperasyonMerkeziGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Depo", () => new DepoGorunumModeli(_depoServisi ?? throw new InvalidOperationException("Depo servisi yapılandırılmamış."), _urunServisi, _yazdirmaServisi ?? new Altyapi.Servisler.BelgeYazdirmaServisi()));
-        _navigasyon.Kaydet("Satis", () => new SatisGorunumModeli(_urunServisi, _cariServisi, _faturaServisi, _cariHareketServisi));
-        _navigasyon.Kaydet("Irsaliye", () => new IrsaliyeGorunumModeli(_irsaliyeServisi, _cariServisi, _urunServisi, _faturaServisi, _navigasyon, _yazdirmaServisi));
-        _navigasyon.Kaydet("FaturaEkle", () => new FaturaEkleGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon));
-        _navigasyon.Kaydet("Fatura", () => new FaturaGorunumModeli(_faturaServisi, _cariServisi, _urunServisi, _navigasyon, _yazdirmaServisi, _eBelgeServisi));
-        _navigasyon.Kaydet("Siparis", () => new SiparisGorunumModeli(_siparisServisi, _cariServisi, _urunServisi));
-        _navigasyon.Kaydet("Kasa", () => new KasaGorunumModeli(_kasaServisi, _yazdirmaServisi, _cariServisi, _bankaServisi));
-        _navigasyon.Kaydet("Banka", () => new BankaGorunumModeli(_bankaServisi, _yazdirmaServisi, _cariServisi, _kasaServisi));
-        _navigasyon.Kaydet("Tahsilat", () => new TahsilatOdemeGorunumModeli(tahsilatOdemeServisi, _cariServisi, belgeKapamaServisi, EtkiAlani.Modeller.Finans.FinansIslemTuru.Tahsilat));
-        _navigasyon.Kaydet("Odeme", () => new TahsilatOdemeGorunumModeli(tahsilatOdemeServisi, _cariServisi, belgeKapamaServisi, EtkiAlani.Modeller.Finans.FinansIslemTuru.Odeme));
-        _navigasyon.Kaydet("Rapor", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<RaporMerkeziGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Ayarlar", () => new AyarlarGorunumModeli(_ayarlarServisi, _auditLogServisi, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<IVeritabaniYedekServisi>(App.HizmetSaglayici)));
-        _navigasyon.Kaydet("Kullanicilar", () => new KullanicilarGorunumModeli(_kullaniciServisi, _auditLogServisi));
-        _navigasyon.Kaydet("FirmaIslemleri", () => new FirmaIslemleriGorunumModeli(sirketServisi));
-        _navigasyon.Kaydet("TicariIslemler", () => new TicariIslemlerGorunumModeli(globalAramaServisi, _navigasyon));
-        _navigasyon.Kaydet("Finans", () =>
+        // Sayfa fabrikalarını kaydet. Servisler her sayfanın kendi kapsamından (sp) alınır; böylece her sayfa kendi
+        // veritabanı bağlamıyla çalışır ve açılışta güncel veriyi okur (bkz. NavigasyonServisi).
+        static T G<T>(IServiceProvider sp) where T : notnull => sp.GetRequiredService<T>();
+        _navigasyon.Kaydet("Dashboard", sp => new DashboardGorunumModeli(G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke(), G<IKasaServisi>(sp), G<IFaturaServisi>(sp)));
+        _navigasyon.Kaydet("Musteri", sp => new MusteriGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke()));
+        _navigasyon.Kaydet("CariEkle", sp => new CariEkleGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon));
+        _navigasyon.Kaydet("CariSil", sp => new CariSilGorunumModeli(G<ICariServisi>(sp), G<IKvkkServisi>(sp)));
+        _navigasyon.Kaydet("UrunEkle", sp => new UrunEkleGorunumModeli(G<IUrunServisi>(sp), G<IMerkeziTanimServisi>(sp), _navigasyon));
+        _navigasyon.Kaydet("UrunSil", sp => new UrunSilGorunumModeli(G<IUrunServisi>(sp)));
+        _navigasyon.Kaydet("Urun", sp => G<StokOperasyonMerkeziGorunumModeli>(sp));
+        _navigasyon.Kaydet("Depo", sp => new DepoGorunumModeli(G<IDepoServisi>(sp), G<IUrunServisi>(sp), G<IBelgeYazdirmaServisi>(sp)));
+        _navigasyon.Kaydet("Satis", sp => new SatisGorunumModeli(G<IUrunServisi>(sp), G<ICariServisi>(sp), G<IFaturaServisi>(sp), G<ICariHareketServisi>(sp)));
+        _navigasyon.Kaydet("Irsaliye", sp => new IrsaliyeGorunumModeli(G<IIrsaliyeServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), G<IFaturaServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp)));
+        _navigasyon.Kaydet("FaturaEkle", sp => new FaturaEkleGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon));
+        _navigasyon.Kaydet("Fatura", sp => new FaturaGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp), G<IEBelgeServisi>(sp)));
+        _navigasyon.Kaydet("Siparis", sp => new SiparisGorunumModeli(G<ISiparisServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp)));
+        _navigasyon.Kaydet("Kasa", sp => new KasaGorunumModeli(G<IKasaServisi>(sp), G<IBelgeYazdirmaServisi>(sp), G<ICariServisi>(sp), G<IBankaServisi>(sp)));
+        _navigasyon.Kaydet("Banka", sp => new BankaGorunumModeli(G<IBankaServisi>(sp), G<IBelgeYazdirmaServisi>(sp), G<ICariServisi>(sp), G<IKasaServisi>(sp)));
+        _navigasyon.Kaydet("Tahsilat", sp => new TahsilatOdemeGorunumModeli(G<ITahsilatOdemeServisi>(sp), G<ICariServisi>(sp), G<IBelgeKapamaServisi>(sp), EtkiAlani.Modeller.Finans.FinansIslemTuru.Tahsilat));
+        _navigasyon.Kaydet("Odeme", sp => new TahsilatOdemeGorunumModeli(G<ITahsilatOdemeServisi>(sp), G<ICariServisi>(sp), G<IBelgeKapamaServisi>(sp), EtkiAlani.Modeller.Finans.FinansIslemTuru.Odeme));
+        _navigasyon.Kaydet("Rapor", sp => G<RaporMerkeziGorunumModeli>(sp));
+        _navigasyon.Kaydet("Ayarlar", sp => new AyarlarGorunumModeli(G<ISistemAyarlariServisi>(sp), G<IAuditLogServisi>(sp), sp.GetService<IVeritabaniYedekServisi>()));
+        _navigasyon.Kaydet("Kullanicilar", sp => new KullanicilarGorunumModeli(_kullaniciServisi, G<IAuditLogServisi>(sp)));
+        _navigasyon.Kaydet("FirmaIslemleri", sp => new FirmaIslemleriGorunumModeli(G<ISirketServisi>(sp)));
+        _navigasyon.Kaydet("TicariIslemler", sp => new TicariIslemlerGorunumModeli(G<IGlobalAramaServisi>(sp), _navigasyon));
+        _navigasyon.Kaydet("Finans", sp =>
         {
-            var vm = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<FinansMerkeziGorunumModeli>(App.HizmetSaglayici);
+            var vm = G<FinansMerkeziGorunumModeli>(sp);
             _ = vm.YukleAsync();
             return vm;
         });
-        if (cekSenetServisi != null) _navigasyon.Kaydet("CekSenet", () => new CekSenetGorunumModeli(cekSenetServisi, _cariServisi, _kasaServisi, _bankaServisi));
-        _navigasyon.Kaydet("DovizKur", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Doviz.DovizKurMerkeziGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("HesapPlani", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.HesapPlaniGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("YevmiyeFis", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.YevmiyeFisGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("YevmiyeDefteri", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.YevmiyeDefteriGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("BuyukDefter", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.BuyukDefterGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Muavin", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.MuavinGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("Mizan", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.MizanGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("MuhasebeBaglanti", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.MuhasebeBaglantiGorunumModeli>(App.HizmetSaglayici));
-        _navigasyon.Kaydet("MuhasebeSaglik", () => Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Masaustu.GorunumModeli.Muhasebe.MuhasebeSaglikGorunumModeli>(App.HizmetSaglayici));
+        _navigasyon.Kaydet("CekSenet", sp => new CekSenetGorunumModeli(G<ICekSenetServisi>(sp), G<ICariServisi>(sp), G<IKasaServisi>(sp), G<IBankaServisi>(sp)));
+        _navigasyon.Kaydet("DovizKur", sp => G<Masaustu.GorunumModeli.Doviz.DovizKurMerkeziGorunumModeli>(sp));
+        _navigasyon.Kaydet("HesapPlani", sp => G<Masaustu.GorunumModeli.Muhasebe.HesapPlaniGorunumModeli>(sp));
+        _navigasyon.Kaydet("YevmiyeFis", sp => G<Masaustu.GorunumModeli.Muhasebe.YevmiyeFisGorunumModeli>(sp));
+        _navigasyon.Kaydet("YevmiyeDefteri", sp => G<Masaustu.GorunumModeli.Muhasebe.YevmiyeDefteriGorunumModeli>(sp));
+        _navigasyon.Kaydet("BuyukDefter", sp => G<Masaustu.GorunumModeli.Muhasebe.BuyukDefterGorunumModeli>(sp));
+        _navigasyon.Kaydet("Muavin", sp => G<Masaustu.GorunumModeli.Muhasebe.MuavinGorunumModeli>(sp));
+        _navigasyon.Kaydet("Mizan", sp => G<Masaustu.GorunumModeli.Muhasebe.MizanGorunumModeli>(sp));
+        _navigasyon.Kaydet("MuhasebeBaglanti", sp => G<Masaustu.GorunumModeli.Muhasebe.MuhasebeBaglantiGorunumModeli>(sp));
+        _navigasyon.Kaydet("MuhasebeSaglik", sp => G<Masaustu.GorunumModeli.Muhasebe.MuhasebeSaglikGorunumModeli>(sp));
 
         // Komutlar
         DashboardKomutu = new KomutSarici(() => MenuGit("Dashboard"));

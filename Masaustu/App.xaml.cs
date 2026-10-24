@@ -20,10 +20,137 @@ public partial class App : Application
     public static IServiceProvider HizmetSaglayici { get; private set; } = null!;
     private static readonly SemaphoreSlim LogKilidi = new(1, 1);
 
-    protected override async void OnStartup(StartupEventArgs e)
+    // Uygulamanın servis kaydı; OnStartup ve ekran deneme düzeneği (tüm sayfaları gerçek servislerle açar) kullanır.
+    public static IServiceProvider ServisleriOlustur(IConfiguration konfigurasyon, string baglantiDizesi)
+    {
+        var servisler = new ServiceCollection();
+        servisler.AddSingleton<IConfiguration>(konfigurasyon);
+        // AddDbContextFactory: hem IDbContextFactory<> hem de Scoped DbContext'i kayıt eder.
+        // Singleton KullaniciServisi, kısa ömürlü context'ler oluşturmak için factory kullanır.
+        var dbBaglanti = new Npgsql.NpgsqlConnectionStringBuilder(baglantiDizesi)
+        {
+            Timeout = 5,
+            CommandTimeout = 10
+        }.ConnectionString;
+        servisler.AddDbContextFactory<MuhasebeBaglami>(opts =>
+        {
+            opts.UseNpgsql(dbBaglanti);
+
+        });
+        servisler.AddSingleton<NavigasyonServisi>();
+        servisler.AddSingleton<IAktifFirmaBaglami, AktifFirmaBaglami>();
+        servisler.AddTransient<IGlobalAramaServisi, GlobalAramaServisi>();
+        // Singleton: AktifKullanici bilgisinin tüm uygulama boyunca tek instance'da tutulması için.
+        // KullaniciServisi artık IDbContextFactory kullandığından Singleton olarak güvenle kayıt edilebilir.
+        servisler.AddSingleton<Uygulama.Arayuzler.IKullaniciServisi, Altyapi.Servisler.KullaniciServisi>();
+        servisler.AddTransient<ISistemAyarlariServisi, SistemAyarlariServisi>();
+        servisler.AddSingleton<IVeritabaniYedekServisi>(sp => new VeritabaniYedekServisi(
+            baglantiDizesi,
+            konfigurasyon["YedekAyarlari:Klasor"],
+            int.TryParse(konfigurasyon["YedekAyarlari:SaklanacakYedekSayisi"], out var saklanacak) ? saklanacak : 30,
+            sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IAuditLogServisi, AuditLogServisi>();
+        servisler.AddTransient<IUrunServisi, UrunServisi>();
+        servisler.AddTransient<ICariServisi, CariServisi>();
+        servisler.AddTransient<IKvkkServisi, KvkkServisi>();
+        servisler.AddTransient<ICariDetayServisi>(sp => new CariDetayServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
+        servisler.AddTransient<ICariTipiTanimiServisi, CariTipiTanimiServisi>();
+        servisler.AddTransient<IMerkeziTanimServisi, MerkeziTanimServisi>();
+        servisler.AddTransient<ICariHareketServisi, CariHareketServisi>();
+        servisler.AddTransient<IFaturaServisi, FaturaServisi>();
+        servisler.AddTransient<ITopluAktarimServisi>(sp => new Altyapi.Aktarim.TopluAktarimServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IEBelgeServisi>(sp => new Altyapi.EBelge.EBelgeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<ISiparisServisi, SiparisServisi>();
+        servisler.AddTransient<IFinancialTransactionService, FinancialTransactionService>();
+        servisler.AddTransient<IIrsaliyeServisi, IrsaliyeServisi>();
+        servisler.AddTransient<IKasaServisi, KasaServisi>();
+        servisler.AddTransient<IBankaServisi, BankaServisi>();
+        servisler.AddTransient<IDepoServisi, DepoServisi>();
+        servisler.AddTransient<IStok360Servisi>(sp => new Stok360Servisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IStokOperasyonServisi>(sp => new StokOperasyonServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<ITahsilatOdemeServisi, TahsilatOdemeServisi>();
+        servisler.AddTransient<IFinansMerkeziServisi>(sp => new FinansMerkeziServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<ICekSenetServisi, CekSenetServisi>();
+        servisler.AddTransient<IBelgeKapamaServisi, BelgeKapamaServisi>();
+        servisler.AddTransient<ISirketServisi, SirketServisi>();
+        servisler.AddSingleton<IBelgeYazdirmaServisi>(sp => new BelgeYazdirmaServisi(null, sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
+        servisler.AddTransient<GirisGorunumModeli>();
+        servisler.AddTransient<AnaGorunumModeli>();
+        servisler.AddTransient<MusteriGorunumModeli>();
+        servisler.AddTransient<MusteriDuzenleGorunumModeli>();
+        servisler.AddTransient<CariDetayGorunumModeli>();
+        servisler.AddTransient<CariHareketGorunumModeli>();
+        servisler.AddTransient<FaturaGorunumModeli>();
+        servisler.AddTransient<SiparisGorunumModeli>();
+        servisler.AddTransient<IrsaliyeGorunumModeli>();
+        servisler.AddTransient<IrsaliyeEkleGorunumModeli>();
+        servisler.AddTransient<AyarlarGorunumModeli>();
+        servisler.AddTransient<SatisGorunumModeli>();
+        servisler.AddTransient<CekSenetGorunumModeli>();
+        servisler.AddTransient<DepoGorunumModeli>();
+        servisler.AddTransient<StokOperasyonMerkeziGorunumModeli>();
+        servisler.AddTransient<UrunStok360GorunumModeli>();
+        servisler.AddTransient<StokTransferGorunumModeli>();
+        servisler.AddTransient<StokSayimGorunumModeli>();
+        servisler.AddTransient<StokIslemGorunumModeli>();
+        servisler.AddTransient<FinansMerkeziGorunumModeli>();
+        servisler.AddTransient<Kasa360GorunumModeli>();
+        servisler.AddTransient<Banka360GorunumModeli>();
+        servisler.AddTransient<FinansTransferGorunumModeli>();
+        servisler.AddTransient<MutabakatGorunumModeli>();
+        servisler.AddTransient<IRaporMerkeziServisi>(sp => new RaporMerkeziServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetService<IAuditLogServisi>(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
+        servisler.AddTransient<IMuhasebeBaglantiServisi>(sp => new MuhasebeBaglantiServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IHesapPlaniServisi>(sp => new HesapPlaniServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IYevmiyeServisi>(sp => new YevmiyeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IMuhasebeBaglantiServisi>()));
+        servisler.AddTransient<IMuhasebeRaporServisi>(sp => new MuhasebeRaporServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IExcelExportServisi, ExcelExportServisi>();
+        servisler.AddTransient<IPdfRaporServisi, PdfRaporServisi>();
+        servisler.AddTransient<ITcmbKurServisi>(sp => new TcmbKurServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext()));
+        servisler.AddTransient<IKurServisi>(sp => new KurServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<ITcmbKurServisi>(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<IRevaluasyonServisi>(sp =>
+        {
+            // Revalüasyon ve yevmiye aynı context/transaction üzerinde atomik çalışır.
+            var db = sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext();
+            var kullanici = sp.GetRequiredService<IKullaniciServisi>();
+            var baglanti = new MuhasebeBaglantiServisi(db, kullanici);
+            var yevmiye = new YevmiyeServisi(db, kullanici, baglanti);
+            var kur = new KurServisi(db, new TcmbKurServisi(db), kullanici);
+            return new RevaluasyonServisi(db, kur, yevmiye, baglanti, kullanici, sp.GetRequiredService<IAktifFirmaBaglami>());
+        });
+        servisler.AddTransient<Masaustu.GorunumModeli.Doviz.DovizKurMerkeziGorunumModeli>();
+        servisler.AddTransient<RaporMerkeziGorunumModeli>();
+        servisler.AddTransient<HesapPlaniGorunumModeli>();
+        servisler.AddTransient<HesapEkleDuzenleGorunumModeli>();
+        servisler.AddTransient<Hesap360GorunumModeli>();
+        servisler.AddTransient<YevmiyeFisGorunumModeli>();
+        servisler.AddTransient<YevmiyeFisEkleDuzenleGorunumModeli>();
+        servisler.AddTransient<YevmiyeDefteriGorunumModeli>();
+        servisler.AddTransient<BuyukDefterGorunumModeli>();
+        servisler.AddTransient<MuavinGorunumModeli>();
+        servisler.AddTransient<MizanGorunumModeli>();
+        servisler.AddTransient<MuhasebeBaglantiGorunumModeli>();
+        servisler.AddTransient<MuhasebeSaglikGorunumModeli>();
+        servisler.AddTransient<GirisEkrani>();
+        servisler.AddTransient<AnaPencere>();
+
+        HizmetSaglayici = servisler.BuildServiceProvider();
+        return HizmetSaglayici;
+    }
+
+    // WPF bağlamaları sayı/tarih biçiminde iş parçacığı kültürünü değil öğenin Language özelliğini kullanır (varsayılan
+    // en-US): "25.000,00" yerine "25,000.00" görünüyordu. Metin parçaları (Run) bu ayarı almaz; sayı biçimleyen
+    // bağlamalar TextBlock.Text üzerinde (gerekirse MultiBinding ile) yapılmalıdır.
+    public static void TurkceBicimAyarla()
     {
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("tr-TR");
+        FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement),
+            new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage("tr-TR")));
+    }
+
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        TurkceBicimAyarla();
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         base.OnStartup(e);
 
@@ -85,8 +212,6 @@ public partial class App : Application
                 .AddJsonFile(UygulamaKlasorleri.YerelAyarDosyasi, optional: true, reloadOnChange: false)
                 .Build();
 
-            var servisler = new ServiceCollection();
-            servisler.AddSingleton<IConfiguration>(konfigurasyon);
 
             // Yerel PostgreSQL sunucusu çalışmıyorsa başlatılır; kurulum paketinde ilk açılışta veritabanı da kurulur.
             AgModu = AgYoneticisi.Mod(konfigurasyon);
@@ -94,115 +219,7 @@ public partial class App : Application
             var baglantiDizesi = veritabani.BaglantiDizesi;
             VeritabaniBaglantiDizesi = baglantiDizesi;
 
-            // AddDbContextFactory: hem IDbContextFactory<> hem de Scoped DbContext'i kayıt eder.
-            // Singleton KullaniciServisi, kısa ömürlü context'ler oluşturmak için factory kullanır.
-            var dbBaglanti = new Npgsql.NpgsqlConnectionStringBuilder(baglantiDizesi)
-            {
-                Timeout = 5,
-                CommandTimeout = 10
-            }.ConnectionString;
-            servisler.AddDbContextFactory<MuhasebeBaglami>(opts =>
-            {
-                opts.UseNpgsql(dbBaglanti);
-
-            });
-            servisler.AddSingleton<NavigasyonServisi>();
-            servisler.AddSingleton<IAktifFirmaBaglami, AktifFirmaBaglami>();
-            servisler.AddTransient<IGlobalAramaServisi, GlobalAramaServisi>();
-            // Singleton: AktifKullanici bilgisinin tüm uygulama boyunca tek instance'da tutulması için.
-            // KullaniciServisi artık IDbContextFactory kullandığından Singleton olarak güvenle kayıt edilebilir.
-            servisler.AddSingleton<Uygulama.Arayuzler.IKullaniciServisi, Altyapi.Servisler.KullaniciServisi>();
-            servisler.AddTransient<ISistemAyarlariServisi, SistemAyarlariServisi>();
-            servisler.AddSingleton<IVeritabaniYedekServisi>(sp => new VeritabaniYedekServisi(
-                baglantiDizesi,
-                konfigurasyon["YedekAyarlari:Klasor"],
-                int.TryParse(konfigurasyon["YedekAyarlari:SaklanacakYedekSayisi"], out var saklanacak) ? saklanacak : 30,
-                sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IAuditLogServisi, AuditLogServisi>();
-            servisler.AddTransient<IUrunServisi, UrunServisi>();
-            servisler.AddTransient<ICariServisi, CariServisi>();
-            servisler.AddTransient<IKvkkServisi, KvkkServisi>();
-            servisler.AddTransient<ICariDetayServisi>(sp => new CariDetayServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
-            servisler.AddTransient<ICariTipiTanimiServisi, CariTipiTanimiServisi>();
-            servisler.AddTransient<IMerkeziTanimServisi, MerkeziTanimServisi>();
-            servisler.AddTransient<ICariHareketServisi, CariHareketServisi>();
-            servisler.AddTransient<IFaturaServisi, FaturaServisi>();
-            servisler.AddTransient<ITopluAktarimServisi>(sp => new Altyapi.Aktarim.TopluAktarimServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IEBelgeServisi>(sp => new Altyapi.EBelge.EBelgeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<ISiparisServisi, SiparisServisi>();
-            servisler.AddTransient<IFinancialTransactionService, FinancialTransactionService>();
-            servisler.AddTransient<IIrsaliyeServisi, IrsaliyeServisi>();
-            servisler.AddTransient<IKasaServisi, KasaServisi>();
-            servisler.AddTransient<IBankaServisi, BankaServisi>();
-            servisler.AddTransient<IDepoServisi, DepoServisi>();
-            servisler.AddTransient<IStok360Servisi>(sp => new Stok360Servisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IStokOperasyonServisi>(sp => new StokOperasyonServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<ITahsilatOdemeServisi, TahsilatOdemeServisi>();
-            servisler.AddTransient<IFinansMerkeziServisi>(sp => new FinansMerkeziServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<ICekSenetServisi, CekSenetServisi>();
-            servisler.AddTransient<IBelgeKapamaServisi, BelgeKapamaServisi>();
-            servisler.AddTransient<ISirketServisi, SirketServisi>();
-            servisler.AddSingleton<IBelgeYazdirmaServisi>(sp => new BelgeYazdirmaServisi(null, sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
-            servisler.AddTransient<GirisGorunumModeli>();
-            servisler.AddTransient<AnaGorunumModeli>();
-            servisler.AddTransient<MusteriGorunumModeli>();
-            servisler.AddTransient<MusteriDuzenleGorunumModeli>();
-            servisler.AddTransient<CariDetayGorunumModeli>();
-            servisler.AddTransient<CariHareketGorunumModeli>();
-            servisler.AddTransient<FaturaGorunumModeli>();
-            servisler.AddTransient<SiparisGorunumModeli>();
-            servisler.AddTransient<IrsaliyeGorunumModeli>();
-            servisler.AddTransient<IrsaliyeEkleGorunumModeli>();
-            servisler.AddTransient<AyarlarGorunumModeli>();
-            servisler.AddTransient<SatisGorunumModeli>();
-            servisler.AddTransient<CekSenetGorunumModeli>();
-            servisler.AddTransient<DepoGorunumModeli>();
-            servisler.AddTransient<StokOperasyonMerkeziGorunumModeli>();
-            servisler.AddTransient<UrunStok360GorunumModeli>();
-            servisler.AddTransient<StokTransferGorunumModeli>();
-            servisler.AddTransient<StokSayimGorunumModeli>();
-            servisler.AddTransient<StokIslemGorunumModeli>();
-            servisler.AddTransient<FinansMerkeziGorunumModeli>();
-            servisler.AddTransient<Kasa360GorunumModeli>();
-            servisler.AddTransient<Banka360GorunumModeli>();
-            servisler.AddTransient<FinansTransferGorunumModeli>();
-            servisler.AddTransient<MutabakatGorunumModeli>();
-            servisler.AddTransient<IRaporMerkeziServisi>(sp => new RaporMerkeziServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetService<IAuditLogServisi>(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
-            servisler.AddTransient<IMuhasebeBaglantiServisi>(sp => new MuhasebeBaglantiServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IHesapPlaniServisi>(sp => new HesapPlaniServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IYevmiyeServisi>(sp => new YevmiyeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IMuhasebeBaglantiServisi>()));
-            servisler.AddTransient<IMuhasebeRaporServisi>(sp => new MuhasebeRaporServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IExcelExportServisi, ExcelExportServisi>();
-            servisler.AddTransient<IPdfRaporServisi, PdfRaporServisi>();
-            servisler.AddTransient<ITcmbKurServisi>(sp => new TcmbKurServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext()));
-            servisler.AddTransient<IKurServisi>(sp => new KurServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<ITcmbKurServisi>(), sp.GetRequiredService<IKullaniciServisi>()));
-            servisler.AddTransient<IRevaluasyonServisi>(sp =>
-            {
-                // Revalüasyon ve yevmiye aynı context/transaction üzerinde atomik çalışır.
-                var db = sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext();
-                var kullanici = sp.GetRequiredService<IKullaniciServisi>();
-                var baglanti = new MuhasebeBaglantiServisi(db, kullanici);
-                var yevmiye = new YevmiyeServisi(db, kullanici, baglanti);
-                var kur = new KurServisi(db, new TcmbKurServisi(db), kullanici);
-                return new RevaluasyonServisi(db, kur, yevmiye, baglanti, kullanici, sp.GetRequiredService<IAktifFirmaBaglami>());
-            });
-            servisler.AddTransient<Masaustu.GorunumModeli.Doviz.DovizKurMerkeziGorunumModeli>();
-            servisler.AddTransient<RaporMerkeziGorunumModeli>();
-            servisler.AddTransient<HesapPlaniGorunumModeli>();
-            servisler.AddTransient<HesapEkleDuzenleGorunumModeli>();
-            servisler.AddTransient<Hesap360GorunumModeli>();
-            servisler.AddTransient<YevmiyeFisGorunumModeli>();
-            servisler.AddTransient<YevmiyeFisEkleDuzenleGorunumModeli>();
-            servisler.AddTransient<YevmiyeDefteriGorunumModeli>();
-            servisler.AddTransient<BuyukDefterGorunumModeli>();
-            servisler.AddTransient<MuavinGorunumModeli>();
-            servisler.AddTransient<MizanGorunumModeli>();
-            servisler.AddTransient<MuhasebeBaglantiGorunumModeli>();
-            servisler.AddTransient<MuhasebeSaglikGorunumModeli>();
-            servisler.AddTransient<GirisEkrani>();
-            servisler.AddTransient<AnaPencere>();
-
-            HizmetSaglayici = servisler.BuildServiceProvider();
+            ServisleriOlustur(konfigurasyon, baglantiDizesi);
 #if DEBUG
             const string varsayilanOrtam = "Development";
 #else

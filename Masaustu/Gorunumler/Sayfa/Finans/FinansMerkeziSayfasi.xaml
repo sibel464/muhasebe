@@ -141,6 +141,7 @@
                                     <DataGridTextColumn Header="KASA ADI" Binding="{Binding KasaAdi}" Width="*"/>
                                     <DataGridTextColumn Header="ŞUBE" Binding="{Binding SubeAdi}" Width="90"/>
                                     <DataGridTextColumn Header="BAKİYE" Binding="{Binding MevcutBakiye, StringFormat={}{0:N2}}" Width="110" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="P.B." Binding="{Binding ParaBirimi}" Width="50"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -156,6 +157,7 @@
                                     <DataGridTextColumn Header="HESAP ADI" Binding="{Binding HesapAdi}" Width="*"/>
                                     <DataGridTextColumn Header="IBAN" Binding="{Binding Iban}" Width="140"/>
                                     <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2}}" Width="110" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="P.B." Binding="{Binding ParaBirimi}" Width="50"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>

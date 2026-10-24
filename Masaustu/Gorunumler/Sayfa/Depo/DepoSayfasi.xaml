@@ -322,11 +322,11 @@
                                                             Command="{Binding DataContext.TransferKalemSilKomutu, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
                                                             Style="{StaticResource MikroSilDugme}"/>
-                                                    <TextBlock VerticalAlignment="Center">
-                                                        <Run Text="{Binding Urun.Ad}" FontWeight="SemiBold"/>
-                                                        <Run Text=" — "/>
-                                                        <Run Text="{Binding Miktar, StringFormat={}{0:N0} Adet}" Foreground="#2563EB" FontWeight="Bold"/>
-                                                    </TextBlock>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Urun.Ad}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text=" — "/>
+                                                        <TextBlock Text="{Binding Miktar, StringFormat={}{0:#,##0.##} Adet}" Foreground="#2563EB" FontWeight="Bold"/>
+                                                    </StackPanel>
                                                 </DockPanel>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>

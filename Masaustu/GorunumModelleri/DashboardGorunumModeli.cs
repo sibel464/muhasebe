@@ -69,7 +69,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         {
             if (_cariServisi != null)
             {
-                var musteriler = await _cariServisi.TumunuGetirAsync(EtkiAlani.Modeller.Cari.CariTuru.Musteri);
+                var musteriler = await _cariServisi.TumunuGetirAsync(); // kart "Müşteri & Tedarikçi" sayısını gösterir
                 MusteriSayisi = musteriler.Count;
             }
             
@@ -96,7 +96,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Dashboard Veri Yükleme Hatası: {ex.Message}");
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli");
         }
     }
 }

@@ -38,25 +38,25 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.BankaHesabi != null)
             .SumAsync(x => (decimal?)(x.Tur == HareketTuru.Gelir ? x.Tutar : -x.Tutar), cancellationToken) ?? 0m;
 
-        // Bugünkü Tahsilat ve Ödeme (Kasa + Banka)
+        // Bugünkü tahsilat ve ödeme (kasa + banka): yalnız cari tahsilat/ödemeleri; açılış, virman, gelir/gider fişleri değil.
         var bugunkiKasaGelir = await _baglam.KasaHareketleri
             .AsNoTracking()
-            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.Tur == HareketTuru.Gelir && x.Tarih >= bugun && x.Tarih < yarinki)
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.FisTuru == KasaFisTuru.Tahsilat && x.Tur == HareketTuru.Gelir && x.Tarih >= bugun && x.Tarih < yarinki)
             .SumAsync(x => (decimal?)x.Tutar, cancellationToken) ?? 0m;
 
         var bugunkiKasaGider = await _baglam.KasaHareketleri
             .AsNoTracking()
-            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.Tur == HareketTuru.Gider && x.Tarih >= bugun && x.Tarih < yarinki)
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.FisTuru == KasaFisTuru.Odeme && x.Tur == HareketTuru.Gider && x.Tarih >= bugun && x.Tarih < yarinki)
             .SumAsync(x => (decimal?)x.Tutar, cancellationToken) ?? 0m;
 
         var bugunkiBankaGelir = await _baglam.BankaHareketleri
             .AsNoTracking()
-            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.Tur == HareketTuru.Gelir && x.Tarih >= bugun && x.Tarih < yarinki)
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.FisTuru == BankaFisTuru.GelenHavale && x.Tur == HareketTuru.Gelir && x.Tarih >= bugun && x.Tarih < yarinki)
             .SumAsync(x => (decimal?)x.Tutar, cancellationToken) ?? 0m;
 
         var bugunkiBankaGider = await _baglam.BankaHareketleri
             .AsNoTracking()
-            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.Tur == HareketTuru.Gider && x.Tarih >= bugun && x.Tarih < yarinki)
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.FisTuru == BankaFisTuru.GidenHavale && x.Tur == HareketTuru.Gider && x.Tarih >= bugun && x.Tarih < yarinki)
             .SumAsync(x => (decimal?)x.Tutar, cancellationToken) ?? 0m;
 
         var bugunkiTahsilat = bugunkiKasaGelir + bugunkiBankaGelir;

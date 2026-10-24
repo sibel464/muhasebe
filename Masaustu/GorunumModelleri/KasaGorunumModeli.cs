@@ -182,7 +182,8 @@ public class KasaGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _seciliFisTuru, value);
     }
 
-    public Array FisTurleri => Enum.GetValues(typeof(KasaFisTuru));
+    // Bu formdan girilebilen fiş türleri; virman, banka transferi ve sayım farkı kendi sekmelerinden yapılır.
+    public Array FisTurleri { get; } = new[] { KasaFisTuru.Tahsilat, KasaFisTuru.Odeme, KasaFisTuru.Gelir, KasaFisTuru.Gider, KasaFisTuru.AcilisDevir };
 
     // Dövizli kasada tutarlar kasanın para biriminde girilir ve gösterilir; TL karşılığı kurla hesaplanır.
     public decimal YeniTutar

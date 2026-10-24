@@ -212,17 +212,19 @@
                           IsReadOnly="True">
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
+                            <!-- Sağ tık menüsü görsel ağacın dışındadır; sayfa modeli satırın Tag'ı üzerinden bulunur. -->
+                            <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
                             <Setter Property="ContextMenu">
                                 <Setter.Value>
                                     <ContextMenu>
-                                        <MenuItem Header="🔍 Cari 360° Detay" Command="{Binding DataContext.DetayKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                        <MenuItem Header="📜 Hesap Ekstresi" Command="{Binding DataContext.EkstreKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="🔍 Cari 360° Detay" Command="{Binding PlacementTarget.Tag.DetayKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="📜 Hesap Ekstresi" Command="{Binding PlacementTarget.Tag.EkstreKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
                                         <Separator/>
-                                        <MenuItem Header="💵 Tahsilat Al" Command="{Binding DataContext.TahsilatKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                        <MenuItem Header="💸 Ödeme Yap" Command="{Binding DataContext.OdemeKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="💵 Tahsilat Al" Command="{Binding PlacementTarget.Tag.TahsilatKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="💸 Ödeme Yap" Command="{Binding PlacementTarget.Tag.OdemeKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
                                         <Separator/>
-                                        <MenuItem Header="✏️ Cari Kartı Düzenle" Command="{Binding DataContext.DuzenleKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                        <MenuItem Header="🗑️ Sil" Command="{Binding DataContext.SilKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="✏️ Cari Kartı Düzenle" Command="{Binding PlacementTarget.Tag.DuzenleKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                                        <MenuItem Header="🗑️ Sil" Command="{Binding PlacementTarget.Tag.SilKomutu, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
                                     </ContextMenu>
                                 </Setter.Value>
                             </Setter>

@@ -193,7 +193,8 @@ public class BankaGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _seciliFisTuru, value);
     }
 
-    public Array FisTurleri => Enum.GetValues(typeof(BankaFisTuru));
+    // Bu formdan girilebilen fiş türleri; virman, kasa transferi ve POS geçişi kendi sekmelerinden yapılır.
+    public Array FisTurleri { get; } = new[] { BankaFisTuru.GelenHavale, BankaFisTuru.GidenHavale, BankaFisTuru.BankaGelir, BankaFisTuru.BankaGiderMasraf, BankaFisTuru.KrediOdemesi };
 
     public string YeniBankaAdi
     {
