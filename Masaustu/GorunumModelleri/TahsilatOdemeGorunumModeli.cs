@@ -115,6 +115,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
                 BildirimGonder(nameof(CekSenetGorunur));
                 BildirimGonder(nameof(KasaGorunur));
                 BildirimGonder(nameof(BankaHesabiGorunur));
+                HesapDegisti();
                 // Kartla tahsilat POS hesabına girer; varsa POS hesabı önerilir.
                 if (value == OdemeYontemi.KrediKarti && BankaHesaplari.FirstOrDefault(b => b.HesapTuru == BankaHesapTuru.POSHesabi) is BankaHesabi pos)
                     SeciliBankaHesabi = pos;
@@ -136,8 +137,36 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
     private bool _kaydediliyor;
     public ObservableCollection<Kasa> Kasalar { get; } = [];
     public ObservableCollection<BankaHesabi> BankaHesaplari { get; } = [];
-    public Kasa? SeciliKasa { get => _seciliKasa; set => OzellikAyarla(ref _seciliKasa, value); }
-    public BankaHesabi? SeciliBankaHesabi { get => _seciliBankaHesabi; set { if (OzellikAyarla(ref _seciliBankaHesabi, value)) BildirimGonder(nameof(KrediKartiBilgisi)); } }
+    public Kasa? SeciliKasa { get => _seciliKasa; set { if (OzellikAyarla(ref _seciliKasa, value)) HesapDegisti(); } }
+    public BankaHesabi? SeciliBankaHesabi { get => _seciliBankaHesabi; set { if (OzellikAyarla(ref _seciliBankaHesabi, value)) { BildirimGonder(nameof(KrediKartiBilgisi)); HesapDegisti(); } } }
+
+    // ─── Dövizli kasa/banka: tutar hesabın para biriminde girilir, TL tutar döviz × kurdur (cari ve belge kapama TL ile) ───
+    private decimal _dovizTutar;
+    private decimal _kur;
+    public string? HesapParaBirimi => KasaGorunur ? SeciliKasa?.ParaBirimi : BankaHesabiGorunur ? SeciliBankaHesabi?.ParaBirimi : null;
+    public bool HesapDovizli => DovizKuruYardimcisi.DovizliMi(HesapParaBirimi);
+    public string HesapParaSimgesi => DovizKuruYardimcisi.Simge(HesapParaBirimi);
+    public decimal DovizTutar { get => _dovizTutar; set { if (OzellikAyarla(ref _dovizTutar, value)) TlTutariHesapla(); } }
+    public decimal Kur { get => _kur; set { if (OzellikAyarla(ref _kur, value)) TlTutariHesapla(); } }
+
+    private void TlTutariHesapla()
+    {
+        if (HesapDovizli) Tutar = Math.Round(DovizTutar * Kur, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private void HesapDegisti()
+    {
+        BildirimGonder(nameof(HesapDovizli));
+        BildirimGonder(nameof(HesapParaSimgesi));
+        if (HesapDovizli && HesapParaBirimi is { } paraBirimi)
+            _ = KurOnerAsync(paraBirimi);
+    }
+
+    private async Task KurOnerAsync(string paraBirimi)
+    {
+        var kur = await DovizKuruYardimcisi.GunlukKurAsync(paraBirimi, Tarih);
+        if (kur > 0 && HesapParaBirimi == paraBirimi) Kur = kur;
+    }
     public string KrediKartiBilgisi => SeciliBankaHesabi?.HesapTuru == BankaHesapTuru.POSHesabi
         ? $"Tutarın tamamı '{SeciliBankaHesabi.Ad}' POS hesabına (108) girer. Banka komisyonu (%{SeciliBankaHesabi.PosKomisyonOrani:N2}), para vadesiz hesaba geçirilirken Banka ekranındaki POS geçişinde gider yazılır."
         : "Seçilen hesap bir POS hesabı değil: tutar doğrudan bankaya (102) girer ve komisyon düşülmez. Kart tahsilatları için Banka ekranından bir POS hesabı tanımlamanız önerilir.";
@@ -373,6 +402,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
             if (Tutar <= 0) throw new InvalidOperationException("Geçerli bir tutar giriniz.");
             if (KasaGorunur && SeciliKasa == null) throw new InvalidOperationException("Kasa seçiniz.");
             if (BankaHesabiGorunur && SeciliBankaHesabi == null) throw new InvalidOperationException("Banka hesabı seçiniz.");
+            if (HesapDovizli && (DovizTutar <= 0 || Kur <= 0)) throw new InvalidOperationException($"{HesapParaSimgesi} tutarını ve kurunu giriniz.");
 
             // Kapatılacak belgeler: listeye eklenenler; eklenmediyse tabloda seçili tek belge.
             var kapatilacaklar = SeciliBelgeler.Any()
@@ -386,6 +416,8 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
                 Tutar: Tutar,
                 Tarih: Tarih,
                 Aciklama: Aciklama,
+                Kur: HesapDovizli ? Kur : 1,
+                DovizTutar: HesapDovizli ? DovizTutar : 0,
                 BelgeNo: string.IsNullOrWhiteSpace(BelgeNo) ? null : BelgeNo,
                 BankaAdi: string.IsNullOrWhiteSpace(BankaAdi) ? null : BankaAdi,
                 HesapNo: string.IsNullOrWhiteSpace(HesapNo) ? null : HesapNo,
@@ -405,6 +437,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
 
             // Formu sıfırla
             Tutar = 0;
+            DovizTutar = 0;
             Aciklama = BelgeNo = BankaAdi = HesapNo = CekSenetNo = Kesideci = "";
             KomisyonOrani = 0;
             TaksitSayisi = 1;

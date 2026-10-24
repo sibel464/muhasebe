@@ -140,7 +140,7 @@
                                     <DataGridTextColumn Header="KOD" Binding="{Binding KasaKodu}" Width="80" FontWeight="Bold"/>
                                     <DataGridTextColumn Header="KASA ADI" Binding="{Binding KasaAdi}" Width="*"/>
                                     <DataGridTextColumn Header="ŞUBE" Binding="{Binding SubeAdi}" Width="90"/>
-                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding MevcutBakiye, StringFormat={}{0:N2} ₺}" Width="110" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding MevcutBakiye, StringFormat={}{0:N2}}" Width="110" FontWeight="Bold"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -155,7 +155,7 @@
                                     <DataGridTextColumn Header="BANKA" Binding="{Binding BankaAdi}" Width="110" FontWeight="Bold"/>
                                     <DataGridTextColumn Header="HESAP ADI" Binding="{Binding HesapAdi}" Width="*"/>
                                     <DataGridTextColumn Header="IBAN" Binding="{Binding Iban}" Width="140"/>
-                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="110" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2}}" Width="110" FontWeight="Bold"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -193,9 +193,9 @@
                             <DataGridTextColumn Header="KASA ADI" Binding="{Binding KasaAdi}" Width="2*"/>
                             <DataGridTextColumn Header="PARA BİRİMİ" Binding="{Binding ParaBirimi}" Width="100"/>
                             <DataGridTextColumn Header="ŞUBE" Binding="{Binding SubeAdi}" Width="120"/>
-                            <DataGridTextColumn Header="BUGÜNKÜ GİRİŞ" Binding="{Binding BugunkiGiris, StringFormat={}{0:N2} ₺}" Width="120"/>
-                            <DataGridTextColumn Header="BUGÜNKÜ ÇIKIŞ" Binding="{Binding BugunkiCikis, StringFormat={}{0:N2} ₺}" Width="120"/>
-                            <DataGridTextColumn Header="MEVCUT BAKİYE" Binding="{Binding MevcutBakiye, StringFormat={}{0:N2} ₺}" Width="140" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="BUGÜNKÜ GİRİŞ" Binding="{Binding BugunkiGiris, StringFormat={}{0:N2}}" Width="120"/>
+                            <DataGridTextColumn Header="BUGÜNKÜ ÇIKIŞ" Binding="{Binding BugunkiCikis, StringFormat={}{0:N2}}" Width="120"/>
+                            <DataGridTextColumn Header="MEVCUT BAKİYE" Binding="{Binding MevcutBakiye, StringFormat={}{0:N2}}" Width="140" FontWeight="Bold"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
@@ -215,7 +215,7 @@
                             <DataGridTextColumn Header="IBAN" Binding="{Binding Iban}" Width="180"/>
                             <DataGridTextColumn Header="HESAP NO" Binding="{Binding HesapNo}" Width="120"/>
                             <DataGridTextColumn Header="PARA BİRİMİ" Binding="{Binding ParaBirimi}" Width="100"/>
-                            <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="140" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2}}" Width="140" FontWeight="Bold"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>

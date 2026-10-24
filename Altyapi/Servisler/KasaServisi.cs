@@ -470,6 +470,9 @@ public class KasaServisi : IKasaServisi
         {
             // Sayım sırasında başka bir hareket sistem bakiyesini değiştirmesin.
             var kasa = await AktifKasaGetirVeKilitleAsync(mutabakat.KasaId);
+            // Banknot sayımı TL içindir; dövizli kasada sayım farkı döviz tutarı ve kurla gelir/gider fişi olarak girilir.
+            if (FinansKurallari.DovizliMi(kasa.ParaBirimi))
+                throw new InvalidOperationException($"Gün sonu sayım mutabakatı TL kasalar içindir. '{kasa.Ad}' ({kasa.ParaBirimi}) kasasında sayım farkını {kasa.ParaBirimi} tutarı ve kuruyla gelir/gider fişi olarak girin.");
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, mutabakat.Tarih, kasa.SirketId);
 
             mutabakat.Id = 0;

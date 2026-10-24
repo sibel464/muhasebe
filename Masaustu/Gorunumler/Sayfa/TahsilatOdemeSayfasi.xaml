@@ -7,6 +7,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVis"/>
         <local:FinansMetinDonusturucu x:Key="FinansMetin"/>
+        <local:ParaTutariDonusturucu x:Key="ParaTutariDonusturucu"/>
 
         <!-- Kart stili -->
         <Style x:Key="Kart" TargetType="Border">
@@ -444,6 +445,25 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- DÖVİZLİ KASA/BANKA: döviz tutarı ve kur; TL tutar hesaplanır -->
+                        <Grid Margin="0,0,0,14" Visibility="{Binding HesapDovizli, Converter={StaticResource BoolVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource Alan}"><Run Text="DÖVİZ TUTARI ("/><Run Text="{Binding HesapParaSimgesi, Mode=OneWay}"/><Run Text=")"/></TextBlock>
+                                <TextBox Text="{Binding DovizTutar, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"
+                                         Style="{StaticResource Girdi}" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource Alan}"><Run Text="KUR (1 "/><Run Text="{Binding HesapParaSimgesi, Mode=OneWay}"/><Run Text=" = ? ₺)"/></TextBlock>
+                                <TextBox Text="{Binding Kur, UpdateSourceTrigger=LostFocus, Converter={StaticResource ParaTutariDonusturucu}, ConverterParameter=N4}"
+                                         Style="{StaticResource Girdi}"/>
+                            </StackPanel>
+                        </Grid>
+
                         <!-- TUTAR + BELGE -->
                         <Grid Margin="0,0,0,14">
                             <Grid.ColumnDefinitions>
@@ -453,7 +473,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="TUTAR (₺)" Style="{StaticResource Alan}"/>
-                                <TextBox Text="{Binding Tutar, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox Text="{Binding Tutar, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding HesapDovizli}"
                                          Style="{StaticResource Girdi}"
                                          FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
                             </StackPanel>

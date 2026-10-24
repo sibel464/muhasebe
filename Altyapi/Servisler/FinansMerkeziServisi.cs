@@ -30,8 +30,13 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
         var kasalar = await GetKasalarAsync(sirketId, cancellationToken);
         var bankalar = await GetBankaHesaplariAsync(sirketId, cancellationToken);
 
-        var toplamKasa = kasalar.Sum(x => x.MevcutBakiye);
-        var toplamBanka = bankalar.Sum(x => x.Bakiye);
+        // Listeler dövizli hesabı kendi para biriminde gösterir; toplamlar TL (defter) tutarlarından.
+        var toplamKasa = await _baglam.KasaHareketleri.AsNoTracking()
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.Kasa != null)
+            .SumAsync(x => (decimal?)(x.Tur == HareketTuru.Gelir ? x.Tutar : -x.Tutar), cancellationToken) ?? 0m;
+        var toplamBanka = await _baglam.BankaHareketleri.AsNoTracking()
+            .Where(x => x.SirketId == sirketId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi && x.BankaHesabi != null)
+            .SumAsync(x => (decimal?)(x.Tur == HareketTuru.Gelir ? x.Tutar : -x.Tutar), cancellationToken) ?? 0m;
 
         // Bugünkü Tahsilat ve Ödeme (Kasa + Banka)
         var bugunkiKasaGelir = await _baglam.KasaHareketleri
@@ -126,16 +131,19 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
         var hareketler = await _baglam.KasaHareketleri
             .AsNoTracking()
             .Where(x => x.SirketId == sirketId && x.KasaId.HasValue && kasaIds.Contains(x.KasaId.Value) && x.IslemDurumu == FinansIslemDurumu.Tamamlandi)
-            .Select(h => new { h.KasaId, h.Tur, h.Tutar, h.Tarih })
+            .Select(h => new { h.KasaId, h.Tur, h.Tutar, h.DovizTutar, h.Tarih })
             .ToListAsync(cancellationToken);
 
         var liste = new List<KasaOzetDto>();
         foreach (var k in kasalar)
         {
             var kHareketler = hareketler.Where(h => h.KasaId == k.Id).ToList();
-            var bakiye = kHareketler.Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar);
-            var bugunkiGiris = kHareketler.Where(h => h.Tur == HareketTuru.Gelir && h.Tarih >= bugun && h.Tarih < yarinki).Sum(h => h.Tutar);
-            var bugunkiCikis = kHareketler.Where(h => h.Tur == HareketTuru.Gider && h.Tarih >= bugun && h.Tarih < yarinki).Sum(h => h.Tutar);
+            // Dövizli kasa kendi para biriminde.
+            var dovizli = FinansKurallari.DovizliMi(k.ParaBirimi);
+            decimal Tutar(decimal tl, decimal doviz) => dovizli ? doviz : tl;
+            var bakiye = kHareketler.Sum(h => h.Tur == HareketTuru.Gelir ? Tutar(h.Tutar, h.DovizTutar) : -Tutar(h.Tutar, h.DovizTutar));
+            var bugunkiGiris = kHareketler.Where(h => h.Tur == HareketTuru.Gelir && h.Tarih >= bugun && h.Tarih < yarinki).Sum(h => Tutar(h.Tutar, h.DovizTutar));
+            var bugunkiCikis = kHareketler.Where(h => h.Tur == HareketTuru.Gider && h.Tarih >= bugun && h.Tarih < yarinki).Sum(h => Tutar(h.Tutar, h.DovizTutar));
             var sonIslem = kHareketler.OrderByDescending(h => h.Tarih).Select(h => (DateTime?)h.Tarih).FirstOrDefault();
 
             liste.Add(new KasaOzetDto(
@@ -170,14 +178,16 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
         var hareketler = await _baglam.BankaHareketleri
             .AsNoTracking()
             .Where(x => x.SirketId == sirketId && x.BankaHesabiId.HasValue && hesapIds.Contains(x.BankaHesabiId.Value) && x.IslemDurumu == FinansIslemDurumu.Tamamlandi)
-            .Select(h => new { h.BankaHesabiId, h.Tur, h.Tutar, h.Tarih })
+            .Select(h => new { h.BankaHesabiId, h.Tur, h.Tutar, h.DovizTutar, h.Tarih })
             .ToListAsync(cancellationToken);
 
         var liste = new List<BankaHesapOzetDto>();
         foreach (var h in hesaplar)
         {
             var hHareketler = hareketler.Where(x => x.BankaHesabiId == h.Id).ToList();
-            var bakiye = hHareketler.Sum(x => x.Tur == HareketTuru.Gelir ? x.Tutar : -x.Tutar);
+            // Dövizli hesap kendi para biriminde.
+            var dovizli = FinansKurallari.DovizliMi(h.ParaBirimi);
+            var bakiye = hHareketler.Sum(x => (x.Tur == HareketTuru.Gelir ? 1 : -1) * (dovizli ? x.DovizTutar : x.Tutar));
             var sonIslem = hHareketler.OrderByDescending(x => x.Tarih).Select(x => (DateTime?)x.Tarih).FirstOrDefault();
 
             liste.Add(new BankaHesapOzetDto(

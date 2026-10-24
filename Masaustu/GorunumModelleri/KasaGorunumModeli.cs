@@ -63,6 +63,8 @@ public class KasaGorunumModeli : TemelGorunumModeli
     private string _yeniKasaKodu = string.Empty;
     private string _yeniKasaAd = string.Empty;
     private string _yeniKasaMuhasebeKodu = "100.01.001";
+    private string _yeniKasaParaBirimi = DovizKuruYardimcisi.Tl;
+    private decimal _yeniKur;
 
     private string _hataMesaji = string.Empty;
     private string _basariMesaji = string.Empty;
@@ -80,7 +82,9 @@ public class KasaGorunumModeli : TemelGorunumModeli
         {
             if (OzellikAyarla(ref _seciliKasa, value))
             {
+                ParaBirimiBildir();
                 _ = VerileriYukleAsync();
+                _ = KurOnerAsync();
             }
         }
     }
@@ -180,10 +184,34 @@ public class KasaGorunumModeli : TemelGorunumModeli
 
     public Array FisTurleri => Enum.GetValues(typeof(KasaFisTuru));
 
+    // Dövizli kasada tutarlar kasanın para biriminde girilir ve gösterilir; TL karşılığı kurla hesaplanır.
     public decimal YeniTutar
     {
         get => _yeniTutar;
-        set => OzellikAyarla(ref _yeniTutar, value);
+        set { if (OzellikAyarla(ref _yeniTutar, value)) BildirimGonder(nameof(YeniTlKarsiligi)); }
+    }
+
+    public bool SeciliKasaDovizli => DovizKuruYardimcisi.DovizliMi(SeciliKasa?.ParaBirimi);
+    public string ParaSimgesi => DovizKuruYardimcisi.Simge(SeciliKasa?.ParaBirimi);
+    public decimal YeniKur
+    {
+        get => _yeniKur;
+        set { if (OzellikAyarla(ref _yeniKur, value)) BildirimGonder(nameof(YeniTlKarsiligi)); }
+    }
+    public decimal YeniTlKarsiligi => Math.Round(YeniTutar * YeniKur, 2, MidpointRounding.AwayFromZero);
+    public IReadOnlyList<string> ParaBirimleri => DovizKuruYardimcisi.ParaBirimleri;
+    public string YeniKasaParaBirimi { get => _yeniKasaParaBirimi; set => OzellikAyarla(ref _yeniKasaParaBirimi, value); }
+
+    private void ParaBirimiBildir()
+    {
+        BildirimGonder(nameof(SeciliKasaDovizli));
+        BildirimGonder(nameof(ParaSimgesi));
+    }
+
+    private async Task KurOnerAsync()
+    {
+        if (SeciliKasa is { } kasa && SeciliKasaDovizli)
+            YeniKur = await DovizKuruYardimcisi.GunlukKurAsync(kasa.ParaBirimi, YeniTarih);
     }
 
     public string YeniAciklama
@@ -325,6 +353,8 @@ public class KasaGorunumModeli : TemelGorunumModeli
             Kasalar = new ObservableCollection<Kasa>(kList);
             _seciliKasa = Kasalar.FirstOrDefault();
             BildirimGonder(nameof(SeciliKasa));
+            ParaBirimiBildir();
+            _ = KurOnerAsync();
 
             if (_cariServisi != null)
             {
@@ -377,7 +407,9 @@ public class KasaGorunumModeli : TemelGorunumModeli
         if (SeciliKasa != null)
         {
             liste = await _kasaServisi.KasaHareketleriGetirAsync(SeciliKasa.Id);
-            ToplamBakiye = await _kasaServisi.KasaBakiyeHesaplaAsync(SeciliKasa.Id);
+            ToplamBakiye = SeciliKasaDovizli
+                ? await _kasaServisi.KasaDovizBakiyeHesaplaAsync(SeciliKasa.Id)
+                : await _kasaServisi.KasaBakiyeHesaplaAsync(SeciliKasa.Id);
         }
         else
         {
@@ -392,11 +424,14 @@ public class KasaGorunumModeli : TemelGorunumModeli
         GuncelleSayimToplam();
 
         var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar);
-        BuAyGider = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar);
+        BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(HesapTutari);
+        BuAyGider = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(HesapTutari);
 
         DurumMesaji = $"{liste.Count} kasa hareketi listeleniyor.";
     }
+
+    // Dövizli kasa seçiliyse ekstre ve özetler kasanın para birimindedir.
+    private decimal HesapTutari(KasaHareketi h) => SeciliKasaDovizli ? h.DovizTutar : h.Tutar;
 
     // Bakiye yalnız tamamlanmış hareketlerden yürür (iptal edilen ile ters kaydı birbirini götürür, gösterilmez).
     // Arama yalnız gösterilen satırları süzer; devir ve yürüyen bakiye tüm hareketlerden hesaplanır.
@@ -408,7 +443,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
             return;
         }
         _ekstre = HesapEkstresi.Olustur(_tumHareketler.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi),
-            h => h.Tarih, h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar, h => h.Id, BaslangicTarihi, BitisTarihi);
+            h => h.Tarih, h => h.Tur == HareketTuru.Gelir ? HesapTutari(h) : -HesapTutari(h), h => h.Id, BaslangicTarihi, BitisTarihi);
         var arama = AramaMetni.Trim();
         var satirlar = string.IsNullOrWhiteSpace(arama)
             ? _ekstre.Satirlar
@@ -433,6 +468,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
         if (string.IsNullOrWhiteSpace(YeniAciklama)) { HataMesaji = "Açıklama boş bırakılamaz."; return; }
 
         if (SeciliKasa == null) { HataMesaji = "İşlem yapılacak kasayı seçiniz."; return; }
+        if (SeciliKasaDovizli && YeniKur <= 0) { HataMesaji = $"{ParaSimgesi} kurunu giriniz."; return; }
         if (SeciliFisTuru is KasaFisTuru.Tahsilat or KasaFisTuru.Odeme && SeciliCariKart == null)
         {
             HataMesaji = "Cari tahsilat / ödeme için cari kart seçiniz.";
@@ -440,18 +476,21 @@ public class KasaGorunumModeli : TemelGorunumModeli
         }
 
         var kasaId = SeciliKasa.Id;
+        // Dövizli kasada servis TL tutarı döviz × kurdan hesaplar.
+        var (tutar, dovizTutar, kur) = SeciliKasaDovizli ? (0m, YeniTutar, YeniKur) : (YeniTutar, 0m, 0m);
+        var tutarMetni = SeciliKasaDovizli ? $"{YeniTutar:N2} {ParaSimgesi} ({YeniTlKarsiligi:N2} ₺)" : $"{YeniTutar:N2} ₺";
 
         try
         {
             if (SeciliFisTuru == KasaFisTuru.Tahsilat && SeciliCariKart != null)
             {
-                await _kasaServisi.TahsilatEkleAsync(kasaId, SeciliCariKart.Id, YeniTutar, YeniAciklama, YeniMakbuzNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Tahsilat kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+                await _kasaServisi.TahsilatEkleAsync(kasaId, SeciliCariKart.Id, tutar, YeniAciklama, YeniMakbuzNo, YeniTarih, dovizTutar, kur);
+                BasariMesaji = $"✅ Cari Tahsilat kaydedildi: {tutarMetni} ({SeciliCariKart.Unvan})";
             }
             else if (SeciliFisTuru == KasaFisTuru.Odeme && SeciliCariKart != null)
             {
-                await _kasaServisi.OdemeEkleAsync(kasaId, SeciliCariKart.Id, YeniTutar, YeniAciklama, YeniMakbuzNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Ödeme kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan})";
+                await _kasaServisi.OdemeEkleAsync(kasaId, SeciliCariKart.Id, tutar, YeniAciklama, YeniMakbuzNo, YeniTarih, dovizTutar, kur);
+                BasariMesaji = $"✅ Cari Ödeme kaydedildi: {tutarMetni} ({SeciliCariKart.Unvan})";
             }
             else
             {
@@ -465,14 +504,16 @@ public class KasaGorunumModeli : TemelGorunumModeli
                     Tarih = YeniTarih,
                     Tur = tur,
                     FisTuru = SeciliFisTuru,
-                    Tutar = YeniTutar,
+                    Tutar = tutar,
+                    DovizTutar = dovizTutar,
+                    Kur = kur,
                     Aciklama = YeniAciklama,
                     MakbuzNo = YeniMakbuzNo,
                     MasrafKodu = YeniMasrafKodu
                 };
 
                 await _kasaServisi.EkleAsync(hareket);
-                BasariMesaji = $"✅ {SeciliFisTuru} fişi kaydedildi: {YeniTutar:N2} ₺";
+                BasariMesaji = $"✅ {SeciliFisTuru} fişi kaydedildi: {tutarMetni}";
             }
 
             YeniTutar = 0;
@@ -498,7 +539,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
         try
         {
             await _kasaServisi.KasaVirmanYapAsync(SeciliKasa.Id, SeciliTargetKasa.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
-            BasariMesaji = $"✅ Virman tamamlandı: {VirmanTutari:N2} ₺ ({SeciliKasa.Ad} -> {SeciliTargetKasa.Ad})";
+            BasariMesaji = $"✅ Virman tamamlandı: {VirmanTutari:N2} {ParaSimgesi} ({SeciliKasa.Ad} -> {SeciliTargetKasa.Ad})";
             VirmanTutari = 0;
             VirmanAciklama = string.Empty;
 
@@ -521,7 +562,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
         try
         {
             await _kasaServisi.BankayaParaYatirAsync(SeciliKasa.Id, SeciliTargetBankaHesabi.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
-            BasariMesaji = $"✅ Bankaya yatırma kaydedildi: {VirmanTutari:N2} ₺ ({SeciliTargetBankaHesabi.Ad})";
+            BasariMesaji = $"✅ Bankaya yatırma kaydedildi: {VirmanTutari:N2} {ParaSimgesi} ({SeciliTargetBankaHesabi.Ad})";
             VirmanTutari = 0;
             VirmanAciklama = string.Empty;
 
@@ -584,7 +625,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
                 Kod = string.IsNullOrWhiteSpace(YeniKasaKodu) ? $"KSA-0{Kasalar.Count + 1}" : YeniKasaKodu.Trim(),
                 Ad = YeniKasaAd.Trim(),
                 MuhasebeKodu = string.IsNullOrWhiteSpace(YeniKasaMuhasebeKodu) ? "100.01.001" : YeniKasaMuhasebeKodu.Trim(),
-                ParaBirimi = "TRY",
+                ParaBirimi = string.IsNullOrWhiteSpace(YeniKasaParaBirimi) ? DovizKuruYardimcisi.Tl : YeniKasaParaBirimi,
                 AktifMi = true
             };
 
@@ -593,6 +634,7 @@ public class KasaGorunumModeli : TemelGorunumModeli
 
             YeniKasaKodu = string.Empty;
             YeniKasaAd = string.Empty;
+            YeniKasaParaBirimi = DovizKuruYardimcisi.Tl;
 
             var list = await _kasaServisi.KasalariGetirAsync();
             Kasalar = new ObservableCollection<Kasa>(list);
@@ -604,10 +646,13 @@ public class KasaGorunumModeli : TemelGorunumModeli
         }
     }
 
+    private static string HareketTutarMetni(KasaHareketi h) =>
+        DovizKuruYardimcisi.DovizliMi(h.Kasa?.ParaBirimi) ? $"{h.DovizTutar:N2} {h.Kasa!.ParaBirimi}" : $"{h.Tutar:N2} ₺";
+
     private async Task SilAsync(KasaHareketi hareket)
     {
         var onay = System.Windows.MessageBox.Show(
-            $"{hareket.Aciklama} — {hareket.Tutar:N2} ₺ kaydını silmek istiyor musunuz?",
+            $"{hareket.Aciklama} — {HareketTutarMetni(hareket)} kaydını silmek istiyor musunuz?",
             "Silme Onayı",
             System.Windows.MessageBoxButton.YesNo,
             System.Windows.MessageBoxImage.Warning);

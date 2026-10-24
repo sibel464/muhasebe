@@ -84,7 +84,9 @@ public class BankaGorunumModeli : TemelGorunumModeli
                     YeniBankaAdi = value.Ad;
                     YeniHesapNo = value.Iban;
                 }
+                ParaBirimiBildir();
                 _ = VerileriYukleAsync();
+                _ = KurOnerAsync();
             }
         }
     }
@@ -202,10 +204,33 @@ public class BankaGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _yeniHesapNo, value?.Trim() ?? string.Empty);
     }
 
+    // Dövizli hesapta tutarlar hesabın para biriminde girilir ve gösterilir; TL karşılığı kurla hesaplanır.
     public decimal YeniTutar
     {
         get => _yeniTutar;
-        set => OzellikAyarla(ref _yeniTutar, value);
+        set { if (OzellikAyarla(ref _yeniTutar, value)) BildirimGonder(nameof(YeniTlKarsiligi)); }
+    }
+
+    private decimal _yeniKur;
+    public bool SeciliHesapDovizli => DovizKuruYardimcisi.DovizliMi(SeciliBankaHesabi?.ParaBirimi);
+    public string ParaSimgesi => DovizKuruYardimcisi.Simge(SeciliBankaHesabi?.ParaBirimi);
+    public decimal YeniKur
+    {
+        get => _yeniKur;
+        set { if (OzellikAyarla(ref _yeniKur, value)) BildirimGonder(nameof(YeniTlKarsiligi)); }
+    }
+    public decimal YeniTlKarsiligi => Math.Round(YeniTutar * YeniKur, 2, MidpointRounding.AwayFromZero);
+
+    private void ParaBirimiBildir()
+    {
+        BildirimGonder(nameof(SeciliHesapDovizli));
+        BildirimGonder(nameof(ParaSimgesi));
+    }
+
+    private async Task KurOnerAsync()
+    {
+        if (SeciliBankaHesabi is { } hesap && SeciliHesapDovizli)
+            YeniKur = await DovizKuruYardimcisi.GunlukKurAsync(hesap.ParaBirimi, YeniTarih);
     }
 
     public string YeniDekontNo
@@ -248,9 +273,30 @@ public class BankaGorunumModeli : TemelGorunumModeli
     // Banka Hesabı Ekle Özellikleri
     public string YeniKod { get => _yeniKod; set => OzellikAyarla(ref _yeniKod, value); }
     public string YeniAd { get => _yeniAd; set => OzellikAyarla(ref _yeniAd, value); }
-    public BankaHesapTuru YeniHesapTuru { get => _yeniHesapTuru; set => OzellikAyarla(ref _yeniHesapTuru, value); }
-    // Dövizli vadesiz hesap henüz desteklenmiyor (bkz. FinansKurallari.YalnizTlHesapAcilabilir).
-    public BankaHesapTuru[] HesapTurleri => Enum.GetValues<BankaHesapTuru>().Where(t => t != BankaHesapTuru.VadesizDoviz).ToArray();
+    // Döviz yalnız "Vadesiz Döviz" hesabında tutulur; tür ile para birimi birbirine göre ayarlanır.
+    public BankaHesapTuru YeniHesapTuru
+    {
+        get => _yeniHesapTuru;
+        set
+        {
+            if (!OzellikAyarla(ref _yeniHesapTuru, value)) return;
+            if (value == BankaHesapTuru.VadesizDoviz && !DovizKuruYardimcisi.DovizliMi(YeniParaBirimi)) YeniParaBirimi = "USD";
+            else if (value != BankaHesapTuru.VadesizDoviz && DovizKuruYardimcisi.DovizliMi(YeniParaBirimi)) YeniParaBirimi = DovizKuruYardimcisi.Tl;
+        }
+    }
+    public BankaHesapTuru[] HesapTurleri => Enum.GetValues<BankaHesapTuru>();
+    private string _yeniParaBirimi = DovizKuruYardimcisi.Tl;
+    public string YeniParaBirimi
+    {
+        get => _yeniParaBirimi;
+        set
+        {
+            if (!OzellikAyarla(ref _yeniParaBirimi, value)) return;
+            if (DovizKuruYardimcisi.DovizliMi(value)) YeniHesapTuru = BankaHesapTuru.VadesizDoviz;
+            else if (YeniHesapTuru == BankaHesapTuru.VadesizDoviz) YeniHesapTuru = BankaHesapTuru.VadesizTL;
+        }
+    }
+    public IReadOnlyList<string> ParaBirimleri => DovizKuruYardimcisi.ParaBirimleri;
     public string YeniSube { get => _yeniSube; set => OzellikAyarla(ref _yeniSube, value); }
     public string YeniIban { get => _yeniIban; set => OzellikAyarla(ref _yeniIban, value); }
     public decimal YeniPosKomisyonOrani { get => _yeniPosKomisyonOrani; set => OzellikAyarla(ref _yeniPosKomisyonOrani, value); }
@@ -347,6 +393,8 @@ public class BankaGorunumModeli : TemelGorunumModeli
             BankaHesaplari = new ObservableCollection<BankaHesabi>(bList);
             _seciliBankaHesabi = BankaHesaplari.FirstOrDefault();
             BildirimGonder(nameof(SeciliBankaHesabi));
+            ParaBirimiBildir();
+            _ = KurOnerAsync();
 
             if (_seciliBankaHesabi != null)
             {
@@ -405,7 +453,9 @@ public class BankaGorunumModeli : TemelGorunumModeli
         if (SeciliBankaHesabi != null)
         {
             liste = await _bankaServisi.HesapHareketleriGetirAsync(SeciliBankaHesabi.Id);
-            ToplamBakiye = await _bankaServisi.HesapBakiyeHesaplaAsync(SeciliBankaHesabi.Id);
+            ToplamBakiye = SeciliHesapDovizli
+                ? await _bankaServisi.HesapDovizBakiyeHesaplaAsync(SeciliBankaHesabi.Id)
+                : await _bankaServisi.HesapBakiyeHesaplaAsync(SeciliBankaHesabi.Id);
         }
         else
         {
@@ -420,11 +470,14 @@ public class BankaGorunumModeli : TemelGorunumModeli
         ToplamBlokeBakiye = BankaHesaplari.Where(b => b.HesapTuru == BankaHesapTuru.POSHesabi).Sum(b => b.BlokeBakiye);
 
         var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(h => h.Tutar);
-        BuAyGider = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(h => h.Tutar);
+        BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(HesapTutari);
+        BuAyGider = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gider).Sum(HesapTutari);
 
         DurumMesaji = $"{liste.Count} banka hareketi listeleniyor.";
     }
+
+    // Dövizli hesap seçiliyse ekstre ve özetler hesabın para birimindedir.
+    private decimal HesapTutari(BankaHareketi h) => SeciliHesapDovizli ? h.DovizTutar : h.Tutar;
 
     // Bakiye yalnız tamamlanmış hareketlerden yürür (iptal edilen ile ters kaydı birbirini götürür, gösterilmez).
     // Arama yalnız gösterilen satırları süzer; devir ve yürüyen bakiye tüm hareketlerden hesaplanır.
@@ -436,7 +489,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
             return;
         }
         _ekstre = HesapEkstresi.Olustur(_tumHareketler.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi),
-            h => h.Tarih, h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar, h => h.Id, BaslangicTarihi, BitisTarihi);
+            h => h.Tarih, h => h.Tur == HareketTuru.Gelir ? HesapTutari(h) : -HesapTutari(h), h => h.Id, BaslangicTarihi, BitisTarihi);
         var arama = AramaMetni.Trim();
         var satirlar = string.IsNullOrWhiteSpace(arama)
             ? _ekstre.Satirlar
@@ -462,6 +515,10 @@ public class BankaGorunumModeli : TemelGorunumModeli
         if (string.IsNullOrWhiteSpace(YeniAciklama)) { HataMesaji = "Açıklama giriniz."; return; }
 
         if (SeciliBankaHesabi == null) { HataMesaji = "İşlem yapılacak banka hesabını seçiniz."; return; }
+        if (SeciliHesapDovizli && YeniKur <= 0) { HataMesaji = $"{ParaSimgesi} kurunu giriniz."; return; }
+        // Dövizli hesapta servis TL tutarı döviz × kurdan hesaplar.
+        var (tutar, dovizTutar, kur) = SeciliHesapDovizli ? (0m, YeniTutar, YeniKur) : (YeniTutar, 0m, 0m);
+        var tutarMetni = SeciliHesapDovizli ? $"{YeniTutar:N2} {ParaSimgesi} ({YeniTlKarsiligi:N2} ₺)" : $"{YeniTutar:N2} ₺";
 
         try
         {
@@ -470,13 +527,13 @@ public class BankaGorunumModeli : TemelGorunumModeli
 
             if (SeciliFisTuru == BankaFisTuru.GelenHavale)
             {
-                await _bankaServisi.HesabaTahsilatEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Gelen Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliCariKart.Unvan} → {SeciliBankaHesabi.Ad})";
+                await _bankaServisi.HesabaTahsilatEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, tutar, YeniAciklama, YeniDekontNo, YeniTarih, dovizTutar, kur);
+                BasariMesaji = $"✅ Cari Gelen Havale kaydedildi: {tutarMetni} ({SeciliCariKart.Unvan} → {SeciliBankaHesabi.Ad})";
             }
             else if (SeciliFisTuru == BankaFisTuru.GidenHavale)
             {
-                await _bankaServisi.HesaptanOdemeEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, YeniTutar, YeniAciklama, YeniDekontNo, YeniTarih);
-                BasariMesaji = $"✅ Cari Giden Havale kaydedildi: {YeniTutar:N2} ₺ ({SeciliBankaHesabi.Ad} → {SeciliCariKart.Unvan})";
+                await _bankaServisi.HesaptanOdemeEkleAsync(SeciliBankaHesabi.Id, SeciliCariKart!.Id, tutar, YeniAciklama, YeniDekontNo, YeniTarih, dovizTutar, kur);
+                BasariMesaji = $"✅ Cari Giden Havale kaydedildi: {tutarMetni} ({SeciliBankaHesabi.Ad} → {SeciliCariKart.Unvan})";
             }
             else
             {
@@ -485,13 +542,15 @@ public class BankaGorunumModeli : TemelGorunumModeli
                     BankaHesabiId = SeciliBankaHesabi.Id,
                     Tarih = YeniTarih,
                     FisTuru = SeciliFisTuru,
-                    Tutar = YeniTutar,
+                    Tutar = tutar,
+                    DovizTutar = dovizTutar,
+                    Kur = kur,
                     Aciklama = YeniAciklama,
                     DekontNo = YeniDekontNo
                 };
 
                 await _bankaServisi.EkleAsync(hareket);
-                BasariMesaji = $"✅ {SeciliFisTuru} fişi kaydedildi: {YeniTutar:N2} ₺";
+                BasariMesaji = $"✅ {SeciliFisTuru} fişi kaydedildi: {tutarMetni}";
             }
 
             YeniTutar = 0;
@@ -517,7 +576,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
         try
         {
             await _bankaServisi.BankaVirmanYapAsync(SeciliBankaHesabi.Id, SeciliTargetBankaHesabi.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
-            BasariMesaji = $"✅ Bankalar arası virman kaydedildi: {VirmanTutari:N2} ₺ ({SeciliBankaHesabi.Ad} -> {SeciliTargetBankaHesabi.Ad})";
+            BasariMesaji = $"✅ Bankalar arası virman kaydedildi: {VirmanTutari:N2} {ParaSimgesi} ({SeciliBankaHesabi.Ad} -> {SeciliTargetBankaHesabi.Ad})";
             VirmanTutari = 0;
             VirmanAciklama = string.Empty;
 
@@ -540,7 +599,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
         try
         {
             await _bankaServisi.BankadanKasaCekAsync(SeciliBankaHesabi.Id, SeciliTargetKasa.Id, VirmanTutari, VirmanAciklama, DateTime.Today);
-            BasariMesaji = $"✅ Bankadan kasaya para çekme kaydedildi: {VirmanTutari:N2} ₺ ({SeciliTargetKasa.Ad})";
+            BasariMesaji = $"✅ Bankadan kasaya para çekme kaydedildi: {VirmanTutari:N2} {ParaSimgesi} ({SeciliTargetKasa.Ad})";
             VirmanTutari = 0;
             VirmanAciklama = string.Empty;
 
@@ -606,7 +665,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
                 PosKomisyonOrani = YeniPosKomisyonOrani,
                 ValorGunu = YeniValorGunu,
                 MuhasebeKodu = string.IsNullOrWhiteSpace(YeniMuhasebeKodu) ? "102.01.001" : YeniMuhasebeKodu.Trim(),
-                ParaBirimi = "TRY",
+                ParaBirimi = string.IsNullOrWhiteSpace(YeniParaBirimi) ? DovizKuruYardimcisi.Tl : YeniParaBirimi,
                 AktifMi = true
             };
 
@@ -630,7 +689,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
     private async Task SilAsync(BankaHareketi hareket)
     {
         var onay = System.Windows.MessageBox.Show(
-            $"{hareket.BankaAdi} — {hareket.Aciklama} ({hareket.Tutar:N2} ₺) kaydını silmek istiyor musunuz?",
+            $"{hareket.BankaAdi} — {hareket.Aciklama} ({(DovizKuruYardimcisi.DovizliMi(hareket.BankaHesabi?.ParaBirimi) ? $"{hareket.DovizTutar:N2} {hareket.BankaHesabi!.ParaBirimi}" : $"{hareket.Tutar:N2} ₺")}) kaydını silmek istiyor musunuz?",
             "Silme Onayı",
             System.Windows.MessageBoxButton.YesNo,
             System.Windows.MessageBoxImage.Warning);

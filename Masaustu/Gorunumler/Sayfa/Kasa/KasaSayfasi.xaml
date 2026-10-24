@@ -76,7 +76,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="KASA BAKİYESİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock Text="{Binding ToplamBakiye, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding ToplamBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="💵" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -88,7 +88,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="BU AYKİ NAKİT GİRİŞİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock Text="{Binding BuAyGelir, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding BuAyGelir, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource SuccessLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="📈" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -100,7 +100,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Text="BU AYKİ NAKİT ÇIKIŞI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                            <TextBlock Text="{Binding BuAyGider, StringFormat={}{0:N2} ₺}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"/>
+                            <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"><Run Text="{Binding BuAyGider, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                         </StackPanel>
                         <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource DangerLightFirca}" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="📉" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -144,9 +144,19 @@
                                           IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Unvan"/>
 
                                 <!-- Tutar -->
-                                <TextBlock Text="Tutar (₺) *" Style="{StaticResource EtiketMetin}"/>
+                                <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Tutar ("/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/><Run Text=") *"/></TextBlock>
                                 <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"
                                          Text="{Binding YeniTutar, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}, ValidatesOnExceptions=True}"/>
+
+                                <!-- Dövizli kasa: kur ve TL karşılığı (defter TL tutarla işlenir) -->
+                                <StackPanel Visibility="{Binding SeciliKasaDovizli, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                                    <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Kur (1 "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/><Run Text=" = ? ₺) *"/></TextBlock>
+                                    <TextBox Style="{StaticResource FormGirisKutusu}"
+                                             Text="{Binding YeniKur, UpdateSourceTrigger=LostFocus, Converter={StaticResource ParaTutariDonusturucu}, ConverterParameter=N4, ValidatesOnExceptions=True}"/>
+                                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,4,0,0">
+                                        <Run Text="TL karşılığı:"/> <Run Text="{Binding YeniTlKarsiligi, Mode=OneWay, StringFormat={}{0:N2} ₺}" FontWeight="SemiBold"/>
+                                    </TextBlock>
+                                </StackPanel>
 
                                 <!-- Makbuz No / Belge No -->
                                 <TextBlock Text="Makbuz / Belge No" Style="{StaticResource EtiketMetin}"/>
@@ -209,19 +219,19 @@
                                 <UniformGrid Columns="4">
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="DEVREDEN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock Text="{Binding DevirBakiye, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold"/>
+                                        <TextBlock FontSize="15" FontWeight="Bold"><Run Text="{Binding DevirBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="GİRİŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock Text="{Binding DonemGiris, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"/>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"><Run Text="{Binding DonemGiris, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,0">
                                         <TextBlock Text="ÇIKIŞ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock Text="{Binding DonemCikis, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"/>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"><Run Text="{Binding DonemCikis, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
                                     <StackPanel>
                                         <TextBlock Text="DÖNEM SONU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                        <TextBlock Text="{Binding DonemSonuBakiye, StringFormat={}{0:N2} ₺}" FontSize="15" FontWeight="Bold"/>
+                                        <TextBlock FontSize="15" FontWeight="Bold"><Run Text="{Binding DonemSonuBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/></TextBlock>
                                     </StackPanel>
                                 </UniformGrid>
                             </StackPanel>
@@ -253,7 +263,7 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="105">
+                                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2}}" Width="105">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -297,7 +307,7 @@
                             <ComboBox ItemsSource="{Binding Kasalar}" SelectedItem="{Binding SeciliTargetKasa}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
                                       IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
 
-                            <TextBlock Text="Virman Tutari (₺) *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Virman Tutarı ("/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/><Run Text=") *"/></TextBlock>
                             <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding VirmanTutari, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"/>
 
                             <TextBlock Text="Virman Açıklaması *" Style="{StaticResource EtiketMetin}"/>
@@ -323,7 +333,7 @@
                             <ComboBox ItemsSource="{Binding BankaHesaplari}" SelectedItem="{Binding SeciliTargetBankaHesabi}" DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"
                                       IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
 
-                            <TextBlock Text="Yatırılan Tutar (₺) *" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Yatırılan Tutar ("/><Run Text="{Binding ParaSimgesi, Mode=OneWay}"/><Run Text=") *"/></TextBlock>
                             <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding VirmanTutari, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"/>
 
                             <TextBlock Text="Açıklama *" Style="{StaticResource EtiketMetin}"/>
@@ -451,6 +461,9 @@
 
                             <TextBlock Text="Kasa Adı *" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12" Text="{Binding YeniKasaAd, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Text="Para Birimi" Style="{StaticResource EtiketMetin}"/>
+                            <ComboBox Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12" ItemsSource="{Binding ParaBirimleri}" SelectedItem="{Binding YeniKasaParaBirimi}"/>
 
                             <TextBlock Text="Muhasebe Kodu (100.01.xxx)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,16" Text="{Binding YeniKasaMuhasebeKodu, UpdateSourceTrigger=PropertyChanged}"/>

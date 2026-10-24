@@ -251,7 +251,15 @@
   <li>Gelen/giden havale, banka gelir ve masraf fişleri; bankalar arası virman; bankadan kasaya nakit çekme.</li>
   <li><b>POS Bloke &amp; Valör Takibi</b>: kartlı satışlar POS hesabında bloke bekler. Banka parayı geçirdiğinde komisyonu girerek vadesiz hesaba aktarın; bekleyen kartlı satışlar en eskiden başlanarak kapatılır, komisyon gider olarak işlenir.</li>
 </ul>
-<div class="not">Kasa ve banka hesapları şu an yalnız Türk Lirası olarak açılabilir. Dövizli cari ve faturalar kurla girilebilir; bkz. <a href="#doviz">Döviz</a>.</div>
+<h3 id="dovizli-hesap">Dövizli kasa ve banka hesabı</h3>
+<ul>
+  <li>Kasa açarken <b>Para Birimi</b> olarak USD, EUR veya GBP seçebilirsiniz. Dövizli banka hesabı için hesap türü <b>Vadesiz Döviz</b> olmalıdır (para birimini seçince tür kendiliğinden ayarlanır).</li>
+  <li>Dövizli hesapta tutarı <b>hesabın para biriminde</b> yazarsınız (ör. 500 USD). Altta çıkan <b>Kur</b> kutusuna günün kuru kendiliğinden gelir (TCMB kuru alınmışsa); gerekirse değiştirin. Program TL karşılığını gösterir ve muhasebeye TL olarak işler.</li>
+  <li>Tahsilat/Ödeme ekranında dövizli kasa ya da banka hesabı seçerseniz <b>Döviz Tutarı</b> ve <b>Kur</b> alanları açılır; cari hesaba TL karşılığı işlenir.</li>
+  <li>Bakiye, ekstre ve yeterlilik kontrolü dövizli hesapta kendi para birimindedir. Aynı para birimindeki hesaplar arasında virman ve kasadan bankaya para yatırma yapılabilir; farklı para birimleri arasında yapılamaz.</li>
+  <li>Peşin fatura, POS satışı ve çek/senet tahsili dövizli hesaba yazılamaz; bunlar için TL hesap seçin.</li>
+  <li>Dönem sonunda <a href="#doviz">revalüasyon</a> ile dövizli kasa/banka bakiyeleri güncel kurla değerlenir.</li>
+</ul>
 
 <!-- ============================================================ -->
 <h2 id="muhasebe">10. Muhasebe</h2>
@@ -268,7 +276,7 @@
 <h2 id="doviz">11. Döviz ve kur</h2>
 <ul>
   <li><span class="yol">Döviz &amp; Kur Merkezi</span>'nde <b>TCMB Güncelle</b> ile Merkez Bankası kurları alınır (internet gerekir). İnternet yoksa kuru elle girebilirsiniz; elle girilen kur nedeniyle birlikte kayda geçer.</li>
-  <li><b>Dönem sonu revalüasyon</b>: dövizli cari bakiyeleri seçtiğiniz tarihteki kurla değerlenir; kur farkı muhasebeye (646/656) işlenir. Önce <b>Önizle</b> ile sonucu görün, sonra uygulayın. Yanlış uygulanan revalüasyon geçmiş listesinden iptal edilebilir.</li>
+  <li><b>Dönem sonu revalüasyon</b>: dövizli cari, kasa ve banka bakiyeleri seçtiğiniz tarihteki kurla değerlenir; kur farkı muhasebeye (646/656) işlenir. Önce <b>Önizle</b> ile sonucu görün, sonra uygulayın. Yanlış uygulanan revalüasyon geçmiş listesinden iptal edilebilir.</li>
 </ul>
 
 <!-- ============================================================ -->

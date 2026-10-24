@@ -7,8 +7,9 @@ namespace Masaustu.Yardimcilar;
 /// <summary>TR ve noktalı ondalık para girişlerini decimal'e güvenli biçimde dönüştürür.</summary>
 public sealed class ParaTutariDonusturucu : IValueConverter
 {
+    // ConverterParameter biçim verir (kur için N4); verilmezse N2.
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is decimal tutar ? tutar.ToString("N2", CultureInfo.GetCultureInfo("tr-TR")) : string.Empty;
+        value is decimal tutar ? tutar.ToString(parameter as string ?? "N2", CultureInfo.GetCultureInfo("tr-TR")) : string.Empty;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
