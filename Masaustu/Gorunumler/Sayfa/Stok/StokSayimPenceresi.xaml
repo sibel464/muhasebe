@@ -1,7 +1,7 @@
 <Window x:Class="Masaustu.Gorunumler.Sayfa.Stok.StokSayimPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Stok Sayımı Ve Düzeltme Fişi" Width="900" Height="620"
+        Title="Stok Sayımı Ve Düzeltme Fişi" Width="960" Height="620"
         WindowStartupLocation="CenterOwner" Background="White">
 
     <Window.Resources>

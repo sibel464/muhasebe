@@ -1,7 +1,7 @@
 <Window x:Class="Masaustu.Gorunumler.Sayfa.Stok.StokIslemPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Manuel Stok Giriş / Çıkış Fişi" Width="550" Height="500"
+        Title="Manuel Stok Giriş / Çıkış Fişi" Width="560" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" Background="White" ResizeMode="NoResize">
 
     <Window.Resources>
