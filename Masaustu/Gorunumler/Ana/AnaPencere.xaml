@@ -79,9 +79,6 @@
             <DataTemplate DataType="{x:Type gm:TahsilatOdemeGorunumModeli}">
                 <sayfa:TahsilatOdemeSayfasi/>
             </DataTemplate>
-            <DataTemplate DataType="{x:Type gm:RaporGorunumModeli}">
-                <sayfa:RaporSayfasi/>
-            </DataTemplate>
             <DataTemplate DataType="{x:Type gm:RaporMerkeziGorunumModeli}">
                 <sayfa:RaporSayfasi/>
             </DataTemplate>

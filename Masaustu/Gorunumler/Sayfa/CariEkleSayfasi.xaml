@@ -212,7 +212,7 @@
                                 <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource DangerDarkFirca}"/><Style.Triggers><DataTrigger Binding="{Binding DurumBasarili}" Value="True"><Setter Property="Foreground" Value="#047857"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                                <Button Command="{Binding FormuTemizleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0" ToolTip="Formu temizler">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="✕" Margin="0,0,6,0"/>
                                         <TextBlock Text="Vazgeç"/>
