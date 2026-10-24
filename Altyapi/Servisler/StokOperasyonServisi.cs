@@ -38,7 +38,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
     private async Task DepoUrunKilitleAsync(int urunId, params int[] depoIdleri)
     {
         foreach (var depoId in depoIdleri.Distinct().OrderBy(x => x))
-            await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({depoId}, {urunId})");
+            await DepoKurallari.LokasyonKilitleAsync(_baglam, urunId, depoId);
     }
 
     public async Task<List<StokOperasyonMatrisOzetDto>> GetMatrisOzetAsync(Guid sirketId, string? arama = null, int? depoId = null, bool sadeceKritik = false, CancellationToken cancellationToken = default)

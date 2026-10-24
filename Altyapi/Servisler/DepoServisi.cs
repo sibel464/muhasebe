@@ -242,8 +242,10 @@ public class DepoServisi : IDepoServisi
         await using var transaction = await context.Database.BeginTransactionAsync();
 
         // Aynı depodaki ürünler için eşzamanlı transferlerin aynı stoğu harcamasını önler.
-        foreach (var urunId in transferFisi.Kalemler.Select(k => k.UrunId).OrderBy(id => id))
-            await context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({transferFisi.KaynakDepoId}, {urunId})");
+        // Hedef depo da kilitlenir: aynı anda o depoya giren başka işlemin artışı ezilmesin. Sıra sabit (ürün, depo).
+        foreach (var urunId in transferFisi.Kalemler.Select(k => k.UrunId).Distinct().OrderBy(id => id))
+            foreach (var depoId in new[] { transferFisi.KaynakDepoId, transferFisi.HedefDepoId }.Distinct().OrderBy(id => id))
+                await DepoKurallari.LokasyonKilitleAsync(context, urunId, depoId);
 
         var kaynakDepo = await context.Depolar.FirstOrDefaultAsync(d => d.Id == transferFisi.KaynakDepoId && d.AktifMi)
             ?? throw new InvalidOperationException("Kaynak depo bulunamadı veya pasif.");
@@ -372,7 +374,7 @@ public class DepoServisi : IDepoServisi
 
         await using var context = await _contextFactory.CreateDbContextAsync();
         await using var transaction = await context.Database.BeginTransactionAsync();
-        await context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({depoId}, {urunId})");
+        await DepoKurallari.LokasyonKilitleAsync(context, urunId, depoId);
 
         var depo = await context.Depolar.FirstOrDefaultAsync(d => d.Id == depoId && d.AktifMi)
             ?? throw new InvalidOperationException("Sayım yapılacak depo bulunamadı veya pasif.");

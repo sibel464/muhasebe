@@ -292,9 +292,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                 foreach (var dagilim in kalem.StokDagilimlari)
                 {
                     var depo = await DepoKurallari.AktifDepoGetirAsync(_baglam, dagilim.DepoId);
+                    await DepoKurallari.LokasyonKilitleAsync(_baglam, kalem.UrunId, dagilim.DepoId);
                     var stok = await _baglam.UrunLokasyonStoklari
-                        .FromSqlInterpolated($@"SELECT * FROM ""UrunLokasyonStoklari"" WHERE ""UrunId"" = {kalem.UrunId} AND ""DepoId"" = {dagilim.DepoId} FOR UPDATE")
-                        .SingleOrDefaultAsync();
+                        .SingleOrDefaultAsync(s => s.UrunId == kalem.UrunId && s.DepoId == dagilim.DepoId);
                     if (stok == null)
                     {
                         stok = new UrunLokasyonStogu { UrunId = kalem.UrunId, DepoId = dagilim.DepoId, MevcutMiktar = 0, RezerveMiktar = 0 };
@@ -378,9 +378,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
                 {
                     if (sh.DepoId is int depoId)
                     {
+                        await DepoKurallari.LokasyonKilitleAsync(_baglam, sh.UrunId, depoId);
                         var stok = await _baglam.UrunLokasyonStoklari
-                            .FromSqlInterpolated($@"SELECT * FROM ""UrunLokasyonStoklari"" WHERE ""UrunId"" = {sh.UrunId} AND ""DepoId"" = {depoId} FOR UPDATE")
-                            .SingleAsync();
+                            .SingleAsync(s => s.UrunId == sh.UrunId && s.DepoId == depoId);
                         var geri = sh.HareketTuru == StokHareketTuru.Cikis ? sh.Miktar : -sh.Miktar;
                         if (stok.MevcutMiktar + geri < 0)
                             throw new InvalidOperationException("Alış irsaliyesiyle giren stok kullanıldığı için irsaliye iptal edilemiyor (depoda yeterli stok yok).");
@@ -466,9 +466,9 @@ public class IrsaliyeServisi : IIrsaliyeServisi
 
                 foreach (var dagilim in kalem.StokDagilimlari)
                 {
+                    await DepoKurallari.LokasyonKilitleAsync(_baglam, kalem.UrunId, dagilim.DepoId);
                     var stok = await _baglam.UrunLokasyonStoklari
-                        .FromSqlInterpolated($@"SELECT * FROM ""UrunLokasyonStoklari"" WHERE ""UrunId"" = {kalem.UrunId} AND ""DepoId"" = {dagilim.DepoId} FOR UPDATE")
-                        .SingleOrDefaultAsync();
+                        .SingleOrDefaultAsync(s => s.UrunId == kalem.UrunId && s.DepoId == dagilim.DepoId);
                     // Rezerve stok fatura/irsaliye onayında olduğu gibi kullanılamaz.
                     var kullanilabilir = (stok?.MevcutMiktar ?? 0) - (stok?.RezerveMiktar ?? 0);
                     if (stok == null || kullanilabilir < dagilim.Miktar)

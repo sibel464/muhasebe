@@ -171,6 +171,7 @@ public class FinancialTransactionService : IFinancialTransactionService
                     if (dagilim.Miktar <= 0) continue;
 
                     var depo = await DepoKurallari.AktifDepoGetirAsync(_baglam, dagilim.DepoId);
+                    await DepoKurallari.LokasyonKilitleAsync(_baglam, kalem.UrunId, dagilim.DepoId);
 
                     var lokasyon = await _baglam.UrunLokasyonStoklari
                         .FirstOrDefaultAsync(s => s.UrunId == kalem.UrunId && s.DepoId == dagilim.DepoId);

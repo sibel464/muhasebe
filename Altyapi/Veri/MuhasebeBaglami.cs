@@ -699,6 +699,9 @@ public class MuhasebeBaglami : DbContext
         {
             entity.Property(ls => ls.MevcutMiktar).HasPrecision(18, 4);
             entity.Property(ls => ls.RezerveMiktar).HasPrecision(18, 4);
+            // PostgreSQL'in satır sürümü (xmin): kilitsiz iki işlem aynı depo stoğunu okuyup yazarsa ikincisi sessizce
+            // birincinin değişikliğini ezemez, hata alır. Asıl koruma DepoKurallari.LokasyonKilitleAsync.
+            entity.Property<uint>("xmin").IsRowVersion();
             entity.HasOne(ls => ls.Urun)
                 .WithMany(u => u.LokasyonStoklari)
                 .HasForeignKey(ls => ls.UrunId)
@@ -1076,6 +1079,18 @@ public class MuhasebeBaglami : DbContext
         }
     }
 
+    // Ağ modunda aynı cariye/ürüne eşzamanlı işlem gelince iyimser sürüm kontrolü birini "kayıt değişti" hatasıyla
+    // düşürüyordu. Açık bir işlem içindeysek satırı kilitleyip en güncel bakiyeyi okuruz: işlemler sırayla işlenir,
+    // eksi stok/bakiye kontrolü de güncel değerle yapılır. Kullanıcının kendisi değiştirdiği kayıt yenilenmez.
+    private async Task BakiyeSatiriniKilitleAsync<T>(string tablo, int id, CancellationToken cancellationToken) where T : class
+    {
+        if (Database.CurrentTransaction == null) return;
+        await Database.ExecuteSqlRawAsync($"SELECT 1 FROM \"{tablo}\" WHERE \"Id\" = {{0}} FOR UPDATE", [id], cancellationToken);
+        var izlenen = ChangeTracker.Entries<T>().FirstOrDefault(e => Equals(e.Property("Id").CurrentValue, id));
+        if (izlenen is { State: EntityState.Unchanged })
+            await izlenen.ReloadAsync(cancellationToken);
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await KasaVeBankaBaglantisiniTamamlaAsync(cancellationToken);
@@ -1296,7 +1311,7 @@ public class MuhasebeBaglami : DbContext
         }
 
         // 3. CariKart bakiyelerini delta kadar güncelle
-        foreach (var kvp in cariDeltas)
+        foreach (var kvp in cariDeltas.OrderBy(x => x.Key))
         {
             var cariKartId = kvp.Key;
             var (borcDelta, alacakDelta) = kvp.Value;
@@ -1304,6 +1319,7 @@ public class MuhasebeBaglami : DbContext
             if (borcDelta == 0 && alacakDelta == 0)
                 continue;
 
+            await BakiyeSatiriniKilitleAsync<CariKart>("CariKartlar", cariKartId, cancellationToken);
             var cariKart = await CariKartlar.FirstOrDefaultAsync(c => c.Id == cariKartId, cancellationToken);
             if (cariKart != null)
             {
@@ -1320,7 +1336,7 @@ public class MuhasebeBaglami : DbContext
         }
 
         // 4. Urun stok miktarlarını delta kadar güncelle ve negatif stok kontrollerini gerçekleştir
-        foreach (var kvp in stokDeltas)
+        foreach (var kvp in stokDeltas.OrderBy(x => x.Key))
         {
             var urunId = kvp.Key;
             var delta = kvp.Value;
@@ -1328,6 +1344,7 @@ public class MuhasebeBaglami : DbContext
             if (delta == 0)
                 continue;
 
+            await BakiyeSatiriniKilitleAsync<Urun>("Urunler", urunId, cancellationToken);
             var urun = await Urunler.FirstOrDefaultAsync(u => u.Id == urunId, cancellationToken);
             if (urun != null)
             {
