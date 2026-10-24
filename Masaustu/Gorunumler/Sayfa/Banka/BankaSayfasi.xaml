@@ -394,10 +394,9 @@
                         <StackPanel>
                             <TextBlock Text="Banka POS Cihazı &amp; Valör Bilgileri" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,16"/>
                             
-                            <DataGrid ItemsSource="{Binding BankaHesaplari}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid ItemsSource="{Binding PosHesapOzetleri}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="HESAP ADI" Binding="{Binding Ad}" Width="1.5*"/>
-                                    <DataGridTextColumn Header="HESAP TÜRÜ" Binding="{Binding HesapTuru}" Width="110"/>
+                                    <DataGridTextColumn Header="POS HESABI" Binding="{Binding Ad}" Width="1.5*"/>
                                     <DataGridTextColumn Header="POS KOMİSYON %" Binding="{Binding PosKomisyonOrani, StringFormat={}{0:N2}%}" Width="120"/>
                                     <DataGridTextColumn Header="VALÖR GÜNÜ" Binding="{Binding ValorGunu}" Width="100"/>
                                     <DataGridTextColumn Header="BLOKELİ BAKİYE" Binding="{Binding BlokeBakiye, StringFormat={}{0:N2} ₺}" Width="130" FontWeight="Bold"/>

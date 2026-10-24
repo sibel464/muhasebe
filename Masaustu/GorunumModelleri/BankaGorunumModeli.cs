@@ -153,6 +153,9 @@ public class BankaGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _toplamBakiye, value);
     }
 
+    private IReadOnlyList<PosHesapOzeti> _posHesapOzetleri = [];
+    public IReadOnlyList<PosHesapOzeti> PosHesapOzetleri { get => _posHesapOzetleri; private set => OzellikAyarla(ref _posHesapOzetleri, value); }
+
     public decimal ToplamBlokeBakiye
     {
         get => _toplamBlokeBakiye;
@@ -466,8 +469,12 @@ public class BankaGorunumModeli : TemelGorunumModeli
         _tumHareketler = liste;
         Filtrele();
 
-        // POS Bloke hesap bakiyelerini topla
-        ToplamBlokeBakiye = BankaHesaplari.Where(b => b.HesapTuru == BankaHesapTuru.POSHesabi).Sum(b => b.BlokeBakiye);
+        // POS hesabında bekleyen (bankanın henüz vadesiz hesaba geçirmediği) tutar o hesabın hareket bakiyesidir.
+        var posOzetleri = new List<PosHesapOzeti>();
+        foreach (var pos in BankaHesaplari.Where(b => b.HesapTuru == BankaHesapTuru.POSHesabi))
+            posOzetleri.Add(new PosHesapOzeti(pos.Ad, pos.PosKomisyonOrani, pos.ValorGunu, await _bankaServisi.HesapBakiyeHesaplaAsync(pos.Id)));
+        PosHesapOzetleri = posOzetleri;
+        ToplamBlokeBakiye = posOzetleri.Sum(p => p.BlokeBakiye);
 
         var ayBaslangic = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         BuAyGelir = liste.Where(h => h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih >= ayBaslangic && h.Tur == HareketTuru.Gelir).Sum(HesapTutari);
@@ -711,3 +718,5 @@ public class BankaGorunumModeli : TemelGorunumModeli
     }
 }
 
+// POS hesabı ve bankanın vadesiz hesaba geçirmesini bekleyen tutar.
+public sealed record PosHesapOzeti(string Ad, decimal PosKomisyonOrani, int ValorGunu, decimal BlokeBakiye);
