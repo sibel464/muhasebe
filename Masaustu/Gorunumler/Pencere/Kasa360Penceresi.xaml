@@ -33,7 +33,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="MEVCUT BAKİYE" FontSize="11" Style="{StaticResource EtiketMetin}" HorizontalAlignment="Right"/>
-                    <TextBlock Text="{Binding KasaOzet.MevcutBakiye, StringFormat={}{0:N2} ₺}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}"/>
+                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}"><Run Text="{Binding KasaOzet.MevcutBakiye, Mode=OneWay, StringFormat=N2}"/><Run Text=" "/><Run Text="{Binding KasaOzet.ParaBirimi, Mode=OneWay}"/></TextBlock>
                 </StackPanel>
             </Grid>
         </Border>
@@ -59,10 +59,10 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="Bugünkü Giriş:" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding KasaOzet.BugunkiGiris, StringFormat={}{0:N2} ₺}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,0,10"/>
+                        <TextBlock Text="{Binding KasaOzet.BugunkiGiris, StringFormat={}{0:N2}}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,0,10"/>
 
                         <TextBlock Text="Bugünkü Çıkış:" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding KasaOzet.BugunkiCikis, StringFormat={}{0:N2} ₺}" Foreground="{StaticResource DangerDarkFirca}" Margin="0,0,0,10"/>
+                        <TextBlock Text="{Binding KasaOzet.BugunkiCikis, StringFormat={}{0:N2}}" Foreground="{StaticResource DangerDarkFirca}" Margin="0,0,0,10"/>
 
                         <TextBlock Text="Son İşlem Tarihi:" FontWeight="Bold"/>
                         <TextBlock Text="{Binding KasaOzet.SonIslemTarihi, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Margin="0,0,0,10"/>
@@ -80,9 +80,9 @@
                         <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="110"/>
                         <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
                         <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
-                        <DataGridTextColumn Header="GİRİŞ" Binding="{Binding Giris, StringFormat={}{0:N2} ₺}" Width="100"/>
-                        <DataGridTextColumn Header="ÇIKIŞ" Binding="{Binding Cikis, StringFormat={}{0:N2} ₺}" Width="100"/>
-                        <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2} ₺}" Width="110" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="GİRİŞ" Binding="{Binding Giris, StringFormat={}{0:N2}}" Width="100"/>
+                        <DataGridTextColumn Header="ÇIKIŞ" Binding="{Binding Cikis, StringFormat={}{0:N2}}" Width="100"/>
+                        <DataGridTextColumn Header="BAKİYE" Binding="{Binding Bakiye, StringFormat={}{0:N2}}" Width="110" FontWeight="Bold"/>
                         <DataGridTextColumn Header="KULLANICI" Binding="{Binding KullaniciAdi}" Width="90"/>
                     </DataGrid.Columns>
                 </DataGrid>
@@ -95,7 +95,7 @@
                         <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
                         <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
                         <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
-                        <DataGridTextColumn Header="GİRİŞ TUTARI" Binding="{Binding Giris, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="GİRİŞ TUTARI" Binding="{Binding Giris, StringFormat={}{0:N2}}" Width="120" FontWeight="Bold"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -107,7 +107,7 @@
                         <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
                         <DataGridTextColumn Header="CARİ" Binding="{Binding CariUnvan}" Width="*"/>
                         <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="1.5*"/>
-                        <DataGridTextColumn Header="ÇIKIŞ TUTARI" Binding="{Binding Cikis, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="ÇIKIŞ TUTARI" Binding="{Binding Cikis, StringFormat={}{0:N2}}" Width="120" FontWeight="Bold"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -119,7 +119,7 @@
                         <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="100"/>
                         <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="120"/>
                         <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="*"/>
-                        <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} ₺}" Width="120" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2}}" Width="120" FontWeight="Bold"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>

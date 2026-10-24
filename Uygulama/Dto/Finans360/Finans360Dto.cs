@@ -134,6 +134,19 @@ public sealed record BankaKasaTransferIstegiDto(
     string Aciklama
 );
 
+// Herhangi iki kasa/banka hesabı arasında transfer. Para birimleri aynıysa virman, farklıysa döviz alım/satımıdır:
+// CikanTutar kaynak hesabın, GirenTutar hedef hesabın para birimindedir (aynı para biriminde GirenTutar yok sayılır).
+public sealed record HesapTransferIstegiDto(
+    bool KaynakKasaMi,
+    int KaynakId,
+    bool HedefKasaMi,
+    int HedefId,
+    decimal CikanTutar,
+    decimal GirenTutar,
+    string Aciklama,
+    decimal Masraf = 0
+);
+
 public sealed record BankaVirmanIstegiDto(
     int KaynakBankaHesapId,
     int HedefBankaHesapId,

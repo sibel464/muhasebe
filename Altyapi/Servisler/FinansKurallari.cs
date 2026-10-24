@@ -146,6 +146,15 @@ internal static class FinansKurallari
         return (tl, await ParaBirimiIdAsync(baglam, paraBirimi), kur, dovizTutar);
     }
 
+    // Hesabın kendi para birimindeki bakiyesi (dövizli hesapta döviz, TL hesapta TL).
+    public static async Task<decimal> KasaHesapBakiyesiAsync(MuhasebeBaglami baglam, int kasaId) =>
+        DovizliMi(await baglam.Kasalar.Where(k => k.Id == kasaId).Select(k => k.ParaBirimi).FirstOrDefaultAsync())
+            ? await KasaDovizBakiyesiAsync(baglam, kasaId) : await KasaBakiyesiAsync(baglam, kasaId);
+
+    public static async Task<decimal> BankaHesapBakiyesiAsync(MuhasebeBaglami baglam, int bankaHesabiId) =>
+        DovizliMi(await baglam.BankaHesaplari.Where(b => b.Id == bankaHesabiId).Select(b => b.ParaBirimi).FirstOrDefaultAsync())
+            ? await BankaDovizBakiyesiAsync(baglam, bankaHesabiId) : await BankaBakiyesiAsync(baglam, bankaHesabiId);
+
     public static string DovizliHesaptaYapilamaz(string hesapAdi, string paraBirimi) =>
         $"'{hesapAdi}' bir {paraBirimi} hesabıdır. Bu işlem dövizli hesapta yapılamaz; TL hesap seçin " +
         $"veya işlemi kasa/banka fişi ya da tahsilat/ödeme ekranından {paraBirimi} tutarı ve kuruyla girin.";

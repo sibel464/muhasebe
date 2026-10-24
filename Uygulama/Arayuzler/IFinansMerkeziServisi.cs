@@ -16,6 +16,7 @@ public interface IFinansMerkeziServisi
     Task KasaBankaTransferiYapAsync(KasaBankaTransferIstegiDto dto, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default);
     Task BankaKasaTransferiYapAsync(BankaKasaTransferIstegiDto dto, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default);
     Task BankaVirmaniYapAsync(BankaVirmanIstegiDto dto, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default);
+    Task HesapTransferiYapAsync(HesapTransferIstegiDto dto, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default);
     Task FinansIslemIptalEtAsync(int hareketId, string kaynak, Guid sirketId, int kullaniciId, string neden, CancellationToken cancellationToken = default);
     Task<SayfaliFinansHareketDto> GetGlobalFinansHareketleriAsync(Guid sirketId, GlobalFinansFiltreDto filtre, CancellationToken cancellationToken = default);
 }

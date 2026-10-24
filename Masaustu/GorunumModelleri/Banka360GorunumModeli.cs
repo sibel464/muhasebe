@@ -59,6 +59,10 @@ public class Banka360GorunumModeli : TemelGorunumModeli
         YenileKomutu = new KomutSarici(async _ => await YukleAsync(_bankaHesapId));
     }
 
+    // Hesaplar arası para hareketi (virman, kasa ↔ banka, POS geçişi) tahsilat/ödeme sayılmaz.
+    private static bool Transfer(YuruyenFinansSatirDto h) =>
+        h.IslemTuru.Contains("Virman") || h.IslemTuru.Contains("Transfer") || h.IslemTuru.Contains("POS");
+
     public async Task YukleAsync(int bankaHesapId)
     {
         _bankaHesapId = bankaHesapId;
@@ -80,9 +84,9 @@ public class Banka360GorunumModeli : TemelGorunumModeli
             foreach (var h in hareketler)
             {
                 TumHareketler.Add(h);
-                if (h.Giris > 0 && !h.IslemTuru.Contains("Virman") && !h.IslemTuru.Contains("Transfer")) Tahsilatlar.Add(h);
-                if (h.Cikis > 0 && !h.IslemTuru.Contains("Virman") && !h.IslemTuru.Contains("Transfer")) Odemeler.Add(h);
-                if (h.IslemTuru.Contains("Virman") || h.IslemTuru.Contains("Transfer")) Transferler.Add(h);
+                if (h.Giris > 0 && !Transfer(h)) Tahsilatlar.Add(h);
+                if (h.Cikis > 0 && !Transfer(h)) Odemeler.Add(h);
+                if (Transfer(h)) Transferler.Add(h);
             }
 
             PosIslemleri.Clear();

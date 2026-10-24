@@ -638,12 +638,12 @@ public class BankaServisi : IBankaServisi
             foreach (var bankaId in kontrolEdilecekBankalar)
             {
                 var hesap = await _baglam.BankaHesaplari.FirstAsync(b => b.Id == bankaId);
-                if (await FinansKurallari.BankaBakiyesiAsync(_baglam, bankaId) < -Math.Max(0, hesap.KrediLimiti))
+                if (await FinansKurallari.BankaHesapBakiyesiAsync(_baglam, bankaId) < -Math.Max(0, hesap.KrediLimiti))
                     throw new InvalidOperationException("Bu hareket silinirse banka hesabı bakiyesi eksiye düşer. Önce sonraki çıkış hareketlerini düzeltin.");
             }
             foreach (var kasaId in kontrolEdilecekKasalar)
             {
-                if (await FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId) < 0)
+                if (await FinansKurallari.KasaHesapBakiyesiAsync(_baglam, kasaId) < 0)
                     throw new InvalidOperationException("Bu hareket silinirse kasa bakiyesi eksiye düşer.");
             }
 

@@ -95,7 +95,8 @@ public class MutabakatGorunumModeli : TemelGorunumModeli
     {
         Kasalar.Clear();
         var kasalar = await _finansServisi.GetKasalarAsync(_firmaBaglami.SirketId);
-        foreach (var k in kasalar) Kasalar.Add(k);
+        // Banknot sayımı TL kasalar içindir; dövizli kasada fark gelir/gider fişiyle girilir.
+        foreach (var k in kasalar.Where(k => k.Aktif && !DovizKuruYardimcisi.DovizliMi(k.ParaBirimi))) Kasalar.Add(k);
 
         if (Kasalar.Count > 0) SeciliKasaId = Kasalar[0].Id;
     }

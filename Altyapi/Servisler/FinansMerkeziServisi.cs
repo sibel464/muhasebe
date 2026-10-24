@@ -219,14 +219,18 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             .Where(x => x.SirketId == sirketId && x.KasaId == kasaId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .OrderBy(x => x.Tarih).ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);
+        // Dövizli kasada tutarlar ve yürüyen bakiye kasanın para birimindedir.
+        var paraBirimi = await _baglam.Kasalar.Where(k => k.Id == kasaId).Select(k => k.ParaBirimi).FirstOrDefaultAsync(cancellationToken) ?? "TRY";
+        var dovizli = FinansKurallari.DovizliMi(paraBirimi);
 
         decimal yuruyenBakiye = 0m;
         var sonuc = new List<YuruyenFinansSatirDto>();
 
         foreach (var h in hareketler)
         {
-            var giris = h.Tur == HareketTuru.Gelir ? h.Tutar : 0m;
-            var cikis = h.Tur == HareketTuru.Gider ? h.Tutar : 0m;
+            var tutar = dovizli ? h.DovizTutar : h.Tutar;
+            var giris = h.Tur == HareketTuru.Gelir ? tutar : 0m;
+            var cikis = h.Tur == HareketTuru.Gider ? tutar : 0m;
             yuruyenBakiye += (giris - cikis);
 
             sonuc.Add(new YuruyenFinansSatirDto(
@@ -235,7 +239,18 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 Tarih: h.Tarih,
                 Saat: h.Tarih.ToString("HH:mm"),
                 IslemNo: $"KSH-{h.Id:D6}",
-                IslemTuru: h.Tur == HareketTuru.Gelir ? "Kasa Giriş" : "Kasa Çıkış",
+                IslemTuru: h.FisTuru switch
+                {
+                    KasaFisTuru.Tahsilat => "Tahsilat",
+                    KasaFisTuru.Odeme => "Ödeme",
+                    KasaFisTuru.Gelir => "Gelir",
+                    KasaFisTuru.Gider => "Gider",
+                    KasaFisTuru.KasaVirman => "Virman",
+                    KasaFisTuru.BankayaYatirma => "Transfer (bankaya)",
+                    KasaFisTuru.BankadanCekme => "Transfer (bankadan)",
+                    KasaFisTuru.AcilisDevir => "Açılış / Devir",
+                    _ => "Sayım Farkı"
+                },
                 CariKartId: h.CariKartId,
                 CariKod: h.CariKart?.Kod ?? "-",
                 CariUnvan: h.CariKart?.Unvan ?? "-",
@@ -246,8 +261,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 Giris: giris,
                 Cikis: cikis,
                 Bakiye: yuruyenBakiye,
-                Tutar: h.Tutar,
-                ParaBirimi: "TRY",
+                Tutar: tutar,
+                ParaBirimi: paraBirimi,
                 KullaniciAdi: "Sistem",
                 Durum: h.IslemDurumu.ToString()
             ));
@@ -267,14 +282,18 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             .Where(x => x.SirketId == sirketId && x.BankaHesabiId == bankaHesapId && x.IslemDurumu == FinansIslemDurumu.Tamamlandi)
             .OrderBy(x => x.Tarih).ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);
+        // Dövizli hesapta tutarlar ve yürüyen bakiye hesabın para birimindedir.
+        var paraBirimi = await _baglam.BankaHesaplari.Where(b => b.Id == bankaHesapId).Select(b => b.ParaBirimi).FirstOrDefaultAsync(cancellationToken) ?? "TRY";
+        var dovizli = FinansKurallari.DovizliMi(paraBirimi);
 
         decimal yuruyenBakiye = 0m;
         var sonuc = new List<YuruyenFinansSatirDto>();
 
         foreach (var h in hareketler)
         {
-            var giris = h.Tur == HareketTuru.Gelir ? h.Tutar : 0m;
-            var cikis = h.Tur == HareketTuru.Gider ? h.Tutar : 0m;
+            var tutar = dovizli ? h.DovizTutar : h.Tutar;
+            var giris = h.Tur == HareketTuru.Gelir ? tutar : 0m;
+            var cikis = h.Tur == HareketTuru.Gider ? tutar : 0m;
             yuruyenBakiye += (giris - cikis);
 
             sonuc.Add(new YuruyenFinansSatirDto(
@@ -283,19 +302,30 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 Tarih: h.Tarih,
                 Saat: h.Tarih.ToString("HH:mm"),
                 IslemNo: $"BNK-{h.Id:D6}",
-                IslemTuru: h.Tur == HareketTuru.Gelir ? "Banka Giriş" : "Banka Çıkış",
+                IslemTuru: h.FisTuru switch
+                {
+                    BankaFisTuru.GelenHavale => "Gelen Havale",
+                    BankaFisTuru.GidenHavale => "Giden Havale",
+                    BankaFisTuru.BankaGelir => "Banka Geliri",
+                    BankaFisTuru.BankaGiderMasraf => "Masraf",
+                    BankaFisTuru.BankaVirman => "Virman",
+                    BankaFisTuru.KasadanCekme => "Transfer (kasaya)",
+                    BankaFisTuru.BankayaYatirma => "Transfer (kasadan)",
+                    BankaFisTuru.PosHesabaGecis => "POS Geçişi",
+                    _ => "Kredi Ödemesi"
+                },
                 CariKartId: h.CariKartId,
                 CariKod: h.CariKart?.Kod ?? "-",
                 CariUnvan: h.CariKart?.Unvan ?? "-",
                 KaynakAdi: h.BankaAdi ?? "Banka",
                 HedefAdi: h.HesapNo ?? "-",
-                BelgeNo: "-",
+                BelgeNo: h.DekontNo ?? "-",
                 Aciklama: h.Aciklama ?? string.Empty,
                 Giris: giris,
                 Cikis: cikis,
                 Bakiye: yuruyenBakiye,
-                Tutar: h.Tutar,
-                ParaBirimi: "TRY",
+                Tutar: tutar,
+                ParaBirimi: paraBirimi,
                 KullaniciAdi: "Sistem",
                 Durum: h.IslemDurumu.ToString()
             ));
@@ -524,7 +554,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
         if (dto.KasaId <= 0) throw new ArgumentException("Geçerli bir kasa seçiniz.");
         if (dto.SayimMiktari < 0) throw new ArgumentException("Sayım tutarı negatif olamaz.");
         var aciklama = dto.Aciklama?.Trim() ?? string.Empty;
-        var tarih = DateTime.UtcNow;
+        var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
 
         await using var tx = await _baglam.Database.BeginTransactionAsync(cancellationToken);
         try
@@ -532,6 +562,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             await FinansKurallari.KasaKilitleAsync(_baglam, dto.KasaId);
             var kasa = await _baglam.Kasalar.SingleOrDefaultAsync(k => k.Id == dto.KasaId && k.SirketId == sirketId, cancellationToken)
                 ?? throw new KeyNotFoundException("Kasa bulunamadı.");
+            if (FinansKurallari.DovizliMi(kasa.ParaBirimi))
+                throw new InvalidOperationException($"Kasa sayım mutabakatı TL kasalar içindir. '{kasa.Ad}' ({kasa.ParaBirimi}) kasasında sayım farkını {kasa.ParaBirimi} tutarı ve kuruyla gelir/gider fişi olarak girin.");
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
 
             var sistemBakiyesi = await FinansKurallari.KasaBakiyesiAsync(_baglam, kasa.Id);
@@ -844,6 +876,158 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             // Masraf fişi (780 / 102).
             if (masrafHareketi != null)
                 await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, masrafHareketi, "780");
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    // Kasa/banka hesapları arasında transfer; para birimleri farklıysa döviz alım/satımı. Defter TL'dir:
+    // - aynı para birimi: TL karşılığı kaynağın ortalama defter kuruyla taşınır (TL hesapta tutarın kendisi),
+    // - TL'den dövize: ödenen TL dövizin defter değeri olur,
+    // - dövizden TL'ye: alınan TL ile dövizin defter değeri arasındaki fark kambiyo kârı (646) / zararıdır (656),
+    // - dövizden dövize: kaynağın defter değeri hedefe taşınır.
+    public async Task HesapTransferiYapAsync(HesapTransferIstegiDto dto, Guid sirketId, int kullaniciId, CancellationToken cancellationToken = default)
+    {
+        _kullanici.YetkiKontrolEt(x => x.VirmanYap, "Virman Yapma");
+        sirketId = _baglam.SirketIdCoz(sirketId);
+        if (dto.KaynakKasaMi == dto.HedefKasaMi && dto.KaynakId == dto.HedefId)
+            throw new InvalidOperationException("Kaynak ve hedef hesap aynı olamaz.");
+        FinansKurallari.TutarDogrula(dto.CikanTutar, "Transfer");
+        if (dto.Masraf < 0) throw new ArgumentException("Transfer masrafı negatif olamaz.");
+        if (dto.Masraf > 0) FinansKurallari.TutarDogrula(dto.Masraf, "Transfer masrafı");
+
+        await using var tx = await _baglam.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Kilitler sabit sırayla (önce kasalar, küçük Id'den) alınır; ters yönlü eşzamanlı transferler kilitlenmez.
+            foreach (var (kasaMi, id) in new[] { (dto.KaynakKasaMi, dto.KaynakId), (dto.HedefKasaMi, dto.HedefId) }.OrderBy(x => x.Item1 ? 0 : 1).ThenBy(x => x.Item2))
+            {
+                if (kasaMi) await FinansKurallari.KasaKilitleAsync(_baglam, id);
+                else await FinansKurallari.BankaHesabiKilitleAsync(_baglam, id);
+            }
+
+            Kasa? kaynakKasa = null, hedefKasa = null;
+            BankaHesabi? kaynakBanka = null, hedefBanka = null;
+            if (dto.KaynakKasaMi) kaynakKasa = await _baglam.Kasalar.SingleOrDefaultAsync(k => k.Id == dto.KaynakId && k.SirketId == sirketId, cancellationToken) ?? throw new KeyNotFoundException("Kaynak kasa bulunamadı.");
+            else kaynakBanka = await _baglam.BankaHesaplari.SingleOrDefaultAsync(b => b.Id == dto.KaynakId && b.SirketId == sirketId, cancellationToken) ?? throw new KeyNotFoundException("Kaynak banka hesabı bulunamadı.");
+            if (dto.HedefKasaMi) hedefKasa = await _baglam.Kasalar.SingleOrDefaultAsync(k => k.Id == dto.HedefId && k.SirketId == sirketId, cancellationToken) ?? throw new KeyNotFoundException("Hedef kasa bulunamadı.");
+            else hedefBanka = await _baglam.BankaHesaplari.SingleOrDefaultAsync(b => b.Id == dto.HedefId && b.SirketId == sirketId, cancellationToken) ?? throw new KeyNotFoundException("Hedef banka hesabı bulunamadı.");
+
+            var kaynakAd = kaynakKasa?.Ad ?? kaynakBanka!.Ad;
+            var hedefAd = hedefKasa?.Ad ?? hedefBanka!.Ad;
+            var kaynakPb = kaynakKasa?.ParaBirimi ?? kaynakBanka!.ParaBirimi;
+            var hedefPb = hedefKasa?.ParaBirimi ?? hedefBanka!.ParaBirimi;
+            if (!(kaynakKasa?.AktifMi ?? kaynakBanka!.AktifMi)) throw new InvalidOperationException($"'{kaynakAd}' pasif durumda. Pasif hesaba işlem yapılamaz.");
+            if (!(hedefKasa?.AktifMi ?? hedefBanka!.AktifMi)) throw new InvalidOperationException($"'{hedefAd}' pasif durumda. Pasif hesaba işlem yapılamaz.");
+            if (dto.Masraf > 0 && (kaynakBanka == null || FinansKurallari.DovizliMi(kaynakPb)))
+                throw new InvalidOperationException("Transfer masrafı yalnız TL banka hesabından yapılan transferde girilebilir; diğer durumlarda ayrı bir gider fişi girin.");
+
+            var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
+            await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
+
+            // Kaynaktan çıkan: döviz hesabında ortalama defter kuruyla TL karşılığı.
+            var (cikanTl, kaynakPbId, kaynakKur, kaynakDoviz) = kaynakKasa != null
+                ? await FinansKurallari.KasaTransferTutariAsync(_baglam, kaynakKasa, dto.CikanTutar)
+                : await FinansKurallari.BankaTransferTutariAsync(_baglam, kaynakBanka!, dto.CikanTutar);
+            if (kaynakKasa != null) await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kaynakKasa, cikanTl, kaynakDoviz);
+            else await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, kaynakBanka!, cikanTl + dto.Masraf, kaynakDoviz);
+
+            // Hedefe giren.
+            var ayniPara = string.Equals(kaynakPb, hedefPb, StringComparison.OrdinalIgnoreCase);
+            decimal girenTl, girenDoviz, hedefKur;
+            int? hedefPbId = null;
+            if (ayniPara)
+            {
+                (girenTl, girenDoviz, hedefKur, hedefPbId) = (cikanTl, kaynakDoviz, kaynakKur, kaynakPbId);
+            }
+            else
+            {
+                FinansKurallari.TutarDogrula(dto.GirenTutar, $"Hedefe giren {hedefPb}");
+                if (FinansKurallari.DovizliMi(hedefPb))
+                {
+                    girenTl = cikanTl; // TL'den ya da başka dövizden alınan dövizin defter değeri
+                    girenDoviz = dto.GirenTutar;
+                    hedefKur = Math.Round(girenTl / girenDoviz, 6, MidpointRounding.AwayFromZero);
+                    hedefPbId = await FinansKurallari.ParaBirimiIdAsync(_baglam, hedefPb);
+                }
+                else
+                {
+                    (girenTl, girenDoviz, hedefKur) = (dto.GirenTutar, 0m, 1m); // döviz bozdurma: alınan TL
+                }
+            }
+            var kurFarki = girenTl - cikanTl; // yalnız dövizden TL'ye satışta sıfırdan farklı olabilir
+
+            var islemNo = FinansKurallari.FisNoUret(ayniPara ? "VRM" : "DVZ");
+            var aciklama = string.IsNullOrWhiteSpace(dto.Aciklama)
+                ? (ayniPara ? $"Transfer ({kaynakAd} → {hedefAd})" : $"Döviz {(FinansKurallari.DovizliMi(hedefPb) ? "alımı" : "satışı")}: {dto.CikanTutar:N2} {kaynakPb} → {dto.GirenTutar:N2} {hedefPb}")
+                : FinansKurallari.AciklamaDogrula(dto.Aciklama);
+
+            KasaHareketi? kasaCikis = null, kasaGiris = null;
+            BankaHareketi? bankaCikis = null, bankaGiris = null;
+            if (kaynakKasa != null)
+                _baglam.KasaHareketleri.Add(kasaCikis = new KasaHareketi
+                {
+                    SirketId = sirketId, KasaId = kaynakKasa.Id, Tarih = tarih, Tur = HareketTuru.Gider,
+                    FisTuru = hedefKasa != null ? KasaFisTuru.KasaVirman : KasaFisTuru.BankayaYatirma, FisNo = islemNo, Belge = islemNo,
+                    Tutar = cikanTl, ParaBirimiId = kaynakPbId, Kur = kaynakKur, DovizTutar = kaynakDoviz,
+                    Aciklama = $"{aciklama} (→ {hedefAd})", IslemDurumu = FinansIslemDurumu.Tamamlandi
+                });
+            else
+                _baglam.BankaHareketleri.Add(bankaCikis = new BankaHareketi
+                {
+                    SirketId = sirketId, BankaHesabiId = kaynakBanka!.Id, BankaAdi = kaynakBanka.Ad, HesapNo = kaynakBanka.HesapNo, Tarih = tarih, Tur = HareketTuru.Gider,
+                    FisTuru = hedefKasa != null ? BankaFisTuru.KasadanCekme : BankaFisTuru.BankaVirman, FisNo = islemNo, OdemeYontemi = OdemeYontemi.Virman,
+                    Tutar = cikanTl, ParaBirimiId = kaynakPbId, Kur = kaynakKur, DovizTutar = kaynakDoviz,
+                    Aciklama = $"{aciklama} (→ {hedefAd})", IslemDurumu = FinansIslemDurumu.Tamamlandi
+                });
+            if (hedefKasa != null)
+                _baglam.KasaHareketleri.Add(kasaGiris = new KasaHareketi
+                {
+                    SirketId = sirketId, KasaId = hedefKasa.Id, Tarih = tarih, Tur = HareketTuru.Gelir,
+                    FisTuru = kaynakKasa != null ? KasaFisTuru.KasaVirman : KasaFisTuru.BankadanCekme, FisNo = islemNo, Belge = islemNo,
+                    Tutar = girenTl, ParaBirimiId = hedefPbId, Kur = hedefKur, DovizTutar = girenDoviz,
+                    Aciklama = $"{aciklama} (← {kaynakAd})", IslemDurumu = FinansIslemDurumu.Tamamlandi
+                });
+            else
+                _baglam.BankaHareketleri.Add(bankaGiris = new BankaHareketi
+                {
+                    SirketId = sirketId, BankaHesabiId = hedefBanka!.Id, BankaAdi = hedefBanka.Ad, HesapNo = hedefBanka.HesapNo, Tarih = tarih, Tur = HareketTuru.Gelir,
+                    FisTuru = kaynakKasa != null ? BankaFisTuru.BankayaYatirma : BankaFisTuru.BankaVirman, FisNo = islemNo, OdemeYontemi = OdemeYontemi.Virman,
+                    Tutar = girenTl, ParaBirimiId = hedefPbId, Kur = hedefKur, DovizTutar = girenDoviz,
+                    Aciklama = $"{aciklama} (← {kaynakAd})", IslemDurumu = FinansIslemDurumu.Tamamlandi
+                });
+            BankaHareketi? masrafHareketi = null;
+            if (dto.Masraf > 0)
+                _baglam.BankaHareketleri.Add(masrafHareketi = new BankaHareketi
+                {
+                    SirketId = sirketId, BankaHesabiId = kaynakBanka!.Id, BankaAdi = kaynakBanka.Ad, HesapNo = kaynakBanka.HesapNo, Tarih = tarih, Tur = HareketTuru.Gider,
+                    FisTuru = BankaFisTuru.BankaGiderMasraf, FisNo = islemNo, OdemeYontemi = OdemeYontemi.Banka, Tutar = dto.Masraf, MasrafTutari = dto.Masraf,
+                    Aciklama = $"Transfer masrafı ({islemNo})", IslemDurumu = FinansIslemDurumu.Tamamlandi
+                });
+            await _baglam.SaveChangesAsync(cancellationToken);
+
+            // Çıkış ve giriş birbirine bağlanır (transferler tek taraflı iptal edilemez).
+            int cikisId = kasaCikis?.Id ?? bankaCikis!.Id, girisId = kasaGiris?.Id ?? bankaGiris!.Id;
+            if (kasaCikis != null) kasaCikis.TersKayitId = girisId; else bankaCikis!.TersKayitId = girisId;
+            if (kasaGiris != null) kasaGiris.TersKayitId = cikisId; else bankaGiris!.TersKayitId = cikisId;
+            await _baglam.SaveChangesAsync(cancellationToken);
+
+            // Hedef / kaynak; dövizden TL'ye satışta fark 646 (kâr) veya 656 (zarar).
+            var kaynakKodu = kaynakKasa != null ? await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kaynakKasa) : await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, kaynakBanka!);
+            var hedefKodu = hedefKasa != null ? await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, hedefKasa) : await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, hedefBanka!);
+            var satirlar = new List<FinansMuhasebeKaydi.Satir> { new(hedefKodu, girenTl, 0), new(kaynakKodu, 0, cikanTl) };
+            if (kurFarki > 0) satirlar.Add(new("646", 0, kurFarki));
+            else if (kurFarki < 0) satirlar.Add(new("656", -kurFarki, 0));
+            await FinansMuhasebeKaydi.FisEkleAsync(_baglam, sirketId, kasaCikis != null ? FinansMuhasebeKaydi.KasaBelgeTipi : FinansMuhasebeKaydi.BankaBelgeTipi,
+                cikisId, tarih, aciklama, islemNo, satirlar.ToArray());
+            if (masrafHareketi != null)
+                await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, masrafHareketi, "780");
+            await _baglam.SaveChangesAsync(cancellationToken);
+
             await tx.CommitAsync(cancellationToken);
         }
         catch

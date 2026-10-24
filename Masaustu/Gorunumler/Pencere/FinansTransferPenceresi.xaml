@@ -1,13 +1,16 @@
 <Window x:Class="Masaustu.Gorunumler.Pencere.FinansTransferPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Finansal Transfer / Virman" Height="420" Width="520" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
+        Title="Virman / Transfer / Döviz Alım-Satım" Height="600" Width="560" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
 
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <yardimci:ParaTutariDonusturucu x:Key="ParaTutariDonusturucu"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -18,37 +21,47 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Kasa ↔ Banka ↔ Virman Transfer İşlemi" Style="{StaticResource SayfaBasligi}" Margin="0,0,0,16"/>
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{Binding IslemBasligi}" Style="{StaticResource SayfaBasligi}"/>
+            <TextBlock Text="Kasa ve banka hesapları arasında para aktarın. Para birimleri farklıysa işlem döviz alım/satımı olur."
+                       TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,4,0,0"/>
+        </StackPanel>
 
         <StackPanel Grid.Row="1">
-            <TextBlock Text="Transfer Türü:" Style="{StaticResource EtiketMetin}"/>
-            <ComboBox SelectedValue="{Binding TransferTuru}" SelectedValuePath="Tag" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12">
-                <ComboBoxItem Content="Kasa Virman (Kasa → Kasa)" Tag="KasaVirman"/>
-                <ComboBoxItem Content="Banka Virman (Banka → Banka)" Tag="BankaVirman"/>
-                <ComboBoxItem Content="Kasa → Banka Transferi (Para Yatırma)" Tag="KasaBanka"/>
-                <ComboBoxItem Content="Banka → Kasa Transferi (Para Çekme)" Tag="BankaKasa"/>
-            </ComboBox>
+            <TextBlock Text="Kaynak hesap (para çıkar) *" Style="{StaticResource EtiketMetin}"/>
+            <ComboBox ItemsSource="{Binding Hesaplar}" SelectedItem="{Binding SeciliKaynak}" DisplayMemberPath="Gosterim"
+                      Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"/>
 
-            <!-- Kaynak Seçimi -->
-            <TextBlock Text="Kaynak:" Style="{StaticResource EtiketMetin}"/>
-            <ComboBox ItemsSource="{Binding Kasalar}" DisplayMemberPath="KasaAdi" SelectedValuePath="Id" SelectedValue="{Binding SeciliKaynakKasaId}" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"/>
+            <TextBlock Text="Hedef hesap (para girer) *" Style="{StaticResource EtiketMetin}"/>
+            <ComboBox ItemsSource="{Binding Hesaplar}" SelectedItem="{Binding SeciliHedef}" DisplayMemberPath="Gosterim"
+                      Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"/>
 
-            <!-- Hedef Seçimi -->
-            <TextBlock Text="Hedef:" Style="{StaticResource EtiketMetin}"/>
-            <ComboBox ItemsSource="{Binding BankaHesaplari}" DisplayMemberPath="HesapAdi" SelectedValuePath="Id" SelectedValue="{Binding SeciliHedefBankaHesapId}" Style="{StaticResource FormAcilirKutu}" Margin="0,0,0,12"/>
+            <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Çıkan tutar ("/><Run Text="{Binding KaynakSimge, Mode=OneWay}"/><Run Text=") *"/></TextBlock>
+            <TextBox Text="{Binding CikanTutar, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"
+                     Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"/>
 
-            <!-- Tutar -->
-            <TextBlock Text="Transfer Tutarı (₺):" Style="{StaticResource EtiketMetin}"/>
-            <TextBox Text="{Binding Tutar, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:N2}}" Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"/>
+            <StackPanel Visibility="{Binding DovizIslemi, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                <TextBlock Style="{StaticResource EtiketMetin}"><Run Text="Hedefe giren tutar ("/><Run Text="{Binding HedefSimge, Mode=OneWay}"/><Run Text=") *"/></TextBlock>
+                <TextBox Text="{Binding GirenTutar, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"
+                         Style="{StaticResource FormGirisKutusu}"/>
+                <TextBlock Text="{Binding KurMetni}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,4,0,0"/>
+                <TextBlock Text="Dövizi TL'ye bozdururken alınan TL ile dövizin kayıtlı değeri arasındaki fark kambiyo kârı/zararı olarak muhasebeleşir."
+                           TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,2,0,0"/>
+            </StackPanel>
 
-            <!-- Açıklama -->
-            <TextBlock Text="Açıklama:" Style="{StaticResource EtiketMetin}"/>
-            <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" Margin="0,0,0,12"/>
+            <StackPanel Visibility="{Binding MasrafGorunur, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                <TextBlock Text="Banka masrafı (₺, varsa)" Style="{StaticResource EtiketMetin}"/>
+                <TextBox Text="{Binding Masraf, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ParaTutariDonusturucu}}"
+                         Style="{StaticResource FormGirisKutusu}"/>
+            </StackPanel>
+
+            <TextBlock Text="Açıklama" Style="{StaticResource EtiketMetin}"/>
+            <TextBox Text="{Binding Aciklama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
         </StackPanel>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="İptal" Click="KapatClick" Style="{StaticResource IkinciDugme}" Width="90" Margin="0,0,8,0"/>
-            <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Content="💾 Kaydet" Width="100"/>
+            <Button Content="Kapat" Click="KapatClick" Style="{StaticResource IkinciDugme}" Width="90" Margin="0,0,8,0"/>
+            <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Content="💾 Kaydet" Width="110"/>
         </StackPanel>
     </Grid>
 </Window>
