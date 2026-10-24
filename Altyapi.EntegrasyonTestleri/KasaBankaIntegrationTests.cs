@@ -187,21 +187,75 @@ public class KasaBankaIntegrationTests
         await Assert.ThrowsAsync<Uygulama.Arayuzler.YetkisizErisimException>(() => new KasaServisi(db).TumunuGetirAsync());
     }
 
+    // Benzersiz ve sağlama haneleri doğru bir TR IBAN üretir (IBAN tekil olmalı).
+    private static string RastgeleIban()
+    {
+        var bban = "000610" + string.Concat(Enumerable.Range(0, 16).Select(_ => Random.Shared.Next(10)));
+        var sayi = System.Numerics.BigInteger.Parse(bban + "2927" + "00");
+        return $"TR{98 - (int)(sayi % 97):00}{bban}";
+    }
+
     [Fact]
-    public async Task Dovizli_kasa_ve_banka_hesabi_acilamaz()
+    public async Task Dovizli_kasa_ve_banka_doviz_tutari_ve_kurla_calisir()
     {
         _fixture.RequireDatabase();
         await using var db = new MuhasebeBaglami(_fixture.Options);
+        var (sirket, cari) = await SeedSirketVeCariAsync(db);
         var oturum = StabilizasyonTestOturumu.Olustur();
+        var kasaServisi = new KasaServisi(db, oturum);
+        var bankaServisi = new BankaServisi(db, oturum);
         var kod = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaEkleAsync(new Kasa { Kod = "K" + kod, Ad = "USD Kasa", ParaBirimi = "USD" }));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new BankaServisi(db, oturum).BankaHesabiEkleAsync(new BankaHesabi { Kod = "B" + kod, Ad = "USD Banka", ParaBirimi = "USD", HesapNo = "1", Iban = "TR330006100519786457841326" }));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new BankaServisi(db, oturum).BankaHesabiEkleAsync(new BankaHesabi { Kod = "D" + kod, Ad = "Döviz", HesapTuru = BankaHesapTuru.VadesizDoviz, HesapNo = "2", Iban = "TR330006100519786457841326" }));
+        // Hesap türü ile para birimi uyumlu olmalı
+        await Assert.ThrowsAsync<ArgumentException>(() => bankaServisi.BankaHesabiEkleAsync(new BankaHesabi { SirketId = sirket.Id, Kod = "X" + kod, Ad = "Yanlış", ParaBirimi = "USD", Iban = RastgeleIban() }));
+        await Assert.ThrowsAsync<ArgumentException>(() => bankaServisi.BankaHesabiEkleAsync(new BankaHesabi { SirketId = sirket.Id, Kod = "Y" + kod, Ad = "Yanlış", HesapTuru = BankaHesapTuru.VadesizDoviz, Iban = RastgeleIban() }));
 
-        // TL kasa açılır ama sonradan dövize çevrilemez
-        var kasa = await new KasaServisi(db, oturum).KasaEkleAsync(new Kasa { Kod = "T" + kod, Ad = "TL Kasa" });
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaGuncelleAsync(new Kasa { Id = kasa.Id, Kod = kasa.Kod, Ad = kasa.Ad, ParaBirimi = "EUR", AktifMi = true }));
+        var usdKasa = await kasaServisi.KasaEkleAsync(new Kasa { SirketId = sirket.Id, Kod = "U" + kod, Ad = "USD Kasa", ParaBirimi = "USD" });
+        var tlKasa = await kasaServisi.KasaEkleAsync(new Kasa { SirketId = sirket.Id, Kod = "T" + kod, Ad = "TL Kasa" });
+        var usdBanka = await bankaServisi.BankaHesabiEkleAsync(new BankaHesabi { SirketId = sirket.Id, Kod = "B" + kod, Ad = "USD Banka", ParaBirimi = "USD", HesapTuru = BankaHesapTuru.VadesizDoviz, Iban = RastgeleIban() });
+
+        // Açılış: 1.000 USD × 40 = 40.000 TL; döviz tutarı/kur girilmeden dövizli kasaya fiş girilemez
+        await Assert.ThrowsAsync<ArgumentException>(() => kasaServisi.EkleAsync(new KasaHareketi { KasaId = usdKasa.Id, FisTuru = KasaFisTuru.AcilisDevir, Tutar = 100m, Aciklama = "Kursuz" }));
+        var acilis = await kasaServisi.EkleAsync(new KasaHareketi { KasaId = usdKasa.Id, FisTuru = KasaFisTuru.AcilisDevir, DovizTutar = 1000m, Kur = 40m, Aciklama = "Açılış" });
+        Assert.Equal(40000m, acilis.Tutar);
+        Assert.Equal(1000m, await new KasaServisi(db, oturum).KasaDovizBakiyeHesaplaAsync(usdKasa.Id));
+
+        // Bakiye döviz cinsinden denetlenir
+        var yetersiz = await Assert.ThrowsAsync<InvalidOperationException>(() => kasaServisi.EkleAsync(new KasaHareketi { KasaId = usdKasa.Id, FisTuru = KasaFisTuru.Gider, DovizTutar = 1500m, Kur = 40m, Aciklama = "Fazla" }));
+        Assert.Contains("USD", yetersiz.Message);
+
+        // Cari tahsilat: 200 USD × 42 = 8.400 TL; cari TL karşılığıyla alacaklanır
+        var tahsilatServisi = new TahsilatOdemeServisi(db, oturum);
+        var tahsilat = await tahsilatServisi.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 0m,
+            DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc), "USD tahsilat", Kur: 42m, DovizTutar: 200m, KasaId: usdKasa.Id));
+        Assert.Equal(8400m, tahsilat.Tutar);
+        var cariHareket = await db.CariHareketler.SingleAsync(c => c.CariKartId == cari.Id && c.HareketTuru == CariHareketTuru.Tahsilat);
+        Assert.Equal(8400m, cariHareket.Alacak);
+        Assert.Equal(0m, cariHareket.DovizAlacak);
+        Assert.Equal(1200m, await new KasaServisi(db, oturum).KasaDovizBakiyeHesaplaAsync(usdKasa.Id));
+        await Assert.ThrowsAsync<ArgumentException>(() => tahsilatServisi.KaydetAsync(new TahsilatOdemeTalebi(FinansIslemTuru.Tahsilat, OdemeYontemi.Nakit, cari.Id, 500m,
+            DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc), "Kursuz", KasaId: usdKasa.Id)));
+
+        // USD kasadan USD bankaya 600 USD: TL karşılığı ortalama defter kuruyla (48.400 / 1.200)
+        await kasaServisi.BankayaParaYatirAsync(usdKasa.Id, usdBanka.Id, 600m, "Yatırma");
+        Assert.Equal(600m, await new KasaServisi(db, oturum).KasaDovizBakiyeHesaplaAsync(usdKasa.Id));
+        Assert.Equal(600m, await bankaServisi.HesapDovizBakiyeHesaplaAsync(usdBanka.Id));
+        Assert.Equal(24200m, await bankaServisi.HesapBakiyeHesaplaAsync(usdBanka.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => kasaServisi.BankayaParaYatirAsync(tlKasa.Id, usdBanka.Id, 10m, "Farklı para"));
+
+        // Döviz bilgisi taşımayan akış (fatura peşin, POS...) dövizli hesaba yazamaz
+        db.KasaHareketleri.Add(new KasaHareketi { SirketId = sirket.Id, KasaId = usdKasa.Id, Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.Gelir, Tutar = 100m, Aciklama = "Dövizsiz" });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+        db.ChangeTracker.Clear();
+
+        // Tahsilat iptali aynı döviz tutarıyla ters kayıt atar
+        await new TahsilatOdemeServisi(db, oturum).IptalEtAsync("Kasa", tahsilat.HareketId, "Yanlış giriş");
+        Assert.Equal(400m, await new KasaServisi(db, oturum).KasaDovizBakiyeHesaplaAsync(usdKasa.Id));
+
+        // Bakiyesi olan dövizli kasa pasife alınamaz
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaGuncelleAsync(new Kasa { Id = usdKasa.Id, Kod = usdKasa.Kod, Ad = usdKasa.Ad, ParaBirimi = "USD", AktifMi = false }));
+        // Hareket görmüş kasanın para birimi değişmez
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new KasaServisi(db, oturum).KasaGuncelleAsync(new Kasa { Id = usdKasa.Id, Kod = usdKasa.Kod, Ad = usdKasa.Ad, ParaBirimi = "EUR", AktifMi = true }));
     }
 
     [Fact]

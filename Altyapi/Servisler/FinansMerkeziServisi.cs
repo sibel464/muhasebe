@@ -589,9 +589,11 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 ?? throw new KeyNotFoundException("Hedef banka hesabı bulunamadı.");
             TransferHesaplariniDogrula(kasa.AktifMi, kasa.Ad, banka.AktifMi, banka.Ad, kasa.ParaBirimi, banka.ParaBirimi);
 
-            var tarih = DateTime.UtcNow;
+            var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
-            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, dto.Tutar);
+            // Dövizli hesaplar arasında tutar hesabın para birimindedir; TL karşılığı kasanın ortalama defter kuruyla taşınır.
+            var (tutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.KasaTransferTutariAsync(_baglam, kasa, dto.Tutar);
+            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, tutar, dovizTutar);
 
             var islemNo = FinansKurallari.FisNoUret("KBT");
             var aciklama = string.IsNullOrWhiteSpace(dto.Aciklama) ? $"Kasa ↔ Banka Transferi ({islemNo})" : FinansKurallari.AciklamaDogrula(dto.Aciklama);
@@ -604,7 +606,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 Tur = HareketTuru.Gider,
                 FisTuru = KasaFisTuru.BankayaYatirma,
                 FisNo = islemNo,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 Belge = islemNo,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
@@ -620,7 +625,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 FisTuru = BankaFisTuru.BankayaYatirma,
                 FisNo = islemNo,
                 OdemeYontemi = OdemeYontemi.Banka,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
             };
@@ -631,8 +639,9 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             bh.TersKayitId = kh.Id;
             await _baglam.SaveChangesAsync(cancellationToken);
 
-            // Yevmiye (102 Banka Borç / 100 Kasa Alacak)
-            await TransferYevmiyesiEkleAsync(sirketId, islemNo, tarih, "KasaBankaTransfer", kh.Id, aciklama, "102", "100", dto.Tutar, cancellationToken);
+            // Yevmiye (102 Banka Borç / 100 Kasa Alacak) — seçilen kasa ve hesabın kendi muhasebe kodlarıyla.
+            await TransferYevmiyesiEkleAsync(sirketId, islemNo, tarih, "KasaBankaTransfer", kh.Id, aciklama,
+                await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, banka), await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa), tutar, cancellationToken);
 
             await tx.CommitAsync(cancellationToken);
         }
@@ -659,9 +668,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 ?? throw new KeyNotFoundException("Hedef kasa bulunamadı.");
             TransferHesaplariniDogrula(kasa.AktifMi, kasa.Ad, banka.AktifMi, banka.Ad, kasa.ParaBirimi, banka.ParaBirimi);
 
-            var tarih = DateTime.UtcNow;
+            var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
-            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, banka, dto.Tutar);
+            var (tutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.BankaTransferTutariAsync(_baglam, banka, dto.Tutar);
+            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, banka, tutar, dovizTutar);
 
             var islemNo = FinansKurallari.FisNoUret("BKT");
             var aciklama = string.IsNullOrWhiteSpace(dto.Aciklama) ? $"Banka ↔ Kasa Transferi ({islemNo})" : FinansKurallari.AciklamaDogrula(dto.Aciklama);
@@ -677,7 +687,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 FisTuru = BankaFisTuru.KasadanCekme,
                 FisNo = islemNo,
                 OdemeYontemi = OdemeYontemi.Banka,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
             };
@@ -689,7 +702,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 Tur = HareketTuru.Gelir,
                 FisTuru = KasaFisTuru.BankadanCekme,
                 FisNo = islemNo,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 Belge = islemNo,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
@@ -701,8 +717,9 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             bh.TersKayitId = kh.Id;
             await _baglam.SaveChangesAsync(cancellationToken);
 
-            // Yevmiye (100 Kasa Borç / 102 Banka Alacak)
-            await TransferYevmiyesiEkleAsync(sirketId, islemNo, tarih, "BankaKasaTransfer", bh.Id, aciklama, "100", "102", dto.Tutar, cancellationToken);
+            // Yevmiye (100 Kasa Borç / 102 Banka Alacak) — seçilen kasa ve hesabın kendi muhasebe kodlarıyla.
+            await TransferYevmiyesiEkleAsync(sirketId, islemNo, tarih, "BankaKasaTransfer", bh.Id, aciklama,
+                await FinansMuhasebeKaydi.KasaKoduAsync(_baglam, kasa), await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, banka), tutar, cancellationToken);
 
             await tx.CommitAsync(cancellationToken);
         }
@@ -734,9 +751,12 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 ?? throw new KeyNotFoundException("Hedef banka hesabı bulunamadı.");
             TransferHesaplariniDogrula(kaynak.AktifMi, kaynak.Ad, hedef.AktifMi, hedef.Ad, kaynak.ParaBirimi, hedef.ParaBirimi);
 
-            var tarih = DateTime.UtcNow;
+            var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
-            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, kaynak, dto.Tutar + dto.Masraf);
+            if (FinansKurallari.DovizliMi(kaynak.ParaBirimi) && dto.Masraf > 0)
+                throw new InvalidOperationException("Dövizli hesapta virman masrafı ayrı bir banka gider fişiyle (döviz tutarı ve kurla) girilmelidir.");
+            var (tutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.BankaTransferTutariAsync(_baglam, kaynak, dto.Tutar);
+            await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, kaynak, tutar + dto.Masraf, dovizTutar);
 
             var islemNo = FinansKurallari.FisNoUret("BVR");
             var aciklama = string.IsNullOrWhiteSpace(dto.Aciklama) ? $"Banka Virmanı ({kaynak.Ad} -> {hedef.Ad})" : FinansKurallari.AciklamaDogrula(dto.Aciklama);
@@ -752,7 +772,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 FisTuru = BankaFisTuru.BankaVirman,
                 FisNo = islemNo,
                 OdemeYontemi = OdemeYontemi.Virman,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
             };
@@ -767,7 +790,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 FisTuru = BankaFisTuru.BankaVirman,
                 FisNo = islemNo,
                 OdemeYontemi = OdemeYontemi.Virman,
-                Tutar = dto.Tutar,
+                Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = aciklama,
                 IslemDurumu = FinansIslemDurumu.Tamamlandi
             };
@@ -800,7 +826,12 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
             bhHedef.TersKayitId = bhKaynak.Id;
             await _baglam.SaveChangesAsync(cancellationToken);
 
-            // Virman aynı 102 hesabında kalır; yalnızca masraf fişlenir (780 / 102).
+            // İki hesabın muhasebe kodu aynıysa virman fişlenmez; farklıysa (alt hesaplar, dövizli hesap) hedef / kaynak fişlenir.
+            var kaynakKodu = await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, kaynak);
+            var hedefKodu = await FinansMuhasebeKaydi.BankaKoduAsync(_baglam, hedef);
+            if (kaynakKodu != hedefKodu)
+                await TransferYevmiyesiEkleAsync(sirketId, islemNo, tarih, "BankaVirman", bhKaynak.Id, aciklama, hedefKodu, kaynakKodu, tutar, cancellationToken);
+            // Masraf fişi (780 / 102).
             if (masrafHareketi != null)
                 await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, masrafHareketi, "780");
             await tx.CommitAsync(cancellationToken);
@@ -840,7 +871,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
         await using var tx = await _baglam.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var tarih = DateTime.UtcNow;
+            var tarih = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc); // belge tarihi yerel saat "UTC" etiketli
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, tarih, sirketId);
             int? cariKartId;
             int? cariHareketId;
@@ -864,7 +895,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     var kasa = await _baglam.Kasalar.SingleAsync(k => k.Id == asil.KasaId.Value, cancellationToken);
                     // Gelirin iptali kasadan çıkış demektir; bakiye yetmeli.
                     if (asil.Tur == HareketTuru.Gelir)
-                        await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, asil.Tutar);
+                        await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, asil.Tutar, asil.DovizTutar);
                 }
 
                 asil.IslemDurumu = FinansIslemDurumu.IptalEdildi;
@@ -877,6 +908,10 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     FisTuru = asil.FisTuru,
                     FisNo = FinansKurallari.FisNoUret("IPT"),
                     Tutar = asil.Tutar,
+                    // Dövizli kasada ters kayıt aynı döviz tutarı ve kurla girer.
+                    ParaBirimiId = asil.ParaBirimiId,
+                    Kur = asil.Kur,
+                    DovizTutar = asil.DovizTutar,
                     CariKartId = asil.CariKartId,
                     Aciklama = $"Ters Kayıt: İptal ({temizNeden})",
                     Belge = asil.Belge,
@@ -904,7 +939,7 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     await FinansKurallari.BankaHesabiKilitleAsync(_baglam, asil.BankaHesabiId.Value);
                     var hesap = await _baglam.BankaHesaplari.SingleAsync(b => b.Id == asil.BankaHesabiId.Value, cancellationToken);
                     if (asil.Tur == HareketTuru.Gelir)
-                        await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, asil.Tutar);
+                        await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, asil.Tutar, asil.DovizTutar);
                 }
 
                 asil.IslemDurumu = FinansIslemDurumu.IptalEdildi;
@@ -920,6 +955,9 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     FisNo = FinansKurallari.FisNoUret("IPT"),
                     OdemeYontemi = asil.OdemeYontemi,
                     Tutar = asil.Tutar,
+                    ParaBirimiId = asil.ParaBirimiId,
+                    Kur = asil.Kur,
+                    DovizTutar = asil.DovizTutar,
                     CariKartId = asil.CariKartId,
                     Aciklama = $"Ters Kayıt: İptal ({temizNeden})",
                     IslemDurumu = FinansIslemDurumu.TersKayit,

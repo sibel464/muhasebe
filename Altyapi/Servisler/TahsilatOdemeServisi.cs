@@ -46,7 +46,8 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                 await FinansKurallari.KasaKilitleAsync(_baglam, kasaId);
                 var kasa = await _baglam.Kasalar.SingleOrDefaultAsync(k => k.Id == kasaId) ?? throw new KeyNotFoundException("Kasa bulunamadı.");
                 if (!kasa.AktifMi) throw new InvalidOperationException($"'{kasa.Ad}' kasası pasif durumda.");
-                if (talep.IslemTuru == FinansIslemTuru.Odeme) await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, talep.Tutar);
+                talep = await HesapTutarinaGoreAsync(talep, kasa.Ad, kasa.ParaBirimi);
+                if (talep.IslemTuru == FinansIslemTuru.Odeme) await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, talep.Tutar, talep.DovizTutar);
                 var h = new KasaHareketi { SirketId = cari.SirketId, Tarih = tarih, Tur = talep.IslemTuru == FinansIslemTuru.Tahsilat ? HareketTuru.Gelir : HareketTuru.Gider,
                     FisTuru = talep.IslemTuru == FinansIslemTuru.Tahsilat ? KasaFisTuru.Tahsilat : KasaFisTuru.Odeme,
                     Tutar = talep.Tutar, Aciklama = aciklama, Belge = talep.BelgeNo?.Trim(), CariKartId = cari.Id, 
@@ -94,7 +95,8 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                 await FinansKurallari.BankaHesabiKilitleAsync(_baglam, hesapId);
                 var hesap = await _baglam.BankaHesaplari.SingleOrDefaultAsync(b => b.Id == hesapId) ?? throw new KeyNotFoundException("Banka hesabı bulunamadı.");
                 if (!hesap.AktifMi) throw new InvalidOperationException($"'{hesap.Ad}' banka hesabı pasif durumda.");
-                if (talep.IslemTuru == FinansIslemTuru.Odeme) await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, talep.Tutar);
+                talep = await HesapTutarinaGoreAsync(talep, hesap.Ad, hesap.ParaBirimi);
+                if (talep.IslemTuru == FinansIslemTuru.Odeme) await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, hesap, talep.Tutar, talep.DovizTutar);
                 talep = talep with
                 {
                     BankaHesabiId = hesapId,
@@ -112,10 +114,9 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                 HareketTuru = talep.IslemTuru == FinansIslemTuru.Tahsilat ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
                 Aciklama = aciklama, BelgeNo = talep.BelgeNo?.Trim(), IlgiliBelgeId = hareketId,
                 Borc = talep.IslemTuru == FinansIslemTuru.Odeme ? talep.Tutar : 0,
-                Alacak = talep.IslemTuru == FinansIslemTuru.Tahsilat ? talep.Tutar : 0,
-                ParaBirimiId = talep.ParaBirimiId, Kur = talep.Kur,
-                DovizBorc = talep.IslemTuru == FinansIslemTuru.Odeme ? talep.DovizTutar : 0,
-                DovizAlacak = talep.IslemTuru == FinansIslemTuru.Tahsilat ? talep.DovizTutar : 0 };
+                // Cari TL karşılığıyla işlenir: faturalar carinin döviz bakiyesini tutmadığından tek taraflı döviz tutarı
+                // revalüasyonda cariye hayali kur farkı yazdırırdı. Döviz tutarı ve kur kasa/banka hareketinde kalır.
+                Alacak = talep.IslemTuru == FinansIslemTuru.Tahsilat ? talep.Tutar : 0 };
             _baglam.CariHareketler.Add(cariHareket);
             await YevmiyeEkleAsync(cari, talep, hareketId, tarih, aciklama, false);
             await _baglam.SaveChangesAsync();
@@ -201,9 +202,11 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                 {
                     await FinansKurallari.KasaKilitleAsync(_baglam, asil.KasaId.Value);
                     if (asil.Tur == HareketTuru.Gelir)
-                        await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, await _baglam.Kasalar.SingleAsync(k => k.Id == asil.KasaId.Value), tutar);
+                        await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, await _baglam.Kasalar.SingleAsync(k => k.Id == asil.KasaId.Value), tutar, asil.DovizTutar);
                 }
-                var ters = new KasaHareketi { SirketId = asil.SirketId, KasaId = asil.KasaId, FisTuru = asil.FisTuru, Tarih = tarih, Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = tutar, CariKartId = cariId, Aciklama = $"İptal: {neden.Trim()}", IslemDurumu = FinansIslemDurumu.TersKayit };
+                // Ters kayıt aynı döviz tutarı ve kurla girer; dövizli kasanın hem döviz hem TL bakiyesi geri döner.
+                var ters = new KasaHareketi { SirketId = asil.SirketId, KasaId = asil.KasaId, FisTuru = asil.FisTuru, Tarih = tarih, Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = tutar, CariKartId = cariId, Aciklama = $"İptal: {neden.Trim()}", IslemDurumu = FinansIslemDurumu.TersKayit,
+                    ParaBirimiId = asil.ParaBirimiId, Kur = asil.Kur, DovizTutar = asil.DovizTutar };
                 _baglam.KasaHareketleri.Add(ters); await _baglam.SaveChangesAsync(); asil.IslemDurumu = FinansIslemDurumu.IptalEdildi; asil.TersKayitId = ters.Id; ters.TersKayitId = asil.Id;
             }
             else
@@ -218,9 +221,10 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
                 {
                     await FinansKurallari.BankaHesabiKilitleAsync(_baglam, asil.BankaHesabiId.Value);
                     if (asil.Tur == HareketTuru.Gelir)
-                        await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, await _baglam.BankaHesaplari.SingleAsync(b => b.Id == asil.BankaHesabiId.Value), tutar);
+                        await FinansKurallari.BankaCikisiYapilabilirAsync(_baglam, await _baglam.BankaHesaplari.SingleAsync(b => b.Id == asil.BankaHesabiId.Value), tutar, asil.DovizTutar);
                 }
-                var ters = new BankaHareketi { SirketId = asil.SirketId, BankaHesabiId = asil.BankaHesabiId, FisTuru = asil.FisTuru, Tarih = tarih, Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = tutar, CariKartId = cariId, BankaAdi = banka, HesapNo = hesap, OdemeYontemi = yontem, Aciklama = $"İptal: {neden.Trim()}", IslemDurumu = FinansIslemDurumu.TersKayit };
+                var ters = new BankaHareketi { SirketId = asil.SirketId, BankaHesabiId = asil.BankaHesabiId, FisTuru = asil.FisTuru, Tarih = tarih, Tur = asil.Tur == HareketTuru.Gelir ? HareketTuru.Gider : HareketTuru.Gelir, Tutar = tutar, CariKartId = cariId, BankaAdi = banka, HesapNo = hesap, OdemeYontemi = yontem, Aciklama = $"İptal: {neden.Trim()}", IslemDurumu = FinansIslemDurumu.TersKayit,
+                    ParaBirimiId = asil.ParaBirimiId, Kur = asil.Kur, DovizTutar = asil.DovizTutar };
                 _baglam.BankaHareketleri.Add(ters); await _baglam.SaveChangesAsync(); asil.IslemDurumu = FinansIslemDurumu.IptalEdildi; asil.TersKayitId = ters.Id; ters.TersKayitId = asil.Id;
             }
             var cari = await _baglam.CariKartlar.SingleAsync(x => x.Id == cariId);
@@ -236,6 +240,13 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
             await _baglam.SaveChangesAsync(); await tx.CommitAsync();
         }
         catch { await tx.RollbackAsync(); throw; }
+    }
+
+    // Dövizli kasa/bankada TL tutar döviz × kurdan hesaplanır; cari ve yevmiye bu TL tutarla işlenir.
+    private async Task<TahsilatOdemeTalebi> HesapTutarinaGoreAsync(TahsilatOdemeTalebi talep, string hesapAdi, string paraBirimi)
+    {
+        var (tutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.HesapTutariAsync(_baglam, hesapAdi, paraBirimi, talep.Tutar, talep.DovizTutar, talep.Kur, talep.ParaBirimiId);
+        return talep with { Tutar = tutar, ParaBirimiId = paraBirimiId, Kur = kur, DovizTutar = dovizTutar };
     }
 
     private async Task YevmiyeEkleAsync(CariKart cari, TahsilatOdemeTalebi t, int belgeId, DateTime tarih, string aciklama, bool ters)
@@ -400,7 +411,9 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
     private static void Dogrula(TahsilatOdemeTalebi t)
     {
         if (t.CariKartId <= 0) throw new ArgumentException("Cari seçimi zorunludur.");
-        if (t.Tutar <= 0 || t.Tutar > EnBuyukTutar) throw new ArgumentException("Tutar sıfırdan büyük olmalıdır.");
+        // Dövizli hesapta TL tutar döviz × kurdan hesaplanır; yalnız döviz tutarı verilmiş olabilir.
+        if ((t.Tutar <= 0 && t.DovizTutar <= 0) || t.Tutar < 0 || t.Tutar > EnBuyukTutar) throw new ArgumentException("Tutar sıfırdan büyük olmalıdır.");
+        if (t.OdemeYontemi is OdemeYontemi.Cek or OdemeYontemi.Senet && t.Tutar <= 0) throw new ArgumentException("Çek/senet TL tutarı sıfırdan büyük olmalıdır.");
         // Çek/Senet için zorunlu alan
         if (t.OdemeYontemi is OdemeYontemi.Cek or OdemeYontemi.Senet && string.IsNullOrWhiteSpace(t.CekSenetNo))
             throw new ArgumentException("Çek/Senet numarası zorunludur.");

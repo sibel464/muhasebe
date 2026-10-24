@@ -1035,6 +1035,48 @@ public class MuhasebeBaglami : DbContext
         }
     }
 
+    // Dövizli kasa/banka hesabına yazılan her hareket hesabın para biriminde döviz tutarı ve kurla gelmelidir;
+    // TL tutar döviz × kurdur. Döviz bilgisi taşımayan akışlar (fatura peşin, POS, çek tahsili, virman...) dövizli
+    // hesabı seçerse kayıt reddedilir; aksi halde TL tutar döviz bakiyesi gibi okunur, revalüasyon yanlış kur farkı yazardı.
+    private async Task DovizliHesapHareketleriniDogrulaAsync(CancellationToken cancellationToken)
+    {
+        var kasaHareketleri = ChangeTracker.Entries<KasaHareketi>().Where(e => e.State == EntityState.Added && e.Entity.KasaId != null)
+            .Select(e => e.Entity).ToList();
+        var bankaHareketleri = ChangeTracker.Entries<BankaHareketi>().Where(e => e.State == EntityState.Added && e.Entity.BankaHesabiId != null)
+            .Select(e => e.Entity).ToList();
+        if (kasaHareketleri.Count == 0 && bankaHareketleri.Count == 0)
+            return;
+
+        var kasaIdleri = kasaHareketleri.Select(h => h.KasaId!.Value).Distinct().ToList();
+        var bankaIdleri = bankaHareketleri.Select(h => h.BankaHesabiId!.Value).Distinct().ToList();
+        var dovizliKasalar = await Kasalar.IgnoreQueryFilters().AsNoTracking()
+            .Where(k => kasaIdleri.Contains(k.Id) && k.ParaBirimi != "TRY")
+            .ToDictionaryAsync(k => k.Id, k => (k.Ad, k.ParaBirimi), cancellationToken);
+        var dovizliBankalar = await BankaHesaplari.IgnoreQueryFilters().AsNoTracking()
+            .Where(b => bankaIdleri.Contains(b.Id) && b.ParaBirimi != "TRY")
+            .ToDictionaryAsync(b => b.Id, b => (b.Ad, b.ParaBirimi), cancellationToken);
+        if (dovizliKasalar.Count == 0 && dovizliBankalar.Count == 0)
+            return;
+
+        var paraBirimleri = await ParaBirimleri.AsNoTracking().ToDictionaryAsync(p => p.Id, p => p.Kod, cancellationToken);
+        void Dogrula(string hesapAdi, string hesapParaBirimi, int? paraBirimiId, decimal kur, decimal dovizTutar, decimal tutar)
+        {
+            var kod = paraBirimiId is int id ? paraBirimleri.GetValueOrDefault(id) : null;
+            if (!string.Equals(kod, hesapParaBirimi, StringComparison.OrdinalIgnoreCase) || kur <= 0 || dovizTutar <= 0)
+                throw new InvalidOperationException($"'{hesapAdi}' bir {hesapParaBirimi} hesabıdır. Bu işlem dövizli hesapta yapılamaz; TL hesap seçin " +
+                    $"veya işlemi kasa/banka fişi ya da tahsilat/ödeme ekranından {hesapParaBirimi} tutarı ve kuruyla girin.");
+            // Hesaplar arası transfer ortalama kurla (6 hane) taşındığından büyük tutarlarda küçük yuvarlama payı olabilir.
+            if (Math.Abs(tutar - Math.Round(dovizTutar * kur, 2, MidpointRounding.AwayFromZero)) > Math.Max(0.01m, dovizTutar * 0.000001m))
+                throw new InvalidOperationException($"'{hesapAdi}' hareketinde TL tutar döviz tutarı × kur ile tutmuyor.");
+        }
+        foreach (var h in kasaHareketleri)
+            if (dovizliKasalar.TryGetValue(h.KasaId!.Value, out var k))
+                Dogrula(k.Ad, k.ParaBirimi, h.ParaBirimiId, h.Kur, h.DovizTutar, h.Tutar);
+        foreach (var h in bankaHareketleri)
+            if (dovizliBankalar.TryGetValue(h.BankaHesabiId!.Value, out var b))
+                Dogrula(b.Ad, b.ParaBirimi, h.ParaBirimiId, h.Kur, h.DovizTutar, h.Tutar);
+    }
+
     // Kilitli (kapatılmış) mali döneme tarihli belge, hareket ve fiş eklenemez, silinemez; fiş durumu/tarihi değiştirilemez.
     // Servislerin bir kısmı bunu kendisi denetliyordu, fatura/stok/irsaliye denetlemiyordu; tek noktada her kayıt için uygulanır.
     // Dönem içindeki kayıtların kapama tutarı gibi alanlarının güncellenmesi (bugünkü tahsilatın eski faturayı kapatması) serbesttir.
@@ -1072,6 +1114,7 @@ public class MuhasebeBaglami : DbContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await KasaVeBankaBaglantisiniTamamlaAsync(cancellationToken);
+        await DovizliHesapHareketleriniDogrulaAsync(cancellationToken);
 
         // Yeni kayıt şirketi belirtilmemişse: cariye bağlı kayıtta (cari hareket, sipariş, irsaliye, fatura...) carinin
         // firması, değilse aktif firma (o da yoksa varsayılan şirket) yazılır.

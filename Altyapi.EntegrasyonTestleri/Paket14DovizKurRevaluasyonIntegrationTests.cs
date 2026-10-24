@@ -339,20 +339,41 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         Assert.True(odemeFis.DengedeMi);
     }
 
+    // Dövizli hesap bakiyesi hareketlerden hesaplanır: açılış hareketi döviz tutarı ve kurla girilir.
+    private static async Task<int> ParaBirimiIdAsync(MuhasebeBaglami db, string kod)
+    {
+        var pb = await db.ParaBirimleri.FirstOrDefaultAsync(p => p.Kod == kod);
+        if (pb == null) { pb = new ParaBirimi { Kod = kod, Ad = kod, Sembol = kod }; db.ParaBirimleri.Add(pb); await db.SaveChangesAsync(); }
+        return pb.Id;
+    }
+
+    private static async Task DovizliKasaAcAsync(MuhasebeBaglami db, Guid sirketId, string kod, string paraBirimi, decimal doviz, decimal kur)
+    {
+        var kasa = new Kasa { MuhasebeKodu = "100", SirketId = sirketId, Kod = kod, Ad = $"{paraBirimi} Kasa", ParaBirimi = paraBirimi, AktifMi = true };
+        db.Kasalar.Add(kasa);
+        await db.SaveChangesAsync();
+        db.KasaHareketleri.Add(new KasaHareketi { SirketId = sirketId, KasaId = kasa.Id, Tur = HareketTuru.Gelir, FisTuru = KasaFisTuru.AcilisDevir,
+            ParaBirimiId = await ParaBirimiIdAsync(db, paraBirimi), DovizTutar = doviz, Kur = kur, Tutar = doviz * kur, Tarih = DateTime.UtcNow.AddDays(-5), Aciklama = "Açılış" });
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task Test_15_16_Fx_Bank_And_Cash_Balance_Tracking()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, _, _, _, revaluasyonServisi, _, _, _) = await SetupTestEnvironmentAsync(db);
 
-        db.BankaHesaplari.Add(new BankaHesabi { MuhasebeKodu = "102",
+        var ticari = new BankaHesabi { MuhasebeKodu = "102",
             SirketId = sirketId,
             Ad = "USD Ticari Banka",
             HesapNo = "USD-001",
             ParaBirimi = "USD",
-            Bakiye = 5000m,
             AktifMi = true
-        });
+        };
+        db.BankaHesaplari.Add(ticari);
+        await db.SaveChangesAsync();
+        db.BankaHareketleri.Add(new BankaHareketi { SirketId = sirketId, BankaHesabiId = ticari.Id, Tur = HareketTuru.Gelir, FisTuru = BankaFisTuru.GelenHavale,
+            ParaBirimiId = await ParaBirimiIdAsync(db, "USD"), DovizTutar = 5000m, Kur = 40m, Tutar = 200000m, Tarih = DateTime.UtcNow.AddDays(-1) });
         await db.SaveChangesAsync();
 
         var ozetler = await revaluasyonServisi.GetirDovizliBakiyeOzetleriAsync(sirketId);
@@ -373,7 +394,6 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
             Ad = "USD Mevduat",
             HesapNo = "USD-999",
             ParaBirimi = "USD",
-            Bakiye = 1000m,
             AktifMi = true
         };
         db.BankaHesaplari.Add(banka);
@@ -388,7 +408,9 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
             BankaHesabiId = banka.Id,
             Tur = HareketTuru.Gelir,
             FisTuru = BankaFisTuru.GelenHavale,
-            Tutar = 1000m,
+            ParaBirimiId = await ParaBirimiIdAsync(db, "USD"),
+            DovizTutar = 1000m,
+            Tutar = 40000m,
             Kur = 40.00m,
             Tarih = DateTime.UtcNow.AddDays(-10)
         });
@@ -408,9 +430,8 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         Assert.NotNull(kayit1);
         Assert.Equal(2000m, kayit1.ToplamKurFarki);
 
-        // Verify operational FX balance remains exactly 1000 USD (Rule 2)
-        var updatedBanka = await db.BankaHesaplari.FindAsync(banka.Id);
-        Assert.Equal(1000m, updatedBanka!.Bakiye);
+        // Verify operational FX balance remains exactly 1000 USD (Rule 2): değerleme hareket yazmaz, yalnız yevmiye
+        Assert.Equal(1000m, await db.BankaHareketleri.Where(h => h.BankaHesabiId == banka.Id).SumAsync(h => h.DovizTutar));
         Assert.Equal(42.00m, kalem1.YeniDegerlemeKuru);
 
         // 2nd Revaluation: 42.00 -> 43.00 = +1.000 TRY Incremental Gain ONLY (Rule 4)
@@ -429,8 +450,7 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, kullanici, _, _, revaluasyonServisi, _, _, _) = await SetupTestEnvironmentAsync(db);
 
-        db.Kasalar.Add(new Kasa { MuhasebeKodu = "100", SirketId = sirketId, Kod = "K-USD", Ad = "USD Kasa", ParaBirimi = "USD", Bakiye = 500m, AktifMi = true });
-        await db.SaveChangesAsync();
+        await DovizliKasaAcAsync(db, sirketId, "K-USD", "USD", 500m, 40m);
 
         db.DovizKurlari.Add(new DovizKuru { ParaBirimiKodu = "USD", Tarih = DateTime.UtcNow.Date, DovizAlis = 45.00m, DovizSatis = 45.00m });
         await db.SaveChangesAsync();
@@ -451,8 +471,7 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, kullanici, _, _, revaluasyonServisi, yevmiyeServisi, _, _) = await SetupTestEnvironmentAsync(db);
 
-        db.Kasalar.Add(new Kasa { MuhasebeKodu = "100", SirketId = sirketId, Kod = "K-EUR", Ad = "EUR Kasa", ParaBirimi = "EUR", Bakiye = 1000m, AktifMi = true });
-        await db.SaveChangesAsync();
+        await DovizliKasaAcAsync(db, sirketId, "K-EUR", "EUR", 1000m, 45m);
 
         db.DovizKurlari.Add(new DovizKuru { ParaBirimiKodu = "EUR", Tarih = DateTime.UtcNow.Date, DovizAlis = 48.00m, DovizSatis = 48.00m });
         await db.SaveChangesAsync();
@@ -512,8 +531,7 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         db.Sirketler.Add(new Sirket { Id = sirket2Id, Unvan = "Firma B Ltd", SirketKodu = $"FIRMA-B-{Guid.NewGuid()}" });
         await db.SaveChangesAsync();
 
-        db.Kasalar.Add(new Kasa { MuhasebeKodu = "100", SirketId = sirket2Id, Kod = "K-B", Ad = "B Kasa", ParaBirimi = "USD", Bakiye = 2000m, AktifMi = true });
-        await db.SaveChangesAsync();
+        await DovizliKasaAcAsync(db, sirket2Id, "K-B", "USD", 2000m, 40m);
 
         var gecmis1 = await revaluasyonServisi.GetirRevaluasyonGecmisiAsync(sirketId1);
         Assert.DoesNotContain(gecmis1.Liste, r => r.SirketId == sirket2Id);
@@ -579,8 +597,7 @@ public sealed partial class Paket14DovizKurRevaluasyonIntegrationTests
         await using var db = new MuhasebeBaglami(_fixture.Options);
         var (sirketId, kullanici, _, _, revaluasyonServisi, yevmiyeServisi, raporServisi, _) = await SetupTestEnvironmentAsync(db);
 
-        db.Kasalar.Add(new Kasa { MuhasebeKodu = "100", SirketId = sirketId, Kod = "K-USD2", Ad = "USD Kasa 2", ParaBirimi = "USD", Bakiye = 1000m, AktifMi = true });
-        await db.SaveChangesAsync();
+        await DovizliKasaAcAsync(db, sirketId, "K-USD2", "USD", 1000m, 40m);
 
         db.DovizKurlari.Add(new DovizKuru { ParaBirimiKodu = "USD", Tarih = DateTime.UtcNow.Date, DovizAlis = 50.00m, DovizSatis = 50.00m });
         await db.SaveChangesAsync();

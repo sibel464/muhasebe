@@ -94,8 +94,8 @@ public class KasaServisi : IKasaServisi
         if (hareket.CariKartId is > 0 && hareket.FisTuru is KasaFisTuru.Tahsilat or KasaFisTuru.Odeme)
         {
             return hareket.FisTuru == KasaFisTuru.Tahsilat
-                ? await TahsilatEkleAsync(hareket.KasaId ?? 0, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, hareket.MakbuzNo ?? hareket.Belge, hareket.Tarih)
-                : await OdemeEkleAsync(hareket.KasaId ?? 0, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, hareket.MakbuzNo ?? hareket.Belge, hareket.Tarih);
+                ? await TahsilatEkleAsync(hareket.KasaId ?? 0, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, hareket.MakbuzNo ?? hareket.Belge, hareket.Tarih, hareket.DovizTutar, hareket.Kur)
+                : await OdemeEkleAsync(hareket.KasaId ?? 0, hareket.CariKartId.Value, hareket.Tutar, hareket.Aciklama, hareket.MakbuzNo ?? hareket.Belge, hareket.Tarih, hareket.DovizTutar, hareket.Kur);
         }
 
         switch (hareket.FisTuru)
@@ -122,7 +122,8 @@ public class KasaServisi : IKasaServisi
         if (hareket.CariKartId.HasValue)
             throw new ArgumentException("Cari kart yalnızca tahsilat ve ödeme fişlerinde seçilebilir.");
 
-        FinansKurallari.TutarDogrula(hareket.Tutar, "Kasa hareket");
+        if (hareket.DovizTutar <= 0)
+            FinansKurallari.TutarDogrula(hareket.Tutar, "Kasa hareket");
         hareket.Aciklama = FinansKurallari.AciklamaDogrula(hareket.Aciklama);
         hareket.Tarih = FinansKurallari.TarihNormalizeEt(hareket.Tarih);
 
@@ -134,10 +135,13 @@ public class KasaServisi : IKasaServisi
                 : await VarsayilanKasaGetirVeyaOlusturAsync();
             if (hareket.KasaId is not > 0)
                 await FinansKurallari.KasaKilitleAsync(_baglam, kasa.Id);
+            (hareket.Tutar, hareket.ParaBirimiId, hareket.Kur, hareket.DovizTutar) = await FinansKurallari.HesapTutariAsync(
+                _baglam, kasa.Ad, kasa.ParaBirimi, hareket.Tutar, hareket.DovizTutar, hareket.Kur, hareket.ParaBirimiId);
+            FinansKurallari.TutarDogrula(hareket.Tutar, "Kasa hareket");
 
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, hareket.Tarih, kasa.SirketId);
             if (hareket.Tur == HareketTuru.Gider)
-                await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, hareket.Tutar);
+                await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, hareket.Tutar, hareket.DovizTutar);
 
             hareket.Id = 0;
             hareket.KasaId = kasa.Id;
@@ -178,10 +182,10 @@ public class KasaServisi : IKasaServisi
         return TahsilatEkleAsync(0, cariKartId, tutar, aciklama, belgeNo, tarih);
     }
 
-    public Task<KasaHareketi> TahsilatEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
+    public Task<KasaHareketi> TahsilatEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null, decimal dovizTutar = 0, decimal kur = 0)
     {
         Oturum.YetkiKontrolEt(y => y.TahsilatYap || y.KasaYonet, "Kasa Tahsilat Girişi");
-        return CariIslemEkleAsync(kasaId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: true);
+        return CariIslemEkleAsync(kasaId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: true, dovizTutar, kur);
     }
 
     public Task<KasaHareketi> OdemeEkleAsync(int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
@@ -189,15 +193,17 @@ public class KasaServisi : IKasaServisi
         return OdemeEkleAsync(0, cariKartId, tutar, aciklama, belgeNo, tarih);
     }
 
-    public Task<KasaHareketi> OdemeEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null)
+    public Task<KasaHareketi> OdemeEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo = null, DateTime? tarih = null, decimal dovizTutar = 0, decimal kur = 0)
     {
         Oturum.YetkiKontrolEt(y => y.OdemeYap || y.KasaYonet, "Kasa Ödeme Çıkışı");
-        return CariIslemEkleAsync(kasaId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: false);
+        return CariIslemEkleAsync(kasaId, cariKartId, tutar, aciklama, belgeNo, tarih, tahsilat: false, dovizTutar, kur);
     }
 
-    private async Task<KasaHareketi> CariIslemEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo, DateTime? tarih, bool tahsilat)
+    private async Task<KasaHareketi> CariIslemEkleAsync(int kasaId, int cariKartId, decimal tutar, string aciklama, string? belgeNo, DateTime? tarih, bool tahsilat,
+        decimal dovizTutar = 0, decimal kur = 0)
     {
-        FinansKurallari.TutarDogrula(tutar, tahsilat ? "Tahsilat" : "Ödeme");
+        if (dovizTutar <= 0)
+            FinansKurallari.TutarDogrula(tutar, tahsilat ? "Tahsilat" : "Ödeme");
         if (cariKartId <= 0)
             throw new ArgumentException("Geçerli bir cari kart seçilmelidir.");
         var temizAciklama = FinansKurallari.AciklamaDogrula(aciklama);
@@ -212,6 +218,9 @@ public class KasaServisi : IKasaServisi
                 : await VarsayilanKasaGetirVeyaOlusturAsync();
             if (kasaId <= 0)
                 await FinansKurallari.KasaKilitleAsync(_baglam, kasa.Id);
+            // Cari TL karşılığıyla işlenir; döviz tutarı ve kur kasa hareketinde kalır.
+            (tutar, var paraBirimiId, kur, dovizTutar) = await FinansKurallari.HesapTutariAsync(_baglam, kasa.Ad, kasa.ParaBirimi, tutar, dovizTutar, kur);
+            FinansKurallari.TutarDogrula(tutar, tahsilat ? "Tahsilat" : "Ödeme");
 
             var cari = await _baglam.CariKartlar.FirstOrDefaultAsync(c => c.Id == cariKartId)
                 ?? throw new KeyNotFoundException("Cari kart bulunamadı.");
@@ -220,7 +229,7 @@ public class KasaServisi : IKasaServisi
 
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, kasa.SirketId ?? cari.SirketId);
             if (!tahsilat)
-                await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, tutar);
+                await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, tutar, dovizTutar);
 
             var kasaHareketi = new KasaHareketi
             {
@@ -232,6 +241,9 @@ public class KasaServisi : IKasaServisi
                 FisNo = FinansKurallari.FisNoUret("KSF"),
                 MakbuzNo = temizBelgeNo,
                 Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = temizAciklama,
                 Belge = temizBelgeNo,
                 CariKartId = cariKartId,
@@ -298,7 +310,9 @@ public class KasaServisi : IKasaServisi
                 throw new InvalidOperationException("Farklı para birimindeki kasalar arasında virman yapılamaz.");
 
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, kaynakKasa.SirketId);
-            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kaynakKasa, tutar);
+            var (tlTutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.KasaTransferTutariAsync(_baglam, kaynakKasa, tutar);
+            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kaynakKasa, tutar, dovizTutar);
+            tutar = tlTutar;
 
             var fisNo = FinansKurallari.FisNoUret("VRM");
 
@@ -311,6 +325,9 @@ public class KasaServisi : IKasaServisi
                 FisTuru = KasaFisTuru.KasaVirman,
                 FisNo = fisNo,
                 Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = $"Virman Çıkış -> {hedefKasa.Ad}: {temizAciklama}",
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -326,6 +343,9 @@ public class KasaServisi : IKasaServisi
                 FisTuru = KasaFisTuru.KasaVirman,
                 FisNo = fisNo,
                 Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = $"Virman Giriş <- {kaynakKasa.Ad}: {temizAciklama}",
                 TersKayitId = cikis.Id,
                 OlusturmaTarihi = DateTime.UtcNow
@@ -371,7 +391,9 @@ public class KasaServisi : IKasaServisi
                 throw new InvalidOperationException("Kasa ile banka hesabının para birimi aynı olmalıdır.");
 
             await FinansKurallari.DonemAcikOlmaliAsync(_baglam, islemTarihi, kasa.SirketId);
-            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, tutar);
+            var (tlTutar, paraBirimiId, kur, dovizTutar) = await FinansKurallari.KasaTransferTutariAsync(_baglam, kasa, tutar);
+            await FinansKurallari.KasaCikisiYapilabilirAsync(_baglam, kasa, tutar, dovizTutar);
+            tutar = tlTutar;
 
             var fisNo = FinansKurallari.FisNoUret("BNK-YTR");
 
@@ -384,6 +406,9 @@ public class KasaServisi : IKasaServisi
                 FisTuru = KasaFisTuru.BankayaYatirma,
                 FisNo = fisNo,
                 Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = $"Bankaya Para Yatırma -> {banka.Ad} ({banka.Iban}): {temizAciklama}",
                 OlusturmaTarihi = DateTime.UtcNow
             };
@@ -401,6 +426,9 @@ public class KasaServisi : IKasaServisi
                 FisTuru = BankaFisTuru.BankayaYatirma,
                 FisNo = fisNo,
                 Tutar = tutar,
+                ParaBirimiId = paraBirimiId,
+                Kur = kur,
+                DovizTutar = dovizTutar,
                 Aciklama = $"Kasadan Para Yatırma <- {kasa.Ad}: {temizAciklama}",
                 TersKayitId = kasaCikis.Id,
                 OlusturmaTarihi = DateTime.UtcNow
@@ -622,11 +650,16 @@ public class KasaServisi : IKasaServisi
         return FinansKurallari.KasaBakiyesiAsync(_baglam, kasaId);
     }
 
+    public Task<decimal> KasaDovizBakiyeHesaplaAsync(int kasaId)
+    {
+        GoruntulemeYetkisi();
+        return FinansKurallari.KasaDovizBakiyesiAsync(_baglam, kasaId);
+    }
+
     public async Task<Kasa> KasaEkleAsync(Kasa kasa)
     {
         Oturum.YetkiKontrolEt(y => y.KasaYonet, "Kasa Tanımı Ekleme");
         KasaTanimiDogrula(kasa);
-        FinansKurallari.YalnizTlHesapAcilabilir(kasa.ParaBirimi);
 
         if (await _baglam.Kasalar.AnyAsync(k => k.Kod == kasa.Kod))
             throw new InvalidOperationException($"'{kasa.Kod}' kodlu bir kasa zaten var.");
@@ -655,12 +688,14 @@ public class KasaServisi : IKasaServisi
         var kayitli = _baglam.Entry(mevcut).OriginalValues;
         var kayitliParaBirimi = kayitli.GetValue<string>(nameof(Kasa.ParaBirimi));
         var kayitliAktif = kayitli.GetValue<bool>(nameof(Kasa.AktifMi));
-        FinansKurallari.YalnizTlHesapAcilabilir(kasa.ParaBirimi, kayitliParaBirimi);
 
         var hareketVar = await _baglam.KasaHareketleri.AnyAsync(h => h.KasaId == mevcut.Id);
         if (hareketVar && !string.Equals(kayitliParaBirimi, kasa.ParaBirimi, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Hareket görmüş bir kasanın para birimi değiştirilemez.");
-        if (kayitliAktif && !kasa.AktifMi && await FinansKurallari.KasaBakiyesiAsync(_baglam, mevcut.Id) != 0)
+        var bakiye = FinansKurallari.DovizliMi(kayitliParaBirimi)
+            ? await FinansKurallari.KasaDovizBakiyesiAsync(_baglam, mevcut.Id)
+            : await FinansKurallari.KasaBakiyesiAsync(_baglam, mevcut.Id);
+        if (kayitliAktif && !kasa.AktifMi && bakiye != 0)
             throw new InvalidOperationException("Bakiyesi sıfır olmayan kasa pasife alınamaz. Önce bakiyeyi başka bir kasaya virman yapın.");
 
         mevcut.Kod = kasa.Kod;

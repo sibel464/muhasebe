@@ -127,120 +127,39 @@ public class RevaluasyonServisi : IRevaluasyonServisi
             }
         }
 
-        // 2. Scan FX Bank Accounts
-        var dovizliBankalar = await _baglam.BankaHesaplari
-            .AsNoTracking()
+        // 2-3. Dövizli banka hesapları ve kasalar: döviz bakiyesi hareketlerin döviz tutarlarından, defter değeri TL
+        // tutarlarından (+ önceki onaylı değerleme farkları; fark yalnız yevmiyeye yazılır). Döviz bakiyesi sıfır olsa da
+        // defter değeri kalmışsa (döviz farklı kurdan girip çıktıysa) o fark da kapatılır. Kart üzerindeki Bakiye alanı tutulmaz.
+        var bankalar = await _baglam.BankaHesaplari.AsNoTracking()
             .Where(b => b.SirketId == targetSirketId && b.ParaBirimi.ToUpper() == currency && b.AktifMi)
             .ToListAsync();
-
-        foreach (var b in dovizliBankalar)
+        var bankaIdleri = bankalar.Select(b => b.Id).ToList();
+        var bankaOzet = await _baglam.BankaHareketleri.AsNoTracking()
+            .Where(h => h.BankaHesabiId != null && bankaIdleri.Contains(h.BankaHesabiId.Value) && h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih < date.AddDays(1))
+            .GroupBy(h => h.BankaHesabiId!.Value)
+            .Select(g => new { Id = g.Key, Doviz = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.DovizTutar : -h.DovizTutar), Tl = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar) })
+            .ToDictionaryAsync(x => x.Id);
+        foreach (var b in bankalar)
         {
-            decimal dovizBakiye = b.Bakiye;
-            if (Math.Abs(dovizBakiye) > 0.001m)
-            {
-                var bankaHareketler = await _baglam.BankaHareketleri
-                    .AsNoTracking()
-                    .Where(h => h.BankaHesabiId == b.Id && !h.Silindi)
-                    .ToListAsync();
-
-                var prevKalem = await _baglam.RevaluasyonKalemleri
-                    .AsNoTracking()
-                    .Where(rk => rk.KaynakTuru == "Banka" && rk.KaynakId == b.Id && !rk.Silindi && rk.RevaluasyonKaydi != null && rk.RevaluasyonKaydi.Durum == RevaluasyonDurumu.Onaylandi && rk.RevaluasyonKaydi.DegerlemeTarihi <= date && rk.RevaluasyonKaydi.ParaBirimiKodu == currency)
-                    .OrderByDescending(rk => rk.Id)
-                    .FirstOrDefaultAsync();
-
-                decimal sonRevalKuru = prevKalem?.YeniDegerlemeKuru ?? 0m;
-                decimal eskiDefterDegeri;
-                // Hareketlerin TL karşılığı + önceki onaylı değerleme farkları. Eskiden son değerlemeden sonra
-                // yapılan hareketler son değerleme kuruyla sayılıyordu (bakiye × son kur); farklı kurdan giren
-                // döviz yanlış kur farkı üretiyordu.
-                eskiDefterDegeri = bankaHareketler.Sum(h =>
-                {
-                    decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
-                    decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
-                    return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
-                }) + await OncekiKurFarklariAsync(targetSirketId, "Banka", b.Id, currency, date);
-
-                decimal oncekiKur = sonRevalKuru > 0 ? sonRevalKuru : (dovizBakiye != 0 && eskiDefterDegeri != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur);
-                decimal yeniYerelDeger = dovizBakiye * yeniKur;
-                decimal kurFarki = yeniYerelDeger - eskiDefterDegeri;
-
-                if (Math.Abs(kurFarki) > 0.01m || Math.Abs(dovizBakiye) > 0.001m)
-                {
-                    result.Kalemler.Add(new RevaluasyonKalemiDto
-                    {
-                        KaynakTuru = "Banka",
-                        KaynakId = b.Id,
-                        KaynakKodu = b.HesapNo,
-                        KaynakAciklama = b.Ad,
-                        HesapKodu = string.IsNullOrWhiteSpace(b.MuhasebeKodu) ? await _baglantiServisi.GetirHesapKoduForKategoriAsync("BANKA", targetSirketId) : b.MuhasebeKodu,
-                        DovizBakiye = dovizBakiye,
-                        EskiDefterDegeri = eskiDefterDegeri,
-                        OncekiDegerlemeKuru = Math.Round(oncekiKur, 4),
-                        YeniDegerlemeKuru = yeniKur,
-                        YeniYerelDeger = yeniYerelDeger,
-                        KurFarki = kurFarki
-                    });
-                }
-            }
+            bankaOzet.TryGetValue(b.Id, out var o);
+            var hesapKodu = string.IsNullOrWhiteSpace(b.MuhasebeKodu) ? await _baglantiServisi.GetirHesapKoduForKategoriAsync("BANKA", targetSirketId) : b.MuhasebeKodu;
+            await HesapKalemiEkleAsync(result, "Banka", b.Id, b.HesapNo, b.Ad, hesapKodu, o?.Doviz ?? 0m, o?.Tl ?? 0m, targetSirketId, currency, date, yeniKur);
         }
 
-        // 3. Scan FX Cash Accounts
-        var dovizliKasalar = await _baglam.Kasalar
-            .AsNoTracking()
+        var kasalar = await _baglam.Kasalar.AsNoTracking()
             .Where(k => k.SirketId == targetSirketId && k.ParaBirimi.ToUpper() == currency && k.AktifMi)
             .ToListAsync();
-
-        foreach (var k in dovizliKasalar)
+        var kasaIdleri = kasalar.Select(k => k.Id).ToList();
+        var kasaOzet = await _baglam.KasaHareketleri.AsNoTracking()
+            .Where(h => h.KasaId != null && kasaIdleri.Contains(h.KasaId.Value) && h.IslemDurumu == FinansIslemDurumu.Tamamlandi && h.Tarih < date.AddDays(1))
+            .GroupBy(h => h.KasaId!.Value)
+            .Select(g => new { Id = g.Key, Doviz = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.DovizTutar : -h.DovizTutar), Tl = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar) })
+            .ToDictionaryAsync(x => x.Id);
+        foreach (var k in kasalar)
         {
-            decimal dovizBakiye = k.Bakiye;
-            if (Math.Abs(dovizBakiye) > 0.001m)
-            {
-                var kasaHareketler = await _baglam.KasaHareketleri
-                    .AsNoTracking()
-                    .Where(h => h.KasaId == k.Id && !h.Silindi)
-                    .ToListAsync();
-
-                var prevKalem = await _baglam.RevaluasyonKalemleri
-                    .AsNoTracking()
-                    .Where(rk => rk.KaynakTuru == "Kasa" && rk.KaynakId == k.Id && !rk.Silindi && rk.RevaluasyonKaydi != null && rk.RevaluasyonKaydi.Durum == RevaluasyonDurumu.Onaylandi && rk.RevaluasyonKaydi.DegerlemeTarihi <= date && rk.RevaluasyonKaydi.ParaBirimiKodu == currency)
-                    .OrderByDescending(rk => rk.Id)
-                    .FirstOrDefaultAsync();
-
-                decimal sonRevalKuru = prevKalem?.YeniDegerlemeKuru ?? 0m;
-                decimal eskiDefterDegeri;
-                // Hareketlerin TL karşılığı + önceki onaylı değerleme farkları. Eskiden son değerlemeden sonra
-                // yapılan hareketler son değerleme kuruyla sayılıyordu (bakiye × son kur); farklı kurdan giren
-                // döviz yanlış kur farkı üretiyordu.
-                eskiDefterDegeri = kasaHareketler.Sum(h =>
-                {
-                    decimal factor = h.Tur == HareketTuru.Gelir ? 1m : -1m;
-                    decimal fxVal = h.DovizTutar > 0 ? h.DovizTutar : h.Tutar;
-                    return factor * (h.Kur > 1 ? fxVal * h.Kur : h.Tutar);
-                }) + await OncekiKurFarklariAsync(targetSirketId, "Kasa", k.Id, currency, date);
-
-                decimal oncekiKur = sonRevalKuru > 0 ? sonRevalKuru : (dovizBakiye != 0 && eskiDefterDegeri != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur);
-                decimal yeniYerelDeger = dovizBakiye * yeniKur;
-                decimal kurFarki = yeniYerelDeger - eskiDefterDegeri;
-
-                if (Math.Abs(kurFarki) > 0.01m || Math.Abs(dovizBakiye) > 0.001m)
-                {
-                    result.Kalemler.Add(new RevaluasyonKalemiDto
-                    {
-                        KaynakTuru = "Kasa",
-                        KaynakId = k.Id,
-                        KaynakKodu = k.Kod,
-                        KaynakAciklama = k.Ad,
-                        HesapKodu = string.IsNullOrWhiteSpace(k.MuhasebeKodu) ? await _baglantiServisi.GetirHesapKoduForKategoriAsync("KASA", targetSirketId) : k.MuhasebeKodu,
-                        DovizBakiye = dovizBakiye,
-                        EskiDefterDegeri = eskiDefterDegeri,
-                        OncekiDegerlemeKuru = Math.Round(oncekiKur, 4),
-                        YeniDegerlemeKuru = yeniKur,
-                        YeniYerelDeger = yeniYerelDeger,
-                        KurFarki = kurFarki
-                    });
-                }
-            }
+            kasaOzet.TryGetValue(k.Id, out var o);
+            var hesapKodu = string.IsNullOrWhiteSpace(k.MuhasebeKodu) ? await _baglantiServisi.GetirHesapKoduForKategoriAsync("KASA", targetSirketId) : k.MuhasebeKodu;
+            await HesapKalemiEkleAsync(result, "Kasa", k.Id, k.Kod, k.Ad, hesapKodu, o?.Doviz ?? 0m, o?.Tl ?? 0m, targetSirketId, currency, date, yeniKur);
         }
 
         result.ToplamEskiYerel = result.Kalemler.Sum(k => k.EskiDefterDegeri);
@@ -248,6 +167,37 @@ public class RevaluasyonServisi : IRevaluasyonServisi
         result.ToplamKurFarki = result.Kalemler.Sum(k => k.KurFarki);
 
         return result;
+    }
+
+    private async Task HesapKalemiEkleAsync(RevaluasyonOnizleDto result, string kaynakTuru, int kaynakId, string kaynakKodu, string kaynakAciklama,
+        string hesapKodu, decimal dovizBakiye, decimal tlDegeri, Guid sirketId, string currency, DateTime date, decimal yeniKur)
+    {
+        var eskiDefterDegeri = tlDegeri + await OncekiKurFarklariAsync(sirketId, kaynakTuru, kaynakId, currency, date);
+        var yeniYerelDeger = Math.Round(dovizBakiye * yeniKur, 2, MidpointRounding.AwayFromZero);
+        var kurFarki = yeniYerelDeger - eskiDefterDegeri;
+        if (Math.Abs(kurFarki) < 0.01m)
+            return;
+
+        var oncekiKalem = await _baglam.RevaluasyonKalemleri.AsNoTracking()
+            .Where(rk => rk.KaynakTuru == kaynakTuru && rk.KaynakId == kaynakId && rk.RevaluasyonKaydi != null && rk.RevaluasyonKaydi.Durum == RevaluasyonDurumu.Onaylandi
+                && rk.RevaluasyonKaydi.DegerlemeTarihi <= date && rk.RevaluasyonKaydi.ParaBirimiKodu == currency)
+            .OrderByDescending(rk => rk.Id).Select(rk => (decimal?)rk.YeniDegerlemeKuru).FirstOrDefaultAsync();
+        var oncekiKur = oncekiKalem is > 0 ? oncekiKalem.Value : dovizBakiye != 0 ? Math.Abs(eskiDefterDegeri / dovizBakiye) : yeniKur;
+
+        result.Kalemler.Add(new RevaluasyonKalemiDto
+        {
+            KaynakTuru = kaynakTuru,
+            KaynakId = kaynakId,
+            KaynakKodu = kaynakKodu,
+            KaynakAciklama = kaynakAciklama,
+            HesapKodu = hesapKodu,
+            DovizBakiye = dovizBakiye,
+            EskiDefterDegeri = eskiDefterDegeri,
+            OncekiDegerlemeKuru = Math.Round(oncekiKur, 4),
+            YeniDegerlemeKuru = yeniKur,
+            YeniYerelDeger = yeniYerelDeger,
+            KurFarki = kurFarki
+        });
     }
 
     public async Task<RevaluasyonKaydiDto> RevaluasyonUygulaAsync(RevaluasyonOnizleDto dto, int kullaniciId = 0)
@@ -467,13 +417,20 @@ public class RevaluasyonServisi : IRevaluasyonServisi
             var kurDto = await _kurServisi.GetirGecerliKurAsync(currency);
             decimal guncelKur = kurDto?.DovizAlis ?? 1m;
 
-            var bankaBakiye = await _baglam.BankaHesaplari
-                .Where(b => b.SirketId == targetSirketId && b.ParaBirimi.ToUpper() == currency && b.AktifMi)
-                .SumAsync(b => (decimal?)b.Bakiye) ?? 0m;
-
-            var kasaBakiye = await _baglam.Kasalar
-                .Where(k => k.SirketId == targetSirketId && k.ParaBirimi.ToUpper() == currency && k.AktifMi)
-                .SumAsync(k => (decimal?)k.Bakiye) ?? 0m;
+            // Döviz bakiyesi hareketlerin döviz tutarlarından; defter değeri TL tutarlarından (önceki değerleme farkları hariç).
+            var bankaOzet = await _baglam.BankaHareketleri.AsNoTracking()
+                .Where(h => h.BankaHesabi!.SirketId == targetSirketId && h.BankaHesabi.ParaBirimi.ToUpper() == currency && h.BankaHesabi.AktifMi && h.IslemDurumu == FinansIslemDurumu.Tamamlandi)
+                .GroupBy(h => 1)
+                .Select(g => new { Doviz = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.DovizTutar : -h.DovizTutar), Tl = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar) })
+                .FirstOrDefaultAsync();
+            var kasaOzet = await _baglam.KasaHareketleri.AsNoTracking()
+                .Where(h => h.Kasa!.SirketId == targetSirketId && h.Kasa.ParaBirimi.ToUpper() == currency && h.Kasa.AktifMi && h.IslemDurumu == FinansIslemDurumu.Tamamlandi)
+                .GroupBy(h => 1)
+                .Select(g => new { Doviz = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.DovizTutar : -h.DovizTutar), Tl = g.Sum(h => h.Tur == HareketTuru.Gelir ? h.Tutar : -h.Tutar) })
+                .FirstOrDefaultAsync();
+            var bankaBakiye = bankaOzet?.Doviz ?? 0m;
+            var kasaBakiye = kasaOzet?.Doviz ?? 0m;
+            var defterDegeri = (bankaOzet?.Tl ?? 0m) + (kasaOzet?.Tl ?? 0m);
 
             decimal toplamDoviz = bankaBakiye + kasaBakiye;
             decimal guncelDegerTRY = toplamDoviz * guncelKur;
@@ -482,7 +439,7 @@ public class RevaluasyonServisi : IRevaluasyonServisi
             {
                 ParaBirimiKodu = currency,
                 ToplamDovizBakiye = toplamDoviz,
-                ToplamDefterDegeriTRY = guncelDegerTRY, // Estimated
+                ToplamDefterDegeriTRY = defterDegeri,
                 GuncelKur = guncelKur,
                 GuncelDegerTRY = guncelDegerTRY
             });
