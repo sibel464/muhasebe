@@ -275,6 +275,13 @@ public class MuhasebeBaglami : DbContext
             .OnDelete(DeleteBehavior.SetNull);
 
         // Concurrency Tokens
+        // Durumu değişen (onay/iptal/tahsil/kapama) kayıtlar için PostgreSQL satır sürümü (xmin): iki kullanıcı aynı kaydı
+        // aynı anda değiştirirse ikincisi eski durumu görüp işlemi tekrarlayamaz (çift iptal → çift ters kayıt gibi),
+        // çakışma hatası alır ve işlemi geri alınır. Bu tablolarda FromSql ile "SELECT *" kullanmayın: xmin gelmez.
+        foreach (var tur in new[] { typeof(YevmiyeFis), typeof(KasaHareketi), typeof(BankaHareketi), typeof(CariHareket), typeof(CekSenet),
+                                    typeof(PosIslemi), typeof(DepoTransferFisi), typeof(StokSayimi), typeof(BelgeKapama), typeof(RevaluasyonKaydi),
+                                    typeof(MaliDonem), typeof(EBelgeKaydi), typeof(KasaSayimMutabakat) })
+            modelBuilder.Entity(tur).Property<uint>("xmin").IsRowVersion();
         modelBuilder.Entity<CariKart>().Property(c => c.Versiyon).IsConcurrencyToken();
         modelBuilder.Entity<Fatura>().Property(f => f.Versiyon).IsConcurrencyToken();
         modelBuilder.Entity<Urun>().Property(u => u.Versiyon).IsConcurrencyToken();
@@ -501,7 +508,11 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<HesapPlani>().HasIndex(h => new { h.SirketId, h.HesapKodu }).IsUnique();
         modelBuilder.Entity<HesapPlani>().HasIndex(h => h.UstHesapId);
         modelBuilder.Entity<YevmiyeFis>().HasIndex(f => new { f.SirketId, f.FisNo }).IsUnique();
-        modelBuilder.Entity<YevmiyeFis>().HasIndex(f => new { f.SirketId, f.BelgeTipi, f.BelgeId }).IsUnique();
+        // Bir belgeye tek fiş. İstisna: tahsilat/ödeme fişleri kasa hareketi, banka hareketi ve çek numarasını aynı
+        // "TahsilatOdeme" tipiyle taşır; bu numaralar ayrı ayrı 1'den başladığı için çakışır (kasa #57 ile banka #57).
+        // Bu tipler kaynak hesap satırıyla ayırt edilir (TahsilatOdemeServisi.TersYevmiyeEkleAsync).
+        modelBuilder.Entity<YevmiyeFis>().HasIndex(f => new { f.SirketId, f.BelgeTipi, f.BelgeId }).IsUnique()
+            .HasFilter("\"BelgeTipi\" NOT IN ('TahsilatOdeme', 'TahsilatOdemeIptal')");
         modelBuilder.Entity<YevmiyeFis>().HasIndex(f => new { f.SirketId, f.Tarih });
         modelBuilder.Entity<YevmiyeSatiri>().HasIndex(s => s.FisId);
         modelBuilder.Entity<YevmiyeSatiri>().HasIndex(s => s.HesapId);

@@ -374,6 +374,8 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
+        // Aynı fişin eşzamanlı iki iptali stoğu iki kez geri almasın: ikinci istek bekler, sonra "zaten iptal" görür.
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"DepoTransferFisleri\" WHERE \"Id\" = {transferId} FOR UPDATE");
 
         var tf = await _baglam.DepoTransferFisleri.Include(f => f.Kalemler)
             .FirstOrDefaultAsync(f => f.Id == transferId && (f.SirketId == null || f.SirketId == sirketId))
@@ -487,6 +489,8 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         sirketId = _baglam.SirketIdCoz(sirketId);
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
+        // Eşzamanlı iki onay (ya da onay + iptal) aynı sayımı iki kez işlemesin.
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"StokSayimlari\" WHERE \"Id\" = {sayimId} FOR UPDATE");
 
         var sayim = await _baglam.StokSayimlari.Include(s => s.Kalemler)
             .FirstOrDefaultAsync(s => s.Id == sayimId && s.SirketId == sirketId)
@@ -554,6 +558,8 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         YetkiKontrol(y => y.StokDuzenle || y.StokSil, "Stok Sayımı İptali");
         sirketId = _baglam.SirketIdCoz(sirketId);
 
+        await using var tx = await _baglam.Database.BeginTransactionAsync();
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"StokSayimlari\" WHERE \"Id\" = {sayimId} FOR UPDATE");
         var sayim = await _baglam.StokSayimlari.FirstOrDefaultAsync(s => s.Id == sayimId && s.SirketId == sirketId)
             ?? throw new InvalidOperationException("Sayım fişi bulunamadı veya yetkisiz erişim.");
 
@@ -564,5 +570,6 @@ public class StokOperasyonServisi : IStokOperasyonServisi
         sayim.GuncellemeTarihi = DateTime.UtcNow;
 
         await _baglam.SaveChangesAsync();
+        await tx.CommitAsync();
     }
 }

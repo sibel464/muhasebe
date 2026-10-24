@@ -206,6 +206,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ParaBirimiId");
@@ -572,6 +578,12 @@ namespace Altyapi.Migrations
                     b.Property<string>("Xml")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -980,6 +992,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("ValorTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BankaHesabiId");
@@ -1166,6 +1184,12 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("SilinmeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FaturaCariHareketId");
@@ -1239,6 +1263,12 @@ namespace Altyapi.Migrations
 
                     b.Property<DateTime>("VadeTarihi")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -1401,6 +1431,12 @@ namespace Altyapi.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("KasaId");
@@ -1479,6 +1515,12 @@ namespace Altyapi.Migrations
 
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -1564,6 +1606,12 @@ namespace Altyapi.Migrations
 
                     b.Property<int>("TaksitSayisi")
                         .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -2625,6 +2673,12 @@ namespace Altyapi.Migrations
                     b.Property<Guid>("SirketId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SirketId", "DonemAdi")
@@ -3467,6 +3521,12 @@ namespace Altyapi.Migrations
                     b.Property<int?>("YevmiyeFisId")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("YevmiyeFisId");
@@ -3550,6 +3610,12 @@ namespace Altyapi.Migrations
                     b.Property<int?>("TersFisId")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SirketId", "FisNo")
@@ -3558,7 +3624,8 @@ namespace Altyapi.Migrations
                     b.HasIndex("SirketId", "Tarih");
 
                     b.HasIndex("SirketId", "BelgeTipi", "BelgeId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"BelgeTipi\" NOT IN ('TahsilatOdeme', 'TahsilatOdemeIptal')");
 
                     b.ToTable("YevmiyeFisleri", (string)null);
                 });
@@ -3939,6 +4006,12 @@ namespace Altyapi.Migrations
                     b.Property<decimal>("ToplamTutar")
                         .HasColumnType("numeric");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HedefDepoId");
@@ -4197,6 +4270,12 @@ namespace Altyapi.Migrations
 
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 

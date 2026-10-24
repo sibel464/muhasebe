@@ -147,7 +147,8 @@ public static class ZenginTestVerisiYukleyici
         await context.SaveChangesAsync();
 
         // 4. ÖRNEK DEPOLAR ARASI TRANSFER FİŞLERİ & İZLENEBİLİRLİK
-        if (!await context.DepoTransferFisleri.AnyAsync())
+        // Başka kayıtlı transfer olsa da örnek fişler kendi numarasıyla bir kez eklenir.
+        if (!await context.DepoTransferFisleri.IgnoreQueryFilters().AnyAsync(f => f.FisNo == "ORNEK-TRF-00001"))
         {
             var u1 = await context.Urunler.FirstAsync(u => u.Kod == "IPHONE-15PM-256");
             var u2 = await context.Urunler.FirstAsync(u => u.Kod == "MACBOOK-M3-16");
@@ -155,7 +156,7 @@ public static class ZenginTestVerisiYukleyici
 
             var trf1 = new DepoTransferFisi
             {
-                FisNo = "TRF-2026-00001",
+                FisNo = "ORNEK-TRF-00001",
                 Tarih = DateTime.UtcNow.AddDays(-3),
                 KaynakDepoId = dDepo1.Id,
                 HedefDepoId = dMagaza.Id,
@@ -174,7 +175,7 @@ public static class ZenginTestVerisiYukleyici
 
             var trf2 = new DepoTransferFisi
             {
-                FisNo = "TRF-2026-00002",
+                FisNo = "ORNEK-TRF-00002",
                 Tarih = DateTime.UtcNow.AddDays(-1),
                 KaynakDepoId = dDepo1.Id,
                 HedefDepoId = dDepo2.Id,
