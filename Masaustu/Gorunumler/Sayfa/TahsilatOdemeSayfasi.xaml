@@ -507,7 +507,7 @@
             <Border Grid.Row="3" Style="{StaticResource Kart}" Padding="24" Margin="0,0,0,0">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,14">
-                        <TextBlock Text="İŞLEM GEÇMİŞİ" Style="{StaticResource BolumBaslik}" VerticalAlignment="Center"/>
+                        <TextBlock Text="İŞLEM GEÇMİŞİ" Style="{StaticResource BolumBaslik}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button Content="🔄  Yenile" Command="{Binding YenileKomutu}"
                                     Padding="14,7" Margin="0,0,8,0"
