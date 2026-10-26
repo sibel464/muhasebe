@@ -14,7 +14,8 @@ public class TcmbKurServisi : ITcmbKurServisi
     private readonly HttpClient _httpClient;
 
     // Servis her ekranda yeniden oluşturulur; HttpClient paylaşılır (her seferinde yeni bağlantı havuzu açılmasın).
-    private static readonly HttpClient OrtakHttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    // TCMB'ye ilk (soğuk) bağlantı 9-10 sn sürebiliyor; 5 sn'lik süre programın ilk kur çekişini düşürüyordu.
+    private static readonly HttpClient OrtakHttpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     // TCMB günün kurunu 15:30'da yayımlar; bu saatten sonra bugüne önbelleğe alınmış önceki gün kuru yenilenir.
     public static readonly TimeSpan YayinSaati = new(15, 45, 0);
@@ -150,7 +151,7 @@ public class TcmbKurServisi : ITcmbKurServisi
 
             try
             {
-                using var response = await _httpClient.GetAsync(url, cancellationToken);
+                using var response = await GetirTekrarliAsync(url, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
                     var xmlStr = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -170,7 +171,7 @@ public class TcmbKurServisi : ITcmbKurServisi
             catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
             {
                 // Bağlantı yok veya zaman aşımı (zaman aşımı TaskCanceledException olarak gelir): diğer günleri denemek
-                // yalnız bekletir (7 × 5 sn). Tatil/hafta sonu için geri gitme yalnız sunucu "dosya yok" dediğinde yapılır.
+                // yalnız bekletir (7 × 15 sn). Tatil/hafta sonu için geri gitme yalnız sunucu "dosya yok" dediğinde yapılır.
                 break;
             }
 
@@ -179,6 +180,20 @@ public class TcmbKurServisi : ITcmbKurServisi
 
         // Doğrulanmış veri yoksa finansal kur üretilmez.
         throw new InvalidOperationException("TCMB doğrulanmış kur verisi alınamadı. Bağlantınızı kontrol edin veya yetkili kullanıcı ile manuel kur girin.");
+    }
+
+    // Hızlı biten bağlantı hatası (bağlantı koptu/sıfırlandı) bir kez daha denenir. Zaman aşımı tekrarlanmaz:
+    // kullanıcı ikinci kez 15 sn beklemesin.
+    private async Task<HttpResponseMessage> GetirTekrarliAsync(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _httpClient.GetAsync(url, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return await _httpClient.GetAsync(url, cancellationToken);
+        }
     }
 
     // Kök öğedeki bülten tarihi: Tarih="17.10.2026" (gg.aa.yyyy) veya Date="10/17/2026" (aa/gg/yyyy).

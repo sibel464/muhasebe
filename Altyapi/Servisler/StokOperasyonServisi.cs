@@ -61,8 +61,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
             .Include(u => u.MarkaTanimi)
             .Include(u => u.BirimTanimi)
             .Include(u => u.LokasyonStoklari)
-            .Where(u => u.SirketId == null || u.SirketId == sirketId)
-            .Where(u => u.StokTakibi); // hizmet / masraf kartı stok ekranında yer almaz
+            .Where(u => u.SirketId == null || u.SirketId == sirketId);
 
         if (!string.IsNullOrWhiteSpace(arama))
         {
@@ -107,7 +106,8 @@ public class StokOperasyonServisi : IStokOperasyonServisi
             decimal topRezerve = lokasyonlar.Sum(l => l.RezerveMiktar);
             decimal topKullanilabilir = Math.Max(0, topFiziksel - topRezerve);
 
-            string durum = topFiziksel <= 0 ? "Stok Yok" : (topFiziksel <= u.MinimumStok ? "Kritik Stok" : "Normal");
+            // Hizmet / masraf kartı ürün listesinde düzenlenebilsin diye listelenir; stoğu yoktur.
+            string durum = !u.StokTakibi ? "Hizmet / Masraf" : topFiziksel <= 0 ? "Stok Yok" : (topFiziksel <= u.MinimumStok ? "Kritik Stok" : "Normal");
 
             result.Add(new StokOperasyonMatrisOzetDto(
                 u.Id,

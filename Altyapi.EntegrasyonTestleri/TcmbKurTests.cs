@@ -55,7 +55,7 @@ public sealed class TcmbKurTests
         var kur = await KurServisi(db, tcmb, () => gun.AddHours(10)).GetirGecerliKurAsync("USD", gun);
 
         Assert.Equal(41m, kur!.DovizAlis);
-        Assert.Equal(1, tcmb.CagriSayisi); // eskiden 7 gün geriye ayrı ayrı deneniyordu
+        Assert.Equal(2, tcmb.CagriSayisi); // aynı gün bir kez tekrar; eskiden 7 gün geriye ayrı ayrı deneniyordu
     }
 
     [Fact]
