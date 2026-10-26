@@ -59,6 +59,8 @@ public sealed class SirketServisi : ISirketServisi
         sirket.Adres = BosIseNull(sirket.Adres);
         if (sirket.VergiNo is { } vergiNo && !vergiNo.All(char.IsDigit))
             throw new InvalidOperationException("VKN/TCKN yalnızca rakamlardan oluşmalıdır.");
+        if (sirket.VergiNo is { } no && !(no.Length == 10 ? EtkiAlani.Yardimcilar.KimlikNoDogrulayici.VergiNoGecerliMi(no) : EtkiAlani.Yardimcilar.KimlikNoDogrulayici.TcKimlikNoGecerliMi(no)))
+            throw new InvalidOperationException("Vergi numarası hatalı görünüyor (son hane tutmuyor). Vergi levhasındaki numarayı kontrol edin.");
         if (sirket.Email is { } email && (!email.Contains('@') || email.StartsWith('@') || email.EndsWith('@')))
             throw new InvalidOperationException("Geçerli bir e-posta adresi girilmelidir.");
         var mevcut = await _db.Sirketler.FirstOrDefaultAsync(x => x.Id == sirket.Id);

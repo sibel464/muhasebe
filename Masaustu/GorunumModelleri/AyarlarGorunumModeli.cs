@@ -201,6 +201,26 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             return;
         }
 
+        // Firma vergi numarası her faturaya ve e-Faturaya basılır; hatalısı GİB/entegratör tarafından reddedilir.
+        var vkn = new string((VergiNo ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        if (!string.IsNullOrWhiteSpace(VergiNo))
+        {
+            var gecerli = vkn.Length switch
+            {
+                10 => EtkiAlani.Yardimcilar.KimlikNoDogrulayici.VergiNoGecerliMi(vkn),
+                11 => EtkiAlani.Yardimcilar.KimlikNoDogrulayici.TcKimlikNoGecerliMi(vkn),
+                _ => false
+            };
+            if (!gecerli)
+            {
+                HataMesaji = vkn.Length is 10 or 11
+                    ? "Vergi numarası hatalı görünüyor (son hane tutmuyor). Vergi levhanızdaki numarayı kontrol edin."
+                    : "Vergi numarası 10 haneli olmalıdır; şahıs firmasında 11 haneli T.C. kimlik numarası yazılır.";
+                return;
+            }
+            VergiNo = vkn;
+        }
+
         if (_ayarlarServisi == null)
         {
             BasariMesaji = "✅ Ayarlar başarıyla güncellendi (Demo Modu).";
@@ -237,7 +257,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             };
 
             await _ayarlarServisi.AyarlariKaydetAsync(ayar);
-            BasariMesaji = "✅ Firma ve sistem ayarları PostgreSQL veritabanına başarıyla kaydedildi!";
+            BasariMesaji = "✅ Firma ve sistem ayarları kaydedildi.";
             await AuditLoglariYukleAsync();
         }
         catch (Exception ex)

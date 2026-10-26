@@ -229,6 +229,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<tr><td>Hesaplanan KDV:</td><td class='text-right'>" + fatura.KdvToplam.ToString("N2") + " ₺</td></tr>");
         sb.AppendLine("<tr class='grand-total'><td>GENEL TOPLAM:</td><td class='text-right'>" + fatura.GenelToplam.ToString("N2") + " ₺</td></tr>");
         sb.AppendLine("</table>");
+        sb.AppendLine("<div style='clear:both; font-size:12px; font-weight:600; margin:8px 0 4px;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(fatura.GenelToplam)) + "</div>");
 
         // Signatures
         sb.AppendLine("<table class='signature-table'><tr>");
@@ -329,6 +330,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         sb.AppendLine("<div style='background:#EEF2FF; border: 1px solid #C7D2FE; border-radius:8px; padding:20px; text-align:center; margin-bottom:30px;'>");
         sb.AppendLine("<div style='font-size:12px; font-weight:700; color:#4338CA; text-transform:uppercase;'>İŞLEM TUTARI</div>");
         sb.AppendLine("<div style='font-size:28px; font-weight:800; color:#1E1B4B; margin:6px 0;'>" + tutar.ToString("N2") + " ₺</div>");
+        sb.AppendLine("<div style='font-size:13px; font-weight:600; color:#312E81;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(tutar)) + "</div>");
         sb.AppendLine("</div>");
 
         // Signatures

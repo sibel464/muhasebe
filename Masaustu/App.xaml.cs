@@ -328,7 +328,8 @@ public partial class App : Application
         var baglam = scope.ServiceProvider.GetRequiredService<MuhasebeBaglami>();
 
         if (!await baglam.Database.CanConnectAsync())
-            throw new InvalidOperationException("PostgreSQL bağlantısı kurulamadı. Sunucunun çalıştığından emin olun.");
+            throw new InvalidOperationException("Veritabanına bağlanılamadı. Programı kapatıp yeniden açın; sorun sürerse bilgisayarı yeniden başlatın. " +
+                "Program ağda başka bir bilgisayardaki verilerle çalışıyorsa o bilgisayarın açık ve ağa bağlı olduğundan emin olun.");
 
         // Geliştirmede her açılışta, kurulum sürümünde yeni sürüm kurulunca veritabanı yapısı güncellenir.
         // İçinde veri olan veritabanı güncellenmeden önce otomatik yedeklenir; yedek alınamazsa güncelleme yapılmaz.

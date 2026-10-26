@@ -144,6 +144,7 @@ public static class UblTrFaturaUretici
             B("IssueTime", f.Tarih.ToString("HH:mm:ss", Kultur)),
             B("InvoiceTypeCode", FaturaTipi(f.Tur)),
             string.IsNullOrWhiteSpace(f.Aciklama) ? null : B("Note", f.Aciklama.Trim()),
+            B("Note", EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(f.GenelToplam)),
             B("DocumentCurrencyCode", para),
             B("LineCountNumeric", kalemler.Count.ToString(Kultur)),
             f.Tur == FaturaTuru.AlisIade
