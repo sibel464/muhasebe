@@ -62,13 +62,18 @@ public class TopluAktarimServisi : ITopluAktarimServisi
         ["Toptan"] = ["toptansatisfiyati", "toptanfiyat", "toptan"],
         ["MinStok"] = ["minimumstok", "kritikstok", "minstok"],
         ["Stok"] = ["acilisstogu", "stok", "stokmiktari", "miktar", "mevcut"],
+        // "Hizmet" / "Masraf": stok tutulmayan kart; boş ya da "Ürün"/"Stok"/"Mal": stoklu ürün.
+        ["Tur"] = ["tur", "turu", "kartturu", "stokturu", "urunturu"],
+        ["GiderHesabi"] = ["giderhesabi", "giderhesapkodu", "masrafhesabi"],
     };
 
     public string SablonCsv(AktarimTuru tur) => tur == AktarimTuru.Cari
         ? "﻿Kod;Ünvan;Tür;Tip;Vergi Dairesi;Vergi No;TC Kimlik No;Telefon;Cep Telefonu;E-posta;Adres;İl;İlçe;Posta Kodu;e-Fatura Mükellefi;Risk Limiti;Vade Günü;Açılış Bakiyesi\r\n" +
           ";Örnek Ticaret Ltd. Şti.;Müşteri;Kurumsal;Kadıköy;1234567890;;02160000000;05320000000;info@ornek.com;Moda Cad. No:1;İstanbul;Kadıköy;34710;Evet;50000;30;1250,50\r\n"
-        : "﻿Kod;Barkod;Ürün Adı;Birim;Kategori;KDV Oranı;Alış Fiyatı;Satış Fiyatı;Toptan Fiyatı;Minimum Stok;Açılış Stoğu\r\n" +
-          ";8690000000000;Örnek Ürün 1 Kg;Adet;Gıda;1;45,00;59,90;55,00;10;120\r\n";
+        : "﻿Kod;Barkod;Ürün Adı;Birim;Kategori;KDV Oranı;Alış Fiyatı;Satış Fiyatı;Toptan Fiyatı;Minimum Stok;Açılış Stoğu;Kart Türü;Gider Hesabı\r\n" +
+          ";8690000000000;Örnek Ürün 1 Kg;Adet;Gıda;1;45,00;59,90;55,00;10;120;Ürün;\r\n" +
+          ";;Montaj İşçiliği;Saat;Hizmetler;20;0;750,00;;;;Hizmet;\r\n" +
+          ";;Elektrik Faturası;Adet;Giderler;20;0;0;;;;Masraf;770\r\n";
 
     public IReadOnlyList<AktarimSatiri> Onizle(AktarimTuru tur, string dosyaYolu)
     {
@@ -285,15 +290,23 @@ public class TopluAktarimServisi : ITopluAktarimServisi
             var minStok = Tutar("MinStok", "Minimum stok", 0);
             var stok = Tutar("Stok", "Açılış stoğu", 0);
             if (D("Kdv").Length == 0) uyarilar.Add($"KDV boş, %{varsayilanKdv:0.##} kabul edildi");
+            var turMetni = Normal(D("Tur"));
+            var hizmet = turMetni.StartsWith("hizmet") || turMetni.StartsWith("masraf") || turMetni.StartsWith("gider");
+            if (turMetni.Length > 0 && !hizmet && !(turMetni.StartsWith("urun") || turMetni.StartsWith("stok") || turMetni.StartsWith("mal") || turMetni.StartsWith("emtia")))
+                hatalar.Add($"Kart türü anlaşılamadı ('{D("Tur")}'): Ürün ya da Hizmet yazın");
+            if (hizmet && stok > 0) hatalar.Add("Hizmet / masraf kartına açılış stoğu girilmez");
+            var giderKodu = D("GiderHesabi");
+            if (giderKodu.Length > 0 && !giderKodu.All(c => char.IsAsciiDigit(c) || c == '.')) hatalar.Add($"Gider hesap kodu rakam olmalı ('{giderKodu}')");
             if (stok > 0 && alis == 0) uyarilar.Add("Alış fiyatı boş: açılış stoğu sıfır maliyetle girer");
 
             var urun = hatalar.Count > 0 ? null : new Urun
             {
                 Kod = kod, Ad = ad.Length > 200 ? ad[..200] : ad, Barkod = Bos(barkod), Birim = D("Birim").Length > 0 ? D("Birim") : "Adet",
                 Kategori = Bos(D("Kategori")), KdvOrani = kdv, AlisFiyati = alis, PerakendeSatisFiyati = satis, ToptanSatisFiyati = toptan,
-                MinimumStok = minStok, Aktif = true
+                MinimumStok = hizmet ? 0 : minStok, Aktif = true,
+                StokTakibi = !hizmet, GiderHesapKodu = hizmet && giderKodu.Length > 0 ? giderKodu : null
             };
-            var ozet = $"KDV %{kdv:0.##} • Alış {alis:N2} • Satış {satis:N2}" + (stok > 0 ? $" • Stok {stok:0.####}" : "");
+            var ozet = (hizmet ? "Hizmet/masraf • " : "") + $"KDV %{kdv:0.##} • Alış {alis:N2} • Satış {satis:N2}" + (stok > 0 ? $" • Stok {stok:0.####}" : "");
             sonuc.Add((new AktarimSatiri(s.SatirNo, kod.Length > 0 ? kod : "(otomatik)", ad, ozet,
                 hatalar.Count > 0 ? string.Join("; ", hatalar) : null, uyarilar.Count > 0 ? string.Join("; ", uyarilar) : null), urun, stok));
         }
