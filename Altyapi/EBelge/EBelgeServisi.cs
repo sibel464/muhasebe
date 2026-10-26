@@ -156,7 +156,7 @@ public class EBelgeServisi : IEBelgeServisi
         List<(GelenFaturaSatiri Satir, EtkiAlani.Modeller.Stok.Urun? Urun, decimal IskontoOrani)> Satirlar,
         List<string> Uyarilar, List<string> Hatalar);
 
-    private static readonly string[] AlisOlarakAlinanTipler = ["SATIS", "ISTISNA", "IHRACKAYITLI", "OZELMATRAH"];
+    private static readonly string[] AlisOlarakAlinanTipler = ["SATIS", "ISTISNA", "IHRACKAYITLI", "OZELMATRAH", "TEVKIFAT"];
 
     private async Task<GelenHazirlik> GelenHazirlaAsync(string xml, CancellationToken cancellationToken)
     {
@@ -166,7 +166,18 @@ public class EBelgeServisi : IEBelgeServisi
 
         var tur = belge.Tip == "IADE" ? FaturaTuru.SatisIade : FaturaTuru.Alis;
         if (belge.Tip != "IADE" && !AlisOlarakAlinanTipler.Contains(belge.Tip))
-            hatalar.Add($"'{belge.Tip}' tipindeki fatura otomatik aktarılamıyor (ör. tevkifatlı fatura); lütfen elle girin.");
+            hatalar.Add($"'{belge.Tip}' tipindeki fatura otomatik aktarılamıyor; lütfen elle girin.");
+        // Kısmi tevkifat (6xx) alışta tevkifat olarak işlenir; tam tevkifat ya da birden çok kod elle girilmelidir.
+        var tevkifatKodlari = belge.TevkifatKodlari ?? [];
+        if (belge.TevkifatTutari > 0)
+        {
+            if (tur != FaturaTuru.Alis)
+                hatalar.Add("Tevkifatlı iade faturası otomatik aktarılamıyor; lütfen elle girin.");
+            else if (tevkifatKodlari.Count != 1 || EtkiAlani.Yardimcilar.TevkifatKodlari.Bul(tevkifatKodlari[0]) == null)
+                hatalar.Add($"Faturadaki tevkifat kodu ({string.Join(", ", tevkifatKodlari)}) otomatik aktarılamıyor; lütfen elle girin.");
+            else if (belge.TevkifatYuzdesi % 10 != 0 || belge.TevkifatYuzdesi is <= 0 or > 100)
+                hatalar.Add($"Faturadaki tevkifat oranı (%{belge.TevkifatYuzdesi}) onda bir katı değil; lütfen elle girin.");
+        }
         if (belge.Tip is "IHRACKAYITLI" or "OZELMATRAH")
             uyarilar.Add($"Fatura tipi {belge.Tip}: KDV tutarlarını kontrol edin.");
         if (!string.Equals(belge.ParaBirimi, "TRY", StringComparison.OrdinalIgnoreCase))
@@ -210,8 +221,11 @@ public class EBelgeServisi : IEBelgeServisi
         // Program toplamı kendi kurallarıyla (satır bazında kuruş yuvarlaması) hesaplar; fark varsa kullanıcı görsün.
         var hesap = EtkiAlani.Yardimcilar.FaturaHesaplayici.Hesapla(
             satirlar.Select(x => new EtkiAlani.Yardimcilar.FaturaHesaplayici.Girdi(x.Satir.Miktar, x.Satir.BirimFiyat, x.IskontoOrani, x.Satir.KdvOrani)).ToList(), 0);
-        if (Math.Abs(hesap.GenelToplam - belge.OdenecekTutar) > 0.05m)
-            uyarilar.Add($"Programın hesapladığı toplam ({hesap.GenelToplam:N2} ₺) faturadaki ödenecek tutardan ({belge.OdenecekTutar:N2} ₺) farklı; taslağı onaylamadan önce kontrol edin.");
+        var hesapTevkifat = belge.TevkifatTutari > 0 ? EtkiAlani.Yardimcilar.TevkifatKodlari.Tutar(hesap.KdvToplam, belge.TevkifatYuzdesi / 100m) : 0;
+        if (Math.Abs(hesap.GenelToplam - hesapTevkifat - belge.OdenecekTutar) > 0.05m)
+            uyarilar.Add($"Programın hesapladığı ödenecek tutar ({hesap.GenelToplam - hesapTevkifat:N2} ₺) faturadakinden ({belge.OdenecekTutar:N2} ₺) farklı; taslağı onaylamadan önce kontrol edin.");
+        if (belge.TevkifatTutari > 0)
+            uyarilar.Add($"KDV tevkifatlı fatura ({tevkifatKodlari.FirstOrDefault()}, {belge.TevkifatYuzdesi / 10:0}/10): tevkif edilen {belge.TevkifatTutari:N2} ₺ KDV'yi siz beyan edip ödersiniz.");
         if (cari == null)
             uyarilar.Add($"'{belge.Satici.Unvan}' için yeni cari kart açılacak.");
         var yeniUrun = satirlar.Count(x => x.Urun == null);
@@ -294,6 +308,8 @@ public class EBelgeServisi : IEBelgeServisi
             IadeEdilenFaturaNo = b.IadeEdilenFaturaNo,
             IadeEdilenFaturaTarihi = b.IadeEdilenFaturaTarihi is DateTime t ? DateTime.SpecifyKind(t, DateTimeKind.Utc) : null,
             Aciklama = $"Gelen {(b.Profil == "EARSIVFATURA" ? "e-Arşiv" : "e-Fatura")}: {b.FaturaNo} (ETTN {b.Ettn.ToString().ToUpperInvariant()})",
+            TevkifatKodu = b.TevkifatTutari > 0 ? b.TevkifatKodlari![0] : null,
+            TevkifatOrani = b.TevkifatTutari > 0 ? b.TevkifatYuzdesi / 100m : 0,
             Kalemler = kalemler
         };
         return await new FaturaServisi(_baglam, _kullaniciServisi).EkleAsync(fatura);

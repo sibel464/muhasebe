@@ -446,4 +446,32 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         // XML olmayan dosya anlaşılır hatayla reddedilir.
         await Assert.ThrowsAsync<InvalidOperationException>(() => servis.GelenFaturaOnizleAsync("bu bir xml değil"));
     }
+
+    [Fact]
+    public async Task Gelen_tevkifatli_e_fatura_tevkifatli_alis_olarak_aktarilir()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var servis = new EBelgeServisi(db, o.Oturum);
+        var tedarikci = new UblTaraf(GecerliVkn(Random.Shared.Next()), "Parlak Temizlik Ltd.", VergiDairesi: "Şişli", Adres: "Büyükdere Cad. 5",
+            Ilce: "Şişli", Il: "İstanbul");
+        var biz = new UblTaraf(o.Sirket.VergiNo!, o.Sirket.Unvan, VergiDairesi: o.Sirket.VergiDairesi, Il: o.Sirket.Il, Ilce: o.Sirket.Ilce);
+        var gelen = Fatura(FaturaTuru.Satis, 0m, ("Ofis temizliği (Ekim)", "Adet", 1m, 5000m, 0m, 20m));
+        gelen.FaturaNo = "PRL2026" + Random.Shared.Next(100000000, 999999999);
+        gelen.TevkifatKodu = "612";
+        gelen.TevkifatOrani = 0.9m;
+        gelen.TevkifatTutari = 900m;
+        var xml = UblTrFaturaUretici.UretMetin(new UblFaturaGirdisi(gelen, Guid.NewGuid(), EBelgeTuru.EFatura, EFaturaSenaryosu.Ticari, tedarikci, biz));
+
+        var onizleme = await servis.GelenFaturaOnizleAsync(xml);
+        Assert.True(onizleme.Aktarilabilir, string.Join("; ", onizleme.Hatalar));
+        Assert.Equal(5100m, onizleme.OdenecekTutar);
+        Assert.DoesNotContain(onizleme.Uyarilar, u => u.Contains("farklı"));
+
+        var fatura = await servis.GelenFaturaAktarAsync(xml);
+        Assert.Equal(FaturaTuru.Alis, fatura.Tur);
+        Assert.Equal("612", fatura.TevkifatKodu);
+        Assert.Equal(900m, fatura.TevkifatTutari);
+        Assert.Equal(5100m, fatura.OdenecekTutar);
+    }
 }

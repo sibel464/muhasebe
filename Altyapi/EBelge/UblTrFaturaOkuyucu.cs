@@ -13,7 +13,8 @@ public sealed record GelenFaturaSatiri(
 public sealed record GelenFatura(
     string FaturaNo, Guid Ettn, DateTime Tarih, string Profil, string Tip, string ParaBirimi,
     GelenTaraf Satici, GelenTaraf Alici, IReadOnlyList<GelenFaturaSatiri> Satirlar,
-    decimal MatrahToplam, decimal KdvToplam, decimal OdenecekTutar, string? IadeEdilenFaturaNo, DateTime? IadeEdilenFaturaTarihi);
+    decimal MatrahToplam, decimal KdvToplam, decimal OdenecekTutar, string? IadeEdilenFaturaNo, DateTime? IadeEdilenFaturaTarihi,
+    IReadOnlyList<string>? TevkifatKodlari = null, decimal TevkifatYuzdesi = 0, decimal TevkifatTutari = 0);
 
 // Tedarikçiden gelen UBL-TR e-Fatura/e-Arşiv XML'ini okur (imzalı belge de olur; imza bölümü yok sayılır).
 public static class UblTrFaturaOkuyucu
@@ -78,6 +79,9 @@ public static class UblTrFaturaOkuyucu
             .Where(t => t.Descendants(Cbc + "TaxTypeCode").Any(c => c.Value.Trim() == "0015"))
             .Sum(t => Sayi(t.Element(Cbc + "TaxAmount")));
         var iade = kok.Element(Cac + "BillingReference")?.Element(Cac + "InvoiceDocumentReference");
+        // KDV tevkifatı (belge toplamı); kodlar ve yüzde ilk alt toplamdan, birden çok kod varsa hepsi döner.
+        var tevkifatAlt = kok.Elements(Cac + "WithholdingTaxTotal").SelectMany(t => t.Elements(Cac + "TaxSubtotal")).ToList();
+        var tevkifatKodlari = tevkifatAlt.SelectMany(t => t.Descendants(Cbc + "TaxTypeCode")).Select(c => c.Value.Trim()).Where(c => c.Length > 0).Distinct().ToList();
 
         return new GelenFatura(
             faturaNo, ettn, tarih,
@@ -91,7 +95,10 @@ public static class UblTrFaturaOkuyucu
             kdvToplam,
             Sayi(toplam?.Element(Cbc + "PayableAmount")),
             iade?.Element(Cbc + "ID")?.Value.Trim(),
-            iade?.Element(Cbc + "IssueDate")?.Value is { } t2 && DateTime.TryParseExact(t2.Trim(), "yyyy-MM-dd", Kultur, DateTimeStyles.None, out var it) ? it : null);
+            iade?.Element(Cbc + "IssueDate")?.Value is { } t2 && DateTime.TryParseExact(t2.Trim(), "yyyy-MM-dd", Kultur, DateTimeStyles.None, out var it) ? it : null,
+            tevkifatKodlari,
+            tevkifatAlt.Select(t => Sayi(t.Element(Cbc + "Percent"))).FirstOrDefault(),
+            tevkifatAlt.Sum(t => Sayi(t.Element(Cbc + "TaxAmount"))));
     }
 
     private static GelenTaraf Taraf(XElement? p, string ad)
