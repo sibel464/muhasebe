@@ -22,6 +22,7 @@ public interface IRaporMerkeziServisi
     Task<List<PosRaporuKalemiDto>> GetPosRaporuAsync(SatisRaporFiltreDto filtre);
     Task<List<CekSenetRaporuKalemiDto>> GetCekSenetRaporuAsync(SatisRaporFiltreDto filtre);
     Task<List<KdvRaporuKalemiDto>> GetKdvRaporuAsync(SatisRaporFiltreDto filtre);
+    Task<List<BaBsKalemiDto>> GetBaBsRaporuAsync(SatisRaporFiltreDto filtre, decimal sinir = 5000m);
     Task<List<RaporFavoriDto>> GetFavoriFiltrelerAsync(int sirketId);
     Task FavoriFiltreKaydetAsync(int sirketId, string raporAd, SatisRaporFiltreDto filtre, string kullaniciAd);
     Task BenchmarkPerformanceAsync(SatisRaporFiltreDto filtre);

@@ -46,6 +46,7 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
     public ObservableCollection<PosRaporuKalemiDto> PosRaporu { get; } = new();
     public ObservableCollection<CekSenetRaporuKalemiDto> CekSenetRaporu { get; } = new();
     public ObservableCollection<KdvRaporuKalemiDto> KdvRaporu { get; } = new();
+    public ObservableCollection<BaBsKalemiDto> BaBsRaporu { get; } = new();
 
     public SatisRaporFiltreDto Filtre
     {
@@ -118,7 +119,7 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
         get => _seciliSekmeIndeksi;
         set
         {
-            if (value >= 0 && value < 14 && OzellikAyarla(ref _seciliSekmeIndeksi, value))
+            if (value >= 0 && value <= 15 && OzellikAyarla(ref _seciliSekmeIndeksi, value))
             {
                 Filtre.PageNumber = 1;
                 _ = RaporYukleAsync();
@@ -313,6 +314,11 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                     TahsilatPerformansi.Clear();
                     foreach (var item in tahsilat) TahsilatPerformansi.Add(item);
                     break;
+                case 15: // Ba-Bs
+                    var babs = await _raporServisi.GetBaBsRaporuAsync(filtre);
+                    BaBsRaporu.Clear();
+                    foreach (var item in babs) BaBsRaporu.Add(item);
+                    break;
             }
             DurumMesaji = "Rapor güncellendi.";
         }
@@ -349,6 +355,16 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                     { "UrunAd", "Ürün Adı" }, { "Miktar", "Miktar" }, { "NetTutar", "Net Tutar" }
                 };
                 bytes = _excelServisi.ExportToExcel("Satış Raporu", Filtre, SatisRaporu.Items, dict);
+            }
+            else if (SeciliSekmeIndeksi == 15)
+            {
+                var dict = new Dictionary<string, string>
+                {
+                    { "Form", "Form" }, { "Donem", "Dönem" }, { "Unvan", "Ünvan" }, { "VergiKimlikNo", "VKN / TCKN" },
+                    { "VergiDairesi", "Vergi Dairesi" }, { "BelgeSayisi", "Belge Sayısı" }, { "Tutar", "Tutar (KDV hariç)" }, { "Uyari", "Uyarı" }
+                };
+                bytes = _excelServisi.ExportToExcel("Ba-Bs Formları", Filtre, BaBsRaporu, dict);
+                fileName = $"BaBs_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
             }
             else
             {

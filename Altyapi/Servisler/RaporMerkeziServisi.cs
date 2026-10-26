@@ -1124,6 +1124,50 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         return list;
     }
 
+    public async Task<List<BaBsKalemiDto>> GetBaBsRaporuAsync(SatisRaporFiltreDto filtre, decimal sinir = 5000m)
+    {
+        var sirketId = RaporYetkiKontrol(filtre);
+        // Bs: düzenlenen faturalar (satış ve alış iadesi); Ba: alınan faturalar (alış ve satış iadesi).
+        // Tutar KDV hariçtir (ÖTV gibi diğer vergiler dahil); iptal ve taslak belgeler bildirilmez.
+        var sorgu = _baglam.Faturalar.AsNoTracking()
+            .Where(f => f.SirketId == sirketId && f.Durum == BelgeDurumu.Onaylandi
+                && (f.Tur == FaturaTuru.Satis || f.Tur == FaturaTuru.AlisIade || f.Tur == FaturaTuru.Alis || f.Tur == FaturaTuru.SatisIade));
+        if (filtre.BaslangicTarihi.HasValue)
+            sorgu = sorgu.Where(f => f.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
+        if (filtre.BitisTarihi.HasValue)
+            sorgu = sorgu.Where(f => f.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi);
+        if (filtre.CariId.HasValue)
+            sorgu = sorgu.Where(f => f.CariKartId == filtre.CariId.Value);
+        var faturalar = await sorgu.Select(f => new { f.Tur, f.Tarih, f.CariKartId, Tutar = f.GenelToplam - f.KdvToplam }).ToListAsync();
+
+        var gruplar = faturalar
+            .GroupBy(f => (Form: f.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade ? "Bs" : "Ba", f.Tarih.Year, f.Tarih.Month, f.CariKartId))
+            .Select(g => (g.Key, Adet: g.Count(), Tutar: Math.Truncate(g.Sum(x => x.Tutar))))
+            .Where(g => g.Tutar >= sinir)
+            .ToList();
+
+        var cariIdler = gruplar.Select(g => g.Key.CariKartId).Distinct().ToList();
+        var cariler = await _baglam.CariKartlar.IgnoreQueryFilters([MuhasebeBaglami.SilinmisFiltresi]).AsNoTracking()
+            .Where(c => cariIdler.Contains(c.Id))
+            .Select(c => new { c.Id, c.Kod, c.Unvan, c.VergiNo, c.TcNo, c.VergiDairesi })
+            .ToDictionaryAsync(c => c.Id);
+
+        return gruplar.Select(g =>
+        {
+            cariler.TryGetValue(g.Key.CariKartId, out var c);
+            var vkn = !string.IsNullOrWhiteSpace(c?.VergiNo) ? c!.VergiNo!.Trim() : c?.TcNo?.Trim() ?? "";
+            return new BaBsKalemiDto
+            {
+                Form = g.Key.Form, Yil = g.Key.Year, Ay = g.Key.Month,
+                CariKod = c?.Kod ?? "", Unvan = c?.Unvan ?? "", VergiKimlikNo = vkn, VergiDairesi = c?.VergiDairesi ?? "",
+                BelgeSayisi = g.Adet, Tutar = g.Tutar,
+                Uyari = vkn.Length is 10 or 11 ? "" : "Vergi / T.C. kimlik no eksik"
+            };
+        })
+        .OrderBy(x => x.Form).ThenBy(x => x.Yil).ThenBy(x => x.Ay).ThenByDescending(x => x.Tutar)
+        .ToList();
+    }
+
     public async Task<List<RaporFavoriDto>> GetFavoriFiltrelerAsync(int sirketId)
     {
         return await Task.FromResult(new List<RaporFavoriDto>

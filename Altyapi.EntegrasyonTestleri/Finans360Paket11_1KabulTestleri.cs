@@ -59,7 +59,12 @@ public sealed class Finans360Paket11_1KabulTestleri
         if (!await db.HesapPlanlari.AnyAsync(x => x.SirketId == sirket.Id && x.HesapKodu == "770"))
             db.HesapPlanlari.Add(new HesapPlani { SirketId = sirket.Id, HesapKodu = "770", HesapAdi = "Genel Yönetim / Banka Giderleri", Tip = HesapTipi.Gider, AktifMi = true });
 
+        // Dövizli testler USD'yi (Id 2) kullanır; test sırasından bağımsız olsun diye burada da garanti edilir.
+        if (!await db.ParaBirimleri.AnyAsync(x => x.Id == 2))
+            db.ParaBirimleri.Add(new EtkiAlani.Modeller.Kurumsal.ParaBirimi { Id = 2, Kod = "USD", Sembol = "$", Ad = "Amerikan Doları" });
+
         await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlRawAsync("SELECT setval(pg_get_serial_sequence('\"ParaBirimleri\"', 'Id'), (SELECT MAX(\"Id\") FROM \"ParaBirimleri\"))");
         return (sirket.Id, cari, kasa, banka);
     }
 
@@ -117,7 +122,7 @@ public sealed class Finans360Paket11_1KabulTestleri
         Assert.Equal(4000m, kasaGiris);
 
         // Yevmiye oluşur ve dengelidir
-        var yevmiye = await db.YevmiyeFisleri.Include(x => x.Satirlar).SingleOrDefaultAsync(x => x.BelgeId == res.HareketId);
+        var yevmiye = await db.YevmiyeFisleri.Include(x => x.Satirlar).SingleOrDefaultAsync(x => x.SirketId == sirketId && x.BelgeTipi == "TahsilatOdeme" && x.BelgeId == res.HareketId);
         Assert.NotNull(yevmiye);
         var yevmiyeBorc = yevmiye.Satirlar.Sum(x => x.Borc);
         var yevmiyeAlacak = yevmiye.Satirlar.Sum(x => x.Alacak);

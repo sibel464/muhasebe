@@ -308,3 +308,19 @@ public class RaporFavoriDto
     public DateTime OlusturmaTarihi { get; set; } = DateTime.Now;
     public string KullaniciAd { get; set; } = "";
 }
+
+// Ba-Bs bildirimi: aynı kişi/kurumla bir ayda KDV hariç sınırı (5.000 TL) aşan alışlar Ba, satışlar Bs formuna yazılır.
+public class BaBsKalemiDto
+{
+    public string Form { get; set; } = "";
+    public int Yil { get; set; }
+    public int Ay { get; set; }
+    public string Donem => $"{Ay:00}/{Yil}";
+    public string CariKod { get; set; } = "";
+    public string Unvan { get; set; } = "";
+    public string VergiKimlikNo { get; set; } = "";
+    public string VergiDairesi { get; set; } = "";
+    public int BelgeSayisi { get; set; }
+    public decimal Tutar { get; set; }
+    public string Uyari { get; set; } = "";
+}

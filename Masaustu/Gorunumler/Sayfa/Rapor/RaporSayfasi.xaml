@@ -561,6 +561,31 @@
                 </DataGrid>
             </TabItem>
 
+            <!-- TAB 15: Ba-Bs -->
+            <TabItem Header="📋 Ba-Bs Formları">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Margin="4,4,4,8" TextWrapping="Wrap" FontSize="12" Foreground="#475569"
+                               Text="Aynı kişi veya firmayla bir ayda KDV hariç 5.000 TL ve üzeri alışlar Ba, satışlar Bs formunda bildirilir (alış iadesi Bs, satış iadesi Ba). Tutarlar küsuratsızdır. Tarih aralığını bildirilecek ay olarak seçin; Excel düğmesiyle listeyi alabilirsiniz."/>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding BaBsRaporu}" Style="{StaticResource GridStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Form" Binding="{Binding Form}" Width="60"/>
+                            <DataGridTextColumn Header="Dönem" Binding="{Binding Donem}" Width="80"/>
+                            <DataGridTextColumn Header="Cari Kod" Binding="{Binding CariKod}" Width="100"/>
+                            <DataGridTextColumn Header="Ünvan" Binding="{Binding Unvan}" Width="230"/>
+                            <DataGridTextColumn Header="VKN / TCKN" Binding="{Binding VergiKimlikNo}" Width="120"/>
+                            <DataGridTextColumn Header="Vergi Dairesi" Binding="{Binding VergiDairesi}" Width="130"/>
+                            <DataGridTextColumn Header="Belge Sayısı" Binding="{Binding BelgeSayisi}" Width="95"/>
+                            <DataGridTextColumn Header="Tutar (KDV hariç)" Binding="{Binding Tutar, StringFormat={}{0:N0} TL}" Width="140"/>
+                            <DataGridTextColumn Header="Uyarı" Binding="{Binding Uyari}" Width="200"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
         </TabControl>
 
         <!-- 4. Status Bar -->
