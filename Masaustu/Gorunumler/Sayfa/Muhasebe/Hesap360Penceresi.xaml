@@ -111,14 +111,15 @@
 
             <!-- 2. HAREKETLER -->
             <TabItem Header="2. Hareketler">
-                <DataGrid ItemsSource="{Binding Hesap360.Hareketler}" AutoGenerateColumns="False" IsReadOnly="True">
+                <DataGrid ItemsSource="{Binding Hesap360.Muavin.Satirlar}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm}}" Width="130"/>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="110"/>
                         <DataGridTextColumn Header="Fiş No" Binding="{Binding FisNo}" Width="120" FontWeight="Bold"/>
                         <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
                         <DataGridTextColumn Header="Borç" Binding="{Binding Borc, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
                         <DataGridTextColumn Header="Alacak" Binding="{Binding Alacak, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
                         <DataGridTextColumn Header="Yürüyen Bakiye" Binding="{Binding YuruyenBakiye, StringFormat={}{0:N2} TL}" Width="130" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="B/A" Binding="{Binding BakiyeYonu}" Width="70"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -152,7 +153,7 @@
 
             <!-- 5. MUAVİN -->
             <TabItem Header="5. Muavin">
-                <DataGrid ItemsSource="{Binding Hesap360.Hareketler}" AutoGenerateColumns="False" IsReadOnly="True">
+                <DataGrid ItemsSource="{Binding Hesap360.Muavin.Satirlar}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="120"/>
                         <DataGridTextColumn Header="Fiş No" Binding="{Binding FisNo}" Width="120"/>
@@ -161,6 +162,7 @@
                         <DataGridTextColumn Header="Borç" Binding="{Binding Borc, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
                         <DataGridTextColumn Header="Alacak" Binding="{Binding Alacak, StringFormat={}{0:N2} TL}" Width="120" ElementStyle="{StaticResource SagHizaliMetin}"/>
                         <DataGridTextColumn Header="Yürüyen Bakiye" Binding="{Binding YuruyenBakiye, StringFormat={}{0:N2} TL}" Width="130" FontWeight="Bold" ElementStyle="{StaticResource SagHizaliMetin}"/>
+                        <DataGridTextColumn Header="B/A" Binding="{Binding BakiyeYonu}" Width="70"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
