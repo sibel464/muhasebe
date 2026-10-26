@@ -65,6 +65,7 @@ public partial class App : Application
         servisler.AddTransient<IIrsaliyeServisi, IrsaliyeServisi>();
         servisler.AddTransient<IKasaServisi, KasaServisi>();
         servisler.AddTransient<IBankaServisi, BankaServisi>();
+        servisler.AddTransient<IBankaEkstreServisi>(sp => new Altyapi.Aktarim.BankaEkstreServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IBankaServisi>(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IDepoServisi, DepoServisi>();
         servisler.AddTransient<IStok360Servisi>(sp => new Stok360Servisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IStokOperasyonServisi>(sp => new StokOperasyonServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));

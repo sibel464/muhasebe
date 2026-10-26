@@ -292,6 +292,14 @@
   <li>Peşin fatura, POS satışı ve çek/senet tahsili dövizli hesaba yazılamaz; bunlar için TL hesap seçin.</li>
   <li>Dönem sonunda <a href="#doviz">revalüasyon</a> ile dövizli kasa/banka bakiyeleri güncel kurla değerlenir.</li>
 </ul>
+<h3>Banka ekstresi aktarma</h3>
+<p>Bankanızın internet şubesinden hesap hareketlerini Excel (.xlsx) ya da CSV olarak indirin. <span class="yol">Banka → Ekstre Aktar</span> ile banka hesabını ve dosyayı seçin. Program sütunları (tarih, açıklama, tutar ya da borç/alacak) kendisi tanır ve her satır için:</p>
+<ul>
+  <li>programda aynı gün, aynı tutarda kaydı varsa "zaten kayıtlı" der ve tekrar kaydetmez (aynı ekstreyi iki kez aktarsanız da çift kayıt olmaz),</li>
+  <li>açıklamadaki vergi numarası, IBAN, fatura numarası ya da ünvandan cariyi bulup tahsilat / ödeme önerir,</li>
+  <li>masraf, BSMV, komisyon satırlarını banka masrafı (780), faiz girişlerini faiz geliri (642), kredi taksitlerini kredi ödemesi (300) olarak önerir.</li>
+</ul>
+<p>Önerileri kontrol edin, gerekirse işlem türünü ya da cariyi değiştirin ve <b>Seçilenleri Kaydet</b>'e basın. Yalnız TL hesapların ekstresi aktarılabilir; eski Excel (.xls) dosyasını önce .xlsx olarak kaydedin.</p>
 
 <!-- ============================================================ -->
 <h2 id="muhasebe">10. Muhasebe</h2>

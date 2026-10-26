@@ -341,6 +341,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
     public ICommand YenileKomutu { get; }
     public ICommand DokumYazdirKomutu { get; }
     public ICommand ExcelAktarKomutu { get; }
+    public ICommand EkstreAktarKomutu { get; }
 
     public BankaGorunumModeli(
         IBankaServisi bankaServisi,
@@ -369,6 +370,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
 
         SilKomutu = new KomutSarici(async param => { if (param is HesapEkstresi.Satir<BankaHareketi> r) await SilAsync(r.Kayit); else if (param is BankaHareketi h) await SilAsync(h); });
         YenileKomutu = new KomutSarici(async () => await VerileriYukleAsync());
+        EkstreAktarKomutu = new KomutSarici(async () => await EkstreAktarAsync());
 
         DokumYazdirKomutu = new KomutSarici(async () =>
         {
@@ -429,6 +431,28 @@ public class BankaGorunumModeli : TemelGorunumModeli
         {
             Yukleniyor = false;
             _yuklemeKilidi.Release();
+        }
+    }
+
+    // Bankadan indirilen ekstreyi içe aktarma penceresi; kayıt olduysa ekran yenilenir.
+    private async Task EkstreAktarAsync()
+    {
+        try
+        {
+            if (App.HizmetSaglayici?.GetService(typeof(IBankaEkstreServisi)) is not IBankaEkstreServisi ekstre) return;
+            var cariler = _cariServisi == null ? [] : (await _cariServisi.TumunuGetirAsync()).Where(c => c.Aktif).Select(c => (c.Id, c.Unvan)).ToList();
+            var model = new BankaEkstreAktarimModeli(ekstre, BankaHesaplari.ToList(), cariler, SeciliBankaHesabi?.Id);
+            if (model.Hesaplar.Count == 0)
+            {
+                System.Windows.MessageBox.Show("Ekstre aktarmak için önce bir TL banka hesabı tanımlayın.", "Banka Ekstresi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+            new Masaustu.Gorunumler.Sayfa.Banka.BankaEkstrePenceresi(model) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+            if (model.Kaydedildi) await VerileriYukleAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("Ekstre aktarımı açılamadı: " + ex.Message, "Banka Ekstresi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
 

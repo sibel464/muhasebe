@@ -54,6 +54,13 @@
                     <ComboBox ItemsSource="{Binding BankaHesaplari}" SelectedItem="{Binding SeciliBankaHesabi}" DisplayMemberPath="Ad" Width="220" Height="36" Style="{StaticResource FormAcilirKutu}" Margin="0,0,12,0"
                               IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
 
+                    <Button Command="{Binding EkstreAktarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📥" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Ekstre Aktar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding DokumYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🖨️" Margin="0,0,6,0" VerticalAlignment="Center"/>
