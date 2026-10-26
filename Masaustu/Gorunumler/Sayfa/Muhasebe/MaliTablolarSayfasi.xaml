@@ -1,0 +1,122 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.MaliTablolarSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Gorunur"/>
+
+            <Style x:Key="TabloSatiri" TargetType="DataGridRow">
+                <Setter Property="FontWeight" Value="Normal"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Seviye}" Value="0">
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Background" Value="#EEF2FF"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Seviye}" Value="1">
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Seviye}" Value="2">
+                        <Setter Property="Foreground" Value="#475569"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Seviye}" Value="3">
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Background" Value="#E2E8F0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="SagaYasli" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,8,0"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="⚖️" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="MALİ TABLOLAR" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Bilanço ve gelir tablosu (Tek Düzen Hesap Planı), önceki dönemle karşılaştırmalı" Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding ExcelKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="📥 Excel"/></Button>
+                <Button Command="{Binding PdfKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="📄 PDF"/></Button>
+                <Button Command="{Binding YazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="🖨️ Yazdır"/></Button>
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource BirinciDugme}"><TextBlock Text="🔄 Yenile"/></Button>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Visibility="{Binding UyariVar, Converter={StaticResource Gorunur}}" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,10">
+            <ItemsControl ItemsSource="{Binding Uyarilar}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Foreground="#78350F" Margin="0,2"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <TabControl Grid.Row="2" SelectedIndex="{Binding SeciliSekme}">
+            <TabItem Header="  Bilanço  ">
+                <DockPanel Margin="0,8,0,0">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Bilanço tarihi:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                        <DatePicker SelectedDate="{Binding BilancoTarihi}" Width="130"/>
+                        <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{StaticResource TextSecondaryFirca}">
+                            <Run Text="Sütunlar:"/> <Run Text="{Binding BilancoCariBaslik, Mode=OneWay}" FontWeight="SemiBold"/> <Run Text="ve önceki yıl sonu"/> <Run Text="{Binding BilancoOncekiBaslik, Mode=OneWay}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding BilancoSatirlari}" Style="{StaticResource ModernDataGrid}" RowStyle="{StaticResource TabloSatiri}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="HESAP / KALEM" Binding="{Binding Baslik}" Width="*"/>
+                            <DataGridTextColumn Header="CARİ DÖNEM (TL)" Binding="{Binding Tutar, StringFormat={}{0:N2}}" Width="170" ElementStyle="{StaticResource SagaYasli}"/>
+                            <DataGridTextColumn Header="ÖNCEKİ DÖNEM (TL)" Binding="{Binding OncekiTutar, StringFormat={}{0:N2}}" Width="170" ElementStyle="{StaticResource SagaYasli}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="  Gelir Tablosu  ">
+                <DockPanel Margin="0,8,0,0">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Dönem:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                        <DatePicker SelectedDate="{Binding GelirBaslangic}" Width="130"/>
+                        <TextBlock Text="-" VerticalAlignment="Center" Margin="6,0"/>
+                        <DatePicker SelectedDate="{Binding GelirBitis}" Width="130"/>
+                        <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{StaticResource TextSecondaryFirca}">
+                            <Run Text="Önceki dönem:"/> <Run Text="{Binding GelirOncekiBaslik, Mode=OneWay}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding GelirSatirlari}" Style="{StaticResource ModernDataGrid}" RowStyle="{StaticResource TabloSatiri}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="HESAP / KALEM" Binding="{Binding Baslik}" Width="*"/>
+                            <DataGridTextColumn Header="CARİ DÖNEM (TL)" Binding="{Binding Tutar, StringFormat={}{0:N2}}" Width="170" ElementStyle="{StaticResource SagaYasli}"/>
+                            <DataGridTextColumn Header="ÖNCEKİ DÖNEM (TL)" Binding="{Binding OncekiTutar, StringFormat={}{0:N2}}" Width="170" ElementStyle="{StaticResource SagaYasli}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock Grid.Row="3" Text="{Binding DurumMesaji}" Margin="0,8,0,0" Foreground="#334155" TextWrapping="Wrap"/>
+    </Grid>
+</UserControl>
