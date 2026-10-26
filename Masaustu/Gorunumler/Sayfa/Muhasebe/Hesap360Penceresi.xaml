@@ -179,7 +179,7 @@
             </TabItem>
 
             <!-- 7. AUDIT -->
-            <TabItem Header="7. Audit">
+            <TabItem Header="7. İşlem Geçmişi">
                 <DataGrid ItemsSource="{Binding Hesap360.AuditLogs}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Width="160"/>

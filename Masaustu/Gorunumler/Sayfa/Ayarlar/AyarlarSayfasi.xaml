@@ -31,7 +31,7 @@
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Sistem Yönetimi &amp; Güvenlik" Style="{StaticResource SayfaBasligi}"/>
-                    <TextBlock Text="Firma bilgileri, vergi parametreleri, yazıcı şablonları ve Audit Log güvenlik geçmişi." Style="{StaticResource SayfaAltBaslik}"/>
+                    <TextBlock Text="Firma bilgileri, vergi parametreleri, yazıcı şablonları ve işlem geçmişi (kim, ne zaman, neyi değiştirdi)." Style="{StaticResource SayfaAltBaslik}"/>
                 </StackPanel>
             </StackPanel>
         </Grid>
@@ -208,7 +208,7 @@
             </TabItem>
 
             <!-- TAB 2: AUDIT LOG & GÜVENLİK İZLEME -->
-            <TabItem Header="🛡️ Audit Log &amp; Güvenlik İzleme" FontSize="13" FontWeight="SemiBold" Padding="16,8">
+            <TabItem Header="🛡️ İşlem Geçmişi &amp; Güvenlik" FontSize="13" FontWeight="SemiBold" Padding="16,8">
                 <Grid Margin="0,16,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -227,7 +227,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Tablo / Entity Adı" Style="{StaticResource EtiketMetin}"/>
+                                <TextBlock Text="Kayıt Türü (Tablo)" Style="{StaticResource EtiketMetin}"/>
                                 <TextBox Style="{StaticResource FiltreKutusu}" Text="{Binding AuditTabloArama, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
 

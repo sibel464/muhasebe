@@ -147,7 +147,7 @@
             </TabItem>
 
             <!-- 9. Audit -->
-            <TabItem Header="9. Audit">
+            <TabItem Header="9. İşlem Geçmişi">
                 <TextBlock Text="Banka Hesap Günlük Değişiklik İzi" Margin="16" Style="{StaticResource EtiketMetin}"/>
             </TabItem>
         </TabControl>

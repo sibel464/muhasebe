@@ -181,7 +181,7 @@
                                     Style="{StaticResource MenuOgeDugme}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📊" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Genel Bakış" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 

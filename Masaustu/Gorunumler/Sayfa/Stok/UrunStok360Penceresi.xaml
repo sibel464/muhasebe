@@ -323,7 +323,7 @@
                 <!-- 12. SİSTEM BİLGİSİ -->
                 <Grid Visibility="{Binding SistemAcik, Converter={StaticResource BoolVis}}" Margin="16">
                     <StackPanel>
-                        <TextBlock Text="Sistem İzi ve Audit Kayıtları" FontSize="15" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,0,0,12"/>
+                        <TextBlock Text="Sistem İzi ve İşlem Geçmişi" FontSize="15" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,0,0,12"/>
                         <TextBlock Text="Ürün kaydı oluşturulma ve güncelleme tarihçeleri kaydedilmiştir." Foreground="#64748B"/>
                     </StackPanel>
                 </Grid>

@@ -337,7 +337,7 @@
             </TabItem>
 
             <!-- SEKME 2: Kim Ne Yaptı? (Canlı İşlem Geçmişi / Audit Logs) -->
-            <TabItem Header="📋 Kim Ne Yaptı? (Canlı İşlem Geçmişi / Audit Log)">
+            <TabItem Header="📋 Kim Ne Yaptı? (Canlı İşlem Geçmişi)">
                 <Border Background="White" CornerRadius="12" Padding="20" Margin="0,16,0,0"
                         BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
                     <Grid>

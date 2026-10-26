@@ -90,7 +90,7 @@
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="Açıklama / Neden:" VerticalAlignment="Center" Margin="0,8"/>
                     <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding YeniAciklama}" Margin="0,8" Height="32"/>
 
-                    <Button Grid.Row="4" Grid.Column="1" Content="Manuel Kuru Kaydet (Audit)" Command="{Binding ManuelKurKaydetKomutu}" Height="38" Background="#16A34A" Foreground="White" FontWeight="Bold" Margin="0,16,0,0"/>
+                    <Button Grid.Row="4" Grid.Column="1" Content="Manuel Kuru Kaydet" Command="{Binding ManuelKurKaydetKomutu}" Height="38" Background="#16A34A" Foreground="White" FontWeight="Bold" Margin="0,16,0,0"/>
                 </Grid>
             </TabItem>
 
