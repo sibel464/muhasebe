@@ -353,6 +353,70 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="✉️ E-posta" FontSize="13" FontWeight="SemiBold" Padding="16,8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
+                    <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="✉️ E-posta Gönderim Ayarları (SMTP)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" FontWeight="Normal" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,14"
+                                           Text="Fatura, ekstre ve mutabakat mektubunu PDF olarak müşteriye göndermek için. Gmail: smtp.gmail.com / 587, Outlook: smtp-mail.outlook.com / 587, Yandex: smtp.yandex.com.tr / 465. Gmail ve Outlook'ta normal şifre yerine hesap ayarlarından oluşturulan 'uygulama şifresi' kullanılır."/>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,10,0">
+                                        <TextBlock Text="SMTP sunucusu" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding SmtpSunucu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Port" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding SmtpPort}" Style="{StaticResource FormGirisKutusu}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Margin="0,0,0,12">
+                                    <TextBlock Text="Güvenlik" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding SmtpGuvenlikSecenekleri}" SelectedIndex="{Binding SmtpGuvenlikIndex}" Height="36"/>
+                                </StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,10,0">
+                                        <TextBlock Text="Kullanıcı (gönderen e-posta adresi)" Style="{StaticResource EtiketMetin}"/>
+                                        <TextBox Text="{Binding SmtpKullanici, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Şifre / uygulama şifresi" Style="{StaticResource EtiketMetin}"/>
+                                        <PasswordBox x:Name="SmtpSifreKutusu" PasswordChanged="SmtpSifreKutusu_PasswordChanged" Height="36" Padding="8,0" VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="{Binding SmtpSifreBilgisi}" FontSize="12" FontWeight="Normal" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,12"/>
+                                <StackPanel Margin="0,0,0,16">
+                                    <TextBlock Text="Gönderen adı (boşsa firma ünvanı)" Style="{StaticResource EtiketMetin}"/>
+                                    <TextBox Text="{Binding EpostaGonderenAdi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding EpostaTestAdresi, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" ToolTip="Deneme iletisinin gideceği adres"/>
+                                    <Button Grid.Column="1" Command="{Binding EpostaTestKomutu}" Style="{StaticResource IkinciDugme}" Margin="8,0,0,0" Content="Deneme gönder"/>
+                                    <Button Grid.Column="2" Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Margin="8,0,0,0" Content="Kaydet"/>
+                                </Grid>
+                                <TextBlock Text="{Binding EpostaDurumu}" TextWrapping="Wrap" FontWeight="Normal" Margin="0,10,0,0"/>
+                                <TextBlock Text="{Binding BasariMesaji}" TextWrapping="Wrap" FontWeight="Normal" Foreground="#15803D" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding HataMesaji}" TextWrapping="Wrap" FontWeight="Normal" Foreground="#B91C1C" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <TabItem Header="🔑 Lisans" FontSize="13" FontWeight="SemiBold" Padding="16,8">
                 <StackPanel Margin="0,16,0,0" MaxWidth="720" HorizontalAlignment="Left">
                     <TextBlock Text="Lisans" FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>

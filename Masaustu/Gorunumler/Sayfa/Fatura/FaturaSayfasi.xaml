@@ -244,7 +244,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- İşlemler -->
-                    <DataGridTemplateColumn Header="İŞLEMLER" Width="206">
+                    <DataGridTemplateColumn Header="İŞLEMLER" Width="244">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -252,6 +252,12 @@
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="Yazdır / PDF" Width="34" Padding="0">
                                         <TextBlock Text="🖨️" HorizontalAlignment="Center"/>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.FaturaEpostaKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="PDF olarak e-postayla gönder" Width="34" Padding="0">
+                                        <TextBlock Text="✉️" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.DetayKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 

@@ -51,6 +51,23 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string Ilce { get => _ilce; set => OzellikAyarla(ref _ilce, value); }
     public string PostaKodu { get => _postaKodu; set => OzellikAyarla(ref _postaKodu, value); }
     public string EBelgeKlasoru { get => _eBelgeKlasoru; set => OzellikAyarla(ref _eBelgeKlasoru, value); }
+
+    // E-posta (SMTP)
+    private string _smtpSunucu = string.Empty, _smtpKullanici = string.Empty, _epostaGonderenAdi = string.Empty, _epostaTestAdresi = string.Empty, _epostaDurumu = string.Empty;
+    private int _smtpPort = 587, _smtpGuvenlikIndex;
+    private string? _smtpSifreKayitli;
+    public string SmtpSunucu { get => _smtpSunucu; set => OzellikAyarla(ref _smtpSunucu, value); }
+    public int SmtpPort { get => _smtpPort; set => OzellikAyarla(ref _smtpPort, value); }
+    public int SmtpGuvenlikIndex { get => _smtpGuvenlikIndex; set => OzellikAyarla(ref _smtpGuvenlikIndex, value); }
+    public string SmtpKullanici { get => _smtpKullanici; set => OzellikAyarla(ref _smtpKullanici, value); }
+    public string EpostaGonderenAdi { get => _epostaGonderenAdi; set => OzellikAyarla(ref _epostaGonderenAdi, value); }
+    public string EpostaTestAdresi { get => _epostaTestAdresi; set => OzellikAyarla(ref _epostaTestAdresi, value); }
+    public string EpostaDurumu { get => _epostaDurumu; set => OzellikAyarla(ref _epostaDurumu, value); }
+    // Şifre kutusu bağlanamaz; sayfa yazılan yeni şifreyi buraya verir. Boşsa kayıtlı şifre korunur.
+    public string SmtpSifreYeni { get; set; } = string.Empty;
+    public string SmtpSifreBilgisi => string.IsNullOrEmpty(_smtpSifreKayitli) ? "Şifre kayıtlı değil." : "Şifre kayıtlı (değiştirmek için yenisini yazın).";
+    public string[] SmtpGuvenlikSecenekleri { get; } = ["Otomatik (465 → SSL, diğerleri STARTTLS)", "SSL / TLS (genelde 465)", "STARTTLS (genelde 587)", "Şifresiz (önerilmez)"];
+    public ICommand EpostaTestKomutu { get; }
     public string EBelgeVarsayilanKlasor => Altyapi.EBelge.DosyaEBelgeEntegratoru.VarsayilanKlasor;
     // 0: Temel fatura, 1: Ticari fatura
     public int EFaturaSenaryoIndex { get => _eFaturaSenaryoIndex; set => OzellikAyarla(ref _eFaturaSenaryoIndex, value); }
@@ -100,6 +117,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public AyarlarGorunumModeli(ISistemAyarlariServisi? ayarlarServisi = null, IAuditLogServisi? auditLogServisi = null, IVeritabaniYedekServisi? yedekServisi = null)
     {
         _ayarlarServisi = ayarlarServisi;
+        EpostaTestKomutu = new KomutSarici(async _ => await EpostaTestAsync());
         _auditLogServisi = auditLogServisi;
         _yedekServisi = yedekServisi;
         YedekAlKomutu = new KomutSarici(async _ => await YedekAlAsync(), _ => !YedekAliniyor && _yedekServisi != null);
@@ -149,6 +167,14 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             Ilce = ayar.Ilce ?? string.Empty;
             PostaKodu = ayar.PostaKodu ?? string.Empty;
             EBelgeKlasoru = ayar.EBelgeKlasoru ?? string.Empty;
+            SmtpSunucu = ayar.SmtpSunucu ?? string.Empty;
+            SmtpPort = ayar.SmtpPort;
+            SmtpGuvenlikIndex = ayar.SmtpGuvenlik;
+            SmtpKullanici = ayar.SmtpKullanici ?? string.Empty;
+            EpostaGonderenAdi = ayar.EpostaGonderenAdi ?? string.Empty;
+            _smtpSifreKayitli = ayar.SmtpSifre;
+            BildirimGonder(nameof(SmtpSifreBilgisi));
+            if (string.IsNullOrEmpty(EpostaTestAdresi)) EpostaTestAdresi = ayar.Eposta ?? ayar.SmtpKullanici ?? string.Empty;
             EFaturaSenaryoIndex = (int)ayar.EFaturaVarsayilanSenaryo;
             FisHeader = ayar.FisHeader ?? string.Empty;
             FisFooter = ayar.FisFooter ?? string.Empty;
@@ -245,6 +271,12 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
                 Ilce = Ilce,
                 PostaKodu = PostaKodu,
                 EBelgeKlasoru = EBelgeKlasoru,
+                SmtpSunucu = SmtpSunucu,
+                SmtpPort = SmtpPort,
+                SmtpGuvenlik = SmtpGuvenlikIndex,
+                SmtpKullanici = SmtpKullanici,
+                SmtpSifre = SmtpSifreKaydi(),
+                EpostaGonderenAdi = EpostaGonderenAdi,
                 EFaturaVarsayilanSenaryo = (EtkiAlani.Modeller.Fatura.EFaturaSenaryosu)EFaturaSenaryoIndex,
                 FisHeader = FisHeader,
                 FisFooter = FisFooter,
@@ -257,6 +289,8 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             };
 
             await _ayarlarServisi.AyarlariKaydetAsync(ayar);
+            _smtpSifreKayitli = ayar.SmtpSifre;
+            BildirimGonder(nameof(SmtpSifreBilgisi));
             BasariMesaji = "✅ Firma ve sistem ayarları kaydedildi.";
             await AuditLoglariYukleAsync();
         }
@@ -267,6 +301,32 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         finally
         {
             Yukleniyor = false;
+        }
+    }
+
+    private string? SmtpSifreKaydi() => string.IsNullOrEmpty(SmtpSifreYeni) ? _smtpSifreKayitli : Altyapi.Eposta.SmtpSifreleyici.Sifrele(SmtpSifreYeni);
+
+    // Formdaki (henüz kaydedilmemiş olabilir) ayarlarla deneme iletisi gönderir.
+    private async Task EpostaTestAsync()
+    {
+        EpostaDurumu = "Gönderiliyor...";
+        var ayar = new SistemAyarlari
+        {
+            FirmaUnvani = FirmaUnvani, Eposta = Eposta, SmtpSunucu = SmtpSunucu, SmtpPort = SmtpPort, SmtpGuvenlik = SmtpGuvenlikIndex,
+            SmtpKullanici = SmtpKullanici, SmtpSifre = SmtpSifreKaydi(), EpostaGonderenAdi = EpostaGonderenAdi
+        };
+        try
+        {
+            await new Altyapi.Eposta.EpostaServisi(() => Task.FromResult(ayar)).GonderAsync(new EpostaMesaji
+            {
+                Alicilar = EpostaTestAdresi, Konu = "Muhasebe programı e-posta denemesi",
+                Metin = $"Bu ileti {FirmaUnvani} muhasebe programının e-posta ayarlarını denemek için gönderildi.\n{DateTime.Now:dd.MM.yyyy HH:mm}"
+            });
+            EpostaDurumu = $"✅ Deneme iletisi {EpostaTestAdresi} adresine gönderildi. Ayarları kaydetmeyi unutmayın.";
+        }
+        catch (Exception ex)
+        {
+            EpostaDurumu = "❌ " + ex.Message;
         }
     }
 

@@ -19,6 +19,13 @@ public class SistemAyarlari : TemelVarlik
     // e-Fatura / e-Arşiv
     public string? EBelgeKlasoru { get; set; }                    // Boşsa Belgelerim\MuhasebeYonetim\e-Belge
     public EtkiAlani.Modeller.Fatura.EFaturaSenaryosu EFaturaVarsayilanSenaryo { get; set; } = EtkiAlani.Modeller.Fatura.EFaturaSenaryosu.Temel;
+    // E-posta (SMTP) gönderimi; şifre SmtpSifre alanında şifrelenmiş saklanır.
+    public string? SmtpSunucu { get; set; }
+    public int SmtpPort { get; set; } = 587;
+    public int SmtpGuvenlik { get; set; }                       // 0 otomatik, 1 SSL (465), 2 STARTTLS (587), 3 yok
+    public string? SmtpKullanici { get; set; }
+    public string? SmtpSifre { get; set; }
+    public string? EpostaGonderenAdi { get; set; }
     public string? FisHeader { get; set; }
     public string? FisFooter { get; set; } = "Bizi tercih ettiğiniz için teşekkür ederiz!";
     public decimal VarsayilanKdv { get; set; } = 20.00m;

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
         Title="Cari Hesap Ekstresi"
-        Width="980" Height="660"
+        Width="1060" Height="660"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
@@ -139,8 +139,11 @@
                 <DatePicker DockPanel.Dock="Left" SelectedDate="{Binding MutabakatTarihi}" Width="120" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <CheckBox DockPanel.Dock="Left" Content="Ba-Bs ekle" IsChecked="{Binding BaBsEkle}" VerticalAlignment="Center" Margin="0,0,8,0"
                           ToolTip="Mutabakat tarihinin ayına ait alış/satış fatura toplamlarını (Form Ba-Bs) mektuba ekler"/>
-                <Button DockPanel.Dock="Left" Command="{Binding MutabakatYazdirKomutu}" Style="{StaticResource IkinciDugme}">
-                    <TextBlock Text="✉️ Mutabakat Mektubu"/>
+                <Button DockPanel.Dock="Left" Command="{Binding MutabakatYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0">
+                    <TextBlock Text="📄 Mutabakat Mektubu"/>
+                </Button>
+                <Button DockPanel.Dock="Left" Command="{Binding EpostaKomutu}" Style="{StaticResource IkinciDugme}" ToolTip="Ekstre ve mutabakat mektubunu PDF olarak cariye e-postayla gönderir">
+                    <TextBlock Text="✉️ E-posta"/>
                 </Button>
             </DockPanel>
         </Border>

@@ -68,6 +68,7 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
     public ICommand YenileKomutu { get; }
     public ICommand EkstreYazdirKomutu { get; }
     public ICommand MutabakatYazdirKomutu { get; }
+    public ICommand EpostaKomutu { get; }
 
     public DateTime MutabakatTarihi
     {
@@ -104,6 +105,7 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
             catch (Exception ex) { DurumMesaji = "Ekstre yazdırılamadı: " + ex.Message; }
         });
         MutabakatYazdirKomutu = new KomutSarici(async _ => await MutabakatYazdirAsync());
+        EpostaKomutu = new KomutSarici(async _ => await EpostaGonderAsync());
 
         _ = HareketleriYukleAsync();
     }
@@ -112,30 +114,58 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
     public decimal TarihtekiBakiye(DateTime tarih) =>
         _hamHareketler.Where(h => h.Tarih.Date <= tarih.Date).Sum(h => h.Borc - h.Alacak);
 
+    private async Task<List<Uygulama.Dto.Rapor.BaBsKalemiDto>?> BaBsGetirAsync(DateTime tarih)
+    {
+        if (!BaBsEkle || _raporServisi == null) return null;
+        try
+        {
+            var ayBasi = new DateTime(tarih.Year, tarih.Month, 1);
+            return await _raporServisi.GetBaBsRaporuAsync(new Uygulama.Dto.Rapor.SatisRaporFiltreDto { BaslangicTarihi = ayBasi, BitisTarihi = ayBasi.AddMonths(1).AddTicks(-1), CariId = CariKart.Id }, 0m);
+        }
+        catch (YetkisizErisimException)
+        {
+            DurumMesaji = "Rapor yetkiniz olmadığı için Ba-Bs bölümü mektuba eklenmedi.";
+            return null;
+        }
+    }
+
     private async Task MutabakatYazdirAsync()
     {
         if (_yazdirmaServisi == null) return;
         try
         {
             var tarih = MutabakatTarihi.Date;
-            List<Uygulama.Dto.Rapor.BaBsKalemiDto>? baBs = null;
-            if (BaBsEkle && _raporServisi != null)
-            {
-                try
-                {
-                    var ayBasi = new DateTime(tarih.Year, tarih.Month, 1);
-                    baBs = await _raporServisi.GetBaBsRaporuAsync(new Uygulama.Dto.Rapor.SatisRaporFiltreDto { BaslangicTarihi = ayBasi, BitisTarihi = ayBasi.AddMonths(1).AddTicks(-1), CariId = CariKart.Id }, 0m);
-                }
-                catch (YetkisizErisimException)
-                {
-                    DurumMesaji = "Rapor yetkiniz olmadığı için Ba-Bs bölümü mektuba eklenmedi.";
-                }
-            }
-            await _yazdirmaServisi.MutabakatMektubuYazdirAsync(CariKart, tarih, TarihtekiBakiye(tarih), baBs);
+            await _yazdirmaServisi.MutabakatMektubuYazdirAsync(CariKart, tarih, TarihtekiBakiye(tarih), await BaBsGetirAsync(tarih));
         }
         catch (Exception ex)
         {
             DurumMesaji = "Mutabakat mektubu hazırlanamadı: " + ex.Message;
+        }
+    }
+
+    // Ekstre ve / veya mutabakat mektubu PDF olarak cariye e-postayla gönderilir.
+    private async Task EpostaGonderAsync()
+    {
+        if (_yazdirmaServisi == null) return;
+        var servis = App.HizmetSaglayici?.GetService(typeof(IEpostaServisi)) as IEpostaServisi;
+        if (servis == null) return;
+        try
+        {
+            var firma = await _yazdirmaServisi.FirmaBilgisiGetirAsync(CariKart.SirketId);
+            var tarih = MutabakatTarihi.Date;
+            var guvenliKod = string.Concat(CariKart.Kod.Where(char.IsLetterOrDigit));
+            var ekstre = new EpostaEkSecenegi("Hesap ekstresi", true, async () =>
+                new EpostaEki($"Ekstre_{guvenliKod}_{DateTime.Today:yyyyMMdd}.pdf", await servis.HtmldenPdfAsync(_yazdirmaServisi.CariEkstreHtmlUret(CariKart, _hamHareketler, firma: firma))));
+            var mutabakat = new EpostaEkSecenegi($"Mutabakat mektubu ({tarih:dd.MM.yyyy})", false, async () =>
+                new EpostaEki($"Mutabakat_{guvenliKod}_{tarih:yyyyMMdd}.pdf",
+                    await servis.HtmldenPdfAsync(_yazdirmaServisi.MutabakatMektubuHtmlUret(CariKart, tarih, TarihtekiBakiye(tarih), await BaBsGetirAsync(tarih), firma))));
+            Masaustu.Gorunumler.Ortak.EpostaGonderPenceresi.Ac(null, CariKart.Eposta ?? "", $"{firma.FirmaUnvani} - Hesap ekstresi",
+                $"Sayın {CariKart.Unvan},\n\nFirmamız nezdindeki cari hesabınıza ait belgeler ektedir. Mutabakat mektubunu imzalayıp tarafımıza iletmenizi rica ederiz.\n\nSaygılarımızla,\n{firma.FirmaUnvani}",
+                ekstre, mutabakat);
+        }
+        catch (Exception ex)
+        {
+            DurumMesaji = "E-posta hazırlanamadı: " + ex.Message;
         }
     }
 

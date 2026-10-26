@@ -75,6 +75,12 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
             mevcut.PostaKodu = guncelAyarlar.PostaKodu?.Trim();
             mevcut.EBelgeKlasoru = string.IsNullOrWhiteSpace(guncelAyarlar.EBelgeKlasoru) ? null : guncelAyarlar.EBelgeKlasoru.Trim();
             mevcut.EFaturaVarsayilanSenaryo = guncelAyarlar.EFaturaVarsayilanSenaryo;
+            mevcut.SmtpSunucu = string.IsNullOrWhiteSpace(guncelAyarlar.SmtpSunucu) ? null : guncelAyarlar.SmtpSunucu.Trim();
+            mevcut.SmtpPort = guncelAyarlar.SmtpPort is > 0 and < 65536 ? guncelAyarlar.SmtpPort : 587;
+            mevcut.SmtpGuvenlik = guncelAyarlar.SmtpGuvenlik is >= 0 and <= 3 ? guncelAyarlar.SmtpGuvenlik : 0;
+            mevcut.SmtpKullanici = string.IsNullOrWhiteSpace(guncelAyarlar.SmtpKullanici) ? null : guncelAyarlar.SmtpKullanici.Trim();
+            mevcut.SmtpSifre = guncelAyarlar.SmtpSifre;
+            mevcut.EpostaGonderenAdi = string.IsNullOrWhiteSpace(guncelAyarlar.EpostaGonderenAdi) ? null : guncelAyarlar.EpostaGonderenAdi.Trim();
             mevcut.FisHeader = guncelAyarlar.FisHeader?.Trim();
             mevcut.FisFooter = guncelAyarlar.FisFooter?.Trim();
             mevcut.VarsayilanKdv = guncelAyarlar.VarsayilanKdv;

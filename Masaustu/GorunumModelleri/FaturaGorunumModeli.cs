@@ -248,6 +248,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand KalemEkleKomutu { get; }
 	public ICommand KalemSilKomutu { get; }
 	public ICommand FaturaYazdirKomutu { get; }
+	public ICommand FaturaEpostaKomutu { get; }
 	public ICommand DetayKomutu { get; }
 	public ICommand ExcelAktarKomutu { get; }
 	public ICommand EBelgeKomutu { get; }
@@ -312,6 +313,26 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 				        "Firma bilgileri eksik", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
 					return;
 				await _yazdirmaServisi.FaturaYazdirAsync(hedefFatura, firma: firma);
+			}
+		});
+		FaturaEpostaKomutu = new KomutSarici(async param =>
+		{
+			var secilen = (param as Fatura) ?? SeciliFatura;
+			if (secilen is not { Id: > 0 } || _yazdirmaServisi == null) return;
+			try
+			{
+				var fatura = await _faturaServisi.DetayGetirAsync(secilen.Id) ?? secilen;
+				var firma = await _yazdirmaServisi.FirmaBilgisiGetirAsync(fatura.SirketId);
+				var servis = App.HizmetSaglayici?.GetService(typeof(IEpostaServisi)) as IEpostaServisi;
+				if (servis == null) return;
+				var dosya = string.Concat(fatura.FaturaNo.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
+				Masaustu.Gorunumler.Ortak.EpostaGonderPenceresi.Ac(null, fatura.CariKart?.Eposta ?? "", $"{firma.FirmaUnvani} - {fatura.FaturaNo} numaralı fatura",
+					$"Sayın {fatura.CariKart?.Unvan},\n\n{fatura.Tarih:dd.MM.yyyy} tarihli {fatura.FaturaNo} numaralı faturamız ({fatura.OdenecekTutar:N2} TL) ektedir.\n\nSaygılarımızla,\n{firma.FirmaUnvani}",
+					new EpostaEkSecenegi($"Fatura {fatura.FaturaNo}", true, async () => new EpostaEki($"Fatura_{dosya}.pdf", await servis.HtmldenPdfAsync(_yazdirmaServisi.FaturaHtmlUret(fatura, firma)))));
+			}
+			catch (Exception ex)
+			{
+				System.Windows.MessageBox.Show("E-posta hazırlanamadı: " + ex.Message, "E-posta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
 			}
 		});
 		Yeni();

@@ -42,6 +42,9 @@ namespace Altyapi.Migrations
                     b.Property<string>("Eposta")
                         .HasColumnType("text");
 
+                    b.Property<string>("EpostaGonderenAdi")
+                        .HasColumnType("text");
+
                     b.Property<string>("FaturaNotu")
                         .HasColumnType("text");
 
@@ -93,6 +96,21 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("SilinmeTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("SmtpGuvenlik")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SmtpKullanici")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SmtpPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SmtpSifre")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SmtpSunucu")
+                        .HasColumnType("text");
+
                     b.Property<string>("Telefon")
                         .HasColumnType("text");
 
@@ -128,6 +146,8 @@ namespace Altyapi.Migrations
                             ParaBirimiKodu = "TRY",
                             ParaBirimiSembolu = "₺",
                             Silindi = false,
+                            SmtpGuvenlik = 0,
+                            SmtpPort = 587,
                             VarsayilanKdv = 20.00m,
                             VarsayilanVadeGunu = 30
                         });
