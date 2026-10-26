@@ -210,6 +210,11 @@ public sealed class PosSatisIntegrationTests
             context.Sirketler.Add(new EtkiAlani.Modeller.Kurumsal.Sirket { Id = MuhasebeBaglami.VarsayilanSirketId, Unvan = "Varsayılan Şirket", SirketKodu = "DEF-01" });
             await context.SaveChangesAsync();
         }
+        // Kartlı/havale satış tanımlı bir POS ve vadesiz hesap ister (hesapsız tahsilat reddedilir).
+        if (!await context.BankaHesaplari.AnyAsync(x => x.AktifMi && x.HesapTuru == BankaHesapTuru.POSHesabi && x.SirketId == MuhasebeBaglami.VarsayilanSirketId))
+            context.BankaHesaplari.Add(new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}"[..20], Ad = "Test POS", HesapTuru = BankaHesapTuru.POSHesabi, MuhasebeKodu = "108" });
+        if (!await context.BankaHesaplari.AnyAsync(x => x.AktifMi && x.HesapTuru == BankaHesapTuru.VadesizTL && x.SirketId == MuhasebeBaglami.VarsayilanSirketId))
+            context.BankaHesaplari.Add(new BankaHesabi { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"VDS-{Guid.NewGuid():N}"[..20], Ad = "Test Vadesiz", HesapTuru = BankaHesapTuru.VadesizTL, MuhasebeKodu = "102" });
         var cari = new CariKart { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}", Unvan = "POS Test Cari", Aktif = true };
         var urun = new Urun { SirketId = MuhasebeBaglami.VarsayilanSirketId, Kod = $"POS-{Guid.NewGuid():N}", Barkod = $"869{Random.Shared.NextInt64(1000000000, 9999999999)}", Ad = "POS Test Ürün", Birim = "Adet", Aktif = true, StokMiktari = 60, PerakendeSatisFiyati = 100, KdvOrani = 20 };
         context.AddRange(cari, urun);

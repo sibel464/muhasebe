@@ -1002,6 +1002,17 @@ public class MuhasebeBaglami : DbContext
                 .Select(k => new { k.Id, k.SirketId }).FirstOrDefaultAsync(cancellationToken);
             if (kasa != null)
                 foreach (var h in kasasizlar) { h.KasaId = kasa.Id; h.SirketId ??= kasa.SirketId; }
+            else if (await Kasalar.IgnoreQueryFilters().AnyAsync(k => !k.Silindi, cancellationToken))
+                throw new InvalidOperationException("Aktif kasa yok: nakit işlem kaydedilemedi. Kasa ekranından bir kasayı aktif yapın veya yeni kasa tanımlayın.");
+            else
+            {
+                // Yeni kurulumda hiç kasa yokken ilk nakit satış parayı kasasız bir harekete yazıyordu (hiçbir kasanın
+                // bakiyesinde görünmüyordu). Kasa ekranının açılışta oluşturduğu standart kasa burada aynı işlemde açılır.
+                var yeni = new Kasa { Kod = "KSA-01", Ad = "Merkez Nakit Kasa", MuhasebeKodu = "100.01.001", ParaBirimi = "TRY", AktifMi = true,
+                    SirketId = kasasizlar[0].SirketId ?? AktifSirketId ?? VarsayilanSirketId, OlusturmaTarihi = DateTime.UtcNow };
+                Kasalar.Add(yeni);
+                foreach (var h in kasasizlar) { h.Kasa = yeni; h.SirketId ??= yeni.SirketId; }
+            }
         }
 
         var hesapsizlar = ChangeTracker.Entries<BankaHareketi>()

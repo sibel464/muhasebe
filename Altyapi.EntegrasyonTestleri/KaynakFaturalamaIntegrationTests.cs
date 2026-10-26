@@ -1,6 +1,7 @@
 using Altyapi.Servisler;
 using Altyapi.Veri;
 using EtkiAlani.Modeller.Fatura;
+using EtkiAlani.Modeller.Finans;
 using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Irsaliye;
 using EtkiAlani.Modeller.Kullanici;
@@ -31,7 +32,22 @@ public sealed class KaynakFaturalamaIntegrationTests
     [Fact] public async Task Sifir_kdv_gereksiz_391_satiri_uretmez() { var x=await Hazirla(2,20,0); var f=await Dogrudan(x,2); await using var c=Yeni(); var y=await c.YevmiyeFisleri.Include(y=>y.Satirlar).ThenInclude(s=>s.Hesap).SingleAsync(y=>y.BelgeId==f.Id&&y.BelgeTipi=="Fatura"); Assert.DoesNotContain(y.Satirlar,s=>s.Hesap!.HesapKodu=="391"); }
     [Fact] public async Task Acik_hesap_kasa_banka_uretmez() { var x=await Hazirla(1); var f=await Dogrudan(x,1,FaturaOdemeSekli.AcikHesap); await using var c=Yeni(); Assert.False(await c.KasaHareketleri.AnyAsync(h=>h.FaturaId==f.Id)); Assert.False(await c.BankaHareketleri.AnyAsync(h=>h.FaturaId==f.Id)); }
     [Fact] public async Task Nakit_odeme_kasa_hareketi_uretir() { var x=await Hazirla(1); var f=await Dogrudan(x,1,FaturaOdemeSekli.Nakit); await using var c=Yeni(); Assert.True(await c.KasaHareketleri.AnyAsync(h=>h.FaturaId==f.Id)); }
-    [Theory][InlineData(FaturaOdemeSekli.Banka)][InlineData(FaturaOdemeSekli.KrediKarti)] public async Task Banka_ve_kart_banka_hareketi_uretir(FaturaOdemeSekli o) { var x=await Hazirla(1); var f=await Dogrudan(x,1,o); await using var c=Yeni(); Assert.True(await c.BankaHareketleri.AnyAsync(h=>h.FaturaId==f.Id)); }
+    [Theory][InlineData(FaturaOdemeSekli.Banka)][InlineData(FaturaOdemeSekli.KrediKarti)] public async Task Banka_ve_kart_banka_hareketi_uretir(FaturaOdemeSekli o)
+    {
+        var x=await Hazirla(1);
+        Guid sirketId;
+        await using (var c0=Yeni())
+        {
+            sirketId=(await c0.Siparisler.Include(s=>s.CariKart).SingleAsync(s=>s.Id==x.SiparisId)).CariKart!.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+            var tur=o==FaturaOdemeSekli.KrediKarti?BankaHesapTuru.POSHesabi:BankaHesapTuru.VadesizTL;
+            if(!await c0.BankaHesaplari.AnyAsync(b=>b.AktifMi&&b.HesapTuru==tur&&b.SirketId==sirketId))
+            { c0.BankaHesaplari.Add(new BankaHesabi{SirketId=sirketId,Kod=$"KF-{Guid.NewGuid():N}"[..20],Ad="Kaynak Test Hesap",HesapTuru=tur,MuhasebeKodu=tur==BankaHesapTuru.POSHesabi?"108":"102"}); await c0.SaveChangesAsync(); }
+        }
+        var f=await Dogrudan(x,1,o);
+        await using var c=Yeni();
+        var h=await c.BankaHareketleri.SingleAsync(h=>h.FaturaId==f.Id);
+        Assert.NotNull(h.BankaHesabiId); // para tanımlı bir hesaba yazılır, hesapsız hareket oluşmaz
+    }
     [Fact] public async Task Fatura_finans_stok_ve_miktar_atomik_kaydedilir() { var x=await Hazirla(2); var f=await Dogrudan(x,2); await using var c=Yeni(); Assert.True(await c.Faturalar.AnyAsync(y=>y.Id==f.Id)); Assert.True(await c.StokHareketleri.AnyAsync(y=>y.IlgiliBelgeId==f.Id)); Assert.True(await c.YevmiyeFisleri.AnyAsync(y=>y.BelgeId==f.Id)); }
     [Fact] public async Task Kontrollu_hata_full_rollback() { var x=await Hazirla(2,1); await Assert.ThrowsAsync<InvalidOperationException>(()=>Dogrudan(x,2)); await using var c=Yeni(); Assert.False(await c.Faturalar.AnyAsync(y=>y.SiparisId==x.SiparisId)); await Stok(x,1); }
     [Fact] public async Task Son_faturalanabilir_miktarda_yalniz_bir_islem_kazanir() { var x=await Hazirla(5,20); var r=await Task.WhenAll(Dene(()=>Dogrudan(x,5)),Dene(()=>Dogrudan(x,5))); Assert.Single(r,v=>v); }

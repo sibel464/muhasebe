@@ -68,7 +68,7 @@ public sealed class FaturaHesapVeNumaraIntegrationTests
 
         await using var k = new MuhasebeBaglami(_fixture.Options);
         var k_servis = new FaturaServisi(k, Oturum());
-        var satir = Assert.Single((await k_servis.ListeGetirAsync(FaturaTuru.Satis, BelgeDurumu.Taslak)).Where(x => x.Id == f.Id));
+        var satir = Assert.Single(await k_servis.ListeGetirAsync(FaturaTuru.Satis, BelgeDurumu.Taslak), x => x.Id == f.Id);
         Assert.Empty(satir.Kalemler);
         Assert.Equal("Numara Test Cari", satir.CariKart!.Unvan);
         Assert.DoesNotContain(await k_servis.ListeGetirAsync(FaturaTuru.Alis), x => x.Id == f.Id);

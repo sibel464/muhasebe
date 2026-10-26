@@ -378,7 +378,7 @@ public class FaturaServisi : IFaturaServisi
                 else if (odemeYontemi is "Kredi Kartı" or "Banka")
                 {
                     var krediKarti = odemeYontemi == "Kredi Kartı";
-                    var hesap = await TahsilatHesabiSecAsync(eklenenFatura.SirketId, krediKarti);
+                    var hesap = await TahsilatHesabiSecAsync(eklenenFatura.SirketId, krediKarti) ?? throw HesapYok(krediKarti);
                     _baglam.BankaHareketleri.Add(posBanka = new BankaHareketi
                     {
                         Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
@@ -769,7 +769,7 @@ public class FaturaServisi : IFaturaServisi
 
         // Kartla tahsilat POS hesabına, havale vadesiz hesaba yazılır. Kartla ödemede (şirket kartı) hesap seçilmez.
         var krediKarti = fatura.OdemeSekli == FaturaOdemeSekli.KrediKarti;
-        var hesap = giris || !krediKarti ? await TahsilatHesabiSecAsync(fatura.SirketId, krediKarti) : null;
+        var hesap = giris || !krediKarti ? await TahsilatHesabiSecAsync(fatura.SirketId, krediKarti) ?? throw HesapYok(krediKarti) : null;
         var banka = new BankaHareketi
         {
             Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? BankaFisTuru.GelenHavale : BankaFisTuru.GidenHavale,
@@ -786,6 +786,11 @@ public class FaturaServisi : IFaturaServisi
     // Seçim ekranı olmayan satış/fatura tahsilatının yazılacağı hesap: kart için POS hesabı (108, bloke), havale için
     // vadesiz TL hesap; aynı türden birden çok hesap varsa ilk açılan. Uygun hesap yoksa null döner ve
     // MuhasebeBaglami hareketi yalnız tek aktif hesap varsa ona bağlar.
+    // Hesap yokken para, hiçbir banka/POS hesabının bakiyesinde görünmeyen hesapsız bir harekete yazılıyordu.
+    private static InvalidOperationException HesapYok(bool krediKarti) => new(krediKarti
+        ? "Kartlı işlem için tanımlı aktif bir POS hesabı yok. Banka ekranından \"POS Hesabı\" türünde bir hesap tanımlayıp (komisyon oranıyla) tekrar deneyin."
+        : "Havale/EFT işlemi için tanımlı aktif bir vadesiz TL banka hesabı yok. Banka ekranından bir hesap tanımlayıp tekrar deneyin.");
+
     private async Task<BankaHesabi?> TahsilatHesabiSecAsync(Guid? sirketId, bool krediKarti)
     {
         var tur = krediKarti ? BankaHesapTuru.POSHesabi : BankaHesapTuru.VadesizTL;

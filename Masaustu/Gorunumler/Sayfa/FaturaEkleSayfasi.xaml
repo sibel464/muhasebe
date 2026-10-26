@@ -279,7 +279,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
-                            <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding ToplamTutar, StringFormat={}{0:N2} ₺}" Width="130">
+                            <DataGridTextColumn Header="TOPLAM TUTAR" Binding="{Binding SatirToplami, StringFormat={}{0:N2} ₺}" Width="130">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="HorizontalAlignment" Value="Right"/>

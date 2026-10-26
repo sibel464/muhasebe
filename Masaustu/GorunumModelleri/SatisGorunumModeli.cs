@@ -343,7 +343,8 @@ public class SatisGorunumModeli : TemelGorunumModeli
                 Durum = BelgeDurumu.Beklemede,
                 CariKartId = cariId,
                 Tarih = DateTime.Now,
-                FaturaNo = $"BEKLE-{DateTime.Now:yyyyMMddHHmmss}",
+                // Saniyeye kadar numara: iki kasada (ya da çift tıklamada) aynı saniyede bekletilen satış çakışırdı.
+                FaturaNo = $"BEKLE-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
                 Aciklama = "Bekleyen Hızlı Satış",
                 Kalemler = Sepet.Select(s => s.ToEntity()).ToList()
             };

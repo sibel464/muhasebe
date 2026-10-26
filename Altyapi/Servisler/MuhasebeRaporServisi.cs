@@ -278,6 +278,23 @@ public class MuhasebeRaporServisi : IMuhasebeRaporServisi
             }));
         }
 
+        // Eski sürümlerde hiç kasa/POS hesabı yokken yapılan nakit/kartlı tahsilat hesapsız kaydediliyordu: bu para
+        // hiçbir kasanın/hesabın bakiyesinde görünmez. (Şirket kartıyla ödeme bilerek hesapsızdır; yalnız girişler.)
+        var kasasiz = await _baglam.KasaHareketleri.AsNoTracking().Include(h => h.CariKart)
+            .Where(h => h.KasaId == null && h.SirketId == sirketId).ToListAsync();
+        result.AddRange(kasasiz.Select(h => new MuhasebelesmemisBelgeDto
+        {
+            BelgeTipi = "Kasa", BelgeId = h.Id, BelgeNo = h.Belge ?? h.FisNo ?? "", Tarih = h.Tarih, CariUnvan = h.CariKart?.Unvan ?? "", Tutar = h.Tutar,
+            Aciklama = "Hiçbir kasaya bağlı değil; kasa bakiyelerinde görünmüyor"
+        }));
+        var hesapsiz = await _baglam.BankaHareketleri.AsNoTracking().Include(h => h.CariKart)
+            .Where(h => h.BankaHesabiId == null && h.Tur == EtkiAlani.Modeller.Finans.HareketTuru.Gelir && h.SirketId == sirketId).ToListAsync();
+        result.AddRange(hesapsiz.Select(h => new MuhasebelesmemisBelgeDto
+        {
+            BelgeTipi = "Banka", BelgeId = h.Id, BelgeNo = h.DekontNo ?? h.FisNo ?? "", Tarih = h.Tarih, CariUnvan = h.CariKart?.Unvan ?? "", Tutar = h.Tutar,
+            Aciklama = "Hiçbir banka/POS hesabına bağlı değil; hesap bakiyelerinde görünmüyor"
+        }));
+
         return result;
     }
 }
