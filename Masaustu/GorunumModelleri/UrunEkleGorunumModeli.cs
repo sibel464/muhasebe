@@ -128,7 +128,15 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
 
     public decimal AlisFiyati { get => _alisFiyati; set => OzellikAyarla(ref _alisFiyati, value); }
     public decimal ToptanSatisFiyati { get => _toptanSatisFiyati; set => OzellikAyarla(ref _toptanSatisFiyati, value); }
-    public decimal FiyatTekCekim { get => _fiyatTekCekim; set => OzellikAyarla(ref _fiyatTekCekim, value); }
+    public decimal FiyatTekCekim { get => _fiyatTekCekim; set { if (OzellikAyarla(ref _fiyatTekCekim, value)) BildirimGonder(nameof(FiyatKdvDahil)); } }
+
+    // Satış fiyatı sistemde KDV hariç tutulur (satışta KDV eklenir). Perakendeci raf fiyatını (KDV dahil) yazınca
+    // KDV hariç fiyat buradan hesaplanır; böylece 42,50 yazılan ürün kasada 51,00 olmaz.
+    public decimal FiyatKdvDahil
+    {
+        get => decimal.Round(FiyatTekCekim * (1 + KdvOrani / 100m), 2, MidpointRounding.AwayFromZero);
+        set => FiyatTekCekim = decimal.Round(value / (1 + KdvOrani / 100m), 4, MidpointRounding.AwayFromZero);
+    }
     public decimal Fiyat2Taksit { get => _fiyat2Taksit; set => OzellikAyarla(ref _fiyat2Taksit, value); }
     public decimal Fiyat3Taksit { get => _fiyat3Taksit; set => OzellikAyarla(ref _fiyat3Taksit, value); }
     public decimal Fiyat4Taksit { get => _fiyat4Taksit; set => OzellikAyarla(ref _fiyat4Taksit, value); }
@@ -138,7 +146,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public decimal Fiyat8Taksit { get => _fiyat8Taksit; set => OzellikAyarla(ref _fiyat8Taksit, value); }
     public decimal Fiyat9Taksit { get => _fiyat9Taksit; set => OzellikAyarla(ref _fiyat9Taksit, value); }
 
-    public decimal KdvOrani { get => _kdvOrani; set => OzellikAyarla(ref _kdvOrani, value); }
+    public decimal KdvOrani { get => _kdvOrani; set { if (OzellikAyarla(ref _kdvOrani, value)) BildirimGonder(nameof(FiyatKdvDahil)); } }
     public decimal MagazaStok
     {
         get => _magazaStok;

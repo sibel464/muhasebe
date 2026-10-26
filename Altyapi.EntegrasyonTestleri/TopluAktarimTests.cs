@@ -137,7 +137,7 @@ public sealed class TopluAktarimTests(IsolatedPostgreSqlFixture fixture)
         var csv = servis.SablonCsv(AktarimTuru.Urun)
             .Replace("Örnek Ürün 1 Kg", $"Şablon Ürün {ek}").Replace("Montaj İşçiliği", $"Montaj {ek}").Replace("Elektrik Faturası", $"Elektrik {ek}")
             .Replace("8690000000000", $"869{Random.Shared.NextInt64(1000000000, 9999999999)}")
-            + $";;Hatalı Hizmet {ek};Adet;;20;0;0;;;5;Hizmet;\r\n";
+            + $";;Hatalı Hizmet {ek};Adet;;20;0;0;;;;5;Hizmet;\r\n";
         var dosya = Path.Combine(Path.GetTempPath(), $"urun-{Guid.NewGuid():N}.csv");
         await File.WriteAllTextAsync(dosya, csv, new UTF8Encoding(false));
         try
@@ -149,7 +149,10 @@ public sealed class TopluAktarimTests(IsolatedPostgreSqlFixture fixture)
 
             await servis.AktarAsync(AktarimTuru.Urun, dosya, DateTime.Today);
             await using var oku = new MuhasebeBaglami(fixture.Options) { AktifSirketId = sirket.Id };
-            Assert.True((await oku.Urunler.SingleAsync(u => u.Ad == $"Şablon Ürün {ek}")).StokTakibi);
+            var sablonUrun = await oku.Urunler.SingleAsync(u => u.Ad == $"Şablon Ürün {ek}");
+            Assert.True(sablonUrun.StokTakibi);
+            Assert.Equal(59.901m, decimal.Round(sablonUrun.PerakendeSatisFiyati, 3)); // 60,50 KDV dahil / 1,01
+            Assert.Equal(750m, (await oku.Urunler.SingleAsync(u => u.Ad == $"Montaj {ek}")).PerakendeSatisFiyati);
             var montaj = await oku.Urunler.SingleAsync(u => u.Ad == $"Montaj {ek}");
             Assert.False(montaj.StokTakibi);
             Assert.Null(montaj.GiderHesapKodu);

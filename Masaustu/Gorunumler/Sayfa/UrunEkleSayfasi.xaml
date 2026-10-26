@@ -174,7 +174,7 @@
                     </Border>
 
                     <TextBlock Text="Fiyatlandırma" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
-                    <TextBlock Text="Tek çekim (peşin) fiyat; fatura, sipariş, irsaliye ve POS'ta kullanılan satış fiyatıdır." Style="{StaticResource SayfaAltBaslik}" Margin="0,0,0,14"/>
+                    <TextBlock Text="Fiyatlar KDV hariç girilir; satışta KDV eklenir. Raf fiyatınızı (KDV dahil) biliyorsanız &quot;KDV Dahil Satış&quot; kutusuna yazın, KDV hariç fiyat kendiliğinden hesaplanır." Style="{StaticResource SayfaAltBaslik}" Margin="0,0,0,14" TextWrapping="Wrap"/>
 
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
@@ -184,16 +184,20 @@
                             <ColumnDefinition Width="200"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Alış Fiyatı (₺)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Alış Fiyatı (₺, KDV hariç)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding AlisFiyati}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                            <TextBlock Text="Toptan Satış (₺)" Style="{StaticResource EtiketMetin}"/>
+                            <TextBlock Text="Toptan Satış (₺, KDV hariç)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding ToptanSatisFiyati}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Margin="0,0,12,0">
                             <TextBlock Text="KDV Oranı (%)" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding KdvOrani}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="KDV Dahil Satış (₺)" Style="{StaticResource EtiketMetin}" FontWeight="Bold"/>
+                            <TextBox Text="{Binding FiyatKdvDahil, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.00}}" Style="{StaticResource FormGirisKutusu}" ToolTip="Raf / etiket fiyatı. Yazınca KDV hariç peşin satış fiyatı hesaplanır."/>
                         </StackPanel>
                     </Grid>
 
@@ -205,7 +209,7 @@
                             <ColumnDefinition Width="200"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Tek Çekim / Peşin Satış (₺)" Style="{StaticResource EtiketMetin}" FontWeight="Bold"/>
+                            <TextBlock Text="Peşin Satış (₺, KDV hariç)" Style="{StaticResource EtiketMetin}" FontWeight="Bold"/>
                             <TextBox Text="{Binding FiyatTekCekim}" Style="{StaticResource FormGirisKutusu}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,12,0">

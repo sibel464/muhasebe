@@ -58,7 +58,9 @@ public class TopluAktarimServisi : ITopluAktarimServisi
         ["Kategori"] = ["kategori", "grup", "urungrubu"],
         ["Kdv"] = ["kdv", "kdvorani", "kdvyuzde"],
         ["Alis"] = ["alisfiyati", "alis", "maliyet", "birimmaliyet"],
-        ["Satis"] = ["satisfiyati", "satis", "perakendesatisfiyati", "perakendefiyat", "fiyat"],
+        ["Satis"] = ["satisfiyati", "satis", "perakendesatisfiyati", "perakendefiyat", "fiyat", "kdvharicsatis", "kdvharicsatisfiyati"],
+        // Raf fiyatı (KDV dahil): verilirse KDV hariç satış fiyatı bundan hesaplanır.
+        ["SatisKdvDahil"] = ["kdvdahilsatis", "kdvdahilsatisfiyati", "kdvdahilfiyat", "raffiyati", "etiketfiyati"],
         ["Toptan"] = ["toptansatisfiyati", "toptanfiyat", "toptan"],
         ["MinStok"] = ["minimumstok", "kritikstok", "minstok"],
         ["Stok"] = ["acilisstogu", "stok", "stokmiktari", "miktar", "mevcut"],
@@ -70,10 +72,11 @@ public class TopluAktarimServisi : ITopluAktarimServisi
     public string SablonCsv(AktarimTuru tur) => tur == AktarimTuru.Cari
         ? "﻿Kod;Ünvan;Tür;Tip;Vergi Dairesi;Vergi No;TC Kimlik No;Telefon;Cep Telefonu;E-posta;Adres;İl;İlçe;Posta Kodu;e-Fatura Mükellefi;Risk Limiti;Vade Günü;Açılış Bakiyesi\r\n" +
           ";Örnek Ticaret Ltd. Şti.;Müşteri;Kurumsal;Kadıköy;1234567890;;02160000000;05320000000;info@ornek.com;Moda Cad. No:1;İstanbul;Kadıköy;34710;Evet;50000;30;1250,50\r\n"
-        : "﻿Kod;Barkod;Ürün Adı;Birim;Kategori;KDV Oranı;Alış Fiyatı;Satış Fiyatı;Toptan Fiyatı;Minimum Stok;Açılış Stoğu;Kart Türü;Gider Hesabı\r\n" +
-          ";8690000000000;Örnek Ürün 1 Kg;Adet;Gıda;1;45,00;59,90;55,00;10;120;Ürün;\r\n" +
-          ";;Montaj İşçiliği;Saat;Hizmetler;20;0;750,00;;;;Hizmet;\r\n" +
-          ";;Elektrik Faturası;Adet;Giderler;20;0;0;;;;Masraf;770\r\n";
+        // Satış fiyatı ya KDV hariç ya KDV dahil (raf fiyatı) sütununa yazılır; ikisi birden gerekmez.
+        : "﻿Kod;Barkod;Ürün Adı;Birim;Kategori;KDV Oranı;Alış Fiyatı;KDV Hariç Satış;KDV Dahil Satış;Toptan Fiyatı;Minimum Stok;Açılış Stoğu;Kart Türü;Gider Hesabı\r\n" +
+          ";8690000000000;Örnek Ürün 1 Kg;Adet;Gıda;1;45,00;;60,50;55,00;10;120;Ürün;\r\n" +
+          ";;Montaj İşçiliği;Saat;Hizmetler;20;0;750,00;;;;;Hizmet;\r\n" +
+          ";;Elektrik Faturası;Adet;Giderler;20;0;0;;;;;Masraf;770\r\n";
 
     public IReadOnlyList<AktarimSatiri> Onizle(AktarimTuru tur, string dosyaYolu)
     {
@@ -286,6 +289,13 @@ public class TopluAktarimServisi : ITopluAktarimServisi
             if (kdv > 100) hatalar.Add("KDV oranı 100'den büyük olamaz");
             var alis = Tutar("Alis", "Alış fiyatı", 0);
             var satis = Tutar("Satis", "Satış fiyatı", 0);
+            var kdvDahil = Tutar("SatisKdvDahil", "KDV dahil satış fiyatı", 0);
+            if (kdvDahil > 0)
+            {
+                if (satis > 0 && Math.Abs(decimal.Round(satis * (1 + kdv / 100m), 2) - kdvDahil) > 0.01m)
+                    uyarilar.Add("Hem KDV hariç hem KDV dahil fiyat verilmiş ve tutmuyor; KDV dahil fiyat esas alındı");
+                satis = decimal.Round(kdvDahil / (1 + kdv / 100m), 4, MidpointRounding.AwayFromZero);
+            }
             var toptan = Tutar("Toptan", "Toptan fiyatı", 0);
             var minStok = Tutar("MinStok", "Minimum stok", 0);
             var stok = Tutar("Stok", "Açılış stoğu", 0);
