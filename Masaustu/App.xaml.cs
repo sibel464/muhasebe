@@ -73,6 +73,7 @@ public partial class App : Application
         servisler.AddTransient<ICekSenetServisi, CekSenetServisi>();
         servisler.AddTransient<IBelgeKapamaServisi, BelgeKapamaServisi>();
         servisler.AddTransient<ISirketServisi, SirketServisi>();
+        servisler.AddTransient<IBaslangicKontrolServisi>(sp => new BaslangicKontrolServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IAktifFirmaBaglami>(), sp.GetService<IVeritabaniYedekServisi>()));
         servisler.AddSingleton<IBelgeYazdirmaServisi>(sp => new BelgeYazdirmaServisi(null, sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>(), sp.GetRequiredService<IAktifFirmaBaglami>()));
         servisler.AddTransient<GirisGorunumModeli>();
         servisler.AddTransient<AnaGorunumModeli>();

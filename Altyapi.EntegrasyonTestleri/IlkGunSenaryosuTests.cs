@@ -33,6 +33,9 @@ public sealed class IlkGunSenaryosuTests : IAsyncLifetime
         _db.RequireDatabase();
         var kullanici = TamYetkili();
 
+        await using (var c = new MuhasebeBaglami(_db.Options))
+            Assert.All(await new BaslangicKontrolServisi(c).AdimlariGetirAsync(), x => Assert.False(x.Tamam, x.Baslik));
+
         int musteriId, tedarikciId, urunId;
         await using (var c = new MuhasebeBaglami(_db.Options))
         {
@@ -123,6 +126,12 @@ public sealed class IlkGunSenaryosuTests : IAsyncLifetime
             Assert.True((await rapor.MizanAlAsync(MuhasebeBaglami.VarsayilanSirketId, null, null)).DengedeMi);
             Assert.True((await rapor.SaglikPaneliGetirAsync(MuhasebeBaglami.VarsayilanSirketId)).SaglikliMi);
             Assert.Empty(await rapor.GetirMuhasebelesmemisBelgelerAsync(MuhasebeBaglami.VarsayilanSirketId));
+        }
+
+        await using (var c = new MuhasebeBaglami(_db.Options))
+        {
+            var adimlar = await new BaslangicKontrolServisi(c).AdimlariGetirAsync();
+            Assert.Equal(["Ayarlar", "Banka"], adimlar.Where(x => !x.Tamam).Select(x => x.Sayfa)); // firma künyesi ve vadesiz hesap kaldı
         }
 
         // Rapor merkezindeki her rapor ilk günün verisiyle açılır.

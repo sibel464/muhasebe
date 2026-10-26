@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Masaustu.Yardimcilar;
 using Uygulama.Arayuzler;
@@ -12,6 +13,8 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     private readonly NavigasyonServisi? _navigasyon;
     private readonly IKasaServisi? _kasaServisi;
     private readonly IFaturaServisi? _faturaServisi;
+    private readonly IBaslangicKontrolServisi? _baslangicServisi;
+    private readonly IVeritabaniYedekServisi? _yedekServisi;
 
     private int _musteriSayisi;
     private int _urunSayisi;
@@ -24,6 +27,18 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     public int AylikFatura { get => _aylikFatura; set => OzellikAyarla(ref _aylikFatura, value); }
     public decimal KasaBakiyesi { get => _kasaBakiyesi; set => OzellikAyarla(ref _kasaBakiyesi, value); }
     public int KritikStokSayisi { get => _kritikStokSayisi; set => OzellikAyarla(ref _kritikStokSayisi, value); }
+
+    // "Başlarken": yeni kurulumda yapılması gereken tanımlar; hepsi tamamlanınca kart gizlenir.
+    public ObservableCollection<BaslangicAdimi> BaslangicAdimlari { get; } = new();
+    private string _baslangicOzeti = string.Empty;
+    public string BaslangicOzeti { get => _baslangicOzeti; set => OzellikAyarla(ref _baslangicOzeti, value); }
+    private bool _baslangicGorunur;
+    public bool BaslangicGorunur { get => _baslangicGorunur; set => OzellikAyarla(ref _baslangicGorunur, value); }
+    private string _sonYedekMetni = string.Empty;
+    public string SonYedekMetni { get => _sonYedekMetni; set => OzellikAyarla(ref _sonYedekMetni, value); }
+    private bool _yedekUyarisi;
+    public bool YedekUyarisi { get => _yedekUyarisi; set => OzellikAyarla(ref _yedekUyarisi, value); }
+    public ICommand AdimaGitKomutu { get; }
 
     // Dialog açma fonksiyonları
     public Func<Task<bool>>? MusteriDuzenleFormAc { get; set; }
@@ -39,18 +54,23 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         NavigasyonServisi? navigasyon = null, 
         Action? cikisAction = null,
         IKasaServisi? kasaServisi = null,
-        IFaturaServisi? faturaServisi = null)
+        IFaturaServisi? faturaServisi = null,
+        IBaslangicKontrolServisi? baslangicServisi = null,
+        IVeritabaniYedekServisi? yedekServisi = null)
     {
         _cariServisi = cariServisi;
         _urunServisi = urunServisi;
         _navigasyon = navigasyon;
         _kasaServisi = kasaServisi;
         _faturaServisi = faturaServisi;
+        _baslangicServisi = baslangicServisi;
+        _yedekServisi = yedekServisi;
 
         YeniMusteriKomutu = new KomutSarici(_ => _navigasyon?.Git("CariEkle"));
         YeniUrunKomutu = new KomutSarici(_ => _navigasyon?.Git("UrunEkle"));
         HizliSatisKomutu = new KomutSarici(_ => _navigasyon?.Git("Satis"));
         CikisKomutu = new KomutSarici(_ => cikisAction?.Invoke());
+        AdimaGitKomutu = new KomutSarici(p => { if (p is string sayfa) _navigasyon?.Git(sayfa); });
         
         _ = VerileriYukleAsync();
     }
@@ -61,6 +81,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         YeniUrunKomutu = new KomutSarici(_ => { });
         HizliSatisKomutu = new KomutSarici(_ => { });
         CikisKomutu = new KomutSarici(_ => { });
+        AdimaGitKomutu = new KomutSarici(_ => { });
     }
 
     private async Task VerileriYukleAsync()
@@ -96,6 +117,34 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         catch (Exception ex)
         {
             await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli");
+        }
+
+        await BaslangicVeYedekYukleAsync();
+    }
+
+    private async Task BaslangicVeYedekYukleAsync()
+    {
+        try
+        {
+            if (_baslangicServisi != null)
+            {
+                var adimlar = await _baslangicServisi.AdimlariGetirAsync();
+                BaslangicAdimlari.Clear();
+                foreach (var a in adimlar) BaslangicAdimlari.Add(a);
+                BaslangicOzeti = $"{adimlar.Count(a => a.Tamam)} / {adimlar.Count} tamamlandı";
+                BaslangicGorunur = adimlar.Any(a => !a.Tamam);
+            }
+
+            if (_yedekServisi != null)
+            {
+                var son = _yedekServisi.YedekleriListele().MaxBy(y => y.OlusturmaTarihi);
+                SonYedekMetni = son == null ? "Henüz yedek alınmadı" : $"Son yedek: {son.OlusturmaTarihi:dd.MM.yyyy HH:mm}";
+                YedekUyarisi = son == null || son.OlusturmaTarihi < DateTime.Now.AddDays(-2);
+            }
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli.Baslangic");
         }
     }
 }

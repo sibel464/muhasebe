@@ -4,6 +4,7 @@
              Background="Transparent">
     <UserControl.Resources>
         <ResourceDictionary>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
             </ResourceDictionary.MergedDictionaries>
@@ -14,6 +15,7 @@
         <Grid Margin="24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- 1. Başlık Alanı -->
+                <RowDefinition Height="Auto"/> <!-- Başlarken (yeni kurulum) -->
                 <RowDefinition Height="Auto"/> <!-- 2. KPI Kartları -->
                 <RowDefinition Height="Auto"/> <!-- 3. Hızlı İşlemler & Aksiyonlar -->
                 <RowDefinition Height="*"/>    <!-- 4. Bilgi ve Durum Paneli -->
@@ -26,14 +28,85 @@
                         <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Genel Bakış &amp; Dashboard" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Genel Bakış" Style="{StaticResource SayfaBasligi}"/>
                         <TextBlock Text="Güncel finansal göstergeler, operasyonel özetler ve hızlı erişim menüsü." Style="{StaticResource SayfaAltBaslik}"/>
                     </StackPanel>
                 </StackPanel>
             </Grid>
 
+            <!-- BAŞLARKEN: yeni kurulumda eksik tanımlar; hepsi tamamlanınca gizlenir -->
+            <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,24"
+                    BorderBrush="{StaticResource WarningDarkFirca}" BorderThickness="1"
+                    Visibility="{Binding BaslangicGorunur, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,12">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding BaslangicOzeti}" FontSize="12" FontWeight="Bold"
+                                   Foreground="{StaticResource TextSecondaryFirca}" VerticalAlignment="Center"/>
+                        <StackPanel>
+                            <TextBlock Text="🚀 Başlarken" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                            <TextBlock Text="Programı kullanmaya başlamadan önce aşağıdaki tanımları tamamlayın. Bir adıma tıklayınca ilgili ekran açılır."
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryFirca}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding BaslangicAdimlari}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.AdimaGitKomutu, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding Sayfa}" Cursor="Hand" Margin="0,0,0,6"
+                                        ToolTip="İlgili ekranı açmak için tıklayın">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Kutu" Background="White" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="12,8">
+                                                <ContentPresenter HorizontalAlignment="Stretch"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Kutu" Property="Background" Value="{StaticResource InfoLightFirca}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Tamam}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.55"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock FontSize="16" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="⬜"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Tamam}" Value="True">
+                                                            <Setter Property="Text" Value="✅"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Baslik}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Aciklama}" FontSize="11" Foreground="{StaticResource TextSecondaryFirca}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <!-- 2. KPI / ÖZET KARTLARI -->
-            <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,24">
+            <UniformGrid Grid.Row="2" Columns="4" Margin="0,0,0,24">
                 <!-- Müşteri Kartı -->
                 <Border Style="{StaticResource KpiKarti}" Margin="0,0,12,0">
                     <Grid>
@@ -95,7 +168,7 @@
             </UniformGrid>
 
             <!-- 3. HIZLI İŞLEMLER (Quick Action Cards) -->
-            <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,24"
+            <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,24"
                     BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="⚡ Hızlı İşlemler &amp; Kısayollar" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,16"/>
@@ -156,7 +229,7 @@
             </Border>
 
             <!-- 4. SİSTEM BİLGİ & GÜVENLİK DURUMU -->
-            <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="20"
+            <Border Grid.Row="4" Background="White" CornerRadius="12" Padding="20"
                     BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -166,21 +239,32 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="VERİTABANI DURUMU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                        <TextBlock Text="🟢 PostgreSQL Bağlantısı Aktif" FontWeight="Bold" FontSize="13" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
-                        <TextBlock Text="Npgsql EF Core 10 ACID Transaction Tutarlı" FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
+                        <TextBlock Text="YEDEKLEME" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding SonYedekMetni}" FontWeight="Bold" FontSize="13" Margin="0,4,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding YedekUyarisi}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerDarkFirca}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="Program her gün otomatik yedek alır. Ayarlar &gt; Yedekleme bölümünden elle de alabilirsiniz." FontSize="11" Foreground="{StaticResource TextMutedFirca}" TextWrapping="Wrap" Margin="0,2,12,0"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="GÜVENLİK &amp; AUDIT TRAIL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                        <TextBlock Text="🛡️ Otomatik Değişiklik Günlüğü Aktif" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PrimaryFirca}" Margin="0,4,0,0"/>
-                        <TextBlock Text="Tüm ekleme, silme ve soft-delete işlemleri izlenmektedir." FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
+                        <TextBlock Text="KAYIT GÜVENLİĞİ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="🛡️ Değişiklik geçmişi tutuluyor" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PrimaryFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="Her ekleme, düzeltme ve silme, yapan kullanıcıyla birlikte kaydedilir." FontSize="11" Foreground="{StaticResource TextMutedFirca}" TextWrapping="Wrap" Margin="0,2,12,0"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="EŞZAMANLILIK (CONCURRENCY)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
-                        <TextBlock Text="🔒 Versiyon Çakışma Koruması Devrede" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
-                        <TextBlock Text="Lost update ve mükerrer stok hareketleri engellenir." FontSize="11" Foreground="{StaticResource TextMutedFirca}" Margin="0,2,0,0"/>
+                        <TextBlock Text="ÇOK KULLANICILI ÇALIŞMA" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="🔒 Aynı anda işlem koruması açık" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                        <TextBlock Text="İki kasada aynı anda satış yapılsa da stok ve bakiye doğru kalır." FontSize="11" Foreground="{StaticResource TextMutedFirca}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
