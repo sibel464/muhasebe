@@ -223,7 +223,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
 
         if (_ayarlarServisi == null)
         {
-            BasariMesaji = "✅ Ayarlar başarıyla güncellendi (Demo Modu).";
+            HataMesaji = "Ayarlar kaydedilemedi: ayar servisine ulaşılamadı. Programı yeniden başlatıp tekrar deneyin.";
             return;
         }
 

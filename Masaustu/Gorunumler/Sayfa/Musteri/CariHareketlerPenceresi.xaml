@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
         Title="Cari Hesap Ekstresi"
-        Width="920" Height="640"
+        Width="980" Height="660"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
@@ -90,8 +90,8 @@
                       AutoGenerateColumns="False" IsReadOnly="True">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat='dd.MM.yyyy HH:mm'}" Width="130"/>
-                    <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="110"/>
-                    <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding IslemTuru}" Width="110"/>
+                    <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="135"/>
+                    <DataGridTextColumn Header="İŞLEM TÜRÜ" Binding="{Binding HareketTuruMetni}" Width="120"/>
                     <DataGridTextColumn Header="AÇIKLAMA" Binding="{Binding Aciklama}" Width="*"/>
                     
                     <DataGridTextColumn Header="BORÇ (TL)" Binding="{Binding Borc, StringFormat='{}{0:N2} ₺'}" Width="110">
@@ -113,15 +113,36 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="BAKİYE (TL)" Binding="{Binding Bakiye, StringFormat='{}{0:N2} ₺'}" Width="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
 
         <!-- Alt Kapat Butonu -->
         <Border Grid.Row="3" Background="White" Padding="24,12" BorderBrush="{StaticResource BorderFirca}" BorderThickness="0,1,0,0">
-            <Button Click="Kapat_Click" Style="{StaticResource BirinciDugme}" HorizontalAlignment="Right" Width="120">
-                <TextBlock Text="Kapat"/>
-            </Button>
+            <DockPanel LastChildFill="False">
+                <Button DockPanel.Dock="Right" Click="Kapat_Click" Style="{StaticResource BirinciDugme}" Width="110">
+                    <TextBlock Text="Kapat"/>
+                </Button>
+                <Button DockPanel.Dock="Left" Command="{Binding EkstreYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,16,0">
+                    <TextBlock Text="🖨️ Ekstre Yazdır"/>
+                </Button>
+                <TextBlock DockPanel.Dock="Left" Text="Mutabakat tarihi:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextSecondaryFirca}"/>
+                <DatePicker DockPanel.Dock="Left" SelectedDate="{Binding MutabakatTarihi}" Width="120" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <CheckBox DockPanel.Dock="Left" Content="Ba-Bs ekle" IsChecked="{Binding BaBsEkle}" VerticalAlignment="Center" Margin="0,0,8,0"
+                          ToolTip="Mutabakat tarihinin ayına ait alış/satış fatura toplamlarını (Form Ba-Bs) mektuba ekler"/>
+                <Button DockPanel.Dock="Left" Command="{Binding MutabakatYazdirKomutu}" Style="{StaticResource IkinciDugme}">
+                    <TextBlock Text="✉️ Mutabakat Mektubu"/>
+                </Button>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>

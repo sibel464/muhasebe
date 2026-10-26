@@ -24,6 +24,9 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
     private readonly ICariHareketServisi _hareketServisi;
     private readonly ICariServisi _cariServisi;
     private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
+    private readonly IRaporMerkeziServisi? _raporServisi;
+    private DateTime _mutabakatTarihi = DateTime.Today;
+    private bool _baBsEkle = true;
     private CariKart _cariKart;
 
     private ObservableCollection<CariHareketSatiri> _hareketler = new();
@@ -64,29 +67,76 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
 
     public ICommand YenileKomutu { get; }
     public ICommand EkstreYazdirKomutu { get; }
+    public ICommand MutabakatYazdirKomutu { get; }
+
+    public DateTime MutabakatTarihi
+    {
+        get => _mutabakatTarihi;
+        set => OzellikAyarla(ref _mutabakatTarihi, value);
+    }
+
+    // Mektuba mutabakat tarihinin ayına ait Ba-Bs tutarları da eklensin mi
+    public bool BaBsEkle
+    {
+        get => _baBsEkle;
+        set => OzellikAyarla(ref _baBsEkle, value);
+    }
     public Action? KapatmaTetikle { get; set; }
 
     public CariHareketGorunumModeli(
         ICariHareketServisi hareketServisi, 
         ICariServisi cariServisi, 
         CariKart cariKart,
-        IBelgeYazdirmaServisi? yazdirmaServisi = null)
+        IBelgeYazdirmaServisi? yazdirmaServisi = null,
+        IRaporMerkeziServisi? raporServisi = null)
     {
         _hareketServisi = hareketServisi;
         _cariServisi = cariServisi;
         _cariKart = cariKart;
         _yazdirmaServisi = yazdirmaServisi;
+        _raporServisi = raporServisi;
 
         YenileKomutu = new KomutSarici(async _ => await HareketleriYukleAsync());
-        EkstreYazdirKomutu = new KomutSarici(async _ => 
+        EkstreYazdirKomutu = new KomutSarici(async _ =>
         {
-            if (_yazdirmaServisi != null)
-            {
-                await _yazdirmaServisi.CariEkstreYazdirAsync(CariKart, _hamHareketler);
-            }
+            if (_yazdirmaServisi == null) return;
+            try { await _yazdirmaServisi.CariEkstreYazdirAsync(CariKart, _hamHareketler); }
+            catch (Exception ex) { DurumMesaji = "Ekstre yazdırılamadı: " + ex.Message; }
         });
+        MutabakatYazdirKomutu = new KomutSarici(async _ => await MutabakatYazdirAsync());
 
         _ = HareketleriYukleAsync();
+    }
+
+    // Mutabakat tarihindeki bakiye o güne kadarki hareketlerden hesaplanır (iptal ve ters kaydı birbirini götürür).
+    public decimal TarihtekiBakiye(DateTime tarih) =>
+        _hamHareketler.Where(h => h.Tarih.Date <= tarih.Date).Sum(h => h.Borc - h.Alacak);
+
+    private async Task MutabakatYazdirAsync()
+    {
+        if (_yazdirmaServisi == null) return;
+        try
+        {
+            var tarih = MutabakatTarihi.Date;
+            List<Uygulama.Dto.Rapor.BaBsKalemiDto>? baBs = null;
+            if (BaBsEkle && _raporServisi != null)
+            {
+                try
+                {
+                    var ayBasi = new DateTime(tarih.Year, tarih.Month, 1);
+                    baBs = await _raporServisi.GetBaBsRaporuAsync(new Uygulama.Dto.Rapor.SatisRaporFiltreDto { BaslangicTarihi = ayBasi, BitisTarihi = ayBasi.AddMonths(1).AddTicks(-1), CariId = CariKart.Id }, 0m);
+                }
+                catch (YetkisizErisimException)
+                {
+                    DurumMesaji = "Rapor yetkiniz olmadığı için Ba-Bs bölümü mektuba eklenmedi.";
+                }
+            }
+            await _yazdirmaServisi.MutabakatMektubuYazdirAsync(CariKart, tarih, TarihtekiBakiye(tarih), baBs);
+        }
+        catch (Exception ex)
+        {
+            DurumMesaji = "Mutabakat mektubu hazırlanamadı: " + ex.Message;
+        }
     }
 
     public async Task HareketleriYukleAsync()
@@ -123,7 +173,7 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
                     Id = h.Id,
                     Tarih = h.Tarih,
                     HareketTuru = h.HareketTuru,
-                    HareketTuruMetni = HareketTuruIsminiGetir(h.HareketTuru),
+                    HareketTuruMetni = h.HareketTuru.Ad(),
                     Aciklama = h.Aciklama,
                     BelgeNo = h.BelgeNo,
                     Borc = h.Borc,
@@ -151,21 +201,5 @@ public class CariHareketGorunumModeli : TemelGorunumModeli
         {
             Yukleniyor = false;
         }
-    }
-
-    private string HareketTuruIsminiGetir(CariHareketTuru tur)
-    {
-        return tur switch
-        {
-            CariHareketTuru.Devir => "Devir Bakiyesi",
-            CariHareketTuru.SatisFaturasi => "Satış Faturası",
-            CariHareketTuru.AlisFaturasi => "Alış Faturası",
-            CariHareketTuru.Tahsilat => "Tahsilat Fişi",
-            CariHareketTuru.Odeme => "Ödeme Fişi",
-            CariHareketTuru.SatisIadesi => "Satış İade Fişi",
-            CariHareketTuru.AlisIadesi => "Alış İade Fişi",
-            CariHareketTuru.Diger => "Virman/Düzeltme Fişi",
-            _ => "Diğer"
-        };
     }
 }

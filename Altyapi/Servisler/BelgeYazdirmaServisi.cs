@@ -409,7 +409,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             kumuBakiye += (h.Borc - h.Alacak);
             sb.AppendLine("<tr>");
             sb.AppendLine("<td>" + h.Tarih.ToString("dd.MM.yyyy") + "</td>");
-            sb.AppendLine("<td><span style='font-weight:600; font-size:11px;'>" + h.HareketTuru + "</span></td>");
+            sb.AppendLine("<td><span style='font-weight:600; font-size:11px;'>" + H(h.HareketTuru.Ad()) + "</span></td>");
             sb.AppendLine("<td>" + H(h.Aciklama) + "</td>");
             sb.AppendLine("<td>" + H(string.IsNullOrWhiteSpace(h.BelgeNo) ? "-" : h.BelgeNo) + "</td>");
             sb.AppendLine("<td class='text-right'>" + (h.Borc > 0 ? h.Borc.ToString("N2") : "-") + "</td>");
@@ -568,6 +568,70 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         var html = CariEkstreHtmlUret(cari, hareketler, baslangic, bitis, firma ?? await FirmaBilgisiGetirAsync(cari.SirketId));
         var dosyaAdi = "CariEkstre_" + cari.Kod.Replace(" ", "_") + ".html";
         return await DosyayaKaydetVeAcAsync(html, dosyaYolu, dosyaAdi);
+    }
+
+    // Cari bakiye mutabakat mektubu: verilen tarih itibarıyla bakiye ve istenirse o ayın Ba-Bs tutarları; karşı taraf
+    // mutabık olup olmadığını işaretleyip kaşe/imza ile geri gönderir.
+    public string MutabakatMektubuHtmlUret(CariKart cari, DateTime tarih, decimal bakiye, IReadOnlyList<Uygulama.Dto.Rapor.BaBsKalemiDto>? baBs = null, FirmaBilgisi? firma = null)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var tr = new CultureInfo("tr-TR");
+        var yon = bakiye > 0 ? "BORÇ" : bakiye < 0 ? "ALACAK" : null;
+        var cariKunye = new List<string> { "<strong>" + H(cari.Unvan) + "</strong>" };
+        if (!string.IsNullOrWhiteSpace(cari.Adres)) cariKunye.Add(H(cari.Adres));
+        var ilIlce = string.Join(" / ", new[] { cari.Ilce, cari.Il }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        if (ilIlce.Length > 0) cariKunye.Add(H(ilIlce));
+        var vkn = !string.IsNullOrWhiteSpace(cari.VergiNo) ? cari.VergiNo : cari.TcNo;
+        if (!string.IsNullOrWhiteSpace(cari.VergiDairesi) || !string.IsNullOrWhiteSpace(vkn))
+            cariKunye.Add("Vergi Dairesi: " + H(cari.VergiDairesi) + " - No: " + H(vkn));
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Mutabakat Mektubu - " + H(cari.Unvan) + "</title><style>" + GetCommonCss() +
+            " .mektup p { font-size: 13px; line-height: 1.7; margin: 0 0 12px 0; } .bakiye-kutu { border: 2px solid #2563EB; border-radius: 8px; padding: 14px 18px; margin: 16px 0; font-size: 16px; text-align: center; }" +
+            " .cevap { border: 1px solid #CBD5E1; border-radius: 8px; padding: 16px 18px; margin-top: 24px; page-break-inside: avoid; } .kutu { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #334155; vertical-align: middle; margin-right: 8px; }</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        sb.AppendLine("<div class='container mektup'>");
+        sb.AppendLine("<table class='header-table'><tr><td>" + FirmaKunyesiHtml(f) + "</td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>Mutabakat Mektubu</div><div style='color:#64748B; font-size:12px;'>Tarih: " + DateTime.Now.ToString("dd.MM.yyyy", tr) + "</div></td></tr></table>");
+        sb.AppendLine("<table class='info-grid'><tr><td><div class='info-label'>Sayın</div><div class='info-value'>" + string.Join("<br>", cariKunye) + "</div></td>");
+        sb.AppendLine("<td><div class='info-label'>Hesap</div><div class='info-value'>Cari kod: " + H(cari.Kod) + "<br>Mutabakat tarihi: <strong>" + tarih.ToString("dd.MM.yyyy", tr) + "</strong></div></td></tr></table>");
+
+        sb.AppendLine("<p>Firmamız kayıtlarına göre cari hesabınız <strong>" + tarih.ToString("dd.MM.yyyy", tr) + "</strong> tarihi itibarıyla aşağıdaki bakiyeyi vermektedir:</p>");
+        sb.AppendLine("<div class='bakiye-kutu'><strong>" + Math.Abs(bakiye).ToString("N2", tr) + " TL</strong> " + (yon == null ? "(bakiye yoktur)" : "<strong>" + yon + "</strong> bakiyesi") +
+            "<div style='font-size:12px; color:#475569; margin-top:4px;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(Math.Abs(bakiye))) + "</div></div>");
+        sb.AppendLine("<p>Kayıtlarınızla karşılaştırarak mutabık olup olmadığınızı aşağıdaki bölümü doldurup kaşe ve imzanızla en geç 15 gün içinde tarafımıza iletmenizi rica ederiz. " +
+            "Mutabık olmamanız halinde hesap ekstrenizi de göndermeniz farkın kısa sürede bulunmasını sağlayacaktır.</p>");
+
+        if (baBs is { Count: > 0 })
+        {
+            // Bizim Bs'miz karşı tarafın Ba'sıdır; karşı taraf kendi formunu bu tabloya göre kontrol eder.
+            sb.AppendLine("<p style='margin-top:18px;'><strong>Form Ba-Bs mutabakatı</strong> (KDV hariç, küsuratsız):</p>");
+            sb.AppendLine("<table class='data-table'><thead><tr><th>Dönem</th><th>Açıklama</th><th>Bizim formumuz</th><th>Sizin formunuz</th><th class='text-right'>Belge sayısı</th><th class='text-right'>Tutar (TL)</th></tr></thead><tbody>");
+            foreach (var k in baBs.OrderBy(x => x.Yil).ThenBy(x => x.Ay).ThenByDescending(x => x.Form))
+            {
+                var bs = k.Form == "Bs";
+                sb.AppendLine("<tr><td>" + H(k.Donem) + "</td><td>" + (bs ? "Size düzenlediğimiz faturalar" : "Sizden aldığımız faturalar") + "</td><td>" + (bs ? "Bs" : "Ba") + "</td><td>" + (bs ? "Ba" : "Bs") +
+                    "</td><td class='text-right'>" + k.BelgeSayisi + "</td><td class='text-right'>" + k.Tutar.ToString("N0", tr) + "</td></tr>");
+            }
+            sb.AppendLine("</tbody></table>");
+        }
+
+        sb.AppendLine("<div class='cevap'><div class='info-label' style='margin-bottom:10px;'>Cevap bölümü (" + H(cari.Unvan) + " tarafından doldurulacaktır)</div>");
+        sb.AppendLine("<p><span class='kutu'></span>Yukarıdaki bakiye ile <strong>mutabıkız</strong>.</p>");
+        sb.AppendLine("<p><span class='kutu'></span><strong>Mutabık değiliz.</strong> Kayıtlarımıza göre bakiye: ______________________ TL &nbsp; borç / alacak</p>");
+        sb.AppendLine("<table class='signature-table'><tr><td><div class='signature-line'>" + H(f.FirmaUnvani) + "<br><span style='font-weight:400;'>Kaşe / İmza</span></div></td>" +
+            "<td><div class='signature-line'>" + H(cari.Unvan) + "<br><span style='font-weight:400;'>Tarih / Kaşe / İmza</span></div></td></tr></table></div>");
+        var iletisim = string.Join(" | ", new[] { f.Telefon, f.Eposta }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(H));
+        sb.AppendLine("<div class='footer-note'>Cevabınızı " + (iletisim.Length > 0 ? iletisim + " üzerinden " : "") + "iletebilirsiniz. Bu mektup ticari defter kayıtlarımıza göre düzenlenmiştir.</div>");
+        sb.AppendLine("</div></body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> MutabakatMektubuYazdirAsync(CariKart cari, DateTime tarih, decimal bakiye, IReadOnlyList<Uygulama.Dto.Rapor.BaBsKalemiDto>? baBs = null, FirmaBilgisi? firma = null)
+    {
+        var html = MutabakatMektubuHtmlUret(cari, tarih, bakiye, baBs, firma ?? await FirmaBilgisiGetirAsync(cari.SirketId));
+        var guvenliKod = string.Concat(cari.Kod.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
+        return await DosyayaKaydetVeAcAsync(html, null, $"Mutabakat_{guvenliKod}_{tarih:yyyyMMdd}.html");
     }
 
     public async Task<string> MakbuzYazdirAsync(CariKart cari, decimal tutar, bool isTahsilat, string aciklama, string? dosyaYolu = null, string? belgeNo = null, DateTime? tarih = null, string? kasaBankaAdi = null, FirmaBilgisi? firma = null)
