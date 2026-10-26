@@ -507,8 +507,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                 CariUnvan: f.CariKart?.Unvan ?? "-",
                 BelgeNo: f.FaturaNo,
                 VadeTarihi: vade,
-                Tutar: f.GenelToplam,
-                KalanTutar: f.GenelToplam,
+                Tutar: f.OdenecekTutar,
+                KalanTutar: f.OdenecekTutar,
                 GecikmeGunSayisi: gecikme > 0 ? gecikme : 0,
                 Durum: gecikme > 0 ? "Vadesi Geçmiş" : (gecikme == 0 ? "Bugün" : "Gelecek Vade")
             ));

@@ -227,9 +227,16 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             sb.AppendLine("<tr><td>İskonto Toplamı:</td><td class='text-right'>-" + (fatura.SatirIskontosuToplam + fatura.GenelIskontoTutari).ToString("N2") + " ₺</td></tr>");
         }
         sb.AppendLine("<tr><td>Hesaplanan KDV:</td><td class='text-right'>" + fatura.KdvToplam.ToString("N2") + " ₺</td></tr>");
-        sb.AppendLine("<tr class='grand-total'><td>GENEL TOPLAM:</td><td class='text-right'>" + fatura.GenelToplam.ToString("N2") + " ₺</td></tr>");
+        if (fatura.TevkifatTutari > 0)
+        {
+            sb.AppendLine("<tr><td>Vergiler Dahil Toplam:</td><td class='text-right'>" + fatura.GenelToplam.ToString("N2") + " ₺</td></tr>");
+            sb.AppendLine("<tr><td>KDV Tevkifatı (" + H(fatura.TevkifatKodu) + ", " + (fatura.TevkifatOrani * 10).ToString("0") + "/10):</td><td class='text-right'>-" + fatura.TevkifatTutari.ToString("N2") + " ₺</td></tr>");
+            sb.AppendLine("<tr class='grand-total'><td>ÖDENECEK TUTAR:</td><td class='text-right'>" + fatura.OdenecekTutar.ToString("N2") + " ₺</td></tr>");
+        }
+        else
+            sb.AppendLine("<tr class='grand-total'><td>GENEL TOPLAM:</td><td class='text-right'>" + fatura.GenelToplam.ToString("N2") + " ₺</td></tr>");
         sb.AppendLine("</table>");
-        sb.AppendLine("<div style='clear:both; font-size:12px; font-weight:600; margin:8px 0 4px;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(fatura.GenelToplam)) + "</div>");
+        sb.AppendLine("<div style='clear:both; font-size:12px; font-weight:600; margin:8px 0 4px;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(fatura.OdenecekTutar)) + "</div>");
 
         // Signatures
         sb.AppendLine("<table class='signature-table'><tr>");

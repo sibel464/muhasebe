@@ -68,7 +68,10 @@ public class FinancialTransactionService : IFinancialTransactionService
             if (urunler.Count != urunIdleri.Count || urunler.Values.Any(u => !u.Aktif))
                 throw new InvalidOperationException("Faturadaki ürünlerden biri bulunamadı veya aktif değil.");
 
-            var hesapKodlari = new[] { "120", "153", "191", "320", "391", "600" };
+            // Tevkifatlı alışta alıcının ödemediği KDV 360'a (KDV-2 ile beyan edilip ödenecek) yazılır.
+            var hesapKodlari = fatura.TevkifatTutari > 0 && fatura.Tur == FaturaTuru.Alis
+                ? new[] { "120", "153", "191", "320", "391", "600", "360" }
+                : new[] { "120", "153", "191", "320", "391", "600" };
             // Fatura yalnız kendi firmasının hesap planına yazılır; eksik standart hesap o firmanın planında açılır.
             var hesaplar = new Dictionary<string, HesapPlani>();
             foreach (var kod in hesapKodlari)
@@ -81,6 +84,11 @@ public class FinancialTransactionService : IFinancialTransactionService
             var matrah = fatura.GenelToplam - fatura.KdvToplam;
             if (matrah < 0 || fatura.KdvToplam < 0 || fatura.GenelToplam <= 0)
                 throw new InvalidOperationException("Fatura toplamları geçersiz.");
+            // Cariye yansıyan tutar: tevkifatlı faturada alıcı, tevkif edilen KDV'yi satıcıya ödemez.
+            var tevkifat = fatura.TevkifatTutari;
+            if (tevkifat < 0 || tevkifat > fatura.KdvToplam || (tevkifat > 0 && fatura.Tur is not (FaturaTuru.Satis or FaturaTuru.Alis)))
+                throw new InvalidOperationException("Faturanın KDV tevkifat tutarı geçersiz.");
+            var odenecek = fatura.GenelToplam - tevkifat;
 
             // Hizmet/masraf kartlarının alış matrahı ticari mallar (153) yerine kartın gider hesabına yazılır.
             // Genel iskonto satırlara net tutarları oranında dağıtılır; yuvarlama artığı 153'te (ya da son gider hesabında) kalır.
@@ -115,14 +123,15 @@ public class FinancialTransactionService : IFinancialTransactionService
             {
                 FaturaTuru.Satis => new List<YevmiyeSatiri>
                 {
-                    SatirOlustur(hesaplar["120"], fatura.GenelToplam, 0, fatura.Aciklama),
+                    SatirOlustur(hesaplar["120"], odenecek, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["600"], 0, matrah, fatura.Aciklama),
-                    SatirOlustur(hesaplar["391"], 0, fatura.KdvToplam, fatura.Aciklama)
+                    SatirOlustur(hesaplar["391"], 0, fatura.KdvToplam - tevkifat, fatura.Aciklama)
                 }
                 , FaturaTuru.Alis => alisBorclari.Select(x => SatirOlustur(x.Hesap, x.Tutar, 0, fatura.Aciklama)).Concat(
                 [
                     SatirOlustur(hesaplar["191"], fatura.KdvToplam, 0, fatura.Aciklama),
-                    SatirOlustur(hesaplar["320"], 0, fatura.GenelToplam, fatura.Aciklama)
+                    SatirOlustur(hesaplar["320"], 0, odenecek, fatura.Aciklama),
+                    .. (tevkifat > 0 ? new[] { SatirOlustur(hesaplar["360"], 0, tevkifat, $"{fatura.FaturaNo} KDV tevkifatı ({fatura.TevkifatKodu})") } : [])
                 ]).ToList()
                 , FaturaTuru.SatisIade => new List<YevmiyeSatiri>
                 {
@@ -136,8 +145,7 @@ public class FinancialTransactionService : IFinancialTransactionService
                 , _ => throw new InvalidOperationException("Desteklenmeyen fatura türü.")
             };
 
-            if (fatura.KdvToplam == 0)
-                yevmiyeSatirlari.RemoveAll(s => s.Borc == 0 && s.Alacak == 0);
+            yevmiyeSatirlari.RemoveAll(s => s.Borc == 0 && s.Alacak == 0);
 
             // 120/320 satırları cariye bağlanır; muhasebe tarafında cari muavini ve mutabakat yapılabilsin.
             foreach (var satir in yevmiyeSatirlari.Where(s => s.HesapId == hesaplar["120"].Id || s.HesapId == hesaplar["320"].Id))
@@ -168,8 +176,8 @@ public class FinancialTransactionService : IFinancialTransactionService
                     FaturaTuru.SatisIade => CariHareketTuru.SatisIadesi,
                     _ => CariHareketTuru.AlisIadesi
                 },
-                Borc = fatura.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade ? fatura.GenelToplam : 0,
-                Alacak = fatura.Tur is FaturaTuru.Alis or FaturaTuru.SatisIade ? fatura.GenelToplam : 0
+                Borc = fatura.Tur is FaturaTuru.Satis or FaturaTuru.AlisIade ? odenecek : 0,
+                Alacak = fatura.Tur is FaturaTuru.Alis or FaturaTuru.SatisIade ? odenecek : 0
             });
 
             foreach (var kalem in fatura.Kalemler)

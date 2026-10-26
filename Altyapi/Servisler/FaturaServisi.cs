@@ -239,6 +239,8 @@ public class FaturaServisi : IFaturaServisi
         mevcutFatura.FaturaNo = fatura.FaturaNo;
         mevcutFatura.Tur = fatura.Tur;
         mevcutFatura.GenelIskontoOrani = fatura.GenelIskontoOrani;
+        mevcutFatura.TevkifatKodu = fatura.TevkifatKodu;
+        mevcutFatura.TevkifatOrani = fatura.TevkifatOrani;
         mevcutFatura.Aciklama = fatura.Aciklama ?? string.Empty;
         mevcutFatura.GuncellemeTarihi = DateTime.UtcNow;
 
@@ -362,7 +364,7 @@ public class FaturaServisi : IFaturaServisi
                 {
                     CariKartId = eklenenFatura.CariKartId, HareketTuru = CariHareketTuru.Tahsilat,
                     Tarih = eklenenFatura.Tarih, BelgeNo = eklenenFatura.FaturaNo,
-                    Alacak = eklenenFatura.GenelToplam, Borc = 0,
+                    Alacak = eklenenFatura.OdenecekTutar, Borc = 0,
                     Aciklama = $"POS Tahsilat ({odemeYontemi})", IlgiliBelgeId = eklenenFatura.Id
                 });
 
@@ -370,7 +372,7 @@ public class FaturaServisi : IFaturaServisi
                 {
                     _baglam.KasaHareketleri.Add(posKasa = new KasaHareketi
                     {
-                        Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
+                        Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.OdenecekTutar,
                         Aciklama = "POS Nakit Satış Tahsilatı", Belge = eklenenFatura.FaturaNo,
                         CariKartId = eklenenFatura.CariKartId, FaturaId = eklenenFatura.Id, IlgiliBelgeId = eklenenFatura.Id
                     });
@@ -381,7 +383,7 @@ public class FaturaServisi : IFaturaServisi
                     var hesap = await TahsilatHesabiSecAsync(eklenenFatura.SirketId, krediKarti) ?? throw HesapYok(krediKarti);
                     _baglam.BankaHareketleri.Add(posBanka = new BankaHareketi
                     {
-                        Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.GenelToplam,
+                        Tarih = eklenenFatura.Tarih, Tur = HareketTuru.Gelir, Tutar = eklenenFatura.OdenecekTutar,
                         Aciklama = $"POS {odemeYontemi} Tahsilatı", BankaAdi = hesap?.Ad ?? (krediKarti ? "POS" : "Banka"),
                         SirketId = hesap?.SirketId, BankaHesabiId = hesap?.Id, HesapNo = hesap?.Iban,
                         OdemeYontemi = krediKarti ? OdemeYontemi.KrediKarti : OdemeYontemi.Banka,
@@ -752,7 +754,7 @@ public class FaturaServisi : IFaturaServisi
         {
             CariKartId = fatura.CariKartId, Tarih = fatura.Tarih, BelgeNo = fatura.FaturaNo, IlgiliBelgeId = fatura.Id,
             HareketTuru = giris ? CariHareketTuru.Tahsilat : CariHareketTuru.Odeme,
-            Alacak = giris ? fatura.GenelToplam : 0, Borc = giris ? 0 : fatura.GenelToplam,
+            Alacak = giris ? fatura.OdenecekTutar : 0, Borc = giris ? 0 : fatura.OdenecekTutar,
             Aciklama = $"Fatura {islem} ({OdemeAdi(fatura.OdemeSekli)})"
         });
         if (fatura.OdemeSekli == FaturaOdemeSekli.Nakit)
@@ -760,7 +762,7 @@ public class FaturaServisi : IFaturaServisi
             var kasa = new KasaHareketi
             {
                 Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? KasaFisTuru.Tahsilat : KasaFisTuru.Odeme,
-                Tutar = fatura.GenelToplam, Aciklama = $"Nakit fatura {islem}", Belge = fatura.FaturaNo,
+                Tutar = fatura.OdenecekTutar, Aciklama = $"Nakit fatura {islem}", Belge = fatura.FaturaNo,
                 CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id
             };
             _baglam.KasaHareketleri.Add(kasa);
@@ -773,7 +775,7 @@ public class FaturaServisi : IFaturaServisi
         var banka = new BankaHareketi
         {
             Tarih = fatura.Tarih, Tur = giris ? HareketTuru.Gelir : HareketTuru.Gider, FisTuru = giris ? BankaFisTuru.GelenHavale : BankaFisTuru.GidenHavale,
-            Tutar = fatura.GenelToplam, Aciklama = $"{OdemeAdi(fatura.OdemeSekli)} fatura {islem}",
+            Tutar = fatura.OdenecekTutar, Aciklama = $"{OdemeAdi(fatura.OdemeSekli)} fatura {islem}",
             BankaAdi = hesap?.Ad ?? (krediKarti ? "POS" : "Banka"),
             SirketId = hesap?.SirketId, BankaHesabiId = hesap?.Id, HesapNo = hesap?.Iban,
             CariKartId = fatura.CariKartId, FaturaId = fatura.Id, IlgiliBelgeId = fatura.Id
@@ -803,12 +805,12 @@ public class FaturaServisi : IFaturaServisi
     // Kartlı satış Finans Merkezi'ndeki POS listesine "hesaba geçmeyi bekliyor" olarak düşer.
     private void PosIslemiEkle(Fatura fatura, BankaHesabi posHesap)
     {
-        var komisyon = decimal.Round(fatura.GenelToplam * posHesap.PosKomisyonOrani / 100m, 2);
+        var komisyon = decimal.Round(fatura.OdenecekTutar * posHesap.PosKomisyonOrani / 100m, 2);
         _baglam.PosIslemleri.Add(new PosIslemi
         {
             SirketId = posHesap.SirketId, BankaHesabiId = posHesap.Id, BankaAdi = posHesap.Ad, PosCihazAdi = posHesap.Ad,
-            BrutTutar = fatura.GenelToplam, KomisyonOrani = posHesap.PosKomisyonOrani, KomisyonTutar = komisyon,
-            NetTutar = fatura.GenelToplam - komisyon, IslemTarihi = fatura.Tarih,
+            BrutTutar = fatura.OdenecekTutar, KomisyonOrani = posHesap.PosKomisyonOrani, KomisyonTutar = komisyon,
+            NetTutar = fatura.OdenecekTutar - komisyon, IslemTarihi = fatura.Tarih,
             BeklenenHesabaGecisTarihi = fatura.Tarih.AddDays(Math.Max(0, posHesap.ValorGunu)),
             FaturaId = fatura.Id, CariKartId = fatura.CariKartId, Aciklama = fatura.FaturaNo
         });
@@ -875,6 +877,31 @@ public class FaturaServisi : IFaturaServisi
         fatura.KdvToplam = sonuc.KdvToplam;
         fatura.GenelToplam = sonuc.GenelToplam;
         fatura.YuvarlamaTutari = 0;
+        TevkifatiHesapla(fatura);
+    }
+
+    // Kısmi KDV tevkifatı (ör. temizlik 9/10, yük taşıma 2/10) yalnız satış ve alış faturasında uygulanır.
+    // İadeli tevkifat ve tam tevkifat (8xx kodları) desteklenmez; bunlar açıkça reddedilir.
+    private static void TevkifatiHesapla(Fatura fatura)
+    {
+        fatura.TevkifatKodu = string.IsNullOrWhiteSpace(fatura.TevkifatKodu) ? null : fatura.TevkifatKodu.Trim();
+        if (fatura.TevkifatKodu == null)
+        {
+            fatura.TevkifatOrani = 0;
+            fatura.TevkifatTutari = 0;
+            return;
+        }
+        if (fatura.Tur is not (FaturaTuru.Satis or FaturaTuru.Alis))
+            throw new InvalidOperationException("KDV tevkifatı yalnız satış ve alış faturasında uygulanabilir; iade faturasında tevkifat desteklenmez.");
+        if (EtkiAlani.Yardimcilar.TevkifatKodlari.Bul(fatura.TevkifatKodu) is not { } tanim)
+            throw new InvalidOperationException($"'{fatura.TevkifatKodu}' tanınan bir KDV tevkifat kodu değil.");
+        if (fatura.TevkifatOrani <= 0)
+            fatura.TevkifatOrani = tanim.Oran;
+        if (fatura.TevkifatOrani is > 1 || fatura.TevkifatOrani * 10 != decimal.Truncate(fatura.TevkifatOrani * 10))
+            throw new InvalidOperationException("Tevkifat oranı 1/10 ile 10/10 arasında, onda bir katlarında olmalıdır.");
+        if (fatura.KdvToplam <= 0)
+            throw new InvalidOperationException("KDV'si olmayan faturada tevkifat uygulanamaz.");
+        fatura.TevkifatTutari = EtkiAlani.Yardimcilar.TevkifatKodlari.Tutar(fatura.KdvToplam, fatura.TevkifatOrani);
     }
 
     private async Task<string> SiraliFaturaNoUretAsync(FaturaTuru tur, DateTime tarih)

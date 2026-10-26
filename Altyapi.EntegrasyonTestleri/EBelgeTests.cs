@@ -97,6 +97,34 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
     private static decimal Tutar(XElement e) => decimal.Parse(e.Value, System.Globalization.CultureInfo.InvariantCulture);
 
     [Fact]
+    public void Tevkifatli_satis_e_faturasi_semaya_uygun_tevkifat_toplami_ve_odenecek_tutar_dogru()
+    {
+        var f = Fatura(FaturaTuru.Satis, 0m,
+            ("Temizlik hizmeti", "Saat", 10m, 33.33m, 0m, 20m),
+            ("Temizlik malzemesi", "Adet", 3m, 17.17m, 0m, 20m));
+        f.TevkifatKodu = "612";
+        f.TevkifatOrani = 0.9m;
+        f.TevkifatTutari = TevkifatKodlari.Tutar(f.KdvToplam, f.TevkifatOrani);
+        var girdi = new UblFaturaGirdisi(f, Guid.NewGuid(), EBelgeTuru.EFatura, EFaturaSenaryosu.Ticari, Satici(), AliciFirma());
+
+        Assert.Empty(UblTrFaturaUretici.Dogrula(girdi));
+        var xml = UblTrFaturaUretici.Uret(girdi);
+        SemayaUygun(xml);
+
+        var kok = xml.Root!;
+        Assert.Equal("TEVKIFAT", kok.Element(Cbc + "InvoiceTypeCode")!.Value);
+        var tevkifat = kok.Element(Cac + "WithholdingTaxTotal")!;
+        Assert.Equal(f.TevkifatTutari, Tutar(tevkifat.Element(Cbc + "TaxAmount")!));
+        Assert.Equal("612", tevkifat.Descendants(Cbc + "TaxTypeCode").Single().Value);
+        Assert.Equal(90m, Tutar(tevkifat.Descendants(Cbc + "Percent").Single()));
+        // Satır payları belge toplamına eşittir (kuruş farkı son satırda).
+        Assert.Equal(f.TevkifatTutari, kok.Elements(Cac + "InvoiceLine").Sum(l => Tutar(l.Element(Cac + "WithholdingTaxTotal")!.Element(Cbc + "TaxAmount")!)));
+        var toplam = kok.Element(Cac + "LegalMonetaryTotal")!;
+        Assert.Equal(f.GenelToplam, Tutar(toplam.Element(Cbc + "TaxInclusiveAmount")!));
+        Assert.Equal(f.GenelToplam - f.TevkifatTutari, Tutar(toplam.Element(Cbc + "PayableAmount")!));
+    }
+
+    [Fact]
     public void Satis_e_faturasi_semaya_uygun_ve_tutarlar_faturayla_ayni()
     {
         var f = Fatura(FaturaTuru.Satis, 5m,

@@ -79,6 +79,10 @@ public static class UblTrFaturaUretici
             hatalar.Add("Faturada kalem yok.");
         if (f.Kalemler.Any(k => k.Miktar <= 0))
             hatalar.Add("Kalem miktarları sıfırdan büyük olmalıdır.");
+        if (f.TevkifatTutari > 0 && f.Tur != FaturaTuru.Satis)
+            hatalar.Add("Tevkifatlı fatura yalnız satış faturası olarak e-belge düzenlenir.");
+        if (f.TevkifatTutari > 0 && g.Tur == EBelgeTuru.EArsiv && g.Alici.VknTckn == NihaiTuketiciTckn)
+            hatalar.Add("Tevkifatlı fatura nihai tüketiciye kesilemez; alıcının vergi numarası girilmelidir.");
         if (f.Tur == FaturaTuru.AlisIade && (string.IsNullOrWhiteSpace(f.IadeEdilenFaturaNo) || f.IadeEdilenFaturaTarihi == null))
             hatalar.Add("İade faturasında iade edilen faturanın numarası ve tarihi girilmelidir.");
 
@@ -129,6 +133,27 @@ public static class UblTrFaturaUretici
         var kdvToplam = kalemler.Sum(k => k.KdvTutari);
         var indirimToplam = satirlar.Sum(s => s.Indirim);
 
+        // KDV tevkifatı: satır payları satır KDV'sinden, kuruş farkı KDV'li son satıra; toplam faturadaki tutara eşittir.
+        var tevkifatli = f.TevkifatTutari > 0 && f.TevkifatKodu is not null;
+        var tevkifatPaylari = new decimal[satirlar.Count];
+        if (tevkifatli)
+        {
+            var sonKdvli = satirlar.FindLastIndex(x => x.Kalem.KdvTutari > 0);
+            for (var i = 0; i < satirlar.Count; i++)
+                tevkifatPaylari[i] = i == sonKdvli ? 0 : EtkiAlani.Yardimcilar.TevkifatKodlari.Tutar(satirlar[i].Kalem.KdvTutari, f.TevkifatOrani);
+            if (sonKdvli >= 0) tevkifatPaylari[sonKdvli] = f.TevkifatTutari - tevkifatPaylari.Sum();
+        }
+        XElement? Tevkifat(decimal kdv, decimal tutar) => !tevkifatli ? null : new XElement(Cac + "WithholdingTaxTotal",
+            T("TaxAmount", tutar, para),
+            new XElement(Cac + "TaxSubtotal",
+                T("TaxableAmount", kdv, para),
+                T("TaxAmount", tutar, para),
+                B("Percent", Sayi(f.TevkifatOrani * 100)),
+                new XElement(Cac + "TaxCategory",
+                    new XElement(Cac + "TaxScheme",
+                        B("Name", EtkiAlani.Yardimcilar.TevkifatKodlari.Bul(f.TevkifatKodu)?.Ad ?? "KDV Tevkifatı"),
+                        B("TaxTypeCode", f.TevkifatKodu!)))));
+
         var kok = new XElement(Inv + "Invoice",
             new XAttribute(XNamespace.Xmlns + "cac", Cac),
             new XAttribute(XNamespace.Xmlns + "cbc", Cbc),
@@ -142,9 +167,9 @@ public static class UblTrFaturaUretici
             B("UUID", g.Ettn.ToString().ToUpperInvariant()),
             B("IssueDate", f.Tarih.ToString("yyyy-MM-dd", Kultur)),
             B("IssueTime", f.Tarih.ToString("HH:mm:ss", Kultur)),
-            B("InvoiceTypeCode", FaturaTipi(f.Tur)),
+            B("InvoiceTypeCode", tevkifatli && f.Tur == FaturaTuru.Satis ? "TEVKIFAT" : FaturaTipi(f.Tur)),
             string.IsNullOrWhiteSpace(f.Aciklama) ? null : B("Note", f.Aciklama.Trim()),
-            B("Note", EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(f.GenelToplam)),
+            B("Note", EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(f.OdenecekTutar)),
             B("DocumentCurrencyCode", para),
             B("LineCountNumeric", kalemler.Count.ToString(Kultur)),
             f.Tur == FaturaTuru.AlisIade
@@ -158,13 +183,14 @@ public static class UblTrFaturaUretici
             new XElement(Cac + "AccountingSupplierParty", Taraf(g.Satici)),
             new XElement(Cac + "AccountingCustomerParty", Taraf(g.Alici)),
             VergiToplami(satirlar.Select(s => (s.Matrah, s.Kalem.KdvTutari, s.Kalem.KdvOrani)), para),
+            Tevkifat(kdvToplam, f.TevkifatTutari),
             new XElement(Cac + "LegalMonetaryTotal",
                 T("LineExtensionAmount", matrahToplam, para),
                 T("TaxExclusiveAmount", matrahToplam, para),
                 T("TaxInclusiveAmount", matrahToplam + kdvToplam, para),
                 T("AllowanceTotalAmount", indirimToplam, para),
                 f.YuvarlamaTutari != 0 ? T("PayableRoundingAmount", f.YuvarlamaTutari, para) : null,
-                T("PayableAmount", f.GenelToplam, para)),
+                T("PayableAmount", f.OdenecekTutar, para)),
             satirlar.Select((s, i) => new XElement(Cac + "InvoiceLine",
                 B("ID", (i + 1).ToString(Kultur)),
                 new XElement(Cbc + "InvoicedQuantity", new XAttribute("unitCode", BirimKodu(s.Kalem.Birim)), Sayi(s.Kalem.Miktar)),
@@ -177,6 +203,7 @@ public static class UblTrFaturaUretici
                         T("BaseAmount", s.Brut, para))
                     : null,
                 VergiToplami([(s.Matrah, s.Kalem.KdvTutari, s.Kalem.KdvOrani)], para),
+                s.Kalem.KdvTutari > 0 ? Tevkifat(s.Kalem.KdvTutari, tevkifatPaylari[i]) : null,
                 new XElement(Cac + "Item",
                     B("Name", string.IsNullOrWhiteSpace(s.Kalem.UrunAd) ? s.Kalem.UrunKodu : s.Kalem.UrunAd),
                     string.IsNullOrWhiteSpace(s.Kalem.UrunKodu) ? null

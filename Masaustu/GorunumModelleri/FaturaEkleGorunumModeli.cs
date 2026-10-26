@@ -187,8 +187,32 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     public decimal AraToplam => Hesap.AraToplam;
     public decimal SatirIskontosuToplam => Hesap.SatirIskontosuToplam;
     public decimal GenelIskontoTutari => Hesap.GenelIskontoTutari;
+    public decimal ToplamIskonto => Hesap.SatirIskontosuToplam + Hesap.GenelIskontoTutari;
+    public decimal Matrah => Hesap.Matrah;
     public decimal KdvToplam => Hesap.KdvToplam;
     public decimal GenelToplam => Hesap.GenelToplam;
+
+    // KDV tevkifatı (ör. temizlik 9/10, yük taşıma 2/10): alıcı tevkif edilen KDV'yi satıcıya ödemez.
+    public sealed record TevkifatSecenegi(string? Kod, string Metin, int Pay) { public override string ToString() => Metin; }
+    public IReadOnlyList<TevkifatSecenegi> TevkifatSecenekleri { get; } =
+        new[] { new TevkifatSecenegi(null, "Tevkifat yok", 0) }
+            .Concat(EtkiAlani.Yardimcilar.TevkifatKodlari.Liste.Select(t => new TevkifatSecenegi(t.Kod, t.ToString(), t.Pay))).ToList();
+    private TevkifatSecenegi? _seciliTevkifat;
+    public TevkifatSecenegi? SeciliTevkifat
+    {
+        get => _seciliTevkifat;
+        set { if (OzellikAyarla(ref _seciliTevkifat, value)) { TevkifatPay = value?.Pay ?? 0; ToplamlariHesapla(); } }
+    }
+    private int _tevkifatPay;
+    public int TevkifatPay
+    {
+        get => _tevkifatPay;
+        set { if (OzellikAyarla(ref _tevkifatPay, Math.Clamp(value, 0, 10))) ToplamlariHesapla(); }
+    }
+    public IReadOnlyList<int> TevkifatPaylari { get; } = Enumerable.Range(1, 10).ToList();
+    public bool TevkifatVar => SeciliTevkifat?.Kod != null && TevkifatPay > 0;
+    public decimal TevkifatTutari => TevkifatVar ? EtkiAlani.Yardimcilar.TevkifatKodlari.Tutar(KdvToplam, TevkifatPay / 10m) : 0;
+    public decimal OdenecekTutar => GenelToplam - TevkifatTutari;
 
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
     public string BasariMesaji { get => _basariMesaji; set => OzellikAyarla(ref _basariMesaji, value); }
@@ -236,6 +260,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         StokDagilimiKomutu = new KomutSarici(p => StokDagilimiAc(p as FaturaKalemiGorunumModeli));
         KaydetKomutu = new KomutSarici(async () => await FaturaKaydetAsync(BelgeDurumu.Onaylandi), () => !Kaydediliyor);
         IptalKomutu = new KomutSarici(() => { if (Kapat != null) Kapat(); else _navigasyon.Git("Fatura"); });
+        _seciliTevkifat = TevkifatSecenekleri[0];
         SatisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Satis);
         AlisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Alis);
 
@@ -389,6 +414,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         Aciklama = string.Empty;
         ReferansNo = string.Empty;
         GenelIskontoOrani = 0;
+        SeciliTevkifat = TevkifatSecenekleri[0];
         HataMesaji = string.Empty;
         BasariMesaji = "🧹 Fatura kalem listesi ve formu temizlendi.";
         FaturaNoOlustur();
@@ -400,8 +426,13 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         BildirimGonder(nameof(AraToplam));
         BildirimGonder(nameof(SatirIskontosuToplam));
         BildirimGonder(nameof(GenelIskontoTutari));
+        BildirimGonder(nameof(ToplamIskonto));
+        BildirimGonder(nameof(Matrah));
         BildirimGonder(nameof(KdvToplam));
         BildirimGonder(nameof(GenelToplam));
+        BildirimGonder(nameof(TevkifatVar));
+        BildirimGonder(nameof(TevkifatTutari));
+        BildirimGonder(nameof(OdenecekTutar));
         BildirimGonder(nameof(ToplamKalemSayisi));
         BildirimGonder(nameof(ToplamUrunMiktari));
         BildirimGonder(nameof(HasKalemler));
@@ -432,7 +463,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
 
         // Açık hesap satışta risk limiti aşılacaksa onay istenir.
         if (durum == BelgeDurumu.Onaylandi && Tur == FaturaTuru.Satis && OdemeSekli == FaturaOdemeSekli.AcikHesap &&
-            !await RiskKontrolu.OnayAlAsync(_cariServisi, SeciliCari.Id, GenelToplam))
+            !await RiskKontrolu.OnayAlAsync(_cariServisi, SeciliCari.Id, OdenecekTutar))
         {
             HataMesaji = "Risk limiti nedeniyle satış onaylanmadı. İsterseniz taslak olarak kaydedebilirsiniz.";
             return;
@@ -452,6 +483,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 Tur = Tur,
                 Durum = durum,
                 GenelIskontoOrani = GenelIskontoOrani,
+                TevkifatKodu = TevkifatVar ? SeciliTevkifat!.Kod : null,
+                TevkifatOrani = TevkifatVar ? TevkifatPay / 10m : 0,
                 Aciklama = string.IsNullOrWhiteSpace(ReferansNo) ? Aciklama : $"Referans: {ReferansNo} - {Aciklama}".TrimEnd(' ', '-'),
                 VadeTarihi = VadeTarihi,
                 OdemeSekli = OdemeSekli.Value,

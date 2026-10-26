@@ -57,7 +57,14 @@ public class Fatura : TemelVarlik
     public decimal GenelIskontoTutari { get; set; } = 0;     // Hesaplanan fatura altı iskonto tutarı
     public decimal KdvToplam { get; set; } = 0;               // Toplam KDV tutarı
     public decimal YuvarlamaTutari { get; set; } = 0;         // Kuruş yuvarlamaları
-    public decimal GenelToplam { get; set; } = 0;             // Cari karta yansıyacak nihai toplam tutar
+    public decimal GenelToplam { get; set; } = 0;             // Vergiler dahil toplam (matrah + KDV)
+
+    // KDV tevkifatı: alıcı KDV'nin TevkifatOrani kadarını satıcıya ödemez, kendisi vergi dairesine yatırır.
+    // Cariye yansıyan ve tahsil edilen tutar OdenecekTutar'dır; KDV raporları tam KDV'yi (KdvToplam) kullanır.
+    public string? TevkifatKodu { get; set; }
+    public decimal TevkifatOrani { get; set; } = 0;           // 0 - 1 arası (ör. 5/10 = 0,5)
+    public decimal TevkifatTutari { get; set; } = 0;
+    public decimal OdenecekTutar => GenelToplam - TevkifatTutari;
 
     public string Aciklama { get; set; } = string.Empty;
     public int Versiyon { get; set; } = 0;                   // Concurrency Token

@@ -706,6 +706,18 @@ namespace Altyapi.Migrations
                     b.Property<DateTime>("Tarih")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("TevkifatKodu")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<decimal>("TevkifatOrani")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)");
+
+                    b.Property<decimal>("TevkifatTutari")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
                     b.Property<int>("Tur")
                         .HasColumnType("integer");
 

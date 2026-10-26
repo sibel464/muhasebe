@@ -805,6 +805,9 @@ public class MuhasebeBaglami : DbContext
             entity.Property(f => f.KdvToplam).HasPrecision(18, 4);
             entity.Property(f => f.YuvarlamaTutari).HasPrecision(18, 4);
             entity.Property(f => f.GenelToplam).HasPrecision(18, 4);
+            entity.Property(f => f.TevkifatKodu).HasMaxLength(10);
+            entity.Property(f => f.TevkifatOrani).HasPrecision(5, 4);
+            entity.Property(f => f.TevkifatTutari).HasPrecision(18, 4);
 
             entity.Property(f => f.Versiyon).IsConcurrencyToken();
             entity.HasIndex(f => f.FaturaNo).IsUnique().HasFilter("\"FaturaNo\" IS NOT NULL AND \"FaturaNo\" <> ''");

@@ -335,13 +335,13 @@
                             </Grid>
 
                             <Grid Margin="0,0,0,8">
-                                <TextBlock Text="İskonto:" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                <TextBlock Text="{Binding SatirIskontosuToplam, StringFormat={}{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                <TextBlock Text="İskonto (satır + fatura altı):" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding ToplamIskonto, StringFormat={}-{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,8">
-                                <TextBlock Text="Ara Toplam:" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
-                                <TextBlock Text="{Binding AraToplam, StringFormat={}{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                <TextBlock Text="Ara Toplam (KDV matrahı):" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding Matrah, StringFormat={}{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,8">
@@ -349,11 +349,33 @@
                                 <TextBlock Text="{Binding KdvToplam, StringFormat={}{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                             </Grid>
 
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="KDV Tevkifatı" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding TevkifatSecenekleri}" SelectedItem="{Binding SeciliTevkifat}" MaxDropDownHeight="360"
+                                              ToolTip="Temizlik, güvenlik, yapım işi, yük taşıma gibi tevkifata tabi işlemlerde seçin"/>
+                                    <ComboBox Grid.Column="1" Margin="6,0,0,0" ItemsSource="{Binding TevkifatPaylari}" SelectedItem="{Binding TevkifatPay}"
+                                              ItemStringFormat="{}{0}/10" IsEnabled="{Binding TevkifatVar}" ToolTip="Tevkifat oranı"/>
+                                </Grid>
+                            </StackPanel>
+                            <Grid Margin="0,0,0,8" Visibility="{Binding TevkifatVar, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Tevkif Edilen KDV:" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding TevkifatTutari, StringFormat={}-{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                            </Grid>
+
                             <Separator Margin="0,4,0,8" Background="{StaticResource BorderFirca}"/>
 
+                            <Grid Margin="0,0,0,4" Visibility="{Binding TevkifatVar, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Vergiler Dahil Toplam:" FontSize="13" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding GenelToplam, StringFormat={}{0:N2} ₺}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                            </Grid>
                             <Grid Margin="0,0,0,16">
-                                <TextBlock Text="GENEL TOPLAM:" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
-                                <TextBlock Text="{Binding GenelToplam, StringFormat={}{0:N2} ₺}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" HorizontalAlignment="Right"/>
+                                <TextBlock Text="ÖDENECEK TUTAR:" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}"/>
+                                <TextBlock Text="{Binding OdenecekTutar, StringFormat={}{0:N2} ₺}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" HorizontalAlignment="Right"/>
                             </Grid>
 
                             <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Height="42">

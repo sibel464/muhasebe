@@ -36,12 +36,15 @@ public static class FaturaDetayPenceresi
             Text = $"Ara Toplam: {fatura.AraToplam:N2} ₺\n" +
                    $"Satır İskontoları: {fatura.SatirIskontosuToplam:N2} ₺\n" +
                    $"Genel İskonto (%{fatura.GenelIskontoOrani:N2}): {fatura.GenelIskontoTutari:N2} ₺\n" +
-                   $"KDV: {fatura.KdvToplam:N2} ₺"
+                   $"KDV: {fatura.KdvToplam:N2} ₺" +
+                   (fatura.TevkifatTutari > 0
+                       ? $"\nVergiler Dahil Toplam: {fatura.GenelToplam:N2} ₺\nKDV Tevkifatı ({fatura.TevkifatKodu}, {fatura.TevkifatOrani * 10:0}/10): -{fatura.TevkifatTutari:N2} ₺"
+                       : string.Empty)
         };
         var genelToplam = new TextBlock
         {
             FontSize = 18, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right,
-            Text = $"Genel Toplam: {fatura.GenelToplam:N2} ₺"
+            Text = fatura.TevkifatTutari > 0 ? $"Ödenecek Tutar: {fatura.OdenecekTutar:N2} ₺" : $"Genel Toplam: {fatura.GenelToplam:N2} ₺"
         };
         var alt = new StackPanel();
         alt.Children.Add(toplamlar);

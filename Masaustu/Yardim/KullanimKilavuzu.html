@@ -179,6 +179,13 @@
   <li><b>Kaydet</b> faturayı <b>taslak</b> olarak saklar; taslak serbestçe düzenlenebilir ve hiçbir hesabı etkilemez.</li>
   <li><b>Onayla</b> dediğinizde cari hesap, stok ve muhasebe fişi oluşur. Onaylı fatura düzenlenemez; yanlışlık varsa iptal edilip yenisi kesilir.</li>
 </ol>
+<h3 id="tevkifat">KDV tevkifatı</h3>
+<p>Temizlik, güvenlik, yapım işi, yük taşıma, işgücü temini gibi tevkifata tabi işlemlerde fatura ekranının toplam kartındaki <b>KDV Tevkifatı</b> listesinden işlem kodunu seçin (ör. <code>612 - Temizlik hizmeti (9/10)</code>). Oran kodla birlikte gelir, gerekirse yanındaki kutudan değiştirilebilir.</p>
+<ul>
+  <li><b>Satışta:</b> müşteri KDV'nin tevkif edilen kısmını size ödemez; cari borcu ve tahsilat <b>Ödenecek Tutar</b> üzerinden yürür. Hesaplanan KDV'ye (391) yalnız tevkif edilmeyen kısım yazılır. e-Fatura "TEVKIFAT" tipinde düzenlenir.</li>
+  <li><b>Alışta:</b> KDV'nin tamamı indirilecek KDV'ye (191) yazılır, tevkif ettiğiniz kısım 360 Ödenecek Vergi ve Fonlar hesabına alınır (KDV-2 beyannamesiyle siz ödersiniz). Tedarikçiye borcunuz ödenecek tutardır.</li>
+</ul>
+<div class="not">Tevkifat yalnız satış ve alış faturasında uygulanır; iade faturasında ve tam tevkifatta (8xx kodları) kullanılamaz. Tevkifatlı fatura nihai tüketiciye kesilmez.</div>
 <h3 id="fatura-liste">Fatura listesi, yazdırma ve iptal</h3>
 <p><span class="yol">Fatura Listesi</span> ekranında arama ve tür/durum süzgeci vardır. Her satırdaki simgeler: 🖨️ yazdır/PDF, 👁️ detay, 📨 e-Belge, ✓ onayla, ✕ iptal. (Simgenin üzerine gelince ne yaptığı yazar.)</p>
 <p><b>İptal</b> ettiğinizde cari borç/alacağı, stok ve muhasebe kaydı ters kayıtla geri alınır; peşin ödenmiş faturada kasadan/bankadan iade kaydı oluşur. İptal nedeni sorulur ve kayda geçer. Fatura silinmez, "İptal" durumunda listede kalır.</p>

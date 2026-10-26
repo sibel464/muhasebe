@@ -633,7 +633,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .OrderBy(f => f.Tarih).ThenBy(f => f.FaturaNo)
             .Select(f => new
             {
-                f.CariKartId, f.FaturaNo, f.Tarih, Vade = f.VadeTarihi ?? f.Tarih, f.GenelToplam,
+                f.CariKartId, f.FaturaNo, f.Tarih, Vade = f.VadeTarihi ?? f.Tarih, GenelToplam = f.GenelToplam - f.TevkifatTutari, // tahsil edilecek (tevkifat düşülmüş) tutar
                 CariKod = f.CariKart != null ? f.CariKart.Kod : "", CariUnvan = f.CariKart != null ? f.CariKart.Unvan : ""
             })
             .ToListAsync();

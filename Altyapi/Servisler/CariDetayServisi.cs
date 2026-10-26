@@ -103,7 +103,7 @@ public sealed partial class CariDetayServisi : ICariDetayServisi, IDisposable
             ParaBirimi=x.f.ParaBirimi != null ? x.f.ParaBirimi.Kod : "TRY",
             Referans=x.f.KaynakTuru == FaturaKaynakTuru.Pos ? "POS" : x.f.KaynakTuru == FaturaKaynakTuru.Siparisten ? "Sipariş" : x.f.KaynakTuru == FaturaKaynakTuru.Irsaliyeden ? "İrsaliye" : "Manuel",
             Odenen=x.Biliniyor && x.f.Durum==BelgeDurumu.Onaylandi && !x.f.Silindi ? x.Odenen : null,
-            Kalan=x.Biliniyor && x.f.Durum==BelgeDurumu.Onaylandi && !x.f.Silindi ? Math.Max(0,x.f.GenelToplam-x.Odenen) : null
+            Kalan=x.Biliniyor && x.f.Durum==BelgeDurumu.Onaylandi && !x.f.Silindi ? Math.Max(0,x.f.GenelToplam-x.f.TevkifatTutari-x.Odenen) : null
         });
     }
     public async Task<CariFinansOzetDto> GetCariFinansOzetAsync(int cariId, Guid sirketId, CancellationToken cancellationToken = default)

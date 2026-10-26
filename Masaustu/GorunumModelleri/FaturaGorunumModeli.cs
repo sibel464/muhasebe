@@ -368,6 +368,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 
 	private void Yeni()
 	{
+		_tevkifat = (null, 0);
 		SeciliFatura = null; Tur = FaturaTuru.Satis; Durum = BelgeDurumu.Taslak; FaturaNo = string.Empty; Tarih = DateTime.Today; SeciliCari = null; Kalemler = new(); GenelIskontoOrani = 0; Aciklama = string.Empty;
 		BildirimGonder(nameof(Duzenlenebilir));
 		KomutlariGuncelle();
@@ -389,8 +390,12 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		Duzenle(fatura);
 	}
 
+	// Bu ekranda tevkifat seçimi yok; düzenlenen taslağın tevkifatı kaydederken korunur.
+	private (string? Kod, decimal Oran) _tevkifat;
+
 	private void Duzenle(Fatura fatura)
 	{
+		_tevkifat = (fatura.TevkifatKodu, fatura.TevkifatOrani);
 		Tur = fatura.Tur; Durum = fatura.Durum; FaturaNo = fatura.FaturaNo; Tarih = fatura.Tarih; SeciliCari = _tumCariler.FirstOrDefault(x => x.Id == fatura.CariKartId); GenelIskontoOrani = fatura.GenelIskontoOrani; Aciklama = fatura.Aciklama;
 		var kalemList = fatura.Kalemler.Select(k =>
 		{
@@ -427,7 +432,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		Kaydediliyor = true;
 		try
 		{
-			var entity = new Fatura { Id = SeciliFatura?.Id ?? 0, CariKartId = SeciliCari.Id, Tur = Tur, Tarih = Tarih, FaturaNo = FaturaNo, Aciklama = Aciklama, GenelIskontoOrani = GenelIskontoOrani, Kalemler = Kalemler.Select(x => x.ToEntity()).ToList() };
+			var entity = new Fatura { Id = SeciliFatura?.Id ?? 0, CariKartId = SeciliCari.Id, Tur = Tur, Tarih = Tarih, FaturaNo = FaturaNo, Aciklama = Aciklama, GenelIskontoOrani = GenelIskontoOrani, TevkifatKodu = SeciliFatura == null ? null : _tevkifat.Kod, TevkifatOrani = SeciliFatura == null ? 0 : _tevkifat.Oran, Kalemler = Kalemler.Select(x => x.ToEntity()).ToList() };
 			SeciliFatura = SeciliFatura == null ? await _faturaServisi.EkleAsync(entity) : await _faturaServisi.GuncelleAsync(entity);
 			Durum = SeciliFatura.Durum; DurumMesaji = "Taslak fatura kaydedildi."; await YukleAsync();
 		}
