@@ -149,6 +149,13 @@
 <h3>Ürün ekleme</h3>
 <p><span class="yol">Ürün Ekle</span> ekranında kod (boş bırakılırsa otomatik verilir), barkod, ad, birim, KDV oranı, alış ve satış fiyatlarını girin. Kategori, marka ve birim listelerini yandaki <b>+</b> düğmeleriyle yönetebilirsiniz.</p>
 <p><b>Açılış stoğu</b> yalnız ürün ilk kaydedilirken girilir. Sonraki her stok değişikliği fatura, irsaliye ya da stok fişiyle yapılır; böylece stok her zaman hareketlerden hesaplanır ve geriye dönük izlenebilir.</p>
+<h3 id="hizmet">Hizmet ve masraf kartları</h3>
+<p>Stok tutulmayan kalemler için ürün kartında <b>Hizmet / masraf kartı</b> kutusunu işaretleyin:</p>
+<ul>
+  <li><b>Sattığınız hizmetler</b> (işçilik, montaj, danışmanlık, servis ücreti): stok olmadan satılır, stok hareketi oluşmaz.</li>
+  <li><b>Aldığınız masraflar</b> (kira, elektrik, su, internet, telefon, muhasebe ücreti, reklam, nakliye): masraf faturasını <span class="yol">Fatura → Alış</span> ile bu kartla girin. Tutar seçtiğiniz gider hesabına (ör. 770 Genel Yönetim, 760 Pazarlama), KDV'si indirilecek KDV'ye (191) yazılır; tedarikçinin carisine borç olarak işlenir.</li>
+</ul>
+<div class="not">Hareket görmüş bir kartın türü (stoklu ↔ hizmet) değiştirilemez; gerekiyorsa yeni kart açın. Hizmet kartları stok listelerinde ve kritik stok uyarılarında görünmez.</div>
 <h3>Mağaza ve depolar</h3>
 <p>Stok, mağaza ve depo bazında tutulur (<span class="yol">Mağaza &amp; Depo</span>). Fatura ve irsaliyede malın hangi stok yerinden çıkacağını ya da hangi yere gireceğini seçebilirsiniz; seçmezseniz ilk aktif mağaza kullanılır.</p>
 <h3>Stok işlemleri</h3>

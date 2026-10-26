@@ -171,6 +171,26 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public decimal MinimumStok { get => _minimumStok; set => OzellikAyarla(ref _minimumStok, value); }
     public bool Aktif { get => _aktif; set => OzellikAyarla(ref _aktif, value); }
 
+    // Hizmet / masraf kartı: stok tutulmaz; alışı seçilen gider hesabına yazılır.
+    private bool _hizmetKarti;
+    public bool HizmetKarti
+    {
+        get => _hizmetKarti;
+        set { if (OzellikAyarla(ref _hizmetKarti, value)) { BildirimGonder(nameof(StoklarGorunur)); if (value) { MagazaStok = Depo1Stok = Depo2Stok = 0; MinimumStok = 0; } } }
+    }
+    public bool StoklarGorunur => !HizmetKarti;
+    public sealed record GiderHesabiSecenegi(string Kod, string Ad) { public override string ToString() => $"{Kod} - {Ad}"; }
+    public IReadOnlyList<GiderHesabiSecenegi> GiderHesaplari { get; } =
+    [
+        new("770", "Genel Yönetim Giderleri (kira, elektrik, muhasebe, kırtasiye)"),
+        new("760", "Pazarlama Satış Dağıtım Giderleri (reklam, nakliye)"),
+        new("740", "Hizmet Üretim Maliyeti"),
+        new("150", "İlk Madde ve Malzeme"),
+        new("255", "Demirbaşlar (bilgisayar, mobilya)")
+    ];
+    private GiderHesabiSecenegi? _seciliGiderHesabi;
+    public GiderHesabiSecenegi? SeciliGiderHesabi { get => _seciliGiderHesabi; set => OzellikAyarla(ref _seciliGiderHesabi, value); }
+
     public string HataMesaji { get => _hataMesaji; set => OzellikAyarla(ref _hataMesaji, value); }
     public string BasariMesaji { get => _basariMesaji; set => OzellikAyarla(ref _basariMesaji, value); }
     public bool Kaydediliyor { get => _kaydediliyor; set => OzellikAyarla(ref _kaydediliyor, value); }
@@ -338,6 +358,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         Kod = u.Kod; Barkod = u.Barkod ?? string.Empty; Ad = u.Ad; Aciklama = u.Aciklama ?? "";
         KdvOrani = u.KdvOrani; AlisFiyati = u.AlisFiyati; ToptanSatisFiyati = u.ToptanSatisFiyati;
         MinimumStok = u.MinimumStok; Aktif = u.Aktif;
+        HizmetKarti = !u.StokTakibi;
+        SeciliGiderHesabi = GiderHesaplari.FirstOrDefault(g => g.Kod == (u.GiderHesapKodu ?? Urun.VarsayilanGiderHesapKodu)) ?? GiderHesaplari[0];
         SeciliKategori = Kategoriler.FirstOrDefault(x => x.Id == u.KategoriTanimiId);
         SeciliMarka = Markalar.FirstOrDefault(x => x.Id == u.MarkaTanimiId);
         SeciliBirim = Birimler.FirstOrDefault(x => x.Id == u.BirimTanimiId) ?? SeciliBirim;
@@ -444,8 +466,10 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             PerakendeSatisFiyati = FiyatTekCekim,
             ToptanSatisFiyati = ToptanSatisFiyati,
             KdvOrani = KdvOrani,
-            MinimumStok = MinimumStok,
-            Aktif = Aktif
+            MinimumStok = HizmetKarti ? 0 : MinimumStok,
+            Aktif = Aktif,
+            StokTakibi = !HizmetKarti,
+            GiderHesapKodu = HizmetKarti ? (SeciliGiderHesabi ?? GiderHesaplari[0]).Kod : null
         };
         var fiyatlar = FiyatlarListesi().Where(f => f.Fiyat > 0).ToList();
 
@@ -461,7 +485,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
                     if (depo != null && miktar > 0)
                         urun.LokasyonStoklari.Add(new UrunLokasyonStogu { DepoId = depo.Id, MevcutMiktar = miktar });
                 }
-                AcilisStogu(_magazaDepo, MagazaStok);
+                AcilisStogu(_magazaDepo, MagazaStok); // hizmet kartında stoklar sıfırdır
                 AcilisStogu(_depo1, Depo1Stok);
                 AcilisStogu(_depo2, Depo2Stok);
                 kaydedilenUrun = await _urunServisi.GuvenliEkleAsync(urun, KodOtomatik, BarkodOtomatik);
@@ -566,6 +590,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         Depo2Stok = 0;
         MinimumStok = 0;
         Aktif = true;
+        HizmetKarti = false;
+        SeciliGiderHesabi = GiderHesaplari[0];
         ModBildir();
         // Otomatik moda geçiş önizlemeyi kendisi yükler; zaten otomatikse elle yüklenir.
         var kodZatenOtomatik = KodOtomatik && BarkodOtomatik;

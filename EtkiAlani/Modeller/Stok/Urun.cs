@@ -35,6 +35,12 @@ public class Urun : TemelVarlik
     public bool Aktif { get; set; } = true;
     public int Versiyon { get; set; } = 1;
 
+    // Hizmet / masraf kartı (işçilik, danışmanlık, kira, elektrik...): stok tutulmaz, stok hareketi oluşmaz.
+    // Böyle bir kartın alışı ticari mal (153) yerine GiderHesapKodu'na (boşsa 770) yazılır; KDV yine 191'e ayrılır.
+    public bool StokTakibi { get; set; } = true;
+    public string? GiderHesapKodu { get; set; }
+    public const string VarsayilanGiderHesapKodu = "770";
+
     public ICollection<UrunSatisFiyati> SatisFiyatlari { get; set; } = new List<UrunSatisFiyati>();
     public ICollection<UrunLokasyonStogu> LokasyonStoklari { get; set; } = new List<UrunLokasyonStogu>();
 }

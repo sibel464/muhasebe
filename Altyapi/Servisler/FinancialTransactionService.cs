@@ -82,6 +82,35 @@ public class FinancialTransactionService : IFinancialTransactionService
             if (matrah < 0 || fatura.KdvToplam < 0 || fatura.GenelToplam <= 0)
                 throw new InvalidOperationException("Fatura toplamları geçersiz.");
 
+            // Hizmet/masraf kartlarının alış matrahı ticari mallar (153) yerine kartın gider hesabına yazılır.
+            // Genel iskonto satırlara net tutarları oranında dağıtılır; yuvarlama artığı 153'te (ya da son gider hesabında) kalır.
+            var giderMatrahlari = new Dictionary<string, decimal>();
+            if (fatura.Tur is FaturaTuru.Alis or FaturaTuru.AlisIade && fatura.Kalemler.Any(k => !urunler[k.UrunId].StokTakibi))
+            {
+                var netler = fatura.Kalemler.Select(k => (Kalem: k, Net: k.SatirToplami - k.KdvTutari)).ToList();
+                var netToplam = netler.Sum(x => x.Net);
+                foreach (var (kalem, net) in netler.Where(x => !urunler[x.Kalem.UrunId].StokTakibi))
+                {
+                    var kod = string.IsNullOrWhiteSpace(urunler[kalem.UrunId].GiderHesapKodu) ? Urun.VarsayilanGiderHesapKodu : urunler[kalem.UrunId].GiderHesapKodu!.Trim();
+                    var pay = netToplam == 0 ? 0 : Math.Round(matrah * net / netToplam, 2, MidpointRounding.AwayFromZero);
+                    giderMatrahlari[kod] = giderMatrahlari.GetValueOrDefault(kod) + pay;
+                }
+                if (fatura.Kalemler.All(k => !urunler[k.UrunId].StokTakibi))
+                {
+                    var son = giderMatrahlari.Keys.Last();
+                    giderMatrahlari[son] += matrah - giderMatrahlari.Values.Sum();
+                }
+                foreach (var kod in giderMatrahlari.Keys)
+                {
+                    var hesapId = await FinansMuhasebeKaydi.HesapGetirVeyaOlusturAsync(_baglam, sirketId, kod);
+                    hesaplar[kod] = _baglam.HesapPlanlari.Local.FirstOrDefault(h => h.Id == hesapId)
+                        ?? await _baglam.HesapPlanlari.IgnoreQueryFilters().SingleAsync(h => h.Id == hesapId);
+                }
+            }
+            var stokMatrahi = matrah - giderMatrahlari.Values.Sum();
+            var alisBorclari = giderMatrahlari.Select(g => (Hesap: hesaplar[g.Key], Tutar: g.Value)).Prepend((Hesap: hesaplar["153"], Tutar: stokMatrahi))
+                .Where(x => x.Tutar != 0).ToList();
+
             var yevmiyeSatirlari = fatura.Tur switch
             {
                 FaturaTuru.Satis => new List<YevmiyeSatiri>
@@ -90,24 +119,20 @@ public class FinancialTransactionService : IFinancialTransactionService
                     SatirOlustur(hesaplar["600"], 0, matrah, fatura.Aciklama),
                     SatirOlustur(hesaplar["391"], 0, fatura.KdvToplam, fatura.Aciklama)
                 }
-                , FaturaTuru.Alis => new List<YevmiyeSatiri>
-                {
-                    SatirOlustur(hesaplar["153"], matrah, 0, fatura.Aciklama),
+                , FaturaTuru.Alis => alisBorclari.Select(x => SatirOlustur(x.Hesap, x.Tutar, 0, fatura.Aciklama)).Concat(
+                [
                     SatirOlustur(hesaplar["191"], fatura.KdvToplam, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["320"], 0, fatura.GenelToplam, fatura.Aciklama)
-                }
+                ]).ToList()
                 , FaturaTuru.SatisIade => new List<YevmiyeSatiri>
                 {
                     SatirOlustur(hesaplar["600"], matrah, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["391"], fatura.KdvToplam, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["120"], 0, fatura.GenelToplam, fatura.Aciklama)
                 }
-                , FaturaTuru.AlisIade => new List<YevmiyeSatiri>
-                {
-                    SatirOlustur(hesaplar["320"], fatura.GenelToplam, 0, fatura.Aciklama),
-                    SatirOlustur(hesaplar["153"], 0, matrah, fatura.Aciklama),
-                    SatirOlustur(hesaplar["191"], 0, fatura.KdvToplam, fatura.Aciklama)
-                }
+                , FaturaTuru.AlisIade => new List<YevmiyeSatiri> { SatirOlustur(hesaplar["320"], fatura.GenelToplam, 0, fatura.Aciklama) }
+                    .Concat(alisBorclari.Select(x => SatirOlustur(x.Hesap, 0, x.Tutar, fatura.Aciklama)))
+                    .Append(SatirOlustur(hesaplar["191"], 0, fatura.KdvToplam, fatura.Aciklama)).ToList()
                 , _ => throw new InvalidOperationException("Desteklenmeyen fatura türü.")
             };
 
@@ -151,6 +176,9 @@ public class FinancialTransactionService : IFinancialTransactionService
             {
                 // İrsaliye stok çıkışını zaten oluşturmuştur; fatura yalnız finansal kayıt üretir.
                 if (fatura.KaynakTuru == FaturaKaynakTuru.Irsaliyeden)
+                    continue;
+                // Hizmet / masraf kartında stok yoktur.
+                if (!urunler[kalem.UrunId].StokTakibi)
                     continue;
                 if (kalem.StokDagilimlari == null || kalem.StokDagilimlari.Count == 0)
                 {

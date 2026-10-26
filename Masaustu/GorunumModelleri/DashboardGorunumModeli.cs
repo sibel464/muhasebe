@@ -98,7 +98,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
             {
                 var urunler = await _urunServisi.TumunuGetirAsync();
                 UrunSayisi = urunler.Count;
-                KritikStokSayisi = urunler.Count(u => u.StokMiktari <= u.MinimumStok && u.Aktif);
+                KritikStokSayisi = urunler.Count(u => u.StokTakibi && u.StokMiktari <= u.MinimumStok && u.Aktif);
             }
 
             if (_kasaServisi != null)

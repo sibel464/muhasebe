@@ -121,6 +121,16 @@ public class UrunServisi : IUrunServisi
     // Her depo için bir "açılış stoğu" giriş hareketi yazılır, böylece stok miktarı hareketlerle hep tutar.
     private async Task AcilisStogunuHazirlaAsync(Urun urun)
     {
+        urun.GiderHesapKodu = GiderHesapKoduDogrula(urun);
+        if (!urun.StokTakibi)
+        {
+            if (urun.LokasyonStoklari.Any(l => l.MevcutMiktar != 0))
+                throw new ArgumentException("Hizmet / masraf kartına açılış stoğu girilmez.");
+            urun.LokasyonStoklari = new List<UrunLokasyonStogu>();
+            urun.StokMiktari = 0;
+            urun.MinimumStok = 0;
+            return;
+        }
         var lokasyonlar = urun.LokasyonStoklari.Where(l => l.MevcutMiktar != 0).ToList();
         if (lokasyonlar.Any(l => l.MevcutMiktar < 0))
             throw new ArgumentException("Açılış stoğu negatif olamaz.");
@@ -154,6 +164,16 @@ public class UrunServisi : IUrunServisi
                 Aciklama = "Açılış stoğu (ürün kartı)"
             });
         }
+    }
+
+    // Gider hesabı yalnız hizmet / masraf kartında anlamlıdır; hesap planı biçiminde (ör. 770, 760.01) olmalıdır.
+    private static string? GiderHesapKoduDogrula(Urun urun)
+    {
+        var kod = urun.GiderHesapKodu?.Trim();
+        if (urun.StokTakibi || string.IsNullOrEmpty(kod)) return null;
+        if (kod.Length > 20 || !char.IsAsciiDigit(kod[0]) || !kod.All(c => char.IsAsciiDigit(c) || c == '.'))
+            throw new ArgumentException("Gider hesap kodu hesap planındaki gibi rakamlarla yazılmalıdır (ör. 770 veya 770.01).");
+        return kod;
     }
 
     public Task<string> OtomatikKodOnizleAsync() => new UrunKodBarkodUreteci(_baglam).SonrakiKodUretAsync();
@@ -222,6 +242,14 @@ public class UrunServisi : IUrunServisi
         // fatura/irsaliye/stok giriş-çıkış/sayım fişleriyle (hareket kaydı bırakarak) değişir.
         mevcutUrun.MinimumStok = urun.MinimumStok;
         mevcutUrun.Aktif = urun.Aktif;
+        // Hareket görmüş kartın türü değişirse eldeki stok ya da geçmiş stok hareketleri anlamsız kalır.
+        if (mevcutUrun.StokTakibi != urun.StokTakibi && await _baglam.StokHareketleri.AnyAsync(h => h.UrunId == urun.Id))
+            throw new InvalidOperationException(urun.StokTakibi
+                ? "Bu kart hizmet / masraf kartı olarak kullanılmış; stoklu ürüne çevrilemez. Yeni bir ürün kartı açın."
+                : "Bu ürünün stok hareketleri var; hizmet / masraf kartına çevrilemez. Hizmet için yeni bir kart açın.");
+        mevcutUrun.StokTakibi = urun.StokTakibi;
+        mevcutUrun.GiderHesapKodu = GiderHesapKoduDogrula(urun);
+        if (!urun.StokTakibi) mevcutUrun.MinimumStok = 0;
         mevcutUrun.GuncellemeTarihi = DateTime.UtcNow;
 
         await _baglam.SaveChangesAsync();
@@ -331,7 +359,7 @@ public class UrunServisi : IUrunServisi
 
         if (filtre.SadeceKritikStok)
         {
-            sorgu = sorgu.Where(u => u.StokMiktari <= u.MinimumStok);
+            sorgu = sorgu.Where(u => u.StokTakibi && u.StokMiktari <= u.MinimumStok);
         }
 
         return await sorgu

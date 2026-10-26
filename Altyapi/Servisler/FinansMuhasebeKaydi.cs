@@ -39,6 +39,11 @@ public static class FinansMuhasebeKaydi
         ["653"] = ("KOMİSYON GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["656"] = ("KAMBİYO ZARARLARI (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["659"] = ("DİĞER OLAĞAN GİDER VE ZARARLAR (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        // Hizmet / masraf kartlarının alışında seçilebilen hesaplar.
+        ["150"] = ("İLK MADDE VE MALZEME", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["255"] = ("DEMİRBAŞLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["740"] = ("HİZMET ÜRETİM MALİYETİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["760"] = ("PAZARLAMA SATIŞ VE DAĞITIM GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["770"] = ("GENEL YÖNETİM GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["780"] = ("FİNANSMAN GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
     };

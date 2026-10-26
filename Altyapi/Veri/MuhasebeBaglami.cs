@@ -254,6 +254,7 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<Urun>().HasOne(u => u.KategoriTanimi).WithMany().HasForeignKey(u => u.KategoriTanimiId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Urun>().HasOne(u => u.MarkaTanimi).WithMany().HasForeignKey(u => u.MarkaTanimiId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Urun>().HasOne(u => u.BirimTanimi).WithMany().HasForeignKey(u => u.BirimTanimiId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Urun>().Property(u => u.GiderHesapKodu).HasMaxLength(20);
         modelBuilder.Entity<Fatura>()
             .HasOne(f => f.Sirket)
             .WithMany()
@@ -1427,6 +1428,9 @@ public class MuhasebeBaglami : DbContext
             var urun = await Urunler.FirstOrDefaultAsync(u => u.Id == urunId, cancellationToken);
             if (urun != null)
             {
+                // Hizmet/masraf kartı stok tutmaz; sayım, transfer, irsaliye gibi bir yoldan stok yazılmasın.
+                if (!urun.StokTakibi)
+                    throw new InvalidOperationException($"'{urun.Ad}' bir hizmet / masraf kartıdır; stok girişi, çıkışı, sayımı veya transferi yapılamaz.");
                 urun.StokMiktari += delta;
                 urun.GuncellemeTarihi = DateTime.UtcNow;
 

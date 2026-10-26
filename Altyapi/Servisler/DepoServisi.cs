@@ -111,7 +111,7 @@ public class DepoServisi : IDepoServisi
         var depo1Id = normalDepolar.ElementAtOrDefault(0)?.Id;
         var depo2Id = normalDepolar.ElementAtOrDefault(1)?.Id;
 
-        var urunler = await context.Urunler.Where(u => u.Aktif).ToListAsync();
+        var urunler = await context.Urunler.Where(u => u.Aktif && u.StokTakibi).ToListAsync();
         var lokasyonStoklari = await context.UrunLokasyonStoklari.ToListAsync();
 
         var matris = new List<DepoStokMatrisDto>();

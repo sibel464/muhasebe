@@ -150,7 +150,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
 
         // Kritik Stok Sayısı
         var kritikStokSayisi = await _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId)
-            .Where(u => u.Aktif && u.StokMiktari <= u.MinimumStok)
+            .Where(u => u.Aktif && u.StokTakibi && u.StokMiktari <= u.MinimumStok)
             .CountAsync();
 
         return new YoneticiOzetDto
@@ -745,7 +745,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .Include(u => u.Depo)
             .Include(u => u.KategoriTanimi)
             .Include(u => u.MarkaTanimi)
-            .Where(u => u.Aktif);
+            .Where(u => u.Aktif && u.StokTakibi);
 
         if (filtre.KategoriId.HasValue)
             urunQuery = urunQuery.Where(u => u.KategoriTanimiId == filtre.KategoriId.Value);
@@ -860,7 +860,7 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
     {
         var sirketId = RaporYetkiKontrol(filtre);
         var depos = await _baglam.Depolar.AsNoTracking().Where(x => x.Sube!.SirketId == sirketId).ToListAsync();
-        var urunler = await _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId).Where(u => u.Aktif).ToListAsync();
+        var urunler = await _baglam.Urunler.AsNoTracking().Where(x => x.SirketId == sirketId).Where(u => u.Aktif && u.StokTakibi).ToListAsync();
 
         var result = new List<StokDegerRaporuKalemiDto>();
 

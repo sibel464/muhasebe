@@ -61,7 +61,8 @@ public class StokOperasyonServisi : IStokOperasyonServisi
             .Include(u => u.MarkaTanimi)
             .Include(u => u.BirimTanimi)
             .Include(u => u.LokasyonStoklari)
-            .Where(u => u.SirketId == null || u.SirketId == sirketId);
+            .Where(u => u.SirketId == null || u.SirketId == sirketId)
+            .Where(u => u.StokTakibi); // hizmet / masraf kartı stok ekranında yer almaz
 
         if (!string.IsNullOrWhiteSpace(arama))
         {
@@ -76,7 +77,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         if (sadeceKritik)
         {
-            sorgu = sorgu.Where(u => u.StokMiktari <= u.MinimumStok);
+            sorgu = sorgu.Where(u => u.StokTakibi && u.StokMiktari <= u.MinimumStok);
         }
 
         var urunler = await sorgu.OrderBy(u => u.Ad).ToListAsync(cancellationToken);

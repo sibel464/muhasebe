@@ -4324,6 +4324,10 @@ namespace Altyapi.Migrations
                     b.Property<int?>("DepoId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("GiderHesapKodu")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime?>("GuncellemeTarihi")
                         .HasColumnType("timestamp with time zone");
 
@@ -4375,6 +4379,9 @@ namespace Altyapi.Migrations
                     b.Property<decimal>("StokMiktari")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
+
+                    b.Property<bool>("StokTakibi")
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("ToptanSatisFiyati")
                         .HasPrecision(18, 4)

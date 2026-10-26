@@ -160,6 +160,19 @@
                     <CheckBox IsChecked="{Binding Aktif}" Margin="0,0,0,24" FontWeight="SemiBold"
                               Content="Ürün aktif (pasif ürünler satış ve faturada seçilemez, kayıtları silinmez)"/>
 
+                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,24">
+                        <StackPanel>
+                            <CheckBox IsChecked="{Binding HizmetKarti}" FontWeight="SemiBold"
+                                      Content="Hizmet / masraf kartı (stok takibi yapılmaz)"/>
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryFirca}" Margin="22,4,0,0"
+                                       Text="İşçilik, danışmanlık, montaj gibi sattığınız hizmetler ya da kira, elektrik, internet, muhasebe ücreti gibi aldığınız masraflar için işaretleyin. Bu kartlarda stok tutulmaz; alış faturası aşağıda seçilen gider hesabına, KDV'si indirilecek KDV'ye yazılır."/>
+                            <StackPanel Margin="22,10,0,0" Visibility="{Binding HizmetKarti, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="Alışta yazılacak gider hesabı" Style="{StaticResource EtiketMetin}"/>
+                                <ComboBox ItemsSource="{Binding GiderHesaplari}" SelectedItem="{Binding SeciliGiderHesabi}" Width="520" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Fiyatlandırma" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,4"/>
                     <TextBlock Text="Tek çekim (peşin) fiyat; fatura, sipariş, irsaliye ve POS'ta kullanılan satış fiyatıdır." Style="{StaticResource SayfaAltBaslik}" Margin="0,0,0,14"/>
 
@@ -239,6 +252,7 @@
                         </StackPanel>
                     </Grid>
 
+                    <StackPanel Visibility="{Binding StoklarGorunur, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <TextBlock Text="Stok" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,0,0,8"/>
                     <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,14">
                         <TextBlock Text="{Binding StokBilgiMetni}" TextWrapping="Wrap" FontSize="12" Foreground="#92400E"/>
@@ -272,6 +286,7 @@
                     <StackPanel Margin="0,0,0,24">
                         <TextBlock Text="Kritik Stok Seviyesi (bu miktara düşünce uyarı verilir)" Style="{StaticResource EtiketMetin}"/>
                         <TextBox Text="{Binding MinimumStok}" Style="{StaticResource FormGirisKutusu}" Width="200" HorizontalAlignment="Left"/>
+                    </StackPanel>
                     </StackPanel>
 
                     <!-- Alt Aksiyon Butonları -->
