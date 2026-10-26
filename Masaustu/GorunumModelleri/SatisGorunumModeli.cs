@@ -15,6 +15,17 @@ public class SatisGorunumModeli : TemelGorunumModeli
     private readonly ICariServisi _cariServisi;
     private readonly IFaturaServisi _faturaServisi;
     private readonly ICariHareketServisi _cariHareketServisi;
+    private readonly IBelgeYazdirmaServisi? _yazdirma;
+    private Fatura? _sonFatura;
+    private string _sonOdeme = string.Empty;
+
+    // Bilgi fişi (80 mm): satıştan sonra varsayılan yazıcıya otomatik ya da F11 ile son satış için.
+    public bool SatistanSonraFisYazdir
+    {
+        get => FisYazici.OtomatikYazdir;
+        set { FisYazici.OtomatikYazdir = value; BildirimGonder(); }
+    }
+    public ICommand SonFisiYazdirKomutu { get; }
     private int? _geriYuklenenBekleyenFaturaId;
 
     private ObservableCollection<FaturaKalemiGorunumModeli> _sepet = new();
@@ -140,8 +151,11 @@ public class SatisGorunumModeli : TemelGorunumModeli
     public ICariServisi CariServisi => _cariServisi;
     public IFaturaServisi FaturaServisi => _faturaServisi;
 
-    public SatisGorunumModeli(IUrunServisi urunServisi, ICariServisi cariServisi, IFaturaServisi faturaServisi, ICariHareketServisi cariHareketServisi)
+    public SatisGorunumModeli(IUrunServisi urunServisi, ICariServisi cariServisi, IFaturaServisi faturaServisi, ICariHareketServisi cariHareketServisi,
+        IBelgeYazdirmaServisi? yazdirma = null)
     {
+        _yazdirma = yazdirma;
+        SonFisiYazdirKomutu = new KomutSarici(async _ => await FisYazdirAsync(yaziciSor: true), _ => _sonFatura != null && _yazdirma != null);
         _ = StokYerleri.YukleAsync(urunServisi);
         _urunServisi = urunServisi;
         _cariServisi = cariServisi;
@@ -402,6 +416,20 @@ public class SatisGorunumModeli : TemelGorunumModeli
         return perakendeCari.Id;
     }
 
+    private async Task FisYazdirAsync(bool yaziciSor)
+    {
+        if (_sonFatura == null || _yazdirma == null) return;
+        try
+        {
+            var firma = await _yazdirma.FirmaBilgisiGetirAsync(_sonFatura.SirketId);
+            FisYazici.Yazdir(_sonFatura, firma, _sonOdeme, yaziciSor);
+        }
+        catch (Exception ex)
+        {
+            DurumMesaji += $"  ⚠ Fiş yazdırılamadı: {ex.Message}";
+        }
+    }
+
     private async Task SatisKapatAsync(string odemeYontemi)
     {
         try
@@ -470,6 +498,9 @@ public class SatisGorunumModeli : TemelGorunumModeli
             var tamamlananTutar = GenelToplam;
             Temizle();
             DurumMesaji = $"✓ Satış tamamlandı — {eklenenFatura.FaturaNo} — {tamamlananTutar:N2} ₺ — {odemeYontemi}";
+            (_sonFatura, _sonOdeme) = (eklenenFatura, odemeYontemi);
+            if (SatistanSonraFisYazdir)
+                await FisYazdirAsync(yaziciSor: false);
         }
         catch (Exception ex)
         {

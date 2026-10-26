@@ -183,7 +183,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("UrunSil", sp => new UrunSilGorunumModeli(G<IUrunServisi>(sp)));
         _navigasyon.Kaydet("Urun", sp => G<StokOperasyonMerkeziGorunumModeli>(sp));
         _navigasyon.Kaydet("Depo", sp => new DepoGorunumModeli(G<IDepoServisi>(sp), G<IUrunServisi>(sp), G<IBelgeYazdirmaServisi>(sp)));
-        _navigasyon.Kaydet("Satis", sp => new SatisGorunumModeli(G<IUrunServisi>(sp), G<ICariServisi>(sp), G<IFaturaServisi>(sp), G<ICariHareketServisi>(sp)));
+        _navigasyon.Kaydet("Satis", sp => new SatisGorunumModeli(G<IUrunServisi>(sp), G<ICariServisi>(sp), G<IFaturaServisi>(sp), G<ICariHareketServisi>(sp), sp.GetService<IBelgeYazdirmaServisi>()));
         _navigasyon.Kaydet("Irsaliye", sp => new IrsaliyeGorunumModeli(G<IIrsaliyeServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), G<IFaturaServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp), sp.GetService<IEBelgeServisi>()));
         _navigasyon.Kaydet("FaturaEkle", sp => new FaturaEkleGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon));
         _navigasyon.Kaydet("Fatura", sp => new FaturaGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp), G<IEBelgeServisi>(sp)));
