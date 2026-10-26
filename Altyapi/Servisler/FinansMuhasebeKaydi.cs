@@ -47,6 +47,25 @@ public static class FinansMuhasebeKaydi
         ["760"] = ("PAZARLAMA SATIŞ VE DAĞITIM GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["770"] = ("GENEL YÖNETİM GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["780"] = ("FİNANSMAN GİDERLERİ", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        // Yıl sonu kapanışı: yansıtma, gelir tablosu ve kâr/zarar aktarım hesapları
+        ["590"] = ("DÖNEM NET KARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["591"] = ("DÖNEM NET ZARARI (-)", HesapTipi.Pasif, BorcAlacakYonu.Borc),
+        ["370"] = ("DÖNEM KARI VERGİ VE DİĞER YASAL YÜKÜMLÜLÜK KARŞILIKLARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["610"] = ("SATIŞTAN İADELER (-)", HesapTipi.Gelir, BorcAlacakYonu.Borc),
+        ["621"] = ("SATILAN TİCARİ MALLAR MALİYETİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["622"] = ("SATILAN HİZMET MALİYETİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["691"] = ("DÖNEM KARI VERGİ VE DİĞER YASAL YÜKÜMLÜLÜK KARŞILIKLARI (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["630"] = ("ARAŞTIRMA VE GELİŞTİRME GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["631"] = ("PAZARLAMA SATIŞ VE DAĞITIM GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["632"] = ("GENEL YÖNETİM GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["660"] = ("KISA VADELİ BORÇLANMA GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
+        ["690"] = ("DÖNEM KARI VEYA ZARARI", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
+        ["692"] = ("DÖNEM NET KARI VEYA ZARARI", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
+        ["741"] = ("HİZMET ÜRETİM MALİYETİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
+        ["751"] = ("ARAŞTIRMA VE GELİŞTİRME GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
+        ["761"] = ("PAZARLAMA SATIŞ VE DAĞITIM GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
+        ["771"] = ("GENEL YÖNETİM GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
+        ["781"] = ("FİNANSMAN GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
     };
 
     public sealed record Satir(string HesapKodu, decimal Borc, decimal Alacak, int? CariKartId = null);

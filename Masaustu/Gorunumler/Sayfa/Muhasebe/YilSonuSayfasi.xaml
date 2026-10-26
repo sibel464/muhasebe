@@ -1,0 +1,132 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.YilSonuSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Gorunur"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20,16">
+            <!-- Başlık -->
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource BaslikIkonKutusu}">
+                        <TextBlock Text="📕" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="YIL SONU KAPANIŞI" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Gider yansıtma, gelir tablosunun kapatılması, kâr / zarar aktarımı, kapanış ve yeni yıl açılış fişleri" Style="{StaticResource SayfaAltBaslik}"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Yıl:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding Yillar}" SelectedItem="{Binding Yil}" Width="90" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}">
+                        <TextBlock Text="🔄 Yenile"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Durum -->
+            <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                <TextBlock Text="{Binding DurumBasligi}" FontSize="14" FontWeight="SemiBold" Foreground="#1E3A8A" TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Özet kartlar -->
+            <UniformGrid Columns="4" Margin="0,0,0,12">
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,10">
+                    <StackPanel>
+                        <TextBlock Text="GELİRLER" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding Onizleme.GelirToplami, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,10">
+                    <StackPanel>
+                        <TextBlock Text="GİDER VE MALİYETLER" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding Onizleme.GiderToplami, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,10">
+                    <StackPanel>
+                        <TextBlock Text="VERGİ KARŞILIĞI (691)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding Onizleme.VergiKarsiligi, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource KpiKarti}" Padding="14,10">
+                    <StackPanel>
+                        <TextBlock Text="DÖNEM NET SONUCU" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <TextBlock Text="{Binding KarMetni}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Engeller -->
+            <Border Visibility="{Binding EngelVar, Converter={StaticResource Gorunur}}" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Kapanışı durduran durumlar" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding Engeller}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Foreground="#7F1D1D" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Uyarılar -->
+            <Border Visibility="{Binding UyariVar, Converter={StaticResource Gorunur}}" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Dikkat" FontWeight="Bold" Foreground="#92400E" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding Uyarilar}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Foreground="#78350F" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Yansıtmalar -->
+            <TextBlock Text="Gider yansıtmaları" FontWeight="Bold" Margin="0,4,0,6"/>
+            <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" Margin="0,0,0,12">
+                <DataGrid ItemsSource="{Binding Onizleme.Yansitmalar}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="90" MaxHeight="220">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="GİDER GRUBU" Binding="{Binding GiderHesabi}" Width="140"/>
+                        <DataGridTextColumn Header="YANSITMA HESABI" Binding="{Binding YansitmaHesabi}" Width="150"/>
+                        <DataGridTextColumn Header="AKTARILACAĞI HESAP" Binding="{Binding HedefHesap}" Width="170"/>
+                        <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2} TL}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,12">
+                Kapanış 31.12 tarihli dört fiş (yansıtma, gelir tablosu kapanışı, kâr / zarar aktarımı, kapanış) ve 1 Ocak tarihli açılış fişi keser.
+                Kapanıştan önce dönem sonu değerleme (döviz) ve vergi karşılığı kayıtlarını girin, yedek alın. Kapanıştan sonra yılı Firma İşlemleri'nden kilitleyin.
+                Dönem net kârını 570 Geçmiş Yıllar Kârları hesabına aktarma (kâr dağıtımı) kararınıza göre elle yapılır.
+            </TextBlock>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding KapatKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,10,0">
+                    <TextBlock Text="📕 Yılı Kapat"/>
+                </Button>
+                <Button Command="{Binding GeriAlKomutu}" Style="{StaticResource IkinciDugme}">
+                    <TextBlock Text="↩ Kapanışı Geri Al"/>
+                </Button>
+            </StackPanel>
+            <TextBlock Text="{Binding DurumMesaji}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#334155"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

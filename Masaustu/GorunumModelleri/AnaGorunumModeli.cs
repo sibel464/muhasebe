@@ -75,6 +75,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public ICommand MizanKomutu { get; }
     public ICommand MuhasebeBaglantiKomutu { get; }
     public ICommand MuhasebeSaglikKomutu { get; }
+    public ICommand YilSonuKomutu { get; }
     public ICommand CikisKomutu { get; }
 
     public Action? CikisYapildi { get; set; }
@@ -213,6 +214,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Mizan", sp => G<Masaustu.GorunumModeli.Muhasebe.MizanGorunumModeli>(sp));
         _navigasyon.Kaydet("MuhasebeBaglanti", sp => G<Masaustu.GorunumModeli.Muhasebe.MuhasebeBaglantiGorunumModeli>(sp));
         _navigasyon.Kaydet("MuhasebeSaglik", sp => G<Masaustu.GorunumModeli.Muhasebe.MuhasebeSaglikGorunumModeli>(sp));
+        _navigasyon.Kaydet("YilSonu", sp => G<Masaustu.GorunumModeli.Muhasebe.YilSonuGorunumModeli>(sp));
 
         // Komutlar
         DashboardKomutu = new KomutSarici(() => MenuGit("Dashboard"));
@@ -243,6 +245,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         MizanKomutu = new KomutSarici(() => MenuGit("Mizan"));
         MuhasebeBaglantiKomutu = new KomutSarici(() => MenuGit("MuhasebeBaglanti"));
         MuhasebeSaglikKomutu = new KomutSarici(() => MenuGit("MuhasebeSaglik"));
+        YilSonuKomutu = new KomutSarici(() => MenuGit("YilSonu"));
         RaporKomutu = new KomutSarici(() => MenuGit("Rapor"));
         AyarlarKomutu = new KomutSarici(() => MenuGit("Ayarlar"));
         YardimKomutu = new KomutSarici(() => YardimAc());
