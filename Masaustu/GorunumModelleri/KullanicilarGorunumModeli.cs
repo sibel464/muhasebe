@@ -252,10 +252,10 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         SatirSilKomutu = new KomutSarici(async param => await SilAsync(param as Kullanici));
         SifreDegistirKomutu = new KomutSarici(async param => await SifreDegistirAsync(param as Kullanici));
         IptalKomutu = new KomutSarici(_ => IptalEt());
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Kullanicilar, "Kullanici_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Kullanicilar, "Kullanici_Listesi"));
         
         AuditLogYenileKomutu = new KomutSarici(async _ => await AuditLoglariYukleAsync());
-        AuditLogExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(AuditLoglar, "Islem_Gecmisi_Audit_Logs"));
+        AuditLogExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(AuditLoglar, "Islem_Gecmisi_Audit_Logs"));
         SablonUygulaKomutu = new KomutSarici(_ => SablonUygula(), _ => SeciliYetkiSablonu != null);
 
         _ = IlkYuklemeAsync();

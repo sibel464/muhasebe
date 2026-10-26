@@ -159,9 +159,9 @@
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="📥 Excel (.xlsx)" Style="{StaticResource FilterBtn}" Command="{Binding ExcelAktarKomutu}"/>
-                    <Button Content="📄 PDF Çıktı" Style="{StaticResource FilterBtn}" Command="{Binding PdfAktarKomutu}"/>
-                    <Button Content="🖨️ Yazdır" Style="{StaticResource FilterBtn}" Command="{Binding YazdirKomutu}"/>
+                    <Button Content="📥 Excel (.xlsx)" Style="{StaticResource FilterBtn}" Command="{Binding ExcelAktarKomutu}" CommandParameter="{Binding SelectedContent, ElementName=RaporSekmeleri}"/>
+                    <Button Content="📄 PDF Çıktı" Style="{StaticResource FilterBtn}" Command="{Binding PdfAktarKomutu}" CommandParameter="{Binding SelectedContent, ElementName=RaporSekmeleri}"/>
+                    <Button Content="🖨️ Yazdır" Style="{StaticResource FilterBtn}" Command="{Binding YazdirKomutu}" CommandParameter="{Binding SelectedContent, ElementName=RaporSekmeleri}"/>
                     <Button Content="🔄 Yenile" Style="{StaticResource PrimaryBtn}" Command="{Binding YenileKomutu}"/>
                 </StackPanel>
             </Grid>
@@ -184,7 +184,7 @@
         </Border>
 
         <!-- 3. Main Content (Tabs & Reports) -->
-        <TabControl Grid.Row="2" SelectedIndex="{Binding SeciliSekmeIndeksi, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Margin="15,10,15,10">
+        <TabControl x:Name="RaporSekmeleri" Grid.Row="2" SelectedIndex="{Binding SeciliSekmeIndeksi, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Margin="15,10,15,10">
             <TabControl.Template>
                 <ControlTemplate TargetType="TabControl">
                     <Grid>
@@ -473,8 +473,26 @@
 
                             <Border Style="{StaticResource KpiKart}" Width="220">
                                 <StackPanel>
+                                    <TextBlock Text="DİĞER GİRİŞLER" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.DigerGirisler, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#166534"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="DİĞER ÇIKIŞLAR" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.DigerCikislar, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#DC2626"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
                                     <TextBlock Text="NET NAKİT AKIŞI" Style="{StaticResource EtiketKucuk}"/>
                                     <TextBlock Text="{Binding NakitAkisRaporu.NetNakitAkisi, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#2563EB"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource KpiKart}" Width="220">
+                                <StackPanel>
+                                    <TextBlock Text="DÖNEM SONU NAKİT" Style="{StaticResource EtiketKucuk}"/>
+                                    <TextBlock Text="{Binding NakitAkisRaporu.DonemSonuNakit, StringFormat={}{0:N2} TL}" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
                                 </StackPanel>
                             </Border>
                         </WrapPanel>

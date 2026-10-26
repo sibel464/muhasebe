@@ -198,7 +198,7 @@ public class IrsaliyeGorunumModeli : TemelGorunumModeli
         _navigasyon = navigasyon;
         _yazdirmaServisi = yazdirmaServisi;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Irsaliyeler.Select(i => new { i.IrsaliyeNo, i.Tarih, i.SevkTarihi, i.Tur, Cari = i.CariKart?.Unvan, SiparisNo = i.Siparis?.SiparisNo, i.ReferansNo, i.Tasiyici, i.AracPlaka, i.AraToplam, i.KdvToplam, i.GenelToplam, i.Durum, FaturaNo = i.DonusturulenFatura?.FaturaNo }), "Irsaliye_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Irsaliyeler.Select(i => new { i.IrsaliyeNo, i.Tarih, i.SevkTarihi, i.Tur, Cari = i.CariKart?.Unvan, SiparisNo = i.Siparis?.SiparisNo, i.ReferansNo, i.Tasiyici, i.AracPlaka, i.AraToplam, i.KdvToplam, i.GenelToplam, i.Durum, FaturaNo = i.DonusturulenFatura?.FaturaNo }), "Irsaliye_Listesi"));
         HizliFiltreKomutu = new KomutSarici(p => HizliFiltreUygula(p?.ToString()));
         YenileKomutu = new KomutSarici(async () => await ListeleAsync());
         YeniIrsaliyeKomutu = new KomutSarici(YeniIrsaliyeEkle);

@@ -161,7 +161,7 @@ public class MusteriGorunumModeli : TemelGorunumModeli
         _navigasyon = navigasyon;
         _cikisAction = cikisAction;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Musteriler, "Musteri_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Musteriler, "Musteri_Listesi"));
 
         YeniEkleKomutu = new KomutSarici(async _ => await YeniEkleAsync());
         DuzenleKomutu = new KomutSarici(async _ => await DuzenleAsync(), _ => SeciliMusteri != null);

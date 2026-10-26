@@ -66,7 +66,7 @@ public class CekSenetGorunumModeli : TemelGorunumModeli
         _kasaServisi = kasaServisi;
         _bankaServisi = bankaServisi;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(TabloVerisi, "Cek_Senet_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(TabloVerisi, "Cek_Senet_Listesi"));
 
         YukleCommand = new KomutSarici(async () => await YukleAsync());
         EkleCommand = new KomutSarici(Ekle);

@@ -136,7 +136,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
             catch (Exception ex) { System.Windows.MessageBox.Show("Etiketler oluşturulamadı: " + ex.Message, "Etiket", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
         }, _ => Urunler.Count > 0);
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Urunler, "Urun_Stok_Listesi"), _ => Urunler.Count > 0);
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Urunler, "Urun_Stok_Listesi"), _ => Urunler.Count > 0);
         YeniUrunKomutu = new KomutSarici(_ => navigasyon.Git("UrunEkle"),
             _ => _kullaniciServisi!.YetkiliMi(x => x.StokEkle));
         UrunDuzenleKomutu = new KomutSarici(_ =>

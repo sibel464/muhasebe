@@ -99,7 +99,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
             }
             catch (Exception ex) { System.Windows.MessageBox.Show("Belge yazdırılamadı: " + ex.Message, "Yazdırma", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
         });
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Siparisler.Select(s => new { s.SiparisNo, s.SiparisTarihi, s.SiparisTuru, s.GenelToplam, s.Durum }), "Siparis_Listesi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Siparisler.Select(s => new { s.SiparisNo, s.SiparisTarihi, s.SiparisTuru, s.GenelToplam, s.Durum }), "Siparis_Listesi"));
         YeniKomutu = new KomutSarici(Yeni);
         YenileKomutu = new KomutSarici(async _ => await YukleAsync());
         UrunEkleKomutu = new KomutSarici(UrunEkle);

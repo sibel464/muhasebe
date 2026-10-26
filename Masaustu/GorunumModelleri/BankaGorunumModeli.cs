@@ -353,7 +353,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
         _cariServisi = cariServisi;
         _kasaServisi = kasaServisi;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Hareketler.Select(r => new
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Hareketler.Select(r => new
         {
             Tarih = r.Kayit.Tarih, r.Kayit.FisNo, r.Kayit.DekontNo, Tur = FinansMetinDonusturucu.Metin(r.Kayit.FisTuru), Hesap = r.Kayit.BankaHesabi?.Ad,
             Cari = r.Kayit.CariKart?.Unvan, r.Kayit.Aciklama, r.Giris, r.Cikis, r.Bakiye

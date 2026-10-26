@@ -164,9 +164,9 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
 
         YenileKomutu = new KomutSarici(async _ => await RaporYukleAsync());
         PresetDegistirKomutu = new KomutSarici(async p => await PresetDegistirAsync(p?.ToString()));
-        ExcelAktarKomutu = new KomutSarici(async _ => await ExcelAktarAsync());
-        PdfAktarKomutu = new KomutSarici(async _ => await PdfAktarAsync());
-        YazdirKomutu = new KomutSarici(async _ => await YazdirAsync());
+        ExcelAktarKomutu = new KomutSarici(async p => await CiktiAlAsync(p, "excel"));
+        PdfAktarKomutu = new KomutSarici(async p => await CiktiAlAsync(p, "pdf"));
+        YazdirKomutu = new KomutSarici(async p => await CiktiAlAsync(p, "yazdir"));
         SonrakiSayfaKomutu = new KomutSarici(async _ => await SayfaDegistirAsync(1));
         ÖncekiSayfaKomutu = new KomutSarici(async _ => await SayfaDegistirAsync(-1));
         DrillDownKomutu = new KomutSarici(p => DrillDown(p));
@@ -340,88 +340,119 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
         await RaporYukleAsync();
     }
 
-    private async Task ExcelAktarAsync()
+    private static readonly string[] SekmeAdlari =
+    [
+        "Dönem Karşılaştırması", "Satış Raporu", "Alış Raporu", "Cari Raporu", "Cari Yaşlandırma", "Stok Raporu",
+        "Hareketsiz Ürünler", "Stok Değer Raporu", "Finans Raporu", "Nakit Akışı", "Kasa ve Banka Raporu", "POS Raporu",
+        "Çek ve Senet Raporu", "KDV Raporu", "Tahsilat Performansı", "Ba-Bs Formları"
+    ];
+
+    private string SekmeAdi => SeciliSekmeIndeksi >= 0 && SeciliSekmeIndeksi < SekmeAdlari.Length ? SekmeAdlari[SeciliSekmeIndeksi] : "Rapor";
+
+    private SatisRaporFiltreDto FiltreKopyasi() =>
+        System.Text.Json.JsonSerializer.Deserialize<SatisRaporFiltreDto>(System.Text.Json.JsonSerializer.Serialize(Filtre))!;
+
+    // Sayfalı raporlarda çıktı yalnız ekrandaki sayfayı değil dönemin tüm kayıtlarını içerir.
+    private async Task<List<object>> TumSayfalarAsync<T>(Func<SatisRaporFiltreDto, Task<PagedResult<T>>> getir)
     {
-        try
+        var f = FiltreKopyasi();
+        f.PageSize = 500;
+        var liste = new List<object>();
+        for (f.PageNumber = 1; f.PageNumber <= 400; f.PageNumber++)
         {
-            byte[] bytes = Array.Empty<byte>();
-            string fileName = $"Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-
-            if (SeciliSekmeIndeksi == 1)
-            {
-                var dict = new Dictionary<string, string>
-                {
-                    { "BelgeNo", "Belge No" }, { "Tarih", "Tarih" }, { "CariUnvan", "Cari Ünvan" },
-                    { "UrunAd", "Ürün Adı" }, { "Miktar", "Miktar" }, { "NetTutar", "Net Tutar" }
-                };
-                bytes = _excelServisi.ExportToExcel("Satış Raporu", Filtre, SatisRaporu.Items, dict);
-            }
-            else if (SeciliSekmeIndeksi == 15)
-            {
-                var dict = new Dictionary<string, string>
-                {
-                    { "Form", "Form" }, { "Donem", "Dönem" }, { "Unvan", "Ünvan" }, { "VergiKimlikNo", "VKN / TCKN" },
-                    { "VergiDairesi", "Vergi Dairesi" }, { "BelgeSayisi", "Belge Sayısı" }, { "Tutar", "Tutar (KDV hariç)" }, { "Uyari", "Uyarı" }
-                };
-                bytes = _excelServisi.ExportToExcel("Ba-Bs Formları", Filtre, BaBsRaporu, dict);
-                fileName = $"BaBs_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            }
-            else
-            {
-                var dict = new Dictionary<string, string>
-                {
-                    { "CariKod", "Cari Kod" }, { "CariUnvan", "Cari Ünvan" }, { "NetBakiye", "Bakiye" }
-                };
-                bytes = _excelServisi.ExportToExcel("Cari Raporu", Filtre, CariRaporu.Items, dict);
-            }
-
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            var filePath = Path.Combine(desktop, fileName);
-            await File.WriteAllBytesAsync(filePath, bytes);
-            MessageBox.Show($"Excel XLSX belgesi masaüstüne kaydedildi:\n{filePath}", "Excel Aktarım", MessageBoxButton.OK, MessageBoxImage.Information);
+            var sayfa = await getir(f);
+            liste.AddRange(sayfa.Items.Cast<object>());
+            if (sayfa.Items.Count == 0 || liste.Count >= sayfa.TotalCount) break;
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Excel aktarım hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        return liste;
     }
 
-    private async Task PdfAktarAsync()
+    // Seçili sekmenin çıktı tablosu: ekrandaki sütunlar ve biçimler, sayfalı raporlarda tüm kayıtlar.
+    private async Task<RaporTablosu?> SekmeTablosuAsync(object? sekmeIcerigi)
     {
-        try
+        var donem = string.Join(" | ", new[]
         {
-            var dict = new Dictionary<string, string>
-            {
-                { "BelgeNo", "Belge No" }, { "Tarih", "Tarih" }, { "CariUnvan", "Cari Ünvan" }, { "NetTutar", "Net Tutar" }
-            };
-            var bytes = _pdfServisi.ExportToPdf("Rapor Çıktısı", Filtre, SatisRaporu.Items, dict);
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            var filePath = Path.Combine(desktop, $"Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
-            await File.WriteAllBytesAsync(filePath, bytes);
-            MessageBox.Show($"Gerçek PDF-1.4 belgesi masaüstüne kaydedildi:\n{filePath}", "PDF Aktarım", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception ex)
+            _firmaBaglami?.SirketAdi,
+            Filtre.BaslangicTarihi.HasValue || Filtre.BitisTarihi.HasValue
+                ? $"Dönem: {Filtre.BaslangicTarihi:dd.MM.yyyy} - {Filtre.BitisTarihi:dd.MM.yyyy}" : null
+        }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        if (SeciliSekmeIndeksi == 9)
         {
-            MessageBox.Show($"PDF aktarım hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            var n = NakitAkisRaporu;
+            var tablo = new RaporTablosu { Baslik = SekmeAdi, AltBaslik = donem, Kolonlar = [new("Kalem"), new("Tutar", true)] };
+            foreach (var (ad, tutar) in new[] { ("Dönem başı nakit", n.DonemBasiNakit), ("Tahsilatlar", n.Tahsilatlar), ("Diğer girişler", n.DigerGirisler),
+                         ("Ödemeler", n.Odemeler), ("Diğer çıkışlar", n.DigerCikislar), ("Net nakit akışı", n.NetNakitAkisi), ("Dönem sonu nakit", n.DonemSonuNakit) })
+                tablo.Satirlar.Add([new RaporHucresi(ad), new RaporHucresi($"{tutar:N2} TL", tutar)]);
+            return tablo;
         }
+
+        var grid = EkranTablosu.IlkDataGrid(sekmeIcerigi);
+        if (grid == null) return null;
+        System.Collections.IEnumerable satirlar = SeciliSekmeIndeksi switch
+        {
+            1 => await TumSayfalarAsync(_raporServisi.GetSatisRaporuAsync),
+            2 => await TumSayfalarAsync(_raporServisi.GetAlisRaporuAsync),
+            3 => await TumSayfalarAsync(_raporServisi.GetCariRaporuAsync),
+            5 => await TumSayfalarAsync(_raporServisi.GetStokRaporuAsync),
+            8 => await TumSayfalarAsync(_raporServisi.GetFinansRaporuAsync),
+            _ => grid.Items.Cast<object>().ToList()
+        };
+        return EkranTablosu.Olustur(grid, satirlar, SekmeAdi, donem);
     }
 
-    private async Task YazdirAsync()
+    private string? KayitYeriSor(string filtre, string uzanti)
+    {
+        var ad = new string($"{SekmeAdi} {DateTime.Now:yyyy-MM-dd HHmm}".Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray());
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = filtre, FileName = ad + uzanti, Title = $"{SekmeAdi} - Kaydet" };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private static void KaydedildiBildir(string yol)
+    {
+        if (MessageBox.Show($"Dosya kaydedildi:\n{yol}\n\nŞimdi açılsın mı?", "Rapor kaydedildi", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(yol) { UseShellExecute = true });
+    }
+
+    private async Task CiktiAlAsync(object? sekmeIcerigi, string tur)
     {
         try
         {
-            var dict = new Dictionary<string, string>
+            DurumMesaji = "Çıktı hazırlanıyor...";
+            var tablo = await SekmeTablosuAsync(sekmeIcerigi);
+            if (tablo == null)
             {
-                { "BelgeNo", "Belge No" }, { "Tarih", "Tarih" }, { "CariUnvan", "Cari Ünvan" }, { "NetTutar", "Net Tutar" }
-            };
-            var html = _pdfServisi.RaporHtmlOlustur("Rapor Çıktısı", Filtre, SatisRaporu.Items, dict);
-            var tempPath = Path.Combine(Path.GetTempPath(), $"Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.html");
-            await System.IO.File.WriteAllTextAsync(tempPath, html, System.Text.Encoding.UTF8);
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(tempPath) { UseShellExecute = true });
+                MessageBox.Show("Bu sekmede çıktısı alınacak tablo yok.", "Rapor çıktısı", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            switch (tur)
+            {
+                case "excel":
+                    if (KayitYeriSor("Excel Dosyası (*.xlsx)|*.xlsx", ".xlsx") is { } excelYolu)
+                    {
+                        await File.WriteAllBytesAsync(excelYolu, _excelServisi.ExcelOlustur(tablo));
+                        KaydedildiBildir(excelYolu);
+                    }
+                    break;
+                case "pdf":
+                    if (KayitYeriSor("PDF Dosyası (*.pdf)|*.pdf", ".pdf") is { } pdfYolu)
+                    {
+                        await File.WriteAllBytesAsync(pdfYolu, _pdfServisi.PdfOlustur(tablo));
+                        KaydedildiBildir(pdfYolu);
+                    }
+                    break;
+                default:
+                    var geciciYol = Path.Combine(Path.GetTempPath(), $"Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+                    await File.WriteAllTextAsync(geciciYol, _pdfServisi.HtmlOlustur(tablo), System.Text.Encoding.UTF8);
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(geciciYol) { UseShellExecute = true });
+                    break;
+            }
+            DurumMesaji = $"{SekmeAdi}: {tablo.Satirlar.Count} kayıt çıktıya hazırlandı.";
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Yazdırma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            DurumMesaji = "Çıktı alınamadı.";
+            MessageBox.Show($"Çıktı alınamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

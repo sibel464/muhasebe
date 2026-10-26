@@ -93,7 +93,7 @@ public class DepoGorunumModeli : TemelGorunumModeli
         _stokMatrisiView = CollectionViewSource.GetDefaultView(_stokMatrisi);
         _stokMatrisiView.Filter = StokFiltrele;
 
-        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(FiltrelenmisStokMatrisi.Cast<DepoStokMatrisDto>().Select(m => new { m.UrunKodu, m.UrunAdi, m.Barkod, m.MagazaMiktar, m.Depo1Miktar, m.Depo2Miktar, m.ToplamMiktar, m.MinStok, m.AlisFiyati, m.ToplamDeger, m.DurumMetni }), "Depo_Stok_Matrisi"));
+        ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(FiltrelenmisStokMatrisi.Cast<DepoStokMatrisDto>().Select(m => new { m.UrunKodu, m.UrunAdi, m.Barkod, m.MagazaMiktar, m.Depo1Miktar, m.Depo2Miktar, m.ToplamMiktar, m.MinStok, m.AlisFiyati, m.ToplamDeger, m.DurumMetni }), "Depo_Stok_Matrisi"));
         FiltreleriTemizleKomutu = new KomutSarici(FiltreleriTemizle);
         YenileKomutu = new KomutSarici(async () => await VerileriYukleAsync());
         TransferKalemEkleKomutu = new KomutSarici(TransferKalemEkle);

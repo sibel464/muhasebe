@@ -270,7 +270,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		_navigasyon = navigasyon;
 		_yazdirmaServisi = yazdirmaServisi;
 
-		ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Faturalar.Select(f => new { f.FaturaNo, f.Tarih, f.Tur, f.GenelToplam, f.Durum }), "Fatura_Listesi"));
+		ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Faturalar.Select(f => new { f.FaturaNo, f.Tarih, f.Tur, f.GenelToplam, f.Durum }), "Fatura_Listesi"));
 		FaturaEkleSayfasinaGitKomutu = new KomutSarici(_ => YeniFaturaPenceresiAc());
 		YeniKomutu = new KomutSarici(_ => Yeni());
 		YenileKomutu = new KomutSarici(async _ => await YukleAsync());
