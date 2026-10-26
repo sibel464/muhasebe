@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using EtkiAlani.Modeller.Cari;
 using EtkiAlani.Modeller.Fatura;
@@ -317,6 +318,57 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         }
         sb.AppendLine("</div></body></html>");
         return sb.ToString();
+    }
+
+    // Raf/ürün etiketleri. A4 düzenleri hazır etiket kâğıtlarına (21'li 63,5×38,1 mm; 40'lı 48,5×25,4 mm),
+    // rulo düzeni 50×30 mm etiket yazıcısına göredir. Barkodu olmayan ürüne yalnız ad ve fiyat basılır.
+    public string EtiketHtmlUret(IReadOnlyList<UrunEtiketi> etiketler, EtiketDuzeni duzen, FirmaBilgisi? firma = null)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var (genislik, yukseklik, sutun, sayfaKenar, araliK, adPunto, fiyatPunto) = duzen switch
+        {
+            EtiketDuzeni.A4_40 => (48.5m, 25.4m, 4, "10.7mm 4.75mm", "0mm", 7.5m, 14m),
+            EtiketDuzeni.Rulo50x30 => (50m, 30m, 1, "0", "0mm", 8.5m, 16m),
+            _ => (63.5m, 38.1m, 3, "15.15mm 7.2mm", "2.5mm", 9.5m, 20m)
+        };
+        string Mm(decimal d) => d.ToString(CultureInfo.InvariantCulture) + "mm";
+        var sayfa = duzen == EtiketDuzeni.Rulo50x30 ? $"size: {Mm(genislik)} {Mm(yukseklik)}; margin: 0;" : "size: A4; margin: 0;";
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Ürün Etiketleri</title><style>");
+        sb.AppendLine($"@page {{ {sayfa} }} body {{ margin: 0; font-family: 'Segoe UI', Arial, sans-serif; }}");
+        sb.AppendLine(".toolbar { padding: 10px; background: #F1F5F9; } .toolbar button { padding: 8px 14px; font-size: 14px; } @media print { .no-print { display: none; } }");
+        sb.AppendLine($".sayfa {{ padding: {sayfaKenar}; display: grid; grid-template-columns: repeat({sutun}, {Mm(genislik)}); column-gap: {araliK}; }}");
+        sb.AppendLine($".etiket {{ width: {Mm(genislik)}; height: {Mm(yukseklik)}; box-sizing: border-box; padding: 1.5mm 2mm; overflow: hidden; display: flex; flex-direction: column; page-break-inside: avoid; {(duzen == EtiketDuzeni.Rulo50x30 ? "page-break-after: always;" : "")} }}");
+        sb.AppendLine($".firma {{ font-size: 6pt; color: #475569; white-space: nowrap; overflow: hidden; }} .ad {{ font-size: {adPunto.ToString(CultureInfo.InvariantCulture)}pt; font-weight: 700; line-height: 1.15; max-height: 2.3em; overflow: hidden; }}");
+        sb.AppendLine($".fiyat {{ font-size: {fiyatPunto.ToString(CultureInfo.InvariantCulture)}pt; font-weight: 800; margin-top: auto; }} .birim {{ font-size: 7pt; font-weight: 400; color: #475569; }}");
+        sb.AppendLine(".barkod svg { width: 100%; height: 8mm; display: block; } .barkod div { font-size: 6.5pt; text-align: center; letter-spacing: 1px; } .tarih { font-size: 5.5pt; color: #64748B; }");
+        sb.AppendLine("</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır</button> Yazdırırken ölçeği %100 (gerçek boyut) seçin, kenar boşluklarını \"Yok\" yapın.</div>");
+        sb.AppendLine("<div class='sayfa'>");
+        var tarih = DateTime.Now.ToString("dd.MM.yyyy");
+        foreach (var e in etiketler)
+        {
+            sb.Append("<div class='etiket'>");
+            if (!string.IsNullOrWhiteSpace(f.FirmaUnvani)) sb.Append("<div class='firma'>" + H(f.FirmaUnvani) + "</div>");
+            sb.Append("<div class='ad'>" + H(e.Ad) + "</div>");
+            sb.Append("<div class='fiyat'>" + e.KdvDahilFiyat.ToString("N2", new CultureInfo("tr-TR")) + " ₺ <span class='birim'>/ " + H(e.Birim) + " (KDV dahil)</span></div>");
+            if (!string.IsNullOrWhiteSpace(e.Barkod))
+            {
+                string? svg = null;
+                try { svg = EtkiAlani.Yardimcilar.BarkodCizici.Svg(e.Barkod); } catch (ArgumentException) { }
+                if (svg != null) sb.Append("<div class='barkod'>" + svg + "<div>" + H(e.Barkod) + "</div></div>");
+            }
+            sb.Append("<div class='tarih'>" + tarih + "</div>");
+            sb.AppendLine("</div>");
+        }
+        sb.AppendLine("</div></body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> EtiketYazdirAsync(IReadOnlyList<UrunEtiketi> etiketler, EtiketDuzeni duzen)
+    {
+        var html = EtiketHtmlUret(etiketler, duzen, await FirmaBilgisiGetirAsync());
+        return await DosyayaKaydetVeAcAsync(html, null, $"Etiketler_{DateTime.Now:yyyyMMddHHmmss}.html");
     }
 
     public async Task<string> SiparisYazdirAsync(EtkiAlani.Modeller.Siparis.Siparis siparis)

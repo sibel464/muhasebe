@@ -10,8 +10,15 @@ public sealed record HesapEkstresiSatiri(DateTime Tarih, string FisNo, string Tu
 public sealed record HesapEkstresiBelgesi(string Baslik, string HesapAdi, DateTime? Baslangic, DateTime? Bitis, decimal Devir,
     IReadOnlyList<HesapEkstresiSatiri> Satirlar, decimal ToplamGiris, decimal ToplamCikis, decimal Kapanis);
 
+// Raf/ürün etiketi: fiyat KDV dahil basılır (Fiyat Etiketi Yönetmeliği).
+public sealed record UrunEtiketi(string Ad, string? Barkod, decimal KdvDahilFiyat, string Birim);
+public enum EtiketDuzeni { A4_21, A4_40, Rulo50x30 }
+
 public interface IBelgeYazdirmaServisi
 {
+    string EtiketHtmlUret(IReadOnlyList<UrunEtiketi> etiketler, EtiketDuzeni duzen, FirmaBilgisi? firma = null);
+    Task<string> EtiketYazdirAsync(IReadOnlyList<UrunEtiketi> etiketler, EtiketDuzeni duzen);
+
     FirmaBilgisi FirmaBilgisiGetir();
     // Belgenin şirketine ait güncel künye (boşsa aktif şirket).
     Task<FirmaBilgisi> FirmaBilgisiGetirAsync(Guid? sirketId = null);

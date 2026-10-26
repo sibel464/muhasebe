@@ -184,6 +184,9 @@
                     <Button Command="{Binding ExcelAktarKomutu}" Style="{StaticResource IkinciDugme}" ToolTip="Listelenen ürünleri Excel'de açılabilen dosyaya aktarır">
                         <TextBlock Text="📊 Excel'e Aktar"/>
                     </Button>
+                    <Button Command="{Binding EtiketYazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="8,0,0,0" ToolTip="Seçili ürün ya da listedeki ürünler için barkodlu raf/ürün etiketi yazdırır">
+                        <TextBlock Text="🏷️ Etiket Yazdır"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

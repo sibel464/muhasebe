@@ -98,6 +98,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     public ICommand StokCikisiKomutu { get; }
     public ICommand TransferKomutu { get; }
     public ICommand SayimKomutu { get; }
+    public ICommand EtiketYazdirKomutu { get; }
 
     public Action<int>? Stok360AcAction { get; set; }
     public Action<int, bool>? StokIslemAcAction { get; set; }
@@ -110,9 +111,30 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
         IDepoServisi depoServisi,
         IAktifFirmaBaglami firmaBaglami,
         IKullaniciServisi kullaniciServisi,
-        Masaustu.Servisler.NavigasyonServisi navigasyon)
+        Masaustu.Servisler.NavigasyonServisi navigasyon,
+        IBelgeYazdirmaServisi? yazdirmaServisi = null)
     {
         _operasyonServisi = operasyonServisi;
+        // Raf etiketi: fiyat KDV dahil (kayıtlı satış fiyatı KDV hariçtir); her ürün istenen adet kadar basılır.
+        EtiketYazdirKomutu = new KomutSarici(async _ =>
+        {
+            if (yazdirmaServisi == null) return;
+            var secim = Masaustu.Gorunumler.Sayfa.EtiketPenceresi.Goster(SeciliSatir?.UrunAdi, Urunler.Count);
+            if (secim == null) return;
+            try
+            {
+                var idler = (secim.Tumu ? Urunler.Select(u => u.UrunId) : SeciliSatir != null ? [SeciliSatir.UrunId] : []).ToHashSet();
+                var urunler = (await urunServisi.TumunuGetirAsync()).Where(u => idler.Contains(u.Id)).OrderBy(u => u.Ad).ToList();
+                var etiketler = urunler.SelectMany(u => Enumerable.Repeat(new UrunEtiketi(u.Ad, u.Barkod,
+                    decimal.Round(u.PerakendeSatisFiyati * (1 + u.KdvOrani / 100m), 2, MidpointRounding.AwayFromZero), u.Birim), secim.Adet)).ToList();
+                if (etiketler.Count == 0) { System.Windows.MessageBox.Show("Etiketi basılacak ürün yok.", "Etiket", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information); return; }
+                var fiyatsiz = urunler.Count(u => u.PerakendeSatisFiyati <= 0);
+                if (fiyatsiz > 0 && System.Windows.MessageBox.Show($"{fiyatsiz} ürünün satış fiyatı girilmemiş; etiketlerinde 0,00 ₺ yazacak. Devam edilsin mi?", "Etiket",
+                        System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes) return;
+                await yazdirmaServisi.EtiketYazdirAsync(etiketler, secim.Duzen);
+            }
+            catch (Exception ex) { System.Windows.MessageBox.Show("Etiketler oluşturulamadı: " + ex.Message, "Etiket", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+        }, _ => Urunler.Count > 0);
 
         ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Urunler, "Urun_Stok_Listesi"), _ => Urunler.Count > 0);
         YeniUrunKomutu = new KomutSarici(_ => navigasyon.Git("UrunEkle"),
