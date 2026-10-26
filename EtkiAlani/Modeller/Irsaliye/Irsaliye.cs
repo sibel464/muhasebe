@@ -59,6 +59,14 @@ public class Irsaliye : TemelVarlik
     public string AracPlaka { get; set; } = string.Empty;
     public string SoforAdi { get; set; } = string.Empty;
     public string SoforTelefon { get; set; } = string.Empty;
+    // e-İrsaliyede şoförün T.C. kimlik numarası zorunludur (taşıyıcı firma yoksa).
+    public string SoforTckn { get; set; } = string.Empty;
+
+    // e-İrsaliye. Belge numarası GİB biçimindedir (3 harf + yıl + 9 hane) ve ilk hazırlamada verilir; ETTN de değişmez.
+    public Guid? Ettn { get; set; }
+    public string? EBelgeNo { get; set; }
+    public EtkiAlani.Modeller.Fatura.EBelgeDurumu EBelgeDurumu { get; set; } = EtkiAlani.Modeller.Fatura.EBelgeDurumu.Yok;
+    public string? EBelgeMesaji { get; set; }
 
     // Finansal Toplamlar
     public decimal AraToplam { get; set; } = 0;

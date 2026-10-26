@@ -169,6 +169,8 @@ public class IrsaliyeGorunumModeli : TemelGorunumModeli
     public ICommand DetayKomutu { get; }
     public ICommand DetayGoruntuleKomutu { get; }
     public ICommand YazdirKomutu { get; }
+    public ICommand EIrsaliyeKomutu { get; }
+    private readonly IEBelgeServisi? _eBelgeServisi;
     public ICommand FiltreTemizleKomutu { get; }
     public ICommand ExcelAktarKomutu { get; }
     public ICommand HizliFiltreKomutu { get; }
@@ -179,8 +181,16 @@ public class IrsaliyeGorunumModeli : TemelGorunumModeli
         IUrunServisi urunServisi,
         IFaturaServisi faturaServisi,
         NavigasyonServisi? navigasyon = null,
-        IBelgeYazdirmaServisi? yazdirmaServisi = null)
+        IBelgeYazdirmaServisi? yazdirmaServisi = null,
+        IEBelgeServisi? eBelgeServisi = null)
     {
+        _eBelgeServisi = eBelgeServisi;
+        // Onaylı sevk irsaliyesi e-İrsaliye olarak hazırlanır (taşıma bilgisi pencerede istenir).
+        EIrsaliyeKomutu = new KomutSarici(async p =>
+        {
+            if (p is not Irsaliye i || _eBelgeServisi == null) return;
+            if (await Masaustu.Gorunumler.Sayfa.EIrsaliyePenceresi.GosterAsync(_eBelgeServisi, i)) await ListeleAsync();
+        }, p => p is Irsaliye { Tur: IrsaliyeTuru.Satis, Durum: IrsaliyeDurumu.Onaylandi or IrsaliyeDurumu.Faturalandi });
         _irsaliyeServisi = irsaliyeServisi;
         _cariServisi = cariServisi;
         _urunServisi = urunServisi;

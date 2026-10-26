@@ -373,6 +373,117 @@ public class EBelgeServisi : IEBelgeServisi
             c.CepTelefonu ?? c.Telefon, c.Eposta);
     }
 
+    // ---- e-İrsaliye ----
+
+    private async Task<(EtkiAlani.Modeller.Irsaliye.Irsaliye Irsaliye, UblIrsaliyeGirdisi Girdi)> IrsaliyeGirdisiAsync(int irsaliyeId, bool izle, CancellationToken cancellationToken)
+    {
+        var sorgu = _baglam.Irsaliyeler.Include(i => i.Kalemler).Include(i => i.CariKart).AsQueryable();
+        if (!izle) sorgu = sorgu.AsNoTracking();
+        var irsaliye = await sorgu.FirstOrDefaultAsync(i => i.Id == irsaliyeId, cancellationToken)
+                       ?? throw new KeyNotFoundException("İrsaliye bulunamadı.");
+        var ayar = await _baglam.SistemAyarlari.AsNoTracking().FirstOrDefaultAsync(a => a.Id == 1, cancellationToken);
+        var sirketId = irsaliye.SirketId ?? MuhasebeBaglami.VarsayilanSirketId;
+        var sirket = await _baglam.Sirketler.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sirketId, cancellationToken);
+        var firma = BelgeYazdirmaServisi.FirmaBilgisiOlustur(ayar, sirket, sirketId == MuhasebeBaglami.VarsayilanSirketId);
+        // Numara henüz verilmediyse ön kontrol örnek numarayla yapılır (biçim kuralı numara verilince sağlanır).
+        var girdi = new UblIrsaliyeGirdisi(irsaliye, irsaliye.EBelgeNo ?? $"IRS{irsaliye.Tarih.Year}000000001", irsaliye.Ettn ?? Guid.NewGuid(),
+            Satici(firma), Alici(irsaliye.CariKart ?? new CariKart(), EBelgeTuru.EFatura));
+        return (irsaliye, girdi);
+    }
+
+    private static List<string> IrsaliyeDurumHatalari(EtkiAlani.Modeller.Irsaliye.Irsaliye i) => i.EBelgeDurumu switch
+    {
+        EBelgeDurumu.Gonderildi or EBelgeDurumu.KabulEdildi => ["Bu irsaliye e-İrsaliye olarak gönderilmiş; yeniden hazırlanamaz."],
+        EBelgeDurumu.IptalEdildi => ["Bu e-İrsaliye iptal edilmiş."],
+        _ => []
+    };
+
+    public async Task<IReadOnlyList<string>> IrsaliyeOnKontrolAsync(int irsaliyeId, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.IrsaliyeGoruntule, "e-İrsaliye Ön Kontrol");
+        var (irsaliye, girdi) = await IrsaliyeGirdisiAsync(irsaliyeId, izle: false, cancellationToken);
+        var hatalar = IrsaliyeDurumHatalari(irsaliye);
+        hatalar.AddRange(UblTrIrsaliyeUretici.Dogrula(girdi));
+        return hatalar;
+    }
+
+    public async Task IrsaliyeTasimaBilgisiKaydetAsync(int irsaliyeId, string aracPlaka, string soforAdi, string soforTckn, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.IrsaliyeOnayla, "e-İrsaliye Taşıma Bilgisi");
+        var irsaliye = await _baglam.Irsaliyeler.FirstOrDefaultAsync(i => i.Id == irsaliyeId, cancellationToken)
+                       ?? throw new KeyNotFoundException("İrsaliye bulunamadı.");
+        if (IrsaliyeDurumHatalari(irsaliye) is { Count: > 0 } h)
+            throw new InvalidOperationException(h[0]);
+        string Kisa(string s, int n) => (s ?? string.Empty).Trim() is var t && t.Length > n ? t[..n] : t;
+        irsaliye.AracPlaka = Kisa(UblTrIrsaliyeUretici.Plaka(aracPlaka ?? string.Empty), 20);
+        irsaliye.SoforAdi = Kisa(string.Join(' ', (soforAdi ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries)), 100);
+        irsaliye.SoforTckn = Kisa(Rakamlar(soforTckn), 11);
+        await _baglam.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<EBelgeGonderimSonucu> IrsaliyeHazirlaAsync(int irsaliyeId, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.IrsaliyeOnayla, "e-İrsaliye Hazırlama");
+        await using var tx = await _baglam.Database.BeginTransactionAsync(cancellationToken);
+        var (irsaliye, girdi) = await IrsaliyeGirdisiAsync(irsaliyeId, izle: true, cancellationToken);
+        var hatalar = IrsaliyeDurumHatalari(irsaliye);
+        hatalar.AddRange(UblTrIrsaliyeUretici.Dogrula(girdi));
+        if (hatalar.Count > 0)
+            throw new InvalidOperationException("e-İrsaliye hazırlanamadı:\n- " + string.Join("\n- ", hatalar));
+
+        // Numara ve ETTN bir kez verilir: hata sonrası yeniden hazırlamada aynı belge numarası/ETTN kullanılır.
+        if (irsaliye.EBelgeNo == null)
+        {
+            var yil = irsaliye.Tarih.Year;
+            var seriKodu = $"IRS{yil}";
+            await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(1111836500, hashtext({_baglam.SirketIdCoz(irsaliye.SirketId).ToString() + seriKodu}))", cancellationToken);
+            var sirketId = _baglam.SirketIdCoz(irsaliye.SirketId);
+            var seri = await _baglam.BelgeSerileri.FirstOrDefaultAsync(s => s.SirketId == sirketId && s.BelgeTipi == "EIrsaliye" && s.Seri == seriKodu, cancellationToken);
+            if (seri == null)
+            {
+                seri = new EtkiAlani.Modeller.Kurumsal.BelgeSerisi { SirketId = sirketId, BelgeTipi = "EIrsaliye", Seri = seriKodu, Prefix = "IRS" };
+                _baglam.BelgeSerileri.Add(seri);
+            }
+            seri.SonNumara++;
+            irsaliye.EBelgeNo = $"IRS{yil}{seri.SonNumara:D9}";
+        }
+        irsaliye.Ettn ??= girdi.Ettn;
+        var xml = UblTrIrsaliyeUretici.UretMetin(girdi with { BelgeNo = irsaliye.EBelgeNo, Ettn = irsaliye.Ettn.Value });
+
+        EBelgeGonderimSonucu sonuc;
+        try
+        {
+            sonuc = await _entegrator.GonderAsync(new EBelgePaketi(irsaliye.EBelgeNo, irsaliye.Ettn.Value, EBelgeTuru.EIrsaliye, girdi.Alici.VknTckn,
+                irsaliye.CariKart?.EFaturaEtiketi, xml), cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            sonuc = new EBelgeGonderimSonucu(false, EBelgeDurumu.Hata, ex.Message);
+        }
+        irsaliye.EBelgeDurumu = sonuc.Durum;
+        var mesaj = (sonuc.Mesaj + (sonuc.DosyaYolu is { } yol ? $" Dosya: {yol}" : "")).Trim();
+        irsaliye.EBelgeMesaji = mesaj.Length > 1000 ? mesaj[..1000] : mesaj;
+        await _baglam.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return sonuc;
+    }
+
+    public async Task IrsaliyeDurumIsaretleAsync(int irsaliyeId, EBelgeDurumu durum, string? aciklama = null, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.IrsaliyeOnayla, "e-İrsaliye Durum İşaretleme");
+        var irsaliye = await _baglam.Irsaliyeler.FirstOrDefaultAsync(i => i.Id == irsaliyeId, cancellationToken)
+                       ?? throw new KeyNotFoundException("İrsaliye bulunamadı.");
+        if (irsaliye.EBelgeDurumu == EBelgeDurumu.Yok || irsaliye.Ettn == null)
+            throw new InvalidOperationException("Bu irsaliye için henüz e-İrsaliye hazırlanmadı.");
+        if (durum is EBelgeDurumu.Yok or EBelgeDurumu.Hazirlandi)
+            throw new InvalidOperationException("Bu durum elle işaretlenemez.");
+        if (irsaliye.EBelgeDurumu == EBelgeDurumu.IptalEdildi)
+            throw new InvalidOperationException("İptal edilmiş e-İrsaliyenin durumu değiştirilemez.");
+        irsaliye.EBelgeDurumu = durum;
+        irsaliye.EBelgeMesaji = string.IsNullOrWhiteSpace(aciklama) ? $"Kullanıcı tarafından '{durum}' olarak işaretlendi." : aciklama.Trim();
+        await _baglam.SaveChangesAsync(cancellationToken);
+    }
+
     private static string Rakamlar(string? s) => new((s ?? string.Empty).Where(char.IsDigit).ToArray());
 
     private void Yetki(Func<EtkiAlani.Modeller.Kullanici.KullaniciYetkileri, bool> sorgu, string islem) =>

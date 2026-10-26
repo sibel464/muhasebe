@@ -447,6 +447,90 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         await Assert.ThrowsAsync<InvalidOperationException>(() => servis.GelenFaturaOnizleAsync("bu bir xml değil"));
     }
 
+    private static readonly Lazy<XmlSchemaSet> IrsaliyeSemasi = new(() =>
+    {
+        var kok = Path.Combine(AppContext.BaseDirectory, "Sema", "UBL-2.1", "xsd");
+        var set = new XmlSchemaSet { XmlResolver = new XmlUrlResolver() };
+        using (var dsig = XmlReader.Create(Path.Combine(kok, "common", "UBL-xmldsig-core-schema-2.1.xsd"), new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse }))
+            set.Add(null, dsig);
+        set.Add(UblTrIrsaliyeUretici.Da.NamespaceName, Path.Combine(kok, "maindoc", "UBL-DespatchAdvice-2.1.xsd"));
+        set.Compile();
+        return set;
+    });
+
+    [Fact]
+    public async Task E_irsaliye_semaya_uygun_hazirlanir_gib_numarasi_bir_kez_verilir()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        o.Oturum.AktifYetkiler!.IrsaliyeGoruntule = true;
+        o.Oturum.AktifYetkiler.IrsaliyeOnayla = true;
+        var irsaliye = new EtkiAlani.Modeller.Irsaliye.Irsaliye
+        {
+            SirketId = o.Sirket.Id, CariKartId = o.Cari.Id, IrsaliyeNo = $"IRS-SAT-{Guid.NewGuid():N}"[..20], Tur = EtkiAlani.Modeller.Irsaliye.IrsaliyeTuru.Satis,
+            Durum = EtkiAlani.Modeller.Irsaliye.IrsaliyeDurumu.Onaylandi, Tarih = DateTime.SpecifyKind(new DateTime(2026, 10, 26, 9, 15, 0), DateTimeKind.Utc),
+            SevkTarihi = DateTime.SpecifyKind(new DateTime(2026, 10, 26, 10, 0, 0), DateTimeKind.Utc),
+            TeslimatAdres = "Şantiye, Ankara Cad. 12", TeslimatIl = "İzmir", TeslimatIlce = "Bayraklı",
+            Kalemler = [new EtkiAlani.Modeller.Irsaliye.IrsaliyeKalemi { UrunId = o.Urun.Id, UrunKodu = o.Urun.Kod, UrunAd = o.Urun.Ad, Birim = "Kg", Miktar = 12.5m }]
+        };
+        db.Irsaliyeler.Add(irsaliye);
+        await db.SaveChangesAsync();
+
+        var klasor = Path.Combine(Path.GetTempPath(), "eirsaliye-test-" + Guid.NewGuid().ToString("N"));
+        var servis = new EBelgeServisi(db, o.Oturum, new DosyaEBelgeEntegratoru(() => klasor));
+        try
+        {
+            // Plaka ve şoför bilgisi olmadan hazırlanmaz.
+            var eksik = await servis.IrsaliyeOnKontrolAsync(irsaliye.Id);
+            Assert.Contains(eksik, h => h.Contains("plaka"));
+            Assert.Contains(eksik, h => h.Contains("T.C. kimlik"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => servis.IrsaliyeHazirlaAsync(irsaliye.Id));
+
+            irsaliye.AracPlaka = "35 abc 123";
+            irsaliye.SoforAdi = "Mehmet Ali Kaya";
+            irsaliye.SoforTckn = GecerliTckn(Random.Shared.Next());
+            await db.SaveChangesAsync();
+            Assert.Empty(await servis.IrsaliyeOnKontrolAsync(irsaliye.Id));
+
+            var sonuc = await servis.IrsaliyeHazirlaAsync(irsaliye.Id);
+            Assert.True(sonuc.Basarili, sonuc.Mesaj);
+            await using var oku = new MuhasebeBaglami(fixture.Options) { AktifSirketId = o.Sirket.Id };
+            var kayit = await oku.Irsaliyeler.SingleAsync(i => i.Id == irsaliye.Id);
+            Assert.Matches("^IRS2026[0-9]{9}$", kayit.EBelgeNo!);
+            Assert.Equal(EBelgeDurumu.Hazirlandi, kayit.EBelgeDurumu);
+
+            var xml = XDocument.Load(sonuc.DosyaYolu!);
+            var hatalar = new List<string>();
+            var ayar = new XmlReaderSettings { ValidationType = ValidationType.Schema, Schemas = IrsaliyeSemasi.Value };
+            ayar.ValidationEventHandler += (_, e) => hatalar.Add($"{e.Severity}: {e.Message}");
+            using (var okuyucu = XmlReader.Create(new StringReader(xml.Declaration + xml.Root!.ToString()), ayar))
+                while (okuyucu.Read()) { }
+            Assert.True(hatalar.Count == 0, string.Join(Environment.NewLine, hatalar));
+
+            var kok = xml.Root!;
+            Assert.Equal("TEMELIRSALIYE", kok.Element(Cbc + "ProfileID")!.Value);
+            Assert.Equal("SEVK", kok.Element(Cbc + "DespatchAdviceTypeCode")!.Value);
+            Assert.Equal(kayit.EBelgeNo, kok.Element(Cbc + "ID")!.Value);
+            Assert.Equal("35ABC123", kok.Descendants(Cbc + "LicensePlateID").Single().Value);
+            Assert.Equal("Mehmet Ali", kok.Descendants(Cac + "DriverPerson").Single().Element(Cbc + "FirstName")!.Value);
+            Assert.Equal("Bayraklı", kok.Descendants(Cac + "DeliveryAddress").Single().Element(Cbc + "CitySubdivisionName")!.Value);
+            Assert.Equal("KGM", kok.Descendants(Cbc + "DeliveredQuantity").Single().Attribute("unitCode")!.Value);
+            Assert.Equal("10:00:00", kok.Descendants(Cbc + "ActualDespatchTime").Single().Value);
+
+            // Yeniden hazırlama aynı numara ve ETTN'yi kullanır; gönderildi işaretlenince bir daha hazırlanmaz.
+            var ilkNo = kayit.EBelgeNo;
+            await servis.IrsaliyeHazirlaAsync(irsaliye.Id);
+            await using (var oku2 = new MuhasebeBaglami(fixture.Options) { AktifSirketId = o.Sirket.Id })
+                Assert.Equal(ilkNo, (await oku2.Irsaliyeler.SingleAsync(i => i.Id == irsaliye.Id)).EBelgeNo);
+            await servis.IrsaliyeDurumIsaretleAsync(irsaliye.Id, EBelgeDurumu.Gonderildi);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => servis.IrsaliyeHazirlaAsync(irsaliye.Id));
+        }
+        finally
+        {
+            if (Directory.Exists(klasor)) Directory.Delete(klasor, true);
+        }
+    }
+
     [Fact]
     public async Task Gelen_tevkifatli_e_fatura_tevkifatli_alis_olarak_aktarilir()
     {

@@ -242,7 +242,17 @@
   <li><b>Taslak Fatura Olarak Aktar</b> deyin. Fatura <b>taslak</b> alış faturası olarak listeye gelir (müşteri iade faturasıysa satış iadesi olarak).</li>
   <li>Faturayı açıp kontrol edin, gerekiyorsa stok yerini düzeltin ve onaylayın. Onayla birlikte stok ve cari hesap işlenir.</li>
 </ol>
-<p>Program şunları kendiliğinden denetler: fatura size mi kesilmiş (vergi numaranız), daha önce aktarılmış mı (aynı ETTN), dövizli ya da tevkifatlı mı (bunlar elle girilmelidir), toplam tutar programın hesabıyla uyuşuyor mu.</p>
+<p>Program şunları kendiliğinden denetler: fatura size mi kesilmiş (vergi numaranız), daha önce aktarılmış mı (aynı ETTN), dövizli mi (elle girilmelidir), toplam tutar programın hesabıyla uyuşuyor mu. Kısmi tevkifatlı fatura (tek tevkifat kodu) tevkifatıyla birlikte aktarılır.</p>
+
+<h3 id="eirsaliye">e-İrsaliye</h3>
+<p>e-İrsaliye mükellefiyseniz onaylanmış sevk (satış) irsaliyesini e-İrsaliye olarak hazırlayabilirsiniz.</p>
+<ol>
+  <li><span class="yol">İrsaliyeler</span> listesinde irsaliyenin satırındaki <b>📨 e-İrsaliye</b> düğmesine basın.</li>
+  <li>Açılan pencerede <b>araç plakası</b>, <b>şoförün adı soyadı</b> ve <b>T.C. kimlik numarasını</b> girin (GİB bunları zorunlu tutar). Eksik firma ya da alıcı bilgisi varsa pencerede listelenir.</li>
+  <li><b>e-İrsaliye XML'i Oluştur</b> deyin. Program belgeye GİB biçiminde bir e-İrsaliye numarası (ör. <code>IRS2026000000001</code>) ve ETTN verir, XML dosyasını e-Belge klasörüne yazar.</li>
+  <li>Dosyayı entegratörünüzün portalına yükleyin, sonra <b>Portala yüklendi</b> ile işaretleyin. Gönderilmiş e-İrsaliye yeniden hazırlanamaz.</li>
+</ol>
+<div class="not">e-İrsaliye numarası ve ETTN ilk hazırlamada verilir ve değişmez; hata alıp bilgileri düzeltirseniz aynı numarayla yeniden hazırlanır. Teslimat adresi irsaliyede girilmişse o adres, girilmemişse carinin adresi kullanılır.</div>
 
 <!-- ============================================================ -->
 <h2 id="tahsilat">8. Tahsilat, ödeme, çek ve senet</h2>

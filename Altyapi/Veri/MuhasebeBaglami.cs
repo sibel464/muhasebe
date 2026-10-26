@@ -135,6 +135,11 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<FaturaKalemiStokDagilimi>().ToTable("FaturaKalemiStokDagilimleri");
         modelBuilder.Entity<Fatura>().ToTable("Faturalar");
         modelBuilder.Entity<Fatura>().HasIndex(f => f.Ettn).IsUnique().HasFilter("\"Ettn\" IS NOT NULL");
+        modelBuilder.Entity<Irsaliye>().HasIndex(i => i.Ettn).IsUnique().HasFilter("\"Ettn\" IS NOT NULL");
+        modelBuilder.Entity<Irsaliye>().HasIndex(i => i.EBelgeNo).IsUnique().HasFilter("\"EBelgeNo\" IS NOT NULL");
+        modelBuilder.Entity<Irsaliye>().Property(i => i.EBelgeNo).HasMaxLength(16);
+        modelBuilder.Entity<Irsaliye>().Property(i => i.EBelgeMesaji).HasMaxLength(1000);
+        modelBuilder.Entity<Irsaliye>().Property(i => i.SoforTckn).HasMaxLength(11);
         modelBuilder.Entity<EBelgeKaydi>().ToTable("EBelgeKayitlari");
         modelBuilder.Entity<EBelgeKaydi>().HasIndex(x => x.FaturaId);
         modelBuilder.Entity<EBelgeKaydi>().HasOne(x => x.Fatura).WithMany().HasForeignKey(x => x.FaturaId).OnDelete(DeleteBehavior.Restrict);

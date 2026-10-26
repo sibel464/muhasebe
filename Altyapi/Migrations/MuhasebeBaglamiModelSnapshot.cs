@@ -1723,6 +1723,20 @@ namespace Altyapi.Migrations
                     b.Property<int>("Durum")
                         .HasColumnType("integer");
 
+                    b.Property<int>("EBelgeDurumu")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EBelgeMesaji")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EBelgeNo")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid?>("Ettn")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("GenelToplam")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
@@ -1776,6 +1790,11 @@ namespace Altyapi.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("SoforTckn")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
                     b.Property<string>("SoforTelefon")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -1824,6 +1843,14 @@ namespace Altyapi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DonusturulenFaturaId");
+
+                    b.HasIndex("EBelgeNo")
+                        .IsUnique()
+                        .HasFilter("\"EBelgeNo\" IS NOT NULL");
+
+                    b.HasIndex("Ettn")
+                        .IsUnique()
+                        .HasFilter("\"Ettn\" IS NOT NULL");
 
                     b.HasIndex("GuncelleyenKullaniciId");
 

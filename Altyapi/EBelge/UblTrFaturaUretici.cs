@@ -93,7 +93,7 @@ public static class UblTrFaturaUretici
         return hatalar;
     }
 
-    private static void TarafDogrula(string ad, UblTaraf t, List<string> hatalar, bool adresZorunlu)
+    internal static void TarafDogrula(string ad, UblTaraf t, List<string> hatalar, bool adresZorunlu)
     {
         if (t.VknTckn.Length == 10)
         {
@@ -227,7 +227,7 @@ public static class UblTrFaturaUretici
         public override System.Text.Encoding Encoding => new System.Text.UTF8Encoding(false);
     }
 
-    private static XElement Imza(UblTaraf satici) => new(Cac + "Signature",
+    internal static XElement Imza(UblTaraf satici) => new(Cac + "Signature",
         new XElement(Cbc + "ID", new XAttribute("schemeID", "VKN_TCKN"), satici.VknTckn),
         new XElement(Cac + "SignatoryParty",
             new XElement(Cac + "PartyIdentification", new XElement(Cbc + "ID", new XAttribute("schemeID", satici.GercekKisi ? "TCKN" : "VKN"), satici.VknTckn)),
@@ -235,7 +235,7 @@ public static class UblTrFaturaUretici
         new XElement(Cac + "DigitalSignatureAttachment",
             new XElement(Cac + "ExternalReference", B("URI", "#Signature_" + satici.VknTckn))));
 
-    private static XElement Taraf(UblTaraf t)
+    internal static XElement Taraf(UblTaraf t)
     {
         var (ad, soyad) = AdSoyad(t);
         return new XElement(Cac + "Party",
@@ -253,7 +253,7 @@ public static class UblTrFaturaUretici
             t.GercekKisi ? new XElement(Cac + "Person", B("FirstName", ad), B("FamilyName", soyad)) : null);
     }
 
-    private static XElement Adres(UblTaraf t) => new(Cac + "PostalAddress",
+    internal static XElement Adres(UblTaraf t) => new(Cac + "PostalAddress",
         string.IsNullOrWhiteSpace(t.Adres) ? null : B("StreetName", t.Adres.Trim()),
         B("CitySubdivisionName", t.Ilce?.Trim() ?? ""),
         B("CityName", t.Il?.Trim() ?? ""),
@@ -325,7 +325,7 @@ public static class UblTrFaturaUretici
     private static XElement T(string ad, decimal tutar, string para) =>
         new(Cbc + ad, new XAttribute("currencyID", para), Kurus(tutar).ToString("0.00", Kultur));
 
-    private static string Sayi(decimal d) => d.ToString("0.########", Kultur);
+    internal static string Sayi(decimal d) => d.ToString("0.########", Kultur);
 
     private static decimal Kurus(decimal d) => decimal.Round(d, 2, MidpointRounding.AwayFromZero);
 }

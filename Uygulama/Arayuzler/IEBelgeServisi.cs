@@ -85,4 +85,11 @@ public interface IEBelgeServisi
     Task<Fatura> GelenFaturaAktarAsync(string xml, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<EBelgeTopluSonuc>> TopluHazirlaAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
+
+    // e-İrsaliye (sevk irsaliyesi). Ön kontrol eksikleri listeler; hazırlama ilk seferde GİB biçiminde numara ve ETTN verir.
+    Task<IReadOnlyList<string>> IrsaliyeOnKontrolAsync(int irsaliyeId, CancellationToken cancellationToken = default);
+    // e-İrsaliyenin istediği taşıma bilgisi (gönderilmemiş irsaliyede düzeltilebilir).
+    Task IrsaliyeTasimaBilgisiKaydetAsync(int irsaliyeId, string aracPlaka, string soforAdi, string soforTckn, CancellationToken cancellationToken = default);
+    Task<EBelgeGonderimSonucu> IrsaliyeHazirlaAsync(int irsaliyeId, CancellationToken cancellationToken = default);
+    Task IrsaliyeDurumIsaretleAsync(int irsaliyeId, EBelgeDurumu durum, string? aciklama = null, CancellationToken cancellationToken = default);
 }

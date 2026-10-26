@@ -7,7 +7,8 @@ public enum EBelgeTuru
 {
     Yok = 0,
     EFatura = 1,
-    EArsiv = 2
+    EArsiv = 2,
+    EIrsaliye = 3
 }
 
 // e-Fatura senaryosu: Temel faturada alıcı kabul/red yanıtı veremez; ticari faturada 8 gün içinde verebilir.
