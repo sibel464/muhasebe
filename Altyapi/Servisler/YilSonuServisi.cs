@@ -245,6 +245,9 @@ public class YilSonuServisi : IYilSonuServisi
             plan.Fisler[4].Add(b > 0 ? new PlanSatiri(kod, b, 0, "Açılış (devir)") : new PlanSatiri(kod, 0, -b, "Açılış (devir)"));
         }
 
+        var amortismansiz = await SabitKiymetServisi.AyrilmamisSayisiAsync(_baglam, sirketId, yil);
+        if (amortismansiz > 0 && !o.Kapatildi)
+            o.Uyarilar.Add($"{amortismansiz} demirbaşın {yil} yılı amortismanı ayrılmamış. Muhasebe → Demirbaş ve Amortisman ekranından kapanıştan önce ayırın.");
         if (o.NetKar > 0 && o.VergiKarsiligi == 0)
             o.Uyarilar.Add("Vergi karşılığı (691) girilmemiş. Kâr üzerinden kurumlar / gelir vergisi karşılığı ayrılacaksa kapanıştan önce 31.12 tarihli fişle girin (691 borç / 370 alacak).");
         if (bakiye.Count == 0 || (gelirTablosu.Count == 0 && bilanco.Count == 0))

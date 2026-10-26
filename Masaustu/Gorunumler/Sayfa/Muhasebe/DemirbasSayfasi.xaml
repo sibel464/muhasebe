@@ -1,0 +1,103 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.DemirbasSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Sag" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="💼" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="DEMİRBAŞ VE AMORTİSMAN" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Sabit kıymetler, amortisman tablosu ve yıllık amortisman fişi" Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox Content="Elden çıkanları göster" IsChecked="{Binding EldenCikanlariGoster}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button Command="{Binding YeniKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="+ Yeni Demirbaş"/></Button>
+                <Button Command="{Binding DuzenleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="✏️ Düzenle"/></Button>
+                <Button Command="{Binding EldenCikarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="📤 Elden Çıkar"/></Button>
+                <Button Command="{Binding SilKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="🗑️ Sil"/></Button>
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="🔄"/></Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+            <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                <DataGrid ItemsSource="{Binding Demirbaslar}" SelectedItem="{Binding Secili}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True"
+                          MouseDoubleClick="Grid_MouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="KOD" Binding="{Binding Kod}" Width="92"/>
+                        <DataGridTextColumn Header="AD" Binding="{Binding Ad}" Width="*" MinWidth="110"/>
+                        <DataGridTextColumn Header="ALIŞ" Binding="{Binding AlisTarihi, StringFormat={}{0:dd.MM.yyyy}}" Width="96"/>
+                        <DataGridTextColumn Header="MALİYET" Binding="{Binding Maliyet, StringFormat={}{0:N2}}" Width="112" ElementStyle="{StaticResource Sag}"/>
+                        <DataGridTextColumn Header="BİRİKMİŞ" Binding="{Binding Birikmis, StringFormat={}{0:N2}}" Width="106" ElementStyle="{StaticResource Sag}"/>
+                        <DataGridTextColumn Header="NET DEĞER" Binding="{Binding NetDeger, StringFormat={}{0:N2}}" Width="106" ElementStyle="{StaticResource Sag}"/>
+                        <DataGridTextColumn Header="DURUM" Binding="{Binding Durum}" Width="104"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" FontWeight="Bold" Margin="0,0,0,6" TextWrapping="Wrap">
+                    <Run Text="Amortisman tablosu:"/> <Run Text="{Binding Secili.Ad, Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Top" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,6" Text="{Binding Secili.Ozet}" TextWrapping="Wrap"/>
+                <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+                    <DataGrid ItemsSource="{Binding Plan}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="YIL" Binding="{Binding Yil}" Width="62"/>
+                            <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2}}" Width="*" ElementStyle="{StaticResource Sag}"/>
+                            <DataGridTextColumn Header="NET DEĞER" Binding="{Binding NetDeger, StringFormat={}{0:N2}}" Width="*" ElementStyle="{StaticResource Sag}"/>
+                            <DataGridCheckBoxColumn Header="AYRILDI" Binding="{Binding Ayrildi}" Width="64"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </DockPanel>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,12,0,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Yıllık amortisman:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox ItemsSource="{Binding Yillar}" SelectedItem="{Binding Yil}" Width="80" Margin="0,0,12,0"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Command="{Binding AyirKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="Amortismanı Ayır"/></Button>
+                    <Button Command="{Binding GeriAlKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="↩ Geri Al"/></Button>
+                </StackPanel>
+                <TextBlock Text="{Binding OnizlemeMetni}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#1E3A8A" Margin="0,0,12,0"/>
+            </DockPanel>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="{Binding DurumMesaji}" Margin="0,8,0,0" Foreground="#334155" TextWrapping="Wrap"/>
+    </Grid>
+</UserControl>

@@ -104,6 +104,7 @@ public partial class App : Application
         servisler.AddTransient<IHesapPlaniServisi>(sp => new HesapPlaniServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IYevmiyeServisi>(sp => new YevmiyeServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>(), sp.GetRequiredService<IMuhasebeBaglantiServisi>()));
         servisler.AddTransient<IMaliTabloServisi>(sp => new MaliTabloServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
+        servisler.AddTransient<ISabitKiymetServisi>(sp => new SabitKiymetServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IYilSonuServisi>(sp => new YilSonuServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IMuhasebeRaporServisi>(sp => new MuhasebeRaporServisi(sp.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>().CreateDbContext(), sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IExcelExportServisi, ExcelExportServisi>();
@@ -135,6 +136,7 @@ public partial class App : Application
         servisler.AddTransient<MuhasebeSaglikGorunumModeli>();
         servisler.AddTransient<YilSonuGorunumModeli>();
         servisler.AddTransient<MaliTablolarGorunumModeli>();
+        servisler.AddTransient<DemirbasGorunumModeli>();
         servisler.AddTransient<GirisEkrani>();
         servisler.AddTransient<AnaPencere>();
 

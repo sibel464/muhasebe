@@ -50,6 +50,15 @@ public static class FinansMuhasebeKaydi
         // Yıl sonu kapanışı: yansıtma, gelir tablosu ve kâr/zarar aktarım hesapları
         ["590"] = ("DÖNEM NET KARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["591"] = ("DÖNEM NET ZARARI (-)", HesapTipi.Pasif, BorcAlacakYonu.Borc),
+        // Sabit kıymet ve amortisman
+        ["252"] = ("BİNALAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["253"] = ("TESİS MAKİNE VE CİHAZLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["254"] = ("TAŞITLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["257"] = ("BİRİKMİŞ AMORTİSMANLAR (-)", HesapTipi.Aktif, BorcAlacakYonu.Alacak),
+        ["260"] = ("HAKLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["264"] = ("ÖZEL MALİYETLER", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["268"] = ("BİRİKMİŞ AMORTİSMANLAR (-)", HesapTipi.Aktif, BorcAlacakYonu.Alacak),
+        ["689"] = ("DİĞER OLAĞANDIŞI GİDER VE ZARARLAR (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["370"] = ("DÖNEM KARI VERGİ VE DİĞER YASAL YÜKÜMLÜLÜK KARŞILIKLARI", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["610"] = ("SATIŞTAN İADELER (-)", HesapTipi.Gelir, BorcAlacakYonu.Borc),
         ["621"] = ("SATILAN TİCARİ MALLAR MALİYETİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
