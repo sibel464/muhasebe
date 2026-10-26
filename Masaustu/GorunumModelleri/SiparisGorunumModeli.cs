@@ -19,6 +19,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
     private readonly ISiparisServisi _servis;
     private readonly ICariServisi _cariServisi;
     private readonly IUrunServisi _urunServisi;
+    private readonly IBelgeYazdirmaServisi? _yazdirma;
     private Siparis? _seciliSiparis;
     private CariKart? _seciliCari;
     private Urun? _seciliUrun;
@@ -82,10 +83,22 @@ public class SiparisGorunumModeli : TemelGorunumModeli
     public ICommand DuzenleKomutu { get; }
     public ICommand FiltreleriTemizleKomutu { get; }
     public ICommand ExcelAktarKomutu { get; }
+    // Onaylanmamış satış siparişi fiyat teklifi, onaylı olan sipariş formu, alış siparişi satın alma siparişi olarak basılır.
+    public ICommand YazdirKomutu { get; }
 
-    public SiparisGorunumModeli(ISiparisServisi servis, ICariServisi cariServisi, IUrunServisi urunServisi)
+    public SiparisGorunumModeli(ISiparisServisi servis, ICariServisi cariServisi, IUrunServisi urunServisi, IBelgeYazdirmaServisi? yazdirma = null)
     {
-        _servis = servis; _cariServisi = cariServisi; _urunServisi = urunServisi;
+        _servis = servis; _cariServisi = cariServisi; _urunServisi = urunServisi; _yazdirma = yazdirma;
+        YazdirKomutu = new KomutSarici(async x =>
+        {
+            if (x is not Siparis s || _yazdirma == null) return;
+            try
+            {
+                var tam = await _servis.GetirAsync(s.Id) ?? throw new InvalidOperationException("Sipariş bulunamadı.");
+                await _yazdirma.SiparisYazdirAsync(tam);
+            }
+            catch (Exception ex) { System.Windows.MessageBox.Show("Belge yazdırılamadı: " + ex.Message, "Yazdırma", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+        });
         ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.AktarCsv(Siparisler.Select(s => new { s.SiparisNo, s.SiparisTarihi, s.SiparisTuru, s.GenelToplam, s.Durum }), "Siparis_Listesi"));
         YeniKomutu = new KomutSarici(Yeni);
         YenileKomutu = new KomutSarici(async _ => await YukleAsync());

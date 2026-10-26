@@ -187,7 +187,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("Irsaliye", sp => new IrsaliyeGorunumModeli(G<IIrsaliyeServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), G<IFaturaServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp)));
         _navigasyon.Kaydet("FaturaEkle", sp => new FaturaEkleGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon));
         _navigasyon.Kaydet("Fatura", sp => new FaturaGorunumModeli(G<IFaturaServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, G<IBelgeYazdirmaServisi>(sp), G<IEBelgeServisi>(sp)));
-        _navigasyon.Kaydet("Siparis", sp => new SiparisGorunumModeli(G<ISiparisServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp)));
+        _navigasyon.Kaydet("Siparis", sp => new SiparisGorunumModeli(G<ISiparisServisi>(sp), G<ICariServisi>(sp), G<IUrunServisi>(sp), sp.GetService<IBelgeYazdirmaServisi>()));
         _navigasyon.Kaydet("Kasa", sp => new KasaGorunumModeli(G<IKasaServisi>(sp), G<IBelgeYazdirmaServisi>(sp), G<ICariServisi>(sp), G<IBankaServisi>(sp)));
         _navigasyon.Kaydet("Banka", sp => new BankaGorunumModeli(G<IBankaServisi>(sp), G<IBelgeYazdirmaServisi>(sp), G<ICariServisi>(sp), G<IKasaServisi>(sp)));
         _navigasyon.Kaydet("Tahsilat", sp => new TahsilatOdemeGorunumModeli(G<ITahsilatOdemeServisi>(sp), G<ICariServisi>(sp), G<IBelgeKapamaServisi>(sp), EtkiAlani.Modeller.Finans.FinansIslemTuru.Tahsilat));

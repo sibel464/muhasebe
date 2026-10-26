@@ -252,6 +252,79 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         return sb.ToString();
     }
 
+    // Satış siparişi henüz onaylanmamışsa müşteriye verilen fiyat teklifi (proforma), onaylıysa sipariş formu;
+    // alış siparişi tedarikçiye gönderilen satın alma siparişidir. Mali belge değildir.
+    public string SiparisHtmlUret(EtkiAlani.Modeller.Siparis.Siparis siparis, FirmaBilgisi? firma = null, int teklifGecerlilikGunu = 15)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var teklif = siparis.SiparisTuru == EtkiAlani.Modeller.Siparis.SiparisTuru.Satis &&
+                     siparis.Durum is EtkiAlani.Modeller.Siparis.SiparisDurumu.Taslak or EtkiAlani.Modeller.Siparis.SiparisDurumu.Beklemede;
+        var baslik = siparis.SiparisTuru == EtkiAlani.Modeller.Siparis.SiparisTuru.Alis ? "SATIN ALMA SİPARİŞİ" : teklif ? "FİYAT TEKLİFİ" : "SİPARİŞ FORMU";
+        var cariEtiket = siparis.SiparisTuru == EtkiAlani.Modeller.Siparis.SiparisTuru.Alis ? "TEDARİKÇİ" : "SAYIN";
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>" + baslik + " - " + H(siparis.SiparisNo) + "</title><style>" + GetCommonCss() + "</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        sb.AppendLine("<div class='container'>");
+        sb.AppendLine("<table class='header-table'><tr>");
+        sb.AppendLine("<td>" + FirmaKunyesiHtml(f) + "</td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + baslik + "</div><div style='margin-top:6px; font-weight:700; color:#1E293B;'>No: " + H(siparis.SiparisNo) + "</div><div style='color:#64748B; font-size:12px;'>Tarih: " + siparis.SiparisTarihi.ToString("dd.MM.yyyy") + "</div>" +
+                      (teklif ? "<div style='color:#64748B; font-size:12px;'>Geçerlilik: " + siparis.SiparisTarihi.AddDays(teklifGecerlilikGunu).ToString("dd.MM.yyyy") + "</div>" : "") + "</td>");
+        sb.AppendLine("</tr></table>");
+
+        var c = siparis.CariKart;
+        sb.AppendLine("<table class='info-grid'><tr>");
+        sb.AppendLine("<td><div class='info-label'>" + cariEtiket + "</div><div class='info-value'><strong>" + H(c?.Unvan ?? "-") + "</strong><br>" + H(c?.Adres ?? "-") + "<br>V.D.: " + H(c?.VergiDairesi ?? "-") + " / No: " + H(c?.VergiNo ?? c?.TcNo ?? "-") + "<br>Tel: " + H(c?.Telefon ?? "-") + "</div></td>");
+        var teslim = siparis.TeslimTarihi is DateTime t ? t.ToString("dd.MM.yyyy") : "-";
+        var vade = siparis.VadeTarihi is DateTime v ? v.ToString("dd.MM.yyyy") : "-";
+        sb.AppendLine("<td><div class='info-label'>TESLİMAT VE ÖDEME</div><div class='info-value'>Teslim Tarihi: <strong>" + teslim + "</strong><br>Vade: <strong>" + vade + "</strong><br>" +
+                      (string.IsNullOrWhiteSpace(siparis.TeslimatAdres) ? "" : "Teslimat: " + H(siparis.TeslimatAdres) + " " + H(siparis.TeslimatIlce) + "/" + H(siparis.TeslimatIl) + "<br>") +
+                      "Açıklama: " + H(string.IsNullOrWhiteSpace(siparis.Aciklama) ? "-" : siparis.Aciklama) + "</div></td>");
+        sb.AppendLine("</tr></table>");
+
+        sb.AppendLine("<table class='data-table'><thead><tr>");
+        sb.AppendLine("<th style='width:35px;' class='text-center'>#</th><th>ÜRÜN / HİZMET ADI</th><th style='width:70px;' class='text-center'>MİKTAR</th><th style='width:55px;' class='text-center'>BİRİM</th><th style='width:90px;' class='text-right'>B.FİYAT</th><th style='width:55px;' class='text-center'>İSK.</th><th style='width:55px;' class='text-center'>KDV</th><th style='width:105px;' class='text-right'>TUTAR</th>");
+        sb.AppendLine("</tr></thead><tbody>");
+        var sira = 1;
+        foreach (var k in siparis.Kalemler.Where(k => !k.Silindi))
+        {
+            sb.AppendLine("<tr><td class='text-center'>" + sira++ + "</td><td><strong>" + H(k.UrunAdi) + "</strong><br><small style='color:#64748B;'>" + H(k.UrunKodu) + "</small></td>" +
+                          "<td class='text-center'>" + k.Miktar.ToString("N2") + "</td><td class='text-center'>" + H(k.Birim) + "</td>" +
+                          "<td class='text-right'>" + k.BirimFiyat.ToString("N2") + " ₺</td><td class='text-center'>" + (k.IskontoOrani > 0 ? "%" + k.IskontoOrani.ToString("0.##") : "-") + "</td>" +
+                          "<td class='text-center'>%" + k.KdvOrani.ToString("0") + "</td><td class='text-right'><strong>" + k.SatirToplami.ToString("N2") + " ₺</strong></td></tr>");
+        }
+        sb.AppendLine("</tbody></table>");
+
+        sb.AppendLine("<table class='totals-table'>");
+        sb.AppendLine("<tr><td>Brüt Toplam:</td><td class='text-right'>" + siparis.BrutToplam.ToString("N2") + " ₺</td></tr>");
+        if (siparis.IskontoToplami > 0)
+            sb.AppendLine("<tr><td>İskonto:</td><td class='text-right'>-" + siparis.IskontoToplami.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr><td>Ara Toplam:</td><td class='text-right'>" + siparis.AraToplam.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr><td>KDV:</td><td class='text-right'>" + siparis.KdvToplami.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("<tr class='grand-total'><td>GENEL TOPLAM:</td><td class='text-right'>" + siparis.GenelToplam.ToString("N2") + " ₺</td></tr>");
+        sb.AppendLine("</table>");
+        sb.AppendLine("<div style='clear:both; font-size:12px; font-weight:600; margin:8px 0 4px;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(siparis.GenelToplam)) + "</div>");
+
+        if (teklif)
+            sb.AppendLine("<div class='footer-note'>Bu teklif " + siparis.SiparisTarihi.AddDays(teklifGecerlilikGunu).ToString("dd.MM.yyyy") + " tarihine kadar geçerlidir. Fiyatlara KDV dahildir. Bu belge fatura yerine geçmez.</div>");
+        else
+        {
+            sb.AppendLine("<table class='signature-table'><tr>");
+            sb.AppendLine("<td><div class='signature-line'>HAZIRLAYAN<br><small>" + H(f.FirmaUnvani) + "</small></div></td>");
+            sb.AppendLine("<td><div class='signature-line'>ONAYLAYAN<br><small>" + H(c?.Unvan ?? "") + "</small></div></td>");
+            sb.AppendLine("</tr></table>");
+            sb.AppendLine("<div class='footer-note'>Bu belge fatura yerine geçmez.</div>");
+        }
+        sb.AppendLine("</div></body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> SiparisYazdirAsync(EtkiAlani.Modeller.Siparis.Siparis siparis)
+    {
+        var html = SiparisHtmlUret(siparis, await FirmaBilgisiGetirAsync(siparis.SirketId));
+        return await DosyayaKaydetVeAcAsync(html, null, "Siparis_" + siparis.SiparisNo.Replace(" ", "_").Replace("/", "_") + ".html");
+    }
+
     public string CariEkstreHtmlUret(CariKart cari, List<CariHareket> hareketler, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null)
     {
         var f = firma ?? _firmaBilgisi;

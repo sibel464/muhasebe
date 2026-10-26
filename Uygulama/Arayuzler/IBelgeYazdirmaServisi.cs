@@ -32,6 +32,10 @@ public interface IBelgeYazdirmaServisi
     Task<string> KasaDokumuYazdirAsync(List<KasaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null);
     Task<string> BankaDokumuYazdirAsync(List<BankaHareketi> hareketler, decimal toplamBakiye, string? dosyaYolu = null, string? bankaAdi = null, DateTime? baslangic = null, DateTime? bitis = null, FirmaBilgisi? firma = null);
 
+    // Satış siparişi onaylanmadıysa fiyat teklifi, onaylıysa sipariş formu; alışta satın alma siparişi.
+    string SiparisHtmlUret(EtkiAlani.Modeller.Siparis.Siparis siparis, FirmaBilgisi? firma = null, int teklifGecerlilikGunu = 15);
+    Task<string> SiparisYazdirAsync(EtkiAlani.Modeller.Siparis.Siparis siparis);
+
     string HesapEkstresiHtmlUret(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
     Task<string> HesapEkstresiYazdirAsync(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
 
