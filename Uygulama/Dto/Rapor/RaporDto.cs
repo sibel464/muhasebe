@@ -293,7 +293,11 @@ public class KdvRaporuKalemiDto
     public decimal AlisMatrah { get; set; }
     public decimal AlisKdv { get; set; }
     public decimal AlisToplam => AlisMatrah + AlisKdv;
-    public decimal NetKdv => SatisKdv - AlisKdv;
+    // Kısmi tevkifat: satışta alıcının tevkif ettiği KDV satıcı beyannamesine (KDV-1) girmez; alışta tevkif edilen
+    // KDV'nin tamamı indirilir, ayrıca KDV-2 ile beyan edilip ödenir.
+    public decimal SatisTevkifat { get; set; }
+    public decimal AlisTevkifat { get; set; }
+    public decimal NetKdv => SatisKdv - SatisTevkifat - AlisKdv;
 }
 
 public class RaporFavoriDto

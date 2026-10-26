@@ -535,7 +535,9 @@
                         <DataGridTextColumn Header="Satış KDV" Binding="{Binding SatisKdv, StringFormat={}{0:N2} TL}" Width="160"/>
                         <DataGridTextColumn Header="Alış Matrahı" Binding="{Binding AlisMatrah, StringFormat={}{0:N2} TL}" Width="160"/>
                         <DataGridTextColumn Header="Alış KDV" Binding="{Binding AlisKdv, StringFormat={}{0:N2} TL}" Width="160"/>
-                        <DataGridTextColumn Header="Net Ödenecek / Devreden KDV" Binding="{Binding NetKdv, StringFormat={}{0:N2} TL}" Width="220"/>
+                        <DataGridTextColumn Header="Satışta Tevkif Edilen" Binding="{Binding SatisTevkifat, StringFormat={}{0:N2} TL}" Width="170"/>
+                        <DataGridTextColumn Header="Alışta Tevkif Edilen (KDV-2)" Binding="{Binding AlisTevkifat, StringFormat={}{0:N2} TL}" Width="200"/>
+                        <DataGridTextColumn Header="Net Ödenecek / Devreden KDV (KDV-1)" Binding="{Binding NetKdv, StringFormat={}{0:N2} TL}" Width="250"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>

@@ -112,6 +112,30 @@ public sealed class KdvTevkifatiTests(IsolatedPostgreSqlFixture fixture)
     }
 
     [Fact]
+    public async Task Kdv_raporu_satista_tevkif_edileni_kdv1den_duser_alista_kdv2ye_ayirir()
+    {
+        var x = await HazirlaAsync();
+        async Task<Uygulama.Dto.Rapor.KdvRaporuKalemiDto> Oran20Async()
+        {
+            await using var c = new MuhasebeBaglami(fixture.Options);
+            var f = new Uygulama.Dto.Rapor.SatisRaporFiltreDto { BaslangicTarihi = DateTime.Today.AddDays(-1), BitisTarihi = DateTime.Today.AddDays(1) };
+            return (await StabilizasyonTestOturumu.Rapor(c, MuhasebeBaglami.VarsayilanSirketId).GetKdvRaporuAsync(f)).Single(r => r.KdvOrani == 20);
+        }
+        var once = await Oran20Async();
+        await using (var c = new MuhasebeBaglami(fixture.Options))
+        {
+            var s = new FaturaServisi(c, TamYetkili());
+            await s.OnaylaAsync((await s.EkleAsync(Yeni(FaturaTuru.Satis, x.CariId, x.HizmetId))).Id);
+            await s.OnaylaAsync((await s.EkleAsync(Yeni(FaturaTuru.Alis, x.CariId, x.HizmetId, "624"))).Id);
+        }
+        var sonra = await Oran20Async();
+        Assert.Equal(180m, sonra.SatisTevkifat - once.SatisTevkifat);   // 200 × 9/10
+        Assert.Equal(40m, sonra.AlisTevkifat - once.AlisTevkifat);      // 200 × 2/10
+        Assert.Equal(200m, sonra.AlisKdv - once.AlisKdv);               // alışta KDV'nin tamamı indirilir
+        Assert.Equal(20m - 200m, sonra.NetKdv - once.NetKdv);
+    }
+
+    [Fact]
     public async Task Iade_faturasinda_ve_bilinmeyen_kodda_tevkifat_reddedilir_oran_degistirilebilir()
     {
         var x = await HazirlaAsync();

@@ -1083,9 +1083,19 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             sorgu = sorgu.Where(fk => fk.Fatura!.Tarih >= RaporTarihAraligi.Olustur(filtre.BaslangicTarihi, null).Baslangic);
         if (filtre.BitisTarihi.HasValue)
             sorgu = sorgu.Where(fk => fk.Fatura!.Tarih < RaporTarihAraligi.Olustur(null, filtre.BitisTarihi).BitisSonrasi);
-        var kalemler = await sorgu
-            .Select(fk => new { fk.Fatura!.Tur, fk.KdvOrani, Matrah = fk.SatirToplami - fk.KdvTutari, Kdv = fk.KdvTutari })
+        var hamKalemler = await sorgu
+            .Select(fk => new { fk.FaturaId, fk.Id, fk.Fatura!.Tur, fk.KdvOrani, Matrah = fk.SatirToplami - fk.KdvTutari, Kdv = fk.KdvTutari,
+                fk.Fatura.TevkifatOrani, fk.Fatura.TevkifatTutari })
             .ToListAsync();
+        // Faturanın tevkifatı satırlara KDV'leri oranında dağıtılır; kuruş farkı son KDV'li satıra yazılır.
+        var kalemler = hamKalemler.GroupBy(k => k.FaturaId).SelectMany(g =>
+        {
+            var satirlar = g.OrderBy(x => x.Id).ToList();
+            var paylar = satirlar.Select(x => g.First().TevkifatTutari > 0 ? EtkiAlani.Yardimcilar.TevkifatKodlari.Tutar(x.Kdv, x.TevkifatOrani) : 0m).ToArray();
+            var son = satirlar.FindLastIndex(x => x.Kdv > 0);
+            if (son >= 0 && g.First().TevkifatTutari > 0) paylar[son] += g.First().TevkifatTutari - paylar.Sum();
+            return satirlar.Select((x, i) => new { x.Tur, x.KdvOrani, x.Matrah, x.Kdv, Tevkifat = paylar[i] });
+        }).ToList();
 
         static decimal Isaret(FaturaTuru tur, bool satis) => (satis, tur) switch
         {
@@ -1105,7 +1115,9 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
                 SatisMatrah = oranKalemleri.Sum(x => Isaret(x.Tur, true) * x.Matrah),
                 SatisKdv = oranKalemleri.Sum(x => Isaret(x.Tur, true) * x.Kdv),
                 AlisMatrah = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Matrah),
-                AlisKdv = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Kdv)
+                AlisKdv = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Kdv),
+                SatisTevkifat = oranKalemleri.Sum(x => Isaret(x.Tur, true) * x.Tevkifat),
+                AlisTevkifat = oranKalemleri.Sum(x => Isaret(x.Tur, false) * x.Tevkifat)
             });
         }
 
