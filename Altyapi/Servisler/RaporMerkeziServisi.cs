@@ -574,27 +574,17 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
             .Select(c => new { c.Id, c.Kod, c.Unvan, Tur = c.Tur.ToString() }).ToDictionaryAsync(c => c.Id);
 
         var grouped = new List<CariYaslandirmaRaporuKalemiDto>();
-        foreach (var g in hareketler.GroupBy(h => h.CariKartId))
+        foreach (var g in AcikBorclariBul(hareketler, faturaVadeleri).GroupBy(b => b.CariId))
         {
-            var kalanAlacak = g.Sum(h => h.Alacak);
             decimal vadesiGelmemis = 0m, g1_30 = 0m, g31_60 = 0m, g61_90 = 0m, g90Plus = 0m;
-            var borclar = g.Where(h => h.Borc > 0).Select(h => new
+            foreach (var borc in g)
             {
-                h.Borc,
-                Vade = h.HareketTuru == CariHareketTuru.SatisFaturasi && h.BelgeNo != null && faturaVadeleri.TryGetValue((g.Key, h.BelgeNo), out var v) ? v : h.Tarih
-            }).OrderBy(x => x.Vade);
-            foreach (var borc in borclar)
-            {
-                var dusulen = Math.Min(borc.Borc, kalanAlacak);
-                kalanAlacak -= dusulen;
-                var acik = borc.Borc - dusulen;
-                if (acik <= 0) continue;
                 var gecikme = (bugün - borc.Vade.Date).Days;
-                if (gecikme <= 0) vadesiGelmemis += acik;
-                else if (gecikme <= 30) g1_30 += acik;
-                else if (gecikme <= 60) g31_60 += acik;
-                else if (gecikme <= 90) g61_90 += acik;
-                else g90Plus += acik;
+                if (gecikme <= 0) vadesiGelmemis += borc.Acik;
+                else if (gecikme <= 30) g1_30 += borc.Acik;
+                else if (gecikme <= 60) g31_60 += borc.Acik;
+                else if (gecikme <= 90) g61_90 += borc.Acik;
+                else g90Plus += borc.Acik;
             }
             if (vadesiGelmemis + g1_30 + g31_60 + g61_90 + g90Plus <= 0 || !cariler.TryGetValue(g.Key, out var cari)) continue;
 
@@ -699,6 +689,61 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         }
 
         return list;
+    }
+
+    private sealed record AcikBorcKalemi(int CariId, string? BelgeNo, CariHareketTuru HareketTuru, DateTime Tarih, DateTime Vade, decimal Tutar, decimal Acik);
+
+    // Carinin alacak kayıtları toplamı en eski vadeli borçtan başlayarak düşülür (FIFO); kısmen ya da hiç kapanmamış borçlar döner.
+    // Satış faturası borcunun vadesi faturadan, diğer borçlarınki kendi tarihinden alınır.
+    private static List<AcikBorcKalemi> AcikBorclariBul(List<CariHareketOzeti> hareketler, Dictionary<(int, string), DateTime> faturaVadeleri)
+    {
+        var sonuc = new List<AcikBorcKalemi>();
+        foreach (var g in hareketler.GroupBy(h => h.CariKartId))
+        {
+            var kalanAlacak = g.Sum(h => h.Alacak);
+            var borclar = g.Where(h => h.Borc > 0).Select(h => new
+            {
+                h,
+                Vade = h.HareketTuru == CariHareketTuru.SatisFaturasi && h.BelgeNo != null && faturaVadeleri.TryGetValue((g.Key, h.BelgeNo), out var v) ? v : h.Tarih
+            }).OrderBy(x => x.Vade);
+            foreach (var borc in borclar)
+            {
+                var dusulen = Math.Min(borc.h.Borc, kalanAlacak);
+                kalanAlacak -= dusulen;
+                var acik = borc.h.Borc - dusulen;
+                if (acik > 0)
+                    sonuc.Add(new AcikBorcKalemi(g.Key, borc.h.BelgeNo, borc.h.HareketTuru, borc.h.Tarih, borc.Vade, borc.h.Borc, acik));
+            }
+        }
+        return sonuc;
+    }
+
+    // Vade hatırlatması için: vadesi en az verilen gün kadar geçmiş, kapanmamış borçlar (yaşlandırmayla aynı FIFO).
+    public async Task<List<VadesiGecmisAlacakDto>> GetVadesiGecmisAlacaklarAsync(SatisRaporFiltreDto filtre, int enAzGecikmeGun = 1)
+    {
+        var sirketId = RaporYetkiKontrol(filtre);
+        var bugun = DateTime.Today;
+        var hareketler = await IptalsizCariHareketleriAsync(sirketId, filtre.CariId.HasValue ? new List<int> { filtre.CariId.Value } : null);
+        var acikBorclar = AcikBorclariBul(hareketler, await SatisFaturaVadeleriAsync(sirketId))
+            .Where(b => (bugun - b.Vade.Date).Days >= Math.Max(1, enAzGecikmeGun)).ToList();
+        var cariIdleri = acikBorclar.Select(b => b.CariId).Distinct().ToList();
+        var cariler = await _baglam.CariKartlar.AsNoTracking().Where(c => cariIdleri.Contains(c.Id))
+            .Select(c => new { c.Id, c.Kod, c.Unvan }).ToDictionaryAsync(c => c.Id);
+        return acikBorclar.Where(b => cariler.ContainsKey(b.CariId))
+            .Select(b => new VadesiGecmisAlacakDto
+            {
+                CariId = b.CariId,
+                CariKod = cariler[b.CariId].Kod,
+                CariUnvan = cariler[b.CariId].Unvan,
+                BelgeNo = b.BelgeNo ?? "",
+                BelgeTuru = CariHareketTuruAdlari.Ad(b.HareketTuru),
+                BelgeTarihi = b.Tarih,
+                VadeTarihi = b.Vade,
+                Tutar = b.Tutar,
+                AcikTutar = b.Acik,
+                GecikmeGun = (bugun - b.Vade.Date).Days
+            })
+            .OrderBy(x => x.CariKod).ThenBy(x => x.VadeTarihi).ToList();
     }
 
     private sealed class AcikBorc

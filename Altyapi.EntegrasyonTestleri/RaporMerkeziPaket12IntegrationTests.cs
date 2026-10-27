@@ -363,6 +363,53 @@ public sealed class RaporMerkeziPaket12IntegrationTests
     }
 
     [Fact]
+    public async Task T12c_VadesiGecmisAlacaklar_FIFO_ile_belge_bazinda_ve_yaslandirmayla_tutarli()
+    {
+        await using var db = new MuhasebeBaglami(_fixture.Options);
+        var data = await SeedRaporTestVerisiAsync(db);
+        DateTime Gun(int fark) => DateTime.SpecifyKind(DateTime.Today.AddDays(fark), DateTimeKind.Utc);
+        Fatura YeniFatura(string ek, int tarih, int vade, decimal tutar) => new()
+        {
+            SirketId = data.Sirket.Id, SubeId = data.Sube.Id, CariKartId = data.Cari.Id,
+            FaturaNo = $"VG{ek}-{Guid.NewGuid():N}"[..12], Tur = FaturaTuru.Satis, Durum = BelgeDurumu.Onaylandi,
+            Tarih = Gun(tarih), VadeTarihi = Gun(vade), GenelToplam = tutar
+        };
+        var a = YeniFatura("A", -60, -45, 1000m);
+        var b = YeniFatura("B", -35, -5, 600m);
+        var c = YeniFatura("C", -2, 10, 400m);
+        db.Faturalar.AddRange(a, b, c);
+        await db.SaveChangesAsync();
+        // 1.100 TL tahsilat en eski vadeden düşülür: A (1.000) kapanır, 20 gün önceki 200 TL'lik borç dekontunun 100'ü kapanır.
+        db.CariHareketler.AddRange(
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = a.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = a.FaturaNo, IlgiliBelgeId = a.Id, Borc = 1000m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = b.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = b.FaturaNo, IlgiliBelgeId = b.Id, Borc = 600m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = c.Tarih, HareketTuru = CariHareketTuru.SatisFaturasi, BelgeNo = c.FaturaNo, IlgiliBelgeId = c.Id, Borc = 400m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = Gun(-20), HareketTuru = CariHareketTuru.Diger, BelgeNo = "DK-VG", Borc = 200m },
+            new CariHareket { CariKartId = data.Cari.Id, Tarih = Gun(-1), HareketTuru = CariHareketTuru.Tahsilat, Alacak = 1100m });
+        await db.SaveChangesAsync();
+
+        var servis = StabilizasyonTestOturumu.Rapor(db, data.Sirket.Id);
+        var liste = (await servis.GetVadesiGecmisAlacaklarAsync(new SatisRaporFiltreDto())).Where(x => x.CariId == data.Cari.Id).ToList();
+
+        Assert.Equal(new[] { "DK-VG", b.FaturaNo }, liste.Select(x => x.BelgeNo));
+        Assert.Equal(100m, liste[0].AcikTutar);
+        Assert.Equal(200m, liste[0].Tutar);
+        Assert.Equal(20, liste[0].GecikmeGun);
+        Assert.Equal(600m, liste[1].AcikTutar);
+        Assert.Equal(5, liste[1].GecikmeGun);
+        Assert.Equal(Gun(-5).Date, liste[1].VadeTarihi.Date);
+        Assert.Equal(data.Cari.Kod, liste[1].CariKod);
+
+        var onGun = await servis.GetVadesiGecmisAlacaklarAsync(new SatisRaporFiltreDto { CariId = data.Cari.Id }, enAzGecikmeGun: 10);
+        Assert.Equal("DK-VG", Assert.Single(onGun).BelgeNo);
+
+        var yas = (await servis.GetCariYaslandirmaAsync(new SatisRaporFiltreDto())).Single(x => x.CariId == data.Cari.Id);
+        Assert.Equal(700m, yas.Gun1_30);
+        Assert.Equal(400m, yas.VadesiGelmemis);
+        Assert.Equal(0m, yas.Gun31_60 + yas.Gun61_90 + yas.Gun90Plus);
+    }
+
+    [Fact]
     public async Task T13_VadesiGecmisAlacaklar_FaturaTarihli_Dogru()
     {
         await using var db = new MuhasebeBaglami(_fixture.Options);

@@ -128,4 +128,7 @@ public partial class MusteriSayfasi : UserControl
 
     private void TopluMutabakat_Click(object sender, RoutedEventArgs e) =>
         TopluMutabakatPenceresi.Ac(Window.GetWindow(this));
+
+    private void VadeHatirlatma_Click(object sender, RoutedEventArgs e) =>
+        VadeHatirlatmaPenceresi.Ac(Window.GetWindow(this));
 }

@@ -12,6 +12,7 @@ public interface IRaporMerkeziServisi
     Task<PagedResult<AlisRaporuKalemiDto>> GetAlisRaporuAsync(SatisRaporFiltreDto filtre);
     Task<PagedResult<CariRaporuKalemiDto>> GetCariRaporuAsync(SatisRaporFiltreDto filtre);
     Task<List<CariYaslandirmaRaporuKalemiDto>> GetCariYaslandirmaAsync(SatisRaporFiltreDto filtre);
+    Task<List<VadesiGecmisAlacakDto>> GetVadesiGecmisAlacaklarAsync(SatisRaporFiltreDto filtre, int enAzGecikmeGun = 1);
     Task<List<TahsilatPerformansiKalemiDto>> GetTahsilatPerformansiAsync(SatisRaporFiltreDto filtre);
     Task<PagedResult<StokRaporuKalemiDto>> GetStokRaporuAsync(SatisRaporFiltreDto filtre);
     Task<List<HareketsizUrunKalemiDto>> GetHareketsizUrunlerAsync(SatisRaporFiltreDto filtre, int gunFilter = 30);
