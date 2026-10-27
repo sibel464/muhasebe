@@ -1,0 +1,90 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Musteri.TopluMutabakatPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Toplu Mutabakat Gönder" Width="1100" Height="720" WindowStartupLocation="CenterOwner" Background="#F8FAFC">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="TutarMetni" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="✉️" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Toplu Mutabakat Gönder" FontSize="20" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <WrapPanel Grid.Row="1" Margin="0,4,0,8">
+            <TextBlock Text="Mutabakat tarihi:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+            <DatePicker SelectedDate="{Binding Tarih}" Width="140" Margin="0,0,14,0" VerticalAlignment="Center"/>
+            <CheckBox Content="Bakiyesi sıfır olanları da listele" IsChecked="{Binding SifirBakiyelerDahil}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <CheckBox Content="Ayın Ba-Bs tutarlarını ekle" IsChecked="{Binding BaBsEkle}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <Button Command="{Binding ListeleKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="🔄 Listele"/></Button>
+            <Button Command="{Binding TumunuSecKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0" Content="Adresi olanları seç"/>
+            <Button Command="{Binding HicbiriniSecmeKomutu}" Style="{StaticResource IkinciDugme}" Content="Seçimi kaldır"/>
+        </WrapPanel>
+
+        <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            <DataGrid ItemsSource="{Binding Satirlar}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False" SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="GÖNDER" Width="68">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding Secili, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="KOD" Binding="{Binding Kod}" Width="110" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="ÜNVAN" Binding="{Binding Unvan}" Width="*" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="BAKİYE" Binding="{Binding MutlakBakiye, StringFormat={}{0:N2}}" Width="120" IsReadOnly="True" ElementStyle="{StaticResource TutarMetni}"/>
+                    <DataGridTextColumn Header="B/A" Binding="{Binding BakiyeTuru}" Width="80" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="E-POSTA (bu gönderim için)" Binding="{Binding Eposta, UpdateSourceTrigger=PropertyChanged}" Width="230"/>
+                    <DataGridTextColumn Header="DURUM" Binding="{Binding Durum}" Width="220" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,10,0">
+                <TextBlock Text="Konu" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding Konu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMetinKutusu}"/>
+                <TextBlock Text="[UNVAN] cari ünvanıyla, [TARIH] mutabakat tarihiyle değiştirilir; mesajın sonuna firma ünvanınız eklenir. Her cariye kendi mektubu ayrı e-postayla gider."
+                           TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,8,0,0"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Mesaj" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding Metin, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMetinKutusu}" Height="100" AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/>
+            </StackPanel>
+        </Grid>
+
+        <DockPanel Grid.Row="4" Margin="0,10,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Kapat" IsCancel="True" Style="{StaticResource IkinciDugme}" Width="100" Margin="0,0,10,0"/>
+                <Button Command="{Binding DurdurKomutu}" Style="{StaticResource IkinciDugme}" Width="100" Margin="0,0,10,0" Content="Durdur"/>
+                <Button Command="{Binding GonderKomutu}" Style="{StaticResource BirinciDugme}"><TextBlock Text="✉️ Seçilenlere Gönder"/></Button>
+            </StackPanel>
+            <TextBlock Text="{Binding Durum}" TextWrapping="Wrap" Foreground="#334155" VerticalAlignment="Center"/>
+        </DockPanel>
+    </Grid>
+</Window>

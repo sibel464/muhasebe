@@ -125,4 +125,7 @@ public partial class MusteriSayfasi : UserControl
             && DataContext is MusteriGorunumModeli vm && vm.YenileKomutu.CanExecute(null))
             vm.YenileKomutu.Execute(null);
     }
+
+    private void TopluMutabakat_Click(object sender, RoutedEventArgs e) =>
+        TopluMutabakatPenceresi.Ac(Window.GetWindow(this));
 }

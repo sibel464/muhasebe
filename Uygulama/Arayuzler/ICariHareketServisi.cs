@@ -10,4 +10,6 @@ public interface ICariHareketServisi
     Task<CariHareket> EkleAsync(CariHareket hareket, string karsiHesapKodu);
     Task<bool> SilAsync(int id);
     Task<decimal> BakiyeHesaplaAsync(int cariKartId);
+    // Toplu mutabakat için: verilen günün sonundaki (borç - alacak) bakiyeler, hareketi olan her cari için.
+    Task<Dictionary<int, decimal>> TarihtekiBakiyelerAsync(DateTime tarih);
 }

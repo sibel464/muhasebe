@@ -71,6 +71,13 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Click="TopluMutabakat_Click" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3" ToolTip="Seçilen tarihteki bakiyeyle carilere mutabakat mektubunu PDF olarak e-postayla gönderir">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✉️" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Toplu Mutabakat" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,3,8,3">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🔄" Margin="0,0,6,0" VerticalAlignment="Center"/>

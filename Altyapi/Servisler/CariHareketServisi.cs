@@ -196,4 +196,14 @@ public class CariHareketServisi : ICariHareketServisi
         if (toplamlar == null) return 0;
         return toplamlar.Borc - toplamlar.Alacak;
     }
+
+    public async Task<Dictionary<int, decimal>> TarihtekiBakiyelerAsync(DateTime tarih)
+    {
+        var sinir = DateTime.SpecifyKind(tarih.Date.AddDays(1), DateTimeKind.Utc);
+        return await _baglam.CariHareketler.AsNoTracking()
+            .Where(h => h.Tarih < sinir)
+            .GroupBy(h => h.CariKartId)
+            .Select(g => new { g.Key, Bakiye = g.Sum(x => x.Borc) - g.Sum(x => x.Alacak) })
+            .ToDictionaryAsync(x => x.Key, x => x.Bakiye);
+    }
 }
