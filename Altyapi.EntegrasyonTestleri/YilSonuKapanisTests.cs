@@ -126,6 +126,12 @@ public sealed class YilSonuKapanisTests(IsolatedPostgreSqlFixture fixture)
         Assert.Equal(9000m, await BakiyeAsync(f, "100", yilSonu.AddSeconds(1)));
         await using (var c = new MuhasebeBaglami(fixture.Options))
             Assert.False((await new YilSonuServisi(c, TamYetkili()).OnizleAsync(Yil, f)).Kapatildi);
+
+        // Geri alınan yıl yeniden kapatılabilmeli (aynı belge tipli fişler benzersiz indekse takılmamalı).
+        await using (var c = new MuhasebeBaglami(fixture.Options))
+            await new YilSonuServisi(c, TamYetkili()).KapatAsync(Yil, f);
+        Assert.Equal(0m, await BakiyeAsync(f, "770", yeniYil));
+        Assert.Equal(-2500m, await BakiyeAsync(f, "590", yeniYil.AddDays(1)));
     }
 
     [Fact]

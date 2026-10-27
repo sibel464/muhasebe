@@ -89,6 +89,8 @@ public class YilSonuServisi : IYilSonuServisi
                 FisTuru = tur,
                 Tarih = ek == "ACILIS" ? AcilisTarihi(yil) : KapanisTarihi(yil),
                 BelgeTipi = BelgeTipi(yil, ek),
+                // Geri alınıp yeniden yapılan kapanış aynı belge tipini taşır; benzersiz indeks için her deneme sıra numarası alır.
+                BelgeId = await KdvMahsupServisi.DenemeNoAsync(_baglam, sirketId, BelgeTipi(yil, ek)),
                 Referans = $"{yil} yıl sonu",
                 Aciklama = ek == "ACILIS" ? $"{yil + 1} açılış fişi ({yil} kapanışından devir)" : $"{yil} - {aciklama}",
                 Durum = YevmiyeDurumu.Onaylandi,

@@ -328,6 +328,14 @@
 <p>Sağdaki tablo her yılın amortismanını ve kalan net değeri gösterir. Yıl sonunda alttaki <b>Amortismanı Ayır</b> düğmesi o yılın amortismanını 31.12 tarihli tek fişle (770 / 760 gider, 257 birikmiş amortisman) kaydeder; hatalıysa <b>Geri Al</b>. Satılan, hurdaya çıkan demirbaş için <b>Elden Çıkar</b>: birikmiş amortisman ve maliyet kapatılır, kalan net değer 689'a gider yazılır (satış faturası ayrıca kesilir; çıkış yılında amortisman ayrılmaz). Yıl sonu kapanışı, amortismanı ayrılmamış demirbaş varsa sizi uyarır.</p>
 <h3>Bilanço ve gelir tablosu</h3>
 <p><span class="yol">Muhasebe → Bilanço / Gelir Tablosu</span> ekranı Tek Düzen Hesap Planı'na göre bilançoyu (seçtiğiniz tarih ve önceki yıl sonu) ve gelir tablosunu (seçtiğiniz dönem ve önceki yılın aynı dönemi) gösterir. Henüz yansıtılmamış 760/770/780 giderleri ilgili 631/632/660 satırına, yıl içinde henüz 590'a aktarılmamış dönem sonucu bilançoda "Dönem Net Kârı" satırına hesaplanarak eklenir; böylece yıl sonunu beklemeden güncel mali tabloları görürsünüz. Excel, PDF ve Yazdır düğmeleriyle bankaya ya da muhasebecinize verebilirsiniz.</p>
+<h3>KDV mahsubu (ay sonu)</h3>
+<p><span class="yol">Muhasebe → KDV Mahsubu</span> ekranında yılın 12 ayı ve her ayın mahsup durumu listelenir. Bir ay seçince hesaplanan KDV (391), indirilecek KDV (191), önceki aylardan devreden KDV (190) ve sonuç görünür. <b>Mahsup Fişini Kes</b> ayın son günü tarihli tek fişle 391 ve 191 hesaplarını kapatır: hesaplanan KDV fazlaysa önce devreden KDV kullanılır, kalanı <b>360 Ödenecek Vergi ve Fonlar</b> hesabına yazılır; indirilecek KDV fazlaysa fark <b>190 Devreden KDV</b> hesabına aktarılır ve sonraki ay kullanılır.</p>
+<ul>
+  <li>Aylar sırayla mahsup edilir. Bir ayı atlarsanız, o aydan kalan bakiyeler sonraki ayın fişine girer ve ekran sizi uyarır.</li>
+  <li>Ay bitmeden, kilitli mali dönemde ya da sonraki bir ay mahsup edilmişken mahsup yapılamaz. Onaylanmamış taslak fişlerdeki KDV mahsuba girmez.</li>
+  <li>Hatalı mahsup <b>Mahsubu Geri Al</b> ile aynı tarihli ters fişle geri alınır (önce sonraki aylarınki). Mahsup fişi muhasebe ekranından iptal edilemez; yalnız bu ekrandan geri alınır.</li>
+  <li>Tevkifatlı alışlarda tevkif edilen KDV (KDV-2) fatura kaydında zaten 360'a yazılmıştır. Beyanname tutarlarını mali müşavirinizle karşılaştırın.</li>
+</ul>
 <h3>Yıl sonu kapanışı</h3>
 <p><span class="yol">Muhasebe → Yıl Sonu Kapanışı</span> ekranında kapatılacak yılı seçin. Ekran önce gelir, gider, vergi karşılığı ve net kâr/zararı gösterir; kapanışı durduran bir durum varsa (onaylanmamış taslak fiş, kilitli dönem, yıl henüz bitmemiş) kırmızı kutuda listeler. <b>Yılı Kapat</b> şu fişleri keser:</p>
 <ul>

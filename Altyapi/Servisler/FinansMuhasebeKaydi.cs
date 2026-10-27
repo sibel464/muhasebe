@@ -23,6 +23,7 @@ public static class FinansMuhasebeKaydi
         ["120"] = ("ALICILAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["121"] = ("ALACAK SENETLERİ", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["153"] = ("TİCARİ MALLAR", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["190"] = ("DEVREDEN KDV", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["191"] = ("İNDİRİLECEK KDV", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["197"] = ("SAYIM VE TESELLÜM NOKSANLARI", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["300"] = ("BANKA KREDİLERİ", HesapTipi.Pasif, BorcAlacakYonu.Alacak),

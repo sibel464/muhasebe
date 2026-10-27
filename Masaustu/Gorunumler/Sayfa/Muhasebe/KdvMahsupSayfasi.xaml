@@ -1,0 +1,167 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.KdvMahsupSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Gorunur"/>
+            <Style x:Key="TutarMetni" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,8,0"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20,16">
+            <!-- Başlık -->
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource BaslikIkonKutusu}">
+                        <TextBlock Text="🧮" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="KDV MAHSUBU" Style="{StaticResource SayfaBasligi}"/>
+                        <TextBlock Text="Ay sonunda hesaplanan ve indirilecek KDV'nin kapatılması; ödenecek KDV (360) ya da sonraki aya devreden KDV (190)" Style="{StaticResource SayfaAltBaslik}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Yıl:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding Yillar}" SelectedItem="{Binding Yil}" Width="90" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}">
+                        <TextBlock Text="🔄 Yenile"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Aylar -->
+                <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" VerticalAlignment="Top">
+                    <DataGrid ItemsSource="{Binding Aylar}" SelectedItem="{Binding SeciliAy}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False"
+                              IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="AY" Binding="{Binding AyAdi}" Width="*"/>
+                            <DataGridTextColumn Header="MAHSUP" Binding="{Binding Durum}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#94A3B8"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Yapildi}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessDarkFirca}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="ÖDENECEK" Binding="{Binding OdenecekKdv, StringFormat={}{0:N2}}" Width="90" ElementStyle="{StaticResource TutarMetni}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <!-- Seçilen ay -->
+                <StackPanel Grid.Column="2">
+                    <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding DurumBasligi}" FontSize="14" FontWeight="SemiBold" Foreground="#1E3A8A" TextWrapping="Wrap"/>
+                    </Border>
+
+                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                        <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="HESAPLANAN KDV (391)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding Onizleme.HesaplananKdv, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource KpiKarti}" Margin="0,0,10,0" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="İNDİRİLECEK KDV (191)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding Onizleme.IndirilecekKdv, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource KpiKarti}" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="ÖNCEKİ AYDAN DEVREDEN (190)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                                <TextBlock Text="{Binding Onizleme.OncekiDevreden, StringFormat={}{0:N2} TL}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimaryFirca}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Border Style="{StaticResource KpiKarti}" Padding="14,10" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="SONUÇ" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                            <TextBlock Text="{Binding SonucMetni}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Visibility="{Binding EngelVar, Converter={StaticResource Gorunur}}" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Mahsubu durduran durumlar" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,6"/>
+                            <ItemsControl ItemsSource="{Binding Engeller}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Foreground="#7F1D1D" Margin="0,2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Visibility="{Binding UyariVar, Converter={StaticResource Gorunur}}" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Dikkat" FontWeight="Bold" Foreground="#92400E" Margin="0,0,0,6"/>
+                            <ItemsControl ItemsSource="{Binding Uyarilar}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Foreground="#78350F" Margin="0,2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Kesilecek fiş" FontWeight="Bold" Margin="0,4,0,6"/>
+                    <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" Margin="0,0,0,12">
+                        <DataGrid ItemsSource="{Binding Onizleme.Satirlar}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="90" MaxHeight="260">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="HESAP" Binding="{Binding HesapKodu}" Width="110"/>
+                                <DataGridTextColumn Header="HESAP ADI" Binding="{Binding HesapAdi}" Width="*"/>
+                                <DataGridTextColumn Header="BORÇ" Binding="{Binding Borc, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource TutarMetni}"/>
+                                <DataGridTextColumn Header="ALACAK" Binding="{Binding Alacak, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource TutarMetni}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,12">
+                        Mahsup, ayın son günü tarihli tek fişle 391 ve 191 hesaplarını kapatır. Hesaplanan KDV fazlaysa önce önceki aylardan devreden KDV (190) kullanılır,
+                        kalanı 360 Ödenecek Vergi ve Fonlar hesabına yazılır; indirilecek KDV fazlaysa fark 190'a devreder. Aylar sırayla mahsup edilir.
+                        Tevkifatlı alışlarda tevkif edilen KDV (KDV-2) fatura kaydında zaten 360'a yazılmıştır. Beyanname tutarlarını mali müşavirinizle karşılaştırın.
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding MahsupKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,10,0">
+                            <TextBlock Text="🧮 Mahsup Fişini Kes"/>
+                        </Button>
+                        <Button Command="{Binding GeriAlKomutu}" Style="{StaticResource IkinciDugme}">
+                            <TextBlock Text="↩ Mahsubu Geri Al"/>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding DurumMesaji}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#334155"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
