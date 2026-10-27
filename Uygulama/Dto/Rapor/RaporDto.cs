@@ -159,6 +159,21 @@ public class CariYaslandirmaRaporuKalemiDto
     public string RiskSeviyesi => Gun90Plus > 0 ? "Yüksek Risk" : Gun61_90 > 0 ? "Orta Risk" : Gun31_60 > 0 ? "Düşük Risk" : "Normal";
 }
 
+public class VadeTakvimiKalemiDto
+{
+    public DateTime Vade { get; set; }
+    // true: bize ödenecek (tahsilat), false: bizim ödeyeceğimiz
+    public bool Tahsilat { get; set; }
+    public string Yon => Tahsilat ? "Tahsilat" : "Ödeme";
+    public string Kaynak { get; set; } = "";
+    public string BelgeNo { get; set; } = "";
+    public string CariKod { get; set; } = "";
+    public string CariUnvan { get; set; } = "";
+    public decimal Tutar { get; set; }
+    public int GecikmeGun { get; set; }
+    public string Aciklama { get; set; } = "";
+}
+
 public class VadesiGecmisAlacakDto
 {
     public int CariId { get; set; }

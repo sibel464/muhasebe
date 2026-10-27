@@ -718,6 +718,105 @@ public class RaporMerkeziServisi : IRaporMerkeziServisi
         return sonuc;
     }
 
+    // Tedarikçi tarafının aynası: carinin borç kayıtları (ödeme, alış iadesi...) toplamı en eski vadeli alacaktan başlayarak
+    // düşülür; kapanmamış alacaklar (bizim borcumuz) döner. Alış faturasının vadesi faturadan alınır.
+    private static List<AcikBorcKalemi> AcikAlacaklariBul(List<CariHareketOzeti> hareketler, Dictionary<(int, string), DateTime> alisVadeleri)
+    {
+        var sonuc = new List<AcikBorcKalemi>();
+        foreach (var g in hareketler.GroupBy(h => h.CariKartId))
+        {
+            var kalanBorc = g.Sum(h => h.Borc);
+            var alacaklar = g.Where(h => h.Alacak > 0).Select(h => new
+            {
+                h,
+                Vade = h.HareketTuru == CariHareketTuru.AlisFaturasi && h.BelgeNo != null && alisVadeleri.TryGetValue((g.Key, h.BelgeNo), out var v) ? v : h.Tarih
+            }).OrderBy(x => x.Vade);
+            foreach (var alacak in alacaklar)
+            {
+                var dusulen = Math.Min(alacak.h.Alacak, kalanBorc);
+                kalanBorc -= dusulen;
+                var acik = alacak.h.Alacak - dusulen;
+                if (acik > 0)
+                    sonuc.Add(new AcikBorcKalemi(g.Key, alacak.h.BelgeNo, alacak.h.HareketTuru, alacak.h.Tarih, alacak.Vade, alacak.h.Alacak, acik));
+            }
+        }
+        return sonuc;
+    }
+
+    private async Task<Dictionary<(int, string), DateTime>> AlisFaturaVadeleriAsync(Guid sirketId) =>
+        (await _baglam.Faturalar.AsNoTracking().Where(x => x.SirketId == sirketId)
+            .Where(f => f.Tur == FaturaTuru.Alis && f.Durum == BelgeDurumu.Onaylandi)
+            .Select(f => new { f.CariKartId, f.FaturaNo, Vade = f.VadeTarihi ?? f.Tarih })
+            .ToListAsync())
+        .GroupBy(f => (f.CariKartId, f.FaturaNo)).ToDictionary(g => g.Key, g => g.First().Vade);
+
+    // Vade takvimi: bitiş tarihine kadar vadesi gelen (ve geçmiş) açık alacaklar, açık borçlar ve portföydeki / verilmiş
+    // çek-senetler. Alacak ve borç tarafı aynı carinin toplamlarına karşı ayrı ayrı FIFO ile bulunur; hem müşteri hem
+    // tedarikçi olan caride iki taraf birbirini götürdüğü için çift sayılmaz. Fazla tahsilat / iade gibi "bizim borcumuz"
+    // olan ama vadesi olmayan kalemler ödeme takvimine alınmaz.
+    public async Task<List<VadeTakvimiKalemiDto>> GetVadeTakvimiAsync(SatisRaporFiltreDto filtre)
+    {
+        var sirketId = RaporYetkiKontrol(filtre);
+        var bugun = DateTime.Today;
+        var bitis = (filtre.BitisTarihi ?? bugun.AddDays(30)).Date;
+        var hareketler = await IptalsizCariHareketleriAsync(sirketId, filtre.CariId.HasValue ? new List<int> { filtre.CariId.Value } : null);
+        var alacaklar = AcikBorclariBul(hareketler, await SatisFaturaVadeleriAsync(sirketId)).Where(b => b.Vade.Date <= bitis)
+            .Select(b => (Kalem: b, Tahsilat: true));
+        var borclar = AcikAlacaklariBul(hareketler, await AlisFaturaVadeleriAsync(sirketId))
+            .Where(b => b.Vade.Date <= bitis && b.HareketTuru is CariHareketTuru.AlisFaturasi or CariHareketTuru.Devir or CariHareketTuru.Diger)
+            .Select(b => (Kalem: b, Tahsilat: false));
+        var cariKalemleri = alacaklar.Concat(borclar).ToList();
+
+        var acikCekDurumlari = new[] { CekSenetDurumu.Portfoyde, CekSenetDurumu.TahsileVerildi, CekSenetDurumu.TeminataVerildi };
+        var cekler = await _baglam.CekSenetler.AsNoTracking()
+            .Where(c => c.SirketId == sirketId && c.VadeTarihi < DateTime.SpecifyKind(bitis.AddDays(1), DateTimeKind.Utc)
+                && (filtre.CariId == null || c.CariKartId == filtre.CariId)
+                && (((c.Tur == CekSenetTuru.AlinanCek || c.Tur == CekSenetTuru.AlinanSenet) && acikCekDurumlari.Contains(c.Durum))
+                    || ((c.Tur == CekSenetTuru.VerilenCek || c.Tur == CekSenetTuru.VerilenSenet)
+                        && c.Durum != CekSenetDurumu.Odendi && c.Durum != CekSenetDurumu.IadeEdildi && c.Durum != CekSenetDurumu.Karsiliksiz && c.Durum != CekSenetDurumu.TahsilEdildi)))
+            .Select(c => new { c.Tur, c.Durum, c.BelgeNo, c.VadeTarihi, c.Tutar, c.CariKartId, c.Kesideci, c.BankaAdi })
+            .ToListAsync();
+
+        var cariIdleri = cariKalemleri.Select(k => k.Kalem.CariId).Concat(cekler.Select(c => c.CariKartId)).Distinct().ToList();
+        var cariler = await _baglam.CariKartlar.AsNoTracking().Where(c => cariIdleri.Contains(c.Id))
+            .Select(c => new { c.Id, c.Kod, c.Unvan }).ToDictionaryAsync(c => c.Id);
+
+        var liste = cariKalemleri.Where(k => cariler.ContainsKey(k.Kalem.CariId)).Select(k => new VadeTakvimiKalemiDto
+        {
+            Vade = k.Kalem.Vade.Date,
+            Tahsilat = k.Tahsilat,
+            Kaynak = CariHareketTuruAdlari.Ad(k.Kalem.HareketTuru),
+            BelgeNo = k.Kalem.BelgeNo ?? "",
+            CariKod = cariler[k.Kalem.CariId].Kod,
+            CariUnvan = cariler[k.Kalem.CariId].Unvan,
+            Tutar = k.Kalem.Acik,
+            Aciklama = k.Kalem.Acik < k.Kalem.Tutar ? $"{k.Kalem.Tutar:N2} TL belgenin kalanı" : ""
+        }).ToList();
+        liste.AddRange(cekler.Select(c =>
+        {
+            var alinan = c.Tur is CekSenetTuru.AlinanCek or CekSenetTuru.AlinanSenet;
+            var cari = cariler.TryGetValue(c.CariKartId, out var ck) ? ck : null;
+            return new VadeTakvimiKalemiDto
+            {
+                Vade = c.VadeTarihi.Date,
+                Tahsilat = alinan,
+                Kaynak = c.Tur switch { CekSenetTuru.AlinanCek => "Alınan çek", CekSenetTuru.VerilenCek => "Verilen çek", CekSenetTuru.AlinanSenet => "Alınan senet", _ => "Verilen senet" },
+                BelgeNo = c.BelgeNo,
+                CariKod = cari?.Kod ?? "",
+                CariUnvan = cari?.Unvan ?? c.Kesideci,
+                Tutar = c.Tutar,
+                Aciklama = c.Durum switch
+                {
+                    CekSenetDurumu.TahsileVerildi => "Bankaya tahsile verildi",
+                    CekSenetDurumu.TeminataVerildi => "Teminatta",
+                    _ => string.IsNullOrWhiteSpace(c.BankaAdi) ? "" : c.BankaAdi!
+                }
+            };
+        }));
+        foreach (var k in liste) k.GecikmeGun = Math.Max(0, (bugun - k.Vade).Days);
+        return liste.OrderBy(k => k.Vade).ThenByDescending(k => k.Tahsilat).ThenBy(k => k.CariUnvan).ToList();
+    }
+
     // Vade hatırlatması için: vadesi en az verilen gün kadar geçmiş, kapanmamış borçlar (yaşlandırmayla aynı FIFO).
     public async Task<List<VadesiGecmisAlacakDto>> GetVadesiGecmisAlacaklarAsync(SatisRaporFiltreDto filtre, int enAzGecikmeGun = 1)
     {

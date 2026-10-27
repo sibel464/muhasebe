@@ -48,6 +48,27 @@
                 </DockPanel>
             </Border>
 
+            <!-- Önümüzdeki 7 gün: vadesi gelen tahsilat ve ödemeler -->
+            <Border Background="White" CornerRadius="12" Padding="16,12" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1"
+                    Visibility="{Binding VadeGorunur, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding VadeTakvimiKomutu}" Style="{StaticResource IkinciDugme}" VerticalAlignment="Center">
+                        <TextBlock Text="📅 Vade Takvimi"/>
+                    </Button>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="ÖNÜMÜZDEKİ 7 GÜN (VADESİ GEÇMİŞLER DAHİL)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}"/>
+                        <WrapPanel Margin="0,4,0,0">
+                            <TextBlock FontSize="13" Margin="0,0,24,0">
+                                <Run Text="⬇ Tahsil edilecek: " Foreground="{StaticResource TextSecondaryFirca}"/><Run Text="{Binding VadeTahsilat, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}"/>
+                            </TextBlock>
+                            <TextBlock FontSize="13">
+                                <Run Text="⬆ Ödenecek: " Foreground="{StaticResource TextSecondaryFirca}"/><Run Text="{Binding VadeOdeme, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerDarkFirca}"/>
+                            </TextBlock>
+                        </WrapPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
             <!-- BAŞLARKEN: yeni kurulumda eksik tanımlar; hepsi tamamlanınca gizlenir -->
             <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,24"
                     BorderBrush="{StaticResource WarningDarkFirca}" BorderThickness="1"

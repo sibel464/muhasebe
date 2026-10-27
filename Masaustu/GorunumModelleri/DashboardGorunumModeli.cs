@@ -16,6 +16,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     private readonly IBaslangicKontrolServisi? _baslangicServisi;
     private readonly IVeritabaniYedekServisi? _yedekServisi;
     private readonly ITekrarlayanFaturaServisi? _tekrarlayanServisi;
+    private readonly IRaporMerkeziServisi? _raporServisi;
 
     private int _musteriSayisi;
     private int _urunSayisi;
@@ -44,6 +45,13 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     public string TekrarlayanUyarisi { get => _tekrarlayanUyarisi; set { OzellikAyarla(ref _tekrarlayanUyarisi, value); BildirimGonder(nameof(TekrarlayanUyarisiGorunur)); } }
     public bool TekrarlayanUyarisiGorunur => TekrarlayanUyarisi.Length > 0;
     public ICommand TekrarlayanFaturalarKomutu { get; }
+    // Önümüzdeki 7 günün (ve vadesi geçmişlerin) tahsilat / ödeme özeti; rapor yetkisi yoksa gizli.
+    private string _vadeTahsilat = string.Empty, _vadeOdeme = string.Empty;
+    private bool _vadeGorunur;
+    public string VadeTahsilat { get => _vadeTahsilat; set => OzellikAyarla(ref _vadeTahsilat, value); }
+    public string VadeOdeme { get => _vadeOdeme; set => OzellikAyarla(ref _vadeOdeme, value); }
+    public bool VadeGorunur { get => _vadeGorunur; set => OzellikAyarla(ref _vadeGorunur, value); }
+    public ICommand VadeTakvimiKomutu { get; }
 
     // Dialog açma fonksiyonları
     public Func<Task<bool>>? MusteriDuzenleFormAc { get; set; }
@@ -62,8 +70,10 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         IFaturaServisi? faturaServisi = null,
         IBaslangicKontrolServisi? baslangicServisi = null,
         IVeritabaniYedekServisi? yedekServisi = null,
-        ITekrarlayanFaturaServisi? tekrarlayanServisi = null)
+        ITekrarlayanFaturaServisi? tekrarlayanServisi = null,
+        IRaporMerkeziServisi? raporServisi = null)
     {
+        _raporServisi = raporServisi;
         _tekrarlayanServisi = tekrarlayanServisi;
         _cariServisi = cariServisi;
         _urunServisi = urunServisi;
@@ -78,6 +88,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         HizliSatisKomutu = new KomutSarici(_ => _navigasyon?.Git("Satis"));
         CikisKomutu = new KomutSarici(_ => cikisAction?.Invoke());
         AdimaGitKomutu = new KomutSarici(p => { if (p is string sayfa) _navigasyon?.Git(sayfa); });
+        VadeTakvimiKomutu = new KomutSarici(_ => Masaustu.Gorunumler.Ortak.VadeTakvimiPenceresi.Ac(null));
         TekrarlayanFaturalarKomutu = new KomutSarici(async _ =>
         {
             Masaustu.Gorunumler.Sayfa.TekrarlayanFaturalarPenceresi.Ac(null);
@@ -95,6 +106,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         CikisKomutu = new KomutSarici(_ => { });
         AdimaGitKomutu = new KomutSarici(_ => { });
         TekrarlayanFaturalarKomutu = new KomutSarici(_ => { });
+        VadeTakvimiKomutu = new KomutSarici(_ => { });
     }
 
     private async Task VerileriYukleAsync()
@@ -134,6 +146,33 @@ public class DashboardGorunumModeli : TemelGorunumModeli
 
         await BaslangicVeYedekYukleAsync();
         await TekrarlayanYukleAsync();
+        await VadeYukleAsync();
+    }
+
+    private async Task VadeYukleAsync()
+    {
+        if (_raporServisi == null) return;
+        try
+        {
+            var kalemler = await _raporServisi.GetVadeTakvimiAsync(new Uygulama.Dto.Rapor.SatisRaporFiltreDto { BitisTarihi = DateTime.Today.AddDays(7) });
+            string Metin(bool tahsilat)
+            {
+                var k = kalemler.Where(x => x.Tahsilat == tahsilat).ToList();
+                var gecmis = k.Where(x => x.GecikmeGun > 0).Sum(x => x.Tutar);
+                return k.Count == 0 ? "Yok" : $"{k.Sum(x => x.Tutar):N2} ₺ ({k.Count} kalem" + (gecmis > 0 ? $", {gecmis:N2} ₺ vadesi geçmiş)" : ")");
+            }
+            VadeTahsilat = Metin(true);
+            VadeOdeme = Metin(false);
+            VadeGorunur = true;
+        }
+        catch (Uygulama.Arayuzler.YetkisizErisimException)
+        {
+            VadeGorunur = false;
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli.Vade");
+        }
     }
 
     private async Task TekrarlayanYukleAsync()
