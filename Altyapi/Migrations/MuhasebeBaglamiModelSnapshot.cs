@@ -916,6 +916,75 @@ namespace Altyapi.Migrations
                     b.ToTable("FaturaKalemiStokDagilimleri", (string)null);
                 });
 
+            modelBuilder.Entity("EtkiAlani.Modeller.Fatura.TekrarlayanFatura", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Ad")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Aktif")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("BaslangicTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("BitisTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OlusturmaTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OlusturulanAdet")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Onayla")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OrnekFaturaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PeriyotAy")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Silindi")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SilinmeNedeni")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SilinmeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SirketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SonFaturaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SonHata")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("VadeGunu")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrnekFaturaId");
+
+                    b.ToTable("TekrarlayanFaturalar");
+                });
+
             modelBuilder.Entity("EtkiAlani.Modeller.Finans.BankaHareketi", b =>
                 {
                     b.Property<int>("Id")
@@ -4957,6 +5026,17 @@ namespace Altyapi.Migrations
                     b.Navigation("Depo");
 
                     b.Navigation("FaturaKalemi");
+                });
+
+            modelBuilder.Entity("EtkiAlani.Modeller.Fatura.TekrarlayanFatura", b =>
+                {
+                    b.HasOne("EtkiAlani.Modeller.Fatura.Fatura", "OrnekFatura")
+                        .WithMany()
+                        .HasForeignKey("OrnekFaturaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OrnekFatura");
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Finans.BankaHareketi", b =>

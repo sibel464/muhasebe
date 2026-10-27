@@ -1,0 +1,65 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.TekrarlayanFaturaPlanPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Baslik}" Width="520" SizeToContent="Height" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F8FAFC">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock Text="{Binding Baslik}" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
+        <TextBlock Text="{Binding OrnekBilgisi}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Ad (ör. Dükkan kirası)" Style="{StaticResource EtiketMetni}"/>
+        <TextBox Text="{Binding Ad, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMetinKutusu}" Margin="0,0,0,10"/>
+
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Ne sıklıkla" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding Periyotlar}" DisplayMemberPath="Ad" SelectedValuePath="Deger" SelectedValue="{Binding PeriyotAy}"
+                          IsEnabled="{Binding TakvimDegistirilebilir}" Height="34"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="İlk fatura tarihi" Style="{StaticResource EtiketMetni}"/>
+                <DatePicker SelectedDate="{Binding Baslangic}" IsEnabled="{Binding TakvimDegistirilebilir}" Height="34"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Bitiş tarihi (boş = süresiz)" Style="{StaticResource EtiketMetni}"/>
+                <DatePicker SelectedDate="{Binding Bitis}" Height="34"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Vade (gün, boş = vadesiz)" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding VadeGunu, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMetinKutusu}"/>
+            </StackPanel>
+        </Grid>
+
+        <CheckBox IsChecked="{Binding Onayla}" Margin="0,4,0,4">
+            <TextBlock TextWrapping="Wrap" Text="Kesilen faturayı hemen onayla (cariye ve deftere işlenir). İşaretlemezseniz fatura taslak olarak kesilir, kontrol edip siz onaylarsınız."/>
+        </CheckBox>
+        <CheckBox Content="Etkin (işareti kaldırırsanız fatura kesilmez)" IsChecked="{Binding Aktif}" Margin="0,4,0,10"/>
+
+        <TextBlock Text="Her fatura, örnek faturanın carisi, kalemleri ve fiyatlarıyla kendi dönem tarihinde kesilir; açıklamaya dönem (ör. 10/2026) eklenir. Kesilen faturalar açık hesaptır."
+                   TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryFirca}" Margin="0,0,0,10"/>
+        <TextBlock Text="{Binding Durum}" TextWrapping="Wrap" Foreground="#B91C1C" Margin="0,0,0,10"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Vazgeç" IsCancel="True" Style="{StaticResource IkinciDugme}" Width="100" Margin="0,0,10,0"/>
+            <Button Command="{Binding KaydetKomutu}" IsDefault="True" Style="{StaticResource BirinciDugme}" Width="120" Content="Kaydet"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

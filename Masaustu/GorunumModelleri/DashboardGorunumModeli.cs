@@ -15,6 +15,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     private readonly IFaturaServisi? _faturaServisi;
     private readonly IBaslangicKontrolServisi? _baslangicServisi;
     private readonly IVeritabaniYedekServisi? _yedekServisi;
+    private readonly ITekrarlayanFaturaServisi? _tekrarlayanServisi;
 
     private int _musteriSayisi;
     private int _urunSayisi;
@@ -39,6 +40,10 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     private bool _yedekUyarisi;
     public bool YedekUyarisi { get => _yedekUyarisi; set => OzellikAyarla(ref _yedekUyarisi, value); }
     public ICommand AdimaGitKomutu { get; }
+    private string _tekrarlayanUyarisi = string.Empty;
+    public string TekrarlayanUyarisi { get => _tekrarlayanUyarisi; set { OzellikAyarla(ref _tekrarlayanUyarisi, value); BildirimGonder(nameof(TekrarlayanUyarisiGorunur)); } }
+    public bool TekrarlayanUyarisiGorunur => TekrarlayanUyarisi.Length > 0;
+    public ICommand TekrarlayanFaturalarKomutu { get; }
 
     // Dialog açma fonksiyonları
     public Func<Task<bool>>? MusteriDuzenleFormAc { get; set; }
@@ -56,8 +61,10 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         IKasaServisi? kasaServisi = null,
         IFaturaServisi? faturaServisi = null,
         IBaslangicKontrolServisi? baslangicServisi = null,
-        IVeritabaniYedekServisi? yedekServisi = null)
+        IVeritabaniYedekServisi? yedekServisi = null,
+        ITekrarlayanFaturaServisi? tekrarlayanServisi = null)
     {
+        _tekrarlayanServisi = tekrarlayanServisi;
         _cariServisi = cariServisi;
         _urunServisi = urunServisi;
         _navigasyon = navigasyon;
@@ -71,6 +78,11 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         HizliSatisKomutu = new KomutSarici(_ => _navigasyon?.Git("Satis"));
         CikisKomutu = new KomutSarici(_ => cikisAction?.Invoke());
         AdimaGitKomutu = new KomutSarici(p => { if (p is string sayfa) _navigasyon?.Git(sayfa); });
+        TekrarlayanFaturalarKomutu = new KomutSarici(async _ =>
+        {
+            Masaustu.Gorunumler.Sayfa.TekrarlayanFaturalarPenceresi.Ac(null);
+            await TekrarlayanYukleAsync();
+        });
         
         _ = VerileriYukleAsync();
     }
@@ -82,6 +94,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         HizliSatisKomutu = new KomutSarici(_ => { });
         CikisKomutu = new KomutSarici(_ => { });
         AdimaGitKomutu = new KomutSarici(_ => { });
+        TekrarlayanFaturalarKomutu = new KomutSarici(_ => { });
     }
 
     private async Task VerileriYukleAsync()
@@ -120,6 +133,21 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         }
 
         await BaslangicVeYedekYukleAsync();
+        await TekrarlayanYukleAsync();
+    }
+
+    private async Task TekrarlayanYukleAsync()
+    {
+        if (_tekrarlayanServisi == null) return;
+        try
+        {
+            var bekleyen = await _tekrarlayanServisi.BekleyenSayisiAsync();
+            TekrarlayanUyarisi = bekleyen > 0 ? $"🔁 Zamanı gelmiş {bekleyen} tekrarlayan fatura (kira, aidat vb.) kesilmeyi bekliyor." : string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli.Tekrarlayan");
+        }
     }
 
     private async Task BaslangicVeYedekYukleAsync()

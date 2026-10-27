@@ -249,6 +249,8 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	public ICommand KalemSilKomutu { get; }
 	public ICommand FaturaYazdirKomutu { get; }
 	public ICommand FaturaEpostaKomutu { get; }
+	public ICommand TekrarlayanYapKomutu { get; }
+	public ICommand TekrarlayanFaturalarKomutu { get; }
 	public ICommand DetayKomutu { get; }
 	public ICommand ExcelAktarKomutu { get; }
 	public ICommand EBelgeKomutu { get; }
@@ -297,6 +299,17 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 			if (_eBelgeServisi != null && await EBelgePenceresi.GelenAktarAsync(_eBelgeServisi) > 0)
 				await YukleAsync();
 		}, _ => _eBelgeServisi != null);
+		// Kira / aidat gibi düzenli faturalar: seçilen satış veya alış faturası örnek alınır.
+		TekrarlayanYapKomutu = new KomutSarici(param =>
+		{
+			if ((param as Fatura ?? SeciliFatura) is Fatura f)
+				Masaustu.Gorunumler.Sayfa.TekrarlayanFaturaPlanPenceresi.YeniOlustur(null, f);
+		}, param => (param as Fatura ?? SeciliFatura) is { Tur: FaturaTuru.Satis or FaturaTuru.Alis, KaynakTuru: not FaturaKaynakTuru.Pos, Durum: BelgeDurumu.Taslak or BelgeDurumu.Onaylandi });
+		TekrarlayanFaturalarKomutu = new KomutSarici(async _ =>
+		{
+			if (Masaustu.Gorunumler.Sayfa.TekrarlayanFaturalarPenceresi.Ac(null))
+				await YukleAsync();
+		});
 		DetayKomutu = new KomutSarici(param => { if ((param as Fatura ?? SeciliFatura) is Fatura f) FaturaDetayPenceresi.Goster(f); }, param => param is Fatura || SeciliFatura != null);
 		KalemEkleKomutu = new KomutSarici(_ => KalemEkle(), _ => Duzenlenebilir && SeciliUrun != null);
 		KalemSilKomutu = new KomutSarici(_ => { if (SeciliKalem != null) Kalemler.Remove(SeciliKalem); ToplamlariGuncelle(); }, _ => Duzenlenebilir && SeciliKalem != null);

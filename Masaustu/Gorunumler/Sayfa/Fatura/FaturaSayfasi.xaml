@@ -31,6 +31,10 @@
 
         <!-- 1. ÜST PANEL: Başlık ve Aksiyon Butonları -->
         <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Style="{StaticResource BaslikIkonKutusu}">
                     <TextBlock Text="🧾" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -41,12 +45,20 @@
                 </StackPanel>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <!-- Düğmeler başlığın altında: 1366 ekranda başlık metninin üstüne binmesin -->
+            <WrapPanel Grid.Row="1" HorizontalAlignment="Left" Margin="0,10,0,0">
                 <Button Command="{Binding GelenEFaturaKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
                         ToolTip="Tedarikçiden gelen e-Fatura XML dosyasından alış faturası oluştur">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📥" Margin="0,0,6,0"/>
                         <TextBlock Text="e-Fatura İçe Aktar"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding TekrarlayanFaturalarKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                        ToolTip="Kira, aidat gibi düzenli faturalar: zamanı gelenleri kes, planları yönet">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔁" Margin="0,0,6,0"/>
+                        <TextBlock Text="Tekrarlayan"/>
                     </StackPanel>
                 </Button>
                 <Button Command="{Binding TopluEBelgeKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
@@ -69,7 +81,7 @@
                         <TextBlock Text="Yeni Fatura Kes" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-            </StackPanel>
+            </WrapPanel>
         </Grid>
 
         <!-- 2. KPI / ÖZET KARTLARI -->
@@ -153,7 +165,7 @@
                       SelectionMode="Single">
                 <DataGrid.Columns>
                     <!-- Tür Badge -->
-                    <DataGridTemplateColumn Header="TÜR" Width="88">
+                    <DataGridTemplateColumn Header="TÜR" Width="80">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border HorizontalAlignment="Left">
@@ -184,7 +196,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="150" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="140" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy}" Width="90"/>
                     <DataGridTextColumn Header="CARİ ÜNVANI" Binding="{Binding CariKart.Unvan}" Width="2*" MinWidth="140"/>
                     <DataGridTextColumn Header="ÖDEME" Binding="{Binding OdemeSekli, Converter={StaticResource FaturaMetin}}" Width="95"/>
@@ -200,7 +212,7 @@
                     </DataGridTextColumn>
 
                     <!-- Durum Badge -->
-                    <DataGridTemplateColumn Header="DURUM" Width="125">
+                    <DataGridTemplateColumn Header="DURUM" Width="115">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel VerticalAlignment="Center">
@@ -237,50 +249,56 @@
                                 <!-- e-Fatura / e-Arşiv durumu (hazırlanmamışsa boş) -->
                                 <TextBlock Text="{Binding Converter={StaticResource EBelgeOzet}}" ToolTip="{Binding EBelgeMesaji}"
                                            FontSize="10" Foreground="{StaticResource TextSecondaryFirca}" Margin="2,2,0,0"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextWrapping="Wrap"/>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
                     <!-- İşlemler -->
-                    <DataGridTemplateColumn Header="İŞLEMLER" Width="244">
+                    <DataGridTemplateColumn Header="İŞLEMLER" Width="246">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <Button Command="{Binding DataContext.FaturaYazdirKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="Yazdır / PDF" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,3,0" ToolTip="Yazdır / PDF" Width="30" Padding="0">
                                         <TextBlock Text="🖨️" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.FaturaEpostaKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="PDF olarak e-postayla gönder" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,3,0" ToolTip="PDF olarak e-postayla gönder" Width="30" Padding="0">
                                         <TextBlock Text="✉️" HorizontalAlignment="Center"/>
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.TekrarlayanYapKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,3,0" ToolTip="Bu faturayı her ay / dönem tekrarla (kira, aidat...)" Width="30" Padding="0">
+                                        <TextBlock Text="🔁" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.DetayKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="Fatura detayı" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,3,0" ToolTip="Fatura detayı" Width="30" Padding="0">
                                         <TextBlock Text="👁️" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.EBelgeKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,4,0" ToolTip="e-Fatura / e-Arşiv: hazırla, gönder, durumunu işaretle" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Margin="0,0,3,0" ToolTip="e-Fatura / e-Arşiv: hazırla, gönder, durumunu işaretle" Width="30" Padding="0">
                                         <TextBlock Text="📨" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.OnaylaKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource SuccessLightFirca}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,4,0" ToolTip="Onayla (cari, stok ve muhasebe kaydı oluşur)" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource SuccessLightFirca}" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,3,0" ToolTip="Onayla (cari, stok ve muhasebe kaydı oluşur)" Width="30" Padding="0">
                                         <TextBlock Text="✓" HorizontalAlignment="Center"/>
                                     </Button>
 
                                     <Button Command="{Binding DataContext.IptalKomutu, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource DangerLightFirca}" Foreground="{StaticResource DangerDarkFirca}" ToolTip="Faturayı iptal et" Width="34" Padding="0">
+                                            Style="{StaticResource TabloAksiyonDugme}" Background="{StaticResource DangerLightFirca}" Foreground="{StaticResource DangerDarkFirca}" ToolTip="Faturayı iptal et" Width="30" Padding="0">
                                         <TextBlock Text="✕" HorizontalAlignment="Center"/>
                                     </Button>
                                 </StackPanel>

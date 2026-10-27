@@ -69,6 +69,7 @@ public class MuhasebeBaglami : DbContext
 
     // Fatura
     public DbSet<Fatura> Faturalar => Set<Fatura>();
+    public DbSet<TekrarlayanFatura> TekrarlayanFaturalar => Set<TekrarlayanFatura>();
     public DbSet<FaturaKalemi> FaturaKalemleri => Set<FaturaKalemi>();
     public DbSet<FaturaKalemiStokDagilimi> FaturaKalemiStokDagilimleri => Set<FaturaKalemiStokDagilimi>();
     public DbSet<EBelgeKaydi> EBelgeKayitlari => Set<EBelgeKaydi>();
@@ -454,6 +455,13 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<Urun>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
         modelBuilder.Entity<Fatura>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
         modelBuilder.Entity<Kasa>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<TekrarlayanFatura>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<TekrarlayanFatura>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
+        modelBuilder.Entity<TekrarlayanFatura>().Property(x => x.Ad).HasMaxLength(200);
+        modelBuilder.Entity<TekrarlayanFatura>().Property(x => x.SonHata).HasMaxLength(500);
+        modelBuilder.Entity<TekrarlayanFatura>().HasOne(x => x.OrnekFatura).WithMany().HasForeignKey(x => x.OrnekFaturaId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<TekrarlayanFatura>().Ignore(x => x.SiradakiTarih);
+        modelBuilder.Entity<TekrarlayanFatura>().Ignore(x => x.BittiMi);
         modelBuilder.Entity<SabitKiymet>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
         modelBuilder.Entity<SabitKiymet>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
         modelBuilder.Entity<SabitKiymet>().HasIndex(x => new { x.SirketId, x.Kod }).IsUnique().HasFilter("\"Silindi\" = false");
