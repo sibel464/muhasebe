@@ -127,6 +127,9 @@
             <DataTemplate DataType="{x:Type muhasebeGm:DemirbasGorunumModeli}">
                 <muhasebeSayfa:DemirbasSayfasi/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type muhasebeGm:PersonelGorunumModeli}">
+                <muhasebeSayfa:PersonelSayfasi/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type muhasebeGm:MaliTablolarGorunumModeli}">
                 <muhasebeSayfa:MaliTablolarSayfasi/>
             </DataTemplate>
@@ -458,6 +461,14 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="💼" FontSize="14" Margin="8,0,12,0"/>
                                     <TextBlock Text="Demirbaş ve Amortisman" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding PersonelKomutu}" Height="40" Style="{StaticResource MenuOgeDugme}"
+                                    Visibility="{Binding MenuPersonelGorunur, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="👥" FontSize="14" Margin="8,0,12,0"/>
+                                    <TextBlock Text="Personel ve Maaş" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 

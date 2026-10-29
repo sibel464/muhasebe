@@ -79,6 +79,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public ICommand KdvMahsupKomutu { get; }
     public ICommand MaliTablolarKomutu { get; }
     public ICommand DemirbasKomutu { get; }
+    public ICommand PersonelKomutu { get; }
     public ICommand CikisKomutu { get; }
 
     public Action? CikisYapildi { get; set; }
@@ -96,6 +97,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public bool MenuCekSenetGorunur => _kullaniciServisi.YetkiliMi(y => y.CekSenetGoruntule);
     public bool MenuTahsilatOdemeGorunur => _kullaniciServisi.YetkiliMi(y => y.TahsilatYap || y.OdemeYap);
     public bool MenuRaporGorunur => _kullaniciServisi.YetkiliMi(y => y.RaporGoruntule);
+    public bool MenuPersonelGorunur => _kullaniciServisi.YetkiliMi(y => y.PersonelGoruntule);
     public bool MenuMuhasebeGorunur => _kullaniciServisi.YetkiliMi(y => y.MuhasebeFisGoruntule || y.HesapPlaniYonet || y.MizanGoruntule);
     public bool MenuAyarlarGorunur => _kullaniciServisi.YetkiliMi(y => y.AyarlariYonet || y.KullaniciYonet);
     public bool MenuKullanicilarGorunur => _kullaniciServisi.YetkiliMi(y => y.KullaniciYonet);
@@ -221,6 +223,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         _navigasyon.Kaydet("KdvMahsup", sp => G<Masaustu.GorunumModeli.Muhasebe.KdvMahsupGorunumModeli>(sp));
         _navigasyon.Kaydet("MaliTablolar", sp => G<Masaustu.GorunumModeli.Muhasebe.MaliTablolarGorunumModeli>(sp));
         _navigasyon.Kaydet("Demirbas", sp => G<Masaustu.GorunumModeli.Muhasebe.DemirbasGorunumModeli>(sp));
+        _navigasyon.Kaydet("Personel", sp => G<Masaustu.GorunumModeli.Muhasebe.PersonelGorunumModeli>(sp));
 
         // Komutlar
         DashboardKomutu = new KomutSarici(() => MenuGit("Dashboard"));
@@ -255,6 +258,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         KdvMahsupKomutu = new KomutSarici(() => MenuGit("KdvMahsup"));
         MaliTablolarKomutu = new KomutSarici(() => MenuGit("MaliTablolar"));
         DemirbasKomutu = new KomutSarici(() => MenuGit("Demirbas"));
+        PersonelKomutu = new KomutSarici(() => MenuGit("Personel"));
         RaporKomutu = new KomutSarici(() => MenuGit("Rapor"));
         AyarlarKomutu = new KomutSarici(() => MenuGit("Ayarlar"));
         YardimKomutu = new KomutSarici(() => YardimAc());

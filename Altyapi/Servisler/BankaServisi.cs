@@ -571,6 +571,8 @@ public class BankaServisi : IBankaServisi
                 throw new InvalidOperationException("Bu tahsilat bir faturaya bağlı. Fatura ekranından iptal edilmelidir.");
             if (hareket.OzelKod == CekSenetServisi.CekSenetOzelKodu)
                 throw new InvalidOperationException("Bu hareket bir çek/senet tahsilatı veya ödemesidir; kasa/banka ekranından silinemez.");
+            if (hareket.OzelKod == PersonelServisi.PersonelOzelKodu)
+                throw new InvalidOperationException("Bu hareket bir maaş ödemesi veya personel avansıdır; Personel ve Maaş ekranından iptal edilmelidir.");
 
             var simdi = DateTime.UtcNow;
             var neden = $"Banka hareketi silindi ({Oturum.AktifKullanici?.KullaniciAdi ?? "bilinmeyen kullanıcı"})";

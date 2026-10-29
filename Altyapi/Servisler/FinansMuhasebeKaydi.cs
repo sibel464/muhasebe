@@ -71,6 +71,10 @@ public static class FinansMuhasebeKaydi
         ["660"] = ("KISA VADELİ BORÇLANMA GİDERLERİ (-)", HesapTipi.Gider, BorcAlacakYonu.Borc),
         ["690"] = ("DÖNEM KARI VEYA ZARARI", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
         ["692"] = ("DÖNEM NET KARI VEYA ZARARI", HesapTipi.Gelir, BorcAlacakYonu.Alacak),
+        // Personel ve maaş
+        ["196"] = ("PERSONEL AVANSLARI", HesapTipi.Aktif, BorcAlacakYonu.Borc),
+        ["335"] = ("PERSONELE BORÇLAR", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
+        ["361"] = ("ÖDENECEK SOSYAL GÜVENLİK KESİNTİLERİ", HesapTipi.Pasif, BorcAlacakYonu.Alacak),
         ["741"] = ("HİZMET ÜRETİM MALİYETİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
         ["751"] = ("ARAŞTIRMA VE GELİŞTİRME GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
         ["761"] = ("PAZARLAMA SATIŞ VE DAĞITIM GİDERLERİ YANSITMA", HesapTipi.Gider, BorcAlacakYonu.Alacak),
@@ -313,6 +317,7 @@ public static class FinansMuhasebeKaydi
             {
                 KasaBelgeTipi => "MF-KSA",
                 CariHareketServisi.CariFisBelgeTipi => "MF-CRI",
+                PersonelServisi.TahakkukBelgeTipi or "TERS_" + PersonelServisi.TahakkukBelgeTipi => "MF-PRS",
                 _ => "MF-BNK"
             }),
             FisTuru = FisTuru.Mahsup,
