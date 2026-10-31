@@ -166,6 +166,14 @@ powershell -ExecutionPolicy Bypass -File kurulum\Paketle.ps1 -Surum 1.0.2 -Yayin
 `https://ornek.com/guncelleme/guncelleme.json` olur (`kurulum\appsettings.Kurulum.json`).
 Bildirim elle de üretilebilir: `dotnet run --project LisansUretici -- guncelleme --msi ... --surum ... --adres ...`.
 
+## Örnek verilerle tanıtım
+
+Giriş ekranındaki **Örnek verilerle tanıyın** programı `--ornek` ile yeniden açar: aynı PostgreSQL sunucusunda ayrı
+`Muhasebe_Ornek` veritabanı oluşturulur ve ilk açılışta `Altyapi/Servisler/OrnekVeriServisi.cs` ile (programın kendi
+servisleriyle) örnek firma, 11 cari, 12 ürün ve son 3 ayın alış/satış/tahsilat/ödemeleri yazılır. Gerçek veritabanına
+dokunulmaz; servis yalnız `Muhasebe_Ornek` adlı ve boş veritabanına yazar. Ekranda kırmızı ÖRNEK VERİ şeridi görünür,
+otomatik yedek alınmaz, giriş `admin / admin123`. Ağ istemcisinde kapalıdır.
+
 ## e-Fatura entegratörü
 
 **Ayarlar → Firma & Parametreler → Gönderim yolu**:

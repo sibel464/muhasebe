@@ -26,6 +26,28 @@ public partial class AnaPencere : Window
     {
         InitializeComponent();
         if (App.LisansMetni is { Length: > 0 } lisans) Title = $"{Title} — {lisans}";
+        if (App.OrnekMod)
+        {
+            // Tanıtım veritabanında çalışıldığı her an görünsün: gerçek kayıt buraya girilmesin.
+            Title = "ÖRNEK VERİ (tanıtım) — " + Title;
+            var serit = new System.Windows.Controls.DockPanel { Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)) };
+            var don = new System.Windows.Controls.Button { Content = "Gerçek verilerime dön", Margin = new Thickness(8, 4, 8, 4), Padding = new Thickness(10, 2, 10, 2) };
+            don.Click += (_, _) => App.OrnekModaGec(false);
+            System.Windows.Controls.DockPanel.SetDock(don, System.Windows.Controls.Dock.Right);
+            serit.Children.Add(don);
+            serit.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "ÖRNEK VERİ — Tanıtım veritabanındasınız. Buradaki kayıtlar gerçek defterlerinize yazılmaz.",
+                Foreground = System.Windows.Media.Brushes.White, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 4, 0, 4)
+            });
+            var icerik = (UIElement)Content;
+            Content = null;
+            var kok = new System.Windows.Controls.DockPanel();
+            System.Windows.Controls.DockPanel.SetDock(serit, System.Windows.Controls.Dock.Top);
+            kok.Children.Add(serit);
+            kok.Children.Add(icerik);
+            Content = kok;
+        }
         _gorunumModeli = gorunumModeli;
         DataContext = _gorunumModeli;
 

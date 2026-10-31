@@ -287,6 +287,29 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
         return new EBelgeDurumBilgisi(DurumCevir(durum, tur), DurumAciklamasi(durum) + (string.IsNullOrWhiteSpace(aciklama) ? "" : $" — {aciklama}"));
     }
 
+    public async Task<IReadOnlyDictionary<Guid, EBelgeDurumBilgisi>> DurumlariSorgulaAsync(IReadOnlyList<Guid> ettnler, CancellationToken cancellationToken = default)
+    {
+        var sonuc = new Dictionary<Guid, EBelgeDurumBilgisi>();
+        foreach (var grup in ettnler.Distinct().Chunk(50))
+        {
+            var yanit = await CagirAsync("QueryOutboxInvoiceStatus", new XElement(Tns + "QueryOutboxInvoiceStatus",
+                new XElement(Tns + "invoiceIds", grup.Select(g => new XElement(Tns + "string", g.ToString().ToUpperInvariant())))), cancellationToken);
+            if (!Basarili(yanit, out var mesaj))
+            {
+                if (mesaj.Contains("bulun", StringComparison.OrdinalIgnoreCase) || mesaj.Contains("not found", StringComparison.OrdinalIgnoreCase)) continue;
+                throw new InvalidOperationException("Durumlar sorgulanamadı: " + mesaj);
+            }
+            foreach (var d in yanit.Elements(Tns + "Value"))
+            {
+                if (!Guid.TryParse((string?)d.Attribute("InvoiceId"), out var ettn)) continue;
+                var durum = (string?)d.Attribute("Status") ?? string.Empty;
+                var aciklama = (string?)d.Attribute("Message");
+                sonuc[ettn] = new EBelgeDurumBilgisi(DurumCevir(durum, EBelgeTuru.EFatura), DurumAciklamasi(durum) + (string.IsNullOrWhiteSpace(aciklama) ? "" : $" — {aciklama}"));
+            }
+        }
+        return sonuc;
+    }
+
     public static EBelgeDurumu DurumCevir(string durum, EBelgeTuru tur) => durum switch
     {
         "Approved" => EBelgeDurumu.KabulEdildi,

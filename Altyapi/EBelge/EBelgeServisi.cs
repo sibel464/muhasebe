@@ -103,15 +103,32 @@ public class EBelgeServisi : IEBelgeServisi
     {
         Yetki(y => y.FaturaGoruntule, "e-Belge Durum Sorgulama");
         if (Cevrimici == null) return 0;
-        var bekleyenler = await _baglam.Faturalar.AsNoTracking()
-            .Where(f => f.EBelgeDurumu == EBelgeDurumu.Gonderildi && f.Ettn != null)
-            .OrderBy(f => f.Tarih).Select(f => f.Id).Take(500).ToListAsync(cancellationToken);
+        return await BekleyenleriTopluGuncelleAsync(_baglam.Faturalar.Where(f => f.EBelgeDurumu == EBelgeDurumu.Gonderildi && f.Ettn != null)
+            .OrderBy(f => f.Tarih).Take(500), cancellationToken);
+    }
+
+    // Yanıt bekleyen belgeler tek istekte sorgulanır (entegratörün dakikalık sorgu sınırı); değişenler kaydedilir.
+    private async Task<int> BekleyenleriTopluGuncelleAsync(IQueryable<Fatura> sorgu, CancellationToken cancellationToken)
+    {
+        if (Cevrimici is not { } e) return 0;
+        var faturalar = await sorgu.ToListAsync(cancellationToken);
+        if (faturalar.Count == 0) return 0;
+        var durumlar = await e.DurumlariSorgulaAsync(faturalar.Select(f => f.Ettn!.Value).ToList(), cancellationToken);
         var degisen = 0;
-        foreach (var id in bekleyenler)
+        foreach (var f in faturalar)
         {
-            var bilgi = await DurumSorgulaAsync(id, cancellationToken);
-            if (bilgi.Durum != EBelgeDurumu.Gonderildi) degisen++;
+            if (!durumlar.TryGetValue(f.Ettn!.Value, out var bilgi) || bilgi.Durum == f.EBelgeDurumu) continue;
+            f.EBelgeDurumu = bilgi.Durum;
+            f.EBelgeTarihi = DateTime.UtcNow;
+            f.EBelgeMesaji = Kisalt(bilgi.Aciklama);
+            _baglam.EBelgeKayitlari.Add(new EBelgeKaydi
+            {
+                FaturaId = f.Id, Ettn = f.Ettn.Value, Tur = f.EBelgeTuru, Durum = bilgi.Durum, Entegrator = _entegrator.Ad,
+                Mesaj = f.EBelgeMesaji, KullaniciId = _kullaniciServisi?.AktifKullanici?.Id
+            });
+            degisen++;
         }
+        await _baglam.SaveChangesAsync(cancellationToken);
         return degisen;
     }
 
@@ -208,11 +225,9 @@ public class EBelgeServisi : IEBelgeServisi
             _sonCevrimiciKontrol = DateTime.UtcNow;
             try
             {
-                var bekleyen = await _baglam.Faturalar.AsNoTracking()
+                guncellenen = await BekleyenleriTopluGuncelleAsync(_baglam.Faturalar
                     .Where(f => f.EBelgeDurumu == EBelgeDurumu.Gonderildi && f.Ettn != null && f.Tarih >= bugun.AddDays(-30))
-                    .OrderByDescending(f => f.Tarih).Select(f => f.Id).Take(50).ToListAsync(cancellationToken);
-                foreach (var id in bekleyen)
-                    if ((await DurumSorgulaAsync(id, cancellationToken)).Durum != EBelgeDurumu.Gonderildi) guncellenen++;
+                    .OrderByDescending(f => f.Tarih).Take(100), cancellationToken);
                 yeniGelen = _sonYeniGelen = (await GelenListeAsync(DateTime.Today.AddDays(-7), DateTime.Today, cancellationToken)).Count(x => !x.Aktarildi);
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)

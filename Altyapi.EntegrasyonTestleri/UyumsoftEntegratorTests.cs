@@ -93,6 +93,19 @@ public sealed class UyumsoftEntegratorTests
         Assert.True(s2.Basarili, s2.Mesaj);
         Assert.NotNull(await e.DurumSorgulaAsync(efatura.Ettn, EBelgeTuru.EFatura));
 
+        // Toplu durum sorgusu: iki belge tek istekte; entegratörün tanımadığı ETTN sonuçta yer almaz.
+        try
+        {
+            var toplu = await e.DurumlariSorgulaAsync([arsiv.Ettn, efatura.Ettn, Guid.NewGuid()]);
+            Assert.True(toplu.ContainsKey(arsiv.Ettn));
+            Assert.True(toplu.ContainsKey(efatura.Ettn));
+            Assert.Equal(2, toplu.Count);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("maksimum"))
+        {
+            // Ortak test hesabının dakikalık sorgu sınırı (başka kullanıcılar); bu çalıştırmada atlanır.
+        }
+
         // Aynı ETTN ikinci kez gönderilemez (çift fatura oluşmaz).
         var tekrar = await e.GonderAsync(efatura);
         Assert.False(tekrar.Basarili);

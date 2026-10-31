@@ -26,6 +26,9 @@ public interface IEBelgeCevrimiciEntegrator : IEBelgeEntegratoru
     // Gönderilmiş belgenin entegratördeki durumu; entegratör belgeyi tanımıyorsa null.
     Task<EBelgeDurumBilgisi?> DurumSorgulaAsync(Guid ettn, EBelgeTuru tur, CancellationToken cancellationToken = default);
 
+    // Çok sayıda belgenin durumu tek istekte (entegratörlerin dakikalık sorgu sınırına takılmamak için). Bilinmeyen ETTN listede olmaz.
+    Task<IReadOnlyDictionary<Guid, EBelgeDurumBilgisi>> DurumlariSorgulaAsync(IReadOnlyList<Guid> ettnler, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
     Task<string> GelenXmlAsync(string ettn, CancellationToken cancellationToken = default);
 

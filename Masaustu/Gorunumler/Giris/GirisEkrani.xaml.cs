@@ -16,6 +16,7 @@ public partial class GirisEkrani : Window
     public GirisEkrani(GirisGorunumModeli gorunumModeli)
     {
         InitializeComponent();
+        OrnekPaneliniHazirla();
         _gorunumModeli = gorunumModeli;
         DataContext = _gorunumModeli;
 
@@ -246,5 +247,30 @@ public partial class GirisEkrani : Window
                 // but setting focus typically brings cursor to end in modern UI flows.
             }
         }
+    }
+
+    private void OrnekPaneliniHazirla()
+    {
+        if (App.AgModu == Altyapi.Veri.AgModu.Istemci) return;
+        var bag = new System.Windows.Controls.Button
+        {
+            Content = App.OrnekMod ? "↩ Gerçek verilerime dön" : "🎓 Örnek verilerle tanıyın (gerçek kayıtlarınıza dokunmaz)",
+            Cursor = System.Windows.Input.Cursors.Hand, Background = System.Windows.Media.Brushes.Transparent, BorderThickness = new Thickness(0),
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(37, 99, 235)), HorizontalAlignment = HorizontalAlignment.Center,
+            Padding = new Thickness(4)
+        };
+        bag.Click += (_, _) => App.OrnekModaGec(!App.OrnekMod);
+        if (App.OrnekMod)
+            OrnekPaneli.Children.Add(new System.Windows.Controls.Border
+            {
+                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(254, 226, 226)), CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10, 8, 10, 8), Margin = new Thickness(0, 0, 0, 6),
+                Child = new System.Windows.Controls.TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(153, 27, 27)),
+                    Text = "ÖRNEK VERİ (tanıtım) — Kullanıcı: admin, Şifre: admin123. Burada girilen kayıtlar gerçek defterlerinize yazılmaz."
+                }
+            });
+        OrnekPaneli.Children.Add(bag);
     }
 }

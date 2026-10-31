@@ -236,6 +236,27 @@ public partial class App : Application
             AgModu = AgYoneticisi.Mod(konfigurasyon);
             var veritabani = await VeritabaniKurulumu.HazirlaAsync(konfigurasyon);
             var baglantiDizesi = veritabani.BaglantiDizesi;
+            // Tanıtım modu: aynı sunucuda ayrı bir veritabanı (Muhasebe_Ornek); gerçek kayıtlara dokunulmaz.
+            OrnekMod = e.Args.Any(a => string.Equals(a, "--ornek", StringComparison.OrdinalIgnoreCase));
+            if (OrnekMod && AgModu == AgModu.Istemci)
+                throw new InvalidOperationException("Örnek verilerle tanıtım ağ istemcisi olan bilgisayarda açılamaz; sunucu ya da tek bilgisayar kurulumunda deneyin.");
+            if (OrnekMod)
+            {
+                // Tanıtım veritabanı yoksa aynı sunucuda açılır (yapısı ve verisi aşağıda kurulur).
+                var yonetim = new Npgsql.NpgsqlConnectionStringBuilder(baglantiDizesi) { Database = "postgres", Pooling = false };
+                await using (var bag = new Npgsql.NpgsqlConnection(yonetim.ConnectionString))
+                {
+                    await bag.OpenAsync();
+                    await using var var = new Npgsql.NpgsqlCommand("SELECT 1 FROM pg_database WHERE datname = @ad", bag);
+                    var.Parameters.AddWithValue("ad", Altyapi.Servisler.OrnekVeriServisi.VeritabaniAdi);
+                    if (await var.ExecuteScalarAsync() == null)
+                    {
+                        await using var olustur = new Npgsql.NpgsqlCommand($"CREATE DATABASE \"{Altyapi.Servisler.OrnekVeriServisi.VeritabaniAdi}\"", bag);
+                        await olustur.ExecuteNonQueryAsync();
+                    }
+                }
+                baglantiDizesi = new Npgsql.NpgsqlConnectionStringBuilder(baglantiDizesi) { Database = Altyapi.Servisler.OrnekVeriServisi.VeritabaniAdi }.ConnectionString;
+            }
             VeritabaniBaglantiDizesi = baglantiDizesi;
 
             ServisleriOlustur(konfigurasyon, baglantiDizesi);
@@ -246,10 +267,12 @@ public partial class App : Application
 #endif
             var ortam = konfigurasyon["UygulamaAyarlari:Ortam"] ?? varsayilanOrtam;
             await VeritabaniSaglikKontroluAsync(
-                string.Equals(ortam, "Development", StringComparison.OrdinalIgnoreCase));
+                OrnekMod || string.Equals(ortam, "Development", StringComparison.OrdinalIgnoreCase));
+            if (OrnekMod)
+                await OrnekVeriyiHazirlaAsync();
 
             // Günlük yedeği verinin durduğu bilgisayar alır; istemciler almaz.
-            if (AgModu != AgModu.Istemci && !string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
+            if (!OrnekMod && AgModu != AgModu.Istemci && !string.Equals(konfigurasyon["YedekAyarlari:OtomatikGunlukYedek"], "false", StringComparison.OrdinalIgnoreCase))
                 OtomatikYedegiBaslat();
 
             // Kurulum sürümünde lisans/deneme denetimi: deneme bitmişse yalnız lisans penceresi açılır.
@@ -286,6 +309,55 @@ public partial class App : Application
     // durduktan sonra başlatılır (aksi halde kapanmakta olan sunucuya bağlanmaya çalışırdı).
     internal static bool YenidenBaslat { get; set; }
 
+    // "Örnek verilerle tanıyın": program --ornek ile açıldı, Muhasebe_Ornek veritabanı kullanılıyor.
+    internal static bool OrnekMod { get; private set; }
+    internal static string? YenidenBaslatArgumani { get; set; }
+
+    // Tanıtım modu ile gerçek veriler arasında geçiş: program kapanıp seçilen modda yeniden açılır.
+    internal static void OrnekModaGec(bool ornek)
+    {
+        var soru = ornek
+            ? "Program örnek verilerle (tanıtım veritabanı) yeniden açılacak. Gerçek kayıtlarınıza dokunulmaz.\n\nGiriş: kullanıcı admin, şifre admin123\n\nDevam edilsin mi?"
+            : "Program gerçek verilerinizle yeniden açılacak. Devam edilsin mi?";
+        if (MessageBox.Show(soru, ornek ? "Örnek verilerle tanıyın" : "Gerçek verilere dön", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+        YenidenBaslatArgumani = ornek ? "--ornek" : null;
+        YenidenBaslat = true;
+        Current.Shutdown(0);
+    }
+
+    // Tanıtım veritabanı ilk açılışta örnek verilerle doldurulur (birkaç saniye sürer); yönetici şifre değişimi istenmez.
+    private static async Task OrnekVeriyiHazirlaAsync()
+    {
+        var bekleme = new Window
+        {
+            Width = 420, Height = 140, WindowStyle = WindowStyle.ToolWindow, ResizeMode = ResizeMode.NoResize, Title = "Örnek veriler",
+            WindowStartupLocation = WindowStartupLocation.CenterScreen, Topmost = true,
+            Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "Tanıtım için örnek firma, cari, ürün ve 3 aylık fatura hazırlanıyor...\nBu yalnız ilk açılışta yapılır.",
+                Margin = new Thickness(20), TextWrapping = TextWrapping.Wrap, FontSize = 14
+            }
+        };
+        bekleme.Show();
+        try
+        {
+            var fabrika = HizmetSaglayici.GetRequiredService<IDbContextFactory<MuhasebeBaglami>>();
+            var oturum = new Altyapi.Servisler.KullaniciServisi(fabrika);
+            if (await oturum.GirisYapAsync("admin", "admin123"))
+            {
+                await Altyapi.Servisler.OrnekVeriServisi.GerekirseDoldurAsync(() => fabrika.CreateDbContext(), oturum);
+                oturum.CikisYap();
+            }
+            await using var c = await fabrika.CreateDbContextAsync();
+            await c.Database.ExecuteSqlRawAsync("UPDATE \"Kullanicilar\" SET \"SifreDegistirmeli\" = false WHERE \"Id\" = 1");
+        }
+        finally
+        {
+            bekleme.Close();
+        }
+    }
+
     // Tek bilgisayar / ağ sunucusu / ağ istemcisi (Ayarlar > Ağ).
     internal static AgModu AgModu { get; private set; }
     internal static string? VeritabaniBaglantiDizesi { get; private set; }
@@ -305,7 +377,7 @@ public partial class App : Application
         }
         if (YenidenBaslat && Environment.ProcessPath is { } exe)
         {
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true }); }
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true, Arguments = YenidenBaslatArgumani ?? string.Empty }); }
             catch { }
         }
     }
@@ -360,7 +432,8 @@ public partial class App : Application
         }
 
         // Kurulum sürümünde her kopya aynı başlangıç şifresiyle gelir: admin bu şifreyi kullandıkça ilk girişte değiştirmek zorundadır.
-        if (UygulamaKlasorleri.GomuluPostgresBin != null)
+        // (Tanıtım veritabanında istenmez: herkes admin / admin123 ile girer.)
+        if (UygulamaKlasorleri.GomuluPostgresBin != null && !OrnekMod)
             await baglam.Database.ExecuteSqlRawAsync(
                 "UPDATE \"Kullanicilar\" SET \"SifreDegistirmeli\" = true WHERE \"Id\" = 1 AND \"SifreHash\" = {0} AND NOT \"SifreDegistirmeli\"",
                 BaslangicYoneticiSifreOzeti);
