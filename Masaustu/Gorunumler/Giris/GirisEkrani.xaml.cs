@@ -17,6 +17,9 @@ public partial class GirisEkrani : Window
     {
         InitializeComponent();
         OrnekPaneliniHazirla();
+        TusTakiminiAyarla(TusTakimiTercihi());
+        if (typeof(App).Assembly.GetName().Version is { } surum)
+            SurumMetni.Text = $"Muhasebe Yönetim Sistemi • sürüm {surum.Major}.{surum.Minor}.{surum.Build}";
         _gorunumModeli = gorunumModeli;
         DataContext = _gorunumModeli;
 
@@ -254,11 +257,12 @@ public partial class GirisEkrani : Window
         if (App.AgModu == Altyapi.Veri.AgModu.Istemci) return;
         var bag = new System.Windows.Controls.Button
         {
-            Content = App.OrnekMod ? "↩ Gerçek verilerime dön" : "🎓 Örnek verilerle tanıyın (gerçek kayıtlarınıza dokunmaz)",
+            Content = App.OrnekMod ? "↩ Gerçek verilerime dön" : "🎓 Örnek verilerle tanıyın",
             Cursor = System.Windows.Input.Cursors.Hand, Background = System.Windows.Media.Brushes.Transparent, BorderThickness = new Thickness(0),
             Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(37, 99, 235)), HorizontalAlignment = HorizontalAlignment.Center,
             Padding = new Thickness(4)
         };
+        bag.ToolTip = App.OrnekMod ? "Program gerçek verilerinizle yeniden açılır" : "Ayrı bir tanıtım veritabanı açılır; gerçek kayıtlarınıza dokunulmaz";
         bag.Click += (_, _) => App.OrnekModaGec(!App.OrnekMod);
         if (App.OrnekMod)
             OrnekPaneli.Children.Add(new System.Windows.Controls.Border
@@ -272,5 +276,35 @@ public partial class GirisEkrani : Window
                 }
             });
         OrnekPaneli.Children.Add(bag);
+    }
+
+    // Tuş takımı tercihi bu bilgisayarda (kullanıcı profili) saklanır.
+    private static string TusTakimiDosyasi => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MuhasebeYonetim", "giris-tus-takimi.txt");
+
+    private static bool TusTakimiTercihi()
+    {
+        try { return System.IO.File.Exists(TusTakimiDosyasi) && System.IO.File.ReadAllText(TusTakimiDosyasi).Trim() == "1"; }
+        catch { return false; }
+    }
+
+    private void TusTakiminiAyarla(bool acik)
+    {
+        TusTakimi.Visibility = acik ? Visibility.Visible : Visibility.Collapsed;
+        TusTakimiDugmesi.Content = acik ? "🔢 Tuş takımını gizle" : "🔢 Tuş takımını göster";
+    }
+
+    private void TusTakimiDugmesi_Click(object sender, RoutedEventArgs e)
+    {
+        var acik = TusTakimi.Visibility != Visibility.Visible;
+        TusTakiminiAyarla(acik);
+        try
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(TusTakimiDosyasi)!);
+            System.IO.File.WriteAllText(TusTakimiDosyasi, acik ? "1" : "0");
+        }
+        catch
+        {
+        }
     }
 }

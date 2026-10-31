@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:yardimci="clr-namespace:Masaustu.Yardimcilar"
         Title="Muhasebe Yönetim Sistemi - Giriş"
-        Height="600" Width="900"
+        Width="900" MinHeight="600" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
@@ -70,7 +70,7 @@
 
             <!-- Sağ Panel - Giriş Formu -->
             <Border Grid.Column="1" Background="White">
-                <Grid VerticalAlignment="Center" Margin="48,0">
+                <Grid VerticalAlignment="Center" Margin="48,44,48,28">
                     <StackPanel>
                         <TextBlock Text="Hoş Geldiniz" FontSize="26" FontWeight="Bold"
                                    Foreground="#1A2F5E" Margin="0,0,0,4"/>
@@ -146,10 +146,15 @@
                                 IsDefault="True"/>
 
                         <!-- Örnek verilerle tanıtım / gerçek verilere dönüş (kod tarafında doldurulur) -->
-                        <StackPanel x:Name="OrnekPaneli" Margin="0,0,0,12"/>
+                        <StackPanel x:Name="OrnekPaneli" Margin="0,0,0,4"/>
+
+                        <!-- Dokunmatik ekranlar için tuş takımı: varsayılan kapalı, son tercih hatırlanır -->
+                        <Button x:Name="TusTakimiDugmesi" Click="TusTakimiDugmesi_Click" HorizontalAlignment="Center" Cursor="Hand"
+                                Background="Transparent" BorderThickness="0" Foreground="#6B7280" FontSize="12" Padding="4" Margin="0,0,0,8"
+                                Content="🔢 Tuş takımını göster" ToolTip="Dokunmatik ekranda şifreyi ekrandaki tuşlarla girin"/>
 
                         <!-- Sanal Numpad -->
-                        <Grid HorizontalAlignment="Center" Margin="0,0,0,16">
+                        <Grid x:Name="TusTakimi" Visibility="Collapsed" Margin="0,0,0,8">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -157,33 +162,33 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="60"/>
-                                <ColumnDefinition Width="60"/>
-                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.Resources>
                                 <Style TargetType="Button">
-                                    <Setter Property="Margin" Value="4"/>
-                                    <Setter Property="Height" Value="48"/>
-                                    <Setter Property="FontSize" Value="20"/>
+                                    <Setter Property="Margin" Value="3"/>
+                                    <Setter Property="Height" Value="42"/>
+                                    <Setter Property="FontSize" Value="18"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Background" Value="#F3F4F6"/>
-                                    <Setter Property="Foreground" Value="#374151"/>
+                                    <Setter Property="Background" Value="White"/>
+                                    <Setter Property="Foreground" Value="#1F2937"/>
                                     <Setter Property="BorderThickness" Value="0"/>
                                     <Setter Property="Cursor" Value="Hand"/>
                                     <EventSetter Event="Click" Handler="NumpadTusaBasildi"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1">
                                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#E5E7EB"/>
+                                                        <Setter Property="Background" Value="#F3F4F6"/>
                                                     </Trigger>
                                                     <Trigger Property="IsPressed" Value="True">
-                                                        <Setter Property="Background" Value="#D1D5DB"/>
+                                                        <Setter Property="Background" Value="#E5E7EB"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -204,14 +209,14 @@
                             <Button Grid.Row="2" Grid.Column="1" Content="8" Tag="8"/>
                             <Button Grid.Row="2" Grid.Column="2" Content="9" Tag="9"/>
 
-                            <Button Grid.Row="3" Grid.Column="0" Content="⌫" Tag="BACK" ToolTip="Sil" FontSize="24"/>
+                            <Button Grid.Row="3" Grid.Column="0" Content="⌫" Tag="BACK" ToolTip="Son haneyi sil" FontSize="18" Foreground="#6B7280"/>
                             <Button Grid.Row="3" Grid.Column="1" Content="0" Tag="0"/>
-                            <Button Grid.Row="3" Grid.Column="2" Content="C" Tag="CLEAR" ToolTip="Temizle"/>
+                            <Button Grid.Row="3" Grid.Column="2" Content="Temizle" Tag="CLEAR" ToolTip="Şifreyi temizle" FontSize="13" Foreground="#6B7280"/>
                         </Grid>
 
-                        <TextBlock Text="Muhasebe Yönetim Sistemi v1.0"
+                        <TextBlock x:Name="SurumMetni" Text="Muhasebe Yönetim Sistemi"
                                    Foreground="#9CA3AF" FontSize="11"
-                                   HorizontalAlignment="Center" Margin="0,40,0,0"/>
+                                   HorizontalAlignment="Center" Margin="0,12,0,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
