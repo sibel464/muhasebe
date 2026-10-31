@@ -165,7 +165,7 @@
                       SelectionMode="Single">
                 <DataGrid.Columns>
                     <!-- Tür Badge -->
-                    <DataGridTemplateColumn Header="TÜR" Width="80">
+                    <DataGridTemplateColumn Header="TÜR" Width="68">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border HorizontalAlignment="Left">
@@ -196,7 +196,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="140" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="FATURA NO" Binding="{Binding FaturaNo}" Width="156" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat=dd.MM.yyyy}" Width="90"/>
                     <DataGridTextColumn Header="CARİ ÜNVANI" Binding="{Binding CariKart.Unvan}" Width="2*" MinWidth="140"/>
                     <DataGridTextColumn Header="ÖDEME" Binding="{Binding OdemeSekli, Converter={StaticResource FaturaMetin}}" Width="95"/>

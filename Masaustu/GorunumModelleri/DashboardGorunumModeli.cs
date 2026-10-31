@@ -256,7 +256,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
                 BaslangicAdimlari.Clear();
                 foreach (var a in adimlar) BaslangicAdimlari.Add(a);
                 BaslangicOzeti = $"{adimlar.Count(a => a.Tamam)} / {adimlar.Count} tamamlandı";
-                BaslangicGorunur = adimlar.Any(a => !a.Tamam);
+                BaslangicGorunur = !App.OrnekMod && adimlar.Any(a => !a.Tamam); // tanıtım modunda kurulum listesi gösterilmez
             }
 
             if (_yedekServisi != null)

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muhasebe Yönetim Sistemi — Tanıtım</title>
+<style>
+  :root { --mavi:#1d4ed8; --koyu:#0f172a; --gri:#475569; --acik:#f1f5f9; --yesil:#15803d; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color: var(--koyu); background:#fff; line-height:1.55; }
+  header { background: linear-gradient(135deg,#0f172a,#1e3a8a); color:#fff; padding:56px 24px 48px; text-align:center; }
+  header h1 { margin:0 0 8px; font-size:2.3rem; }
+  header p { margin:0 auto; max-width:760px; font-size:1.15rem; opacity:.9; }
+  .rozetler { margin-top:22px; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+  .rozet { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); padding:6px 14px; border-radius:999px; font-size:.92rem; }
+  main { max-width:1100px; margin:0 auto; padding:0 20px 48px; }
+  h2 { font-size:1.6rem; margin:48px 0 16px; }
+  .izgara { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:16px; }
+  .kart { background:var(--acik); border-radius:12px; padding:18px 20px; }
+  .kart h3 { margin:0 0 6px; font-size:1.08rem; }
+  .kart p { margin:0; color:var(--gri); font-size:.95rem; }
+  figure { margin:24px 0; }
+  figure img { width:100%; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 8px 24px rgba(15,23,42,.10); }
+  figcaption { color:var(--gri); font-size:.92rem; margin-top:8px; text-align:center; }
+  .ikili { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+  @media (max-width:760px) { .ikili { grid-template-columns:1fr; } header h1 { font-size:1.8rem; } }
+  ul.tik { list-style:none; padding:0; margin:0; }
+  ul.tik li { padding:6px 0 6px 28px; position:relative; }
+  ul.tik li::before { content:"✓"; position:absolute; left:4px; color:var(--yesil); font-weight:700; }
+  .vurgu { background:#eff6ff; border-left:4px solid var(--mavi); padding:16px 20px; border-radius:8px; margin:20px 0; }
+  footer { background:var(--acik); text-align:center; padding:28px 20px; color:var(--gri); }
+  footer b { color:var(--koyu); }
+  @media print { header { padding:28px; } h2 { margin-top:24px; } figure { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Muhasebe Yönetim Sistemi</h1>
+  <p>Küçük ve orta ölçekli işletmeler için ön muhasebe, stok, e-Fatura ve genel muhasebe — tek programda, kendi bilgisayarınızda.</p>
+  <div class="rozetler">
+    <span class="rozet">e-Fatura · e-Arşiv · e-İrsaliye</span>
+    <span class="rozet">Tek Düzen Hesap Planı</span>
+    <span class="rozet">İnternetsiz çalışır</span>
+    <span class="rozet">Çok kullanıcı / ağ</span>
+    <span class="rozet">30 gün ücretsiz deneme</span>
+  </div>
+</header>
+
+<main>
+  <h2>Ne yapar?</h2>
+  <div class="izgara">
+    <div class="kart"><h3>🧾 Fatura ve e-Belge</h3><p>Satış, alış ve iade faturaları; e-Fatura, e-Arşiv ve e-İrsaliye entegratöre programdan tek tıkla gider. Onaylanınca otomatik gönderim, resmî PDF, gelen faturaları içeri alma.</p></div>
+    <div class="kart"><h3>👥 Cari hesaplar</h3><p>Vergi numarasını yazın, ünvan ve adres GİB'den gelsin. Hesap ekstresi, mutabakat mektubu, vade hatırlatma e-postası, yaşlandırma.</p></div>
+    <div class="kart"><h3>📦 Stok ve depo</h3><p>Çoklu depo, transfer, sayım, barkodlu raf etiketi, kritik stok uyarısı, hareketli ortalama maliyet ve kârlılık.</p></div>
+    <div class="kart"><h3>🛒 Hızlı satış (POS)</h3><p>Barkodla hızlı satış, nakit / kart / veresiye, 80 mm fiş, bekleyen satışlar.</p></div>
+    <div class="kart"><h3>🏦 Kasa, banka, çek-senet</h3><p>Dövizli kasa ve banka, POS bloke takibi, banka ekstresini Excel'den aktarma ve otomatik eşleştirme, çek/senet portföyü.</p></div>
+    <div class="kart"><h3>📒 Genel muhasebe</h3><p>Her işlem yevmiyeye kendiliğinden işlenir. Mizan, büyük defter, bilanço, gelir tablosu, KDV mahsubu, amortisman, yıl sonu kapanışı.</p></div>
+    <div class="kart"><h3>👔 Personel ve maaş</h3><p>Personel kartları, aylık maaş tahakkuku, avans, maaş ve vergi / SGK ödemeleri, maaş pusulası.</p></div>
+    <div class="kart"><h3>📊 Raporlar</h3><p>Yönetici özeti, satış/alış/kâr, nakit akışı, BA-BS formları, KDV raporu, vade takvimi — Excel ve PDF çıktısı.</p></div>
+  </div>
+
+  <h2>Ekranlar</h2>
+  <figure><img src="ekran/genel-bakis.png" alt="Genel bakış ekranı"><figcaption>Genel bakış: önümüzdeki 7 günün tahsilat ve ödemeleri, uyarılar ve özet göstergeler.</figcaption></figure>
+  <div class="ikili">
+    <figure><img src="ekran/rapor.png" alt="Rapor merkezi"><figcaption>Rapor merkezi: satış, alış, tahsilat, kâr ve dönem karşılaştırması.</figcaption></figure>
+    <figure><img src="ekran/fatura.png" alt="Fatura listesi"><figcaption>Fatura listesi: tek tıkla yazdır, e-Belge gönder, onayla.</figcaption></figure>
+    <figure><img src="ekran/satis.png" alt="Hızlı satış"><figcaption>Hızlı satış (POS): barkodla satış, fiş yazdırma.</figcaption></figure>
+    <figure><img src="ekran/mizan.png" alt="Mizan"><figcaption>Mizan ve genel muhasebe: tüm işlemler otomatik yevmiye kaydı.</figcaption></figure>
+  </div>
+
+  <h2>Neden bu program?</h2>
+  <div class="ikili">
+    <ul class="tik">
+      <li>Verileriniz <b>kendi bilgisayarınızda</b>; aylık bulut ücreti yok, internet kesilse de çalışır.</li>
+      <li>Her gün <b>otomatik yedek</b>, ikinci konuma (harici disk / bulut klasörü) kopya, tek tıkla geri yükleme.</li>
+      <li>Kullanıcı bazında <b>yetki</b> ve tüm değişikliklerin kaydı.</li>
+      <li>Ağ üzerinden <b>birden fazla bilgisayar</b> aynı verilerle çalışır.</li>
+    </ul>
+    <ul class="tik">
+      <li><b>e-Fatura entegrasyonu</b> hazır (Uyumsoft); diğer entegratörler için GİB standardında XML.</li>
+      <li><b>KVKK</b>: kişisel veri dökümü ve süresi dolan kayıtları anonimleştirme.</li>
+      <li>Eski programınızdaki cari ve ürünler <b>Excel'den</b> aktarılır.</li>
+      <li>Türkçe kullanım kılavuzu (F1) ve tek tıkla <b>destek dosyası</b>.</li>
+    </ul>
+  </div>
+
+  <div class="vurgu"><b>Kendiniz görün:</b> Programı kurun, giriş ekranındaki <b>"Örnek verilerle tanıyın"</b> bağlantısına basın. Örnek bir firmanın 3 aylık kayıtları hazır gelir; gerçek verilerinize dokunulmaz. 30 gün boyunca tüm özellikler açıktır.</div>
+
+  <h2>Sistem gereksinimleri</h2>
+  <ul class="tik">
+    <li>Windows 10 veya 11 (64 bit), en az 4 GB RAM, 2 GB boş disk</li>
+    <li>Ek program gerekmez: veritabanı kurulumla birlikte gelir</li>
+    <li>e-Fatura için özel entegratör sözleşmesi (Uyumsoft ya da GİB XML'ini kabul eden herhangi bir entegratör)</li>
+  </ul>
+</main>
+
+<footer>
+  <b>[Firma adınız]</b> · [Telefon] · [E-posta] · [Web sitesi]<br>
+  Kurulum, eğitim ve eski programdan veri aktarımı için bizi arayın.
+</footer>
+</body>
+</html>

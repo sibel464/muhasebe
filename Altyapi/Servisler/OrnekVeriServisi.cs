@@ -140,7 +140,7 @@ public static class OrnekVeriServisi
                 {
                     FaturaNo = string.Empty, Tur = FaturaTuru.Alis, CariKartId = tedarikciler[t], Tarih = Gun(geri, 10), VadeTarihi = Gun(geri - 30, 10),
                     Kalemler = urunler.Where(u => u.Tedarikci == t)
-                        .Select(u => new FaturaKalemi { UrunId = u.Id, Miktar = 40 + rastgele.Next(0, 40), BirimFiyat = u.Alis, KdvOrani = u.Kdv }).ToList()
+                        .Select(u => new FaturaKalemi { UrunId = u.Id, Miktar = 60 + rastgele.Next(0, 30), BirimFiyat = u.Alis, KdvOrani = u.Kdv }).ToList()
                 });
                 await faturalar.OnaylaAsync(alis.Id);
             }
@@ -150,13 +150,13 @@ public static class OrnekVeriServisi
         var acikSatislar = new List<(int CariId, decimal Tutar, int Geri)>();
         for (var geri = 80; geri >= 0; geri--)
         {
-            var adetSatis = rastgele.Next(0, 3);
+            var adetSatis = rastgele.Next(1, 4);
             for (var s = 0; s < adetSatis; s++)
             {
                 var cari = musteriler[rastgele.Next(musteriler.Count)];
                 var odeme = odemeler[rastgele.Next(odemeler.Length)];
                 var kalemler = urunler.OrderBy(_ => rastgele.Next()).Take(rastgele.Next(1, 4))
-                    .Select(u => new FaturaKalemi { UrunId = u.Id, Miktar = rastgele.Next(1, 6), BirimFiyat = u.Satis, KdvOrani = u.Kdv }).ToList();
+                    .Select(u => new FaturaKalemi { UrunId = u.Id, Miktar = rastgele.Next(2, 8), BirimFiyat = u.Satis, KdvOrani = u.Kdv }).ToList();
                 await using var c = baglamUret();
                 var fatura = await new FaturaServisi(c, oturum).PosSatisiniTamamlaAsync(new Fatura
                 {
@@ -199,6 +199,19 @@ public static class OrnekVeriServisi
                 var tutar = Math.Min(a.OdenecekTutar, decimal.Floor(await banka.HesapBakiyeHesaplaAsync(vadesizId) - 1000));
                 if (tutar <= 0) break;
                 await banka.HesaptanOdemeEkleAsync(vadesizId, a.CariKartId, tutar, "Tedarikçi ödemesi", tarih: Gun(3, 15));
+            }
+        }
+
+        // Kalan tedarikçi borcunun bir kısmı kasadan nakit ödenir (kasada işletme harçlığı kalır).
+        await using (var c = baglamUret())
+        {
+            var kasa = new KasaServisi(c, oturum);
+            foreach (var t in tedarikciler)
+            {
+                var borc = await c.CariKartlar.AsNoTracking().Where(x => x.Id == t).Select(x => x.Alacak - x.Borc).FirstAsync(ct);
+                var tutar = Math.Min(decimal.Floor(borc * 0.6m), decimal.Floor(await kasa.BakiyeHesaplaAsync() - 15000));
+                if (tutar > 0)
+                    await kasa.OdemeEkleAsync(t, tutar, "Tedarikçi ödemesi (nakit)", tarih: Gun(2, 12));
             }
         }
     }

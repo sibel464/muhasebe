@@ -284,6 +284,10 @@
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="bd" Property="Opacity" Value="0.75"/>
                         </Trigger>
+                        <!-- Kullanılamayan işlem (ör. onaylı faturada "Onayla") soluk görünür, tıklanabilir sanılmasın. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.28"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
