@@ -116,12 +116,64 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
     public bool DurumBasarili { get => _durumBasarili; set => OzellikAyarla(ref _durumBasarili, value); }
 
     public ICommand KaydetKomutu { get; }
+
+    private async Task GibSorgulaAsync()
+    {
+        if (_eBelgeServisi == null) return;
+        var vkn = new string((IsKurumsal ? VergiNo : TcNo).Where(char.IsDigit).ToArray());
+        if (vkn.Length is not (10 or 11))
+        {
+            DurumBasarili = false;
+            DurumMesaji = "Önce 10 haneli vergi numarasını (şahıs için 11 haneli T.C. kimlik no) yazın.";
+            return;
+        }
+        DurumBasarili = true;
+        DurumMesaji = "GİB kayıtları sorgulanıyor...";
+        try
+        {
+            var f = await _eBelgeServisi.FirmaSorgulaAsync(vkn);
+            if (f == null)
+            {
+                DurumBasarili = false;
+                DurumMesaji = $"{vkn} için GİB kaydı bulunamadı. Numarayı kontrol edin.";
+                return;
+            }
+            if (IsKurumsal) Unvan = f.Unvan;
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(f.Ad)) Ad = f.Ad;
+                if (!string.IsNullOrWhiteSpace(f.Soyad)) Soyad = f.Soyad;
+            }
+            if (!string.IsNullOrWhiteSpace(f.VergiDairesi)) VergiDairesi = f.VergiDairesi;
+            if (!string.IsNullOrWhiteSpace(f.Adres)) Adres = f.Adres;
+            if (!string.IsNullOrWhiteSpace(f.Il)) Il = f.Il;
+            if (!string.IsNullOrWhiteSpace(f.Ilce)) Ilce = f.Ilce;
+            EFaturaMukellefi = f.EFaturaEtiketi != null;
+            EFaturaEtiketi = f.EFaturaEtiketi ?? string.Empty;
+            DurumBasarili = f.Faal;
+            DurumMesaji = $"GİB kaydı getirildi: {f.Unvan}. " +
+                          (EFaturaMukellefi ? "e-Fatura mükellefi (faturası e-Fatura kesilir)." : "e-Fatura mükellefi değil (faturası e-Arşiv kesilir).") +
+                          (f.Faal ? "" : " ⚠ Mükellefiyeti TERK görünüyor; işlem yapmadan önce kontrol edin.");
+        }
+        catch (Exception ex)
+        {
+            DurumBasarili = false;
+            DurumMesaji = "Sorgulanamadı: " + ex.Message;
+        }
+    }
     public ICommand FormuTemizleKomutu { get; }
     public ICommand CariKoduEkleKomutu { get; }
     public ICommand GrupKoduEkleKomutu { get; }
 
-    public CariEkleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, NavigasyonServisi navigasyon)
+    private readonly IEBelgeServisi? _eBelgeServisi;
+    public ICommand GibSorgulaKomutu { get; }
+    // Entegratör bağlıysa vergi no'dan GİB kayıtlı ünvan/adres ve e-Fatura mükellefiyeti getirilebilir.
+    public bool GibSorgulaGorunur => _eBelgeServisi?.CevrimiciMi == true;
+
+    public CariEkleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, NavigasyonServisi navigasyon, IEBelgeServisi? eBelgeServisi = null)
     {
+        _eBelgeServisi = eBelgeServisi;
+        GibSorgulaKomutu = new KomutSarici(async () => await GibSorgulaAsync());
         _cariServisi = cariServisi;
         _navigasyon = navigasyon;
         _cariTipiServisi = cariTipiServisi;

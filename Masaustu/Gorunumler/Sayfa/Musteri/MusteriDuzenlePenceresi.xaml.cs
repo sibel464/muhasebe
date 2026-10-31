@@ -13,7 +13,8 @@ public partial class MusteriDuzenlePenceresi : Window
     {
         InitializeComponent();
         cariTipiServisi ??= App.HizmetSaglayici.GetService(typeof(ICariTipiTanimiServisi)) as ICariTipiTanimiServisi;
-        var vm = new MusteriDuzenleGorunumModeli(cariServisi, cariTipiServisi!, mevcutCari);
+        var vm = new MusteriDuzenleGorunumModeli(cariServisi, cariTipiServisi!, mevcutCari,
+            App.HizmetSaglayici?.GetService(typeof(IEBelgeServisi)) as IEBelgeServisi);
         vm.PencereKapat = kaydedildi =>
         {
             Kaydedildi = kaydedildi;

@@ -176,7 +176,9 @@ Bildirim elle de üretilebilir: `dotnet run --project LisansUretici -- guncellem
   bekleyen durumları toplu güncelleme ve gelen kutusundan fatura aktarma vardır. Şifre veritabanında şifreli durur.
   Test ortamı herkese açıktır (kullanıcı/şifre `Uyumsoft`); `UyumsoftEntegratorTests` ve
   `EBelgeTests.Uyumsoft_test_ortaminda_...` bu ortama gerçekten gönderir (internet yoksa atlanır).
-- e-İrsaliye her durumda XML dosyası olarak üretilir.
+- Uyumsoft bağlıyken ayrıca: resmî PDF, e-Arşiv iptali, e-Arşivde alıcıya e-posta bildirimi (cari e-postası),
+  cari kartta vergi no'dan GİB kaydı (ünvan/adres/mükellefiyet) getirme ve e-İrsaliye gönderimi
+  (`/Services/DespatchIntegration`) + durum sorgulama. Bağlı değilken e-İrsaliye XML dosyası olarak üretilir.
 - Başka entegratör eklemek için `IEBelgeCevrimiciEntegrator` uygulanır ve `EBelgeServisi.AyardanEntegrator`'a eklenir.
 
 ## Ağ (çok kullanıcılı) kullanım

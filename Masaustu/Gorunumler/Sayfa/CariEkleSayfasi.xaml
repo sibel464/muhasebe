@@ -124,7 +124,16 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1" Visibility="{Binding IsKurumsal, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock Text="Vergi Numarası" Style="{StaticResource EtiketMetin}"/>
-                            <TextBox Text="{Binding VergiNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" MaxLength="10"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding VergiNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" MaxLength="10"/>
+                                <Button Grid.Column="1" Command="{Binding GibSorgulaKomutu}" Content="🔎 GİB'den Getir" Margin="8,0,0,0" Padding="10,0" Height="36"
+                                        Style="{StaticResource IkinciDugme}" ToolTip="Vergi numarasından GİB kayıtlı ünvan, vergi dairesi, adres ve e-Fatura mükellefiyetini getirir"
+                                        Visibility="{Binding GibSorgulaGorunur, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </Grid>
                         </StackPanel>
                     </Grid>
 

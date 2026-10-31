@@ -42,6 +42,8 @@ public static class EBelgePenceresi
 
         var hazirla = Dugme(servis.DogrudanGonderir ? "📨 Hazırla ve Gönder" : "📄 XML Dosyası Oluştur", true);
         var sorgula = Dugme("🔄 Durumu Sorgula");
+        var pdf = Dugme("📄 Resmî PDF");
+        var arsivIptal = Dugme("e-Arşiv İptal Et");
         var goster = Dugme("XML'i Görüntüle");
         var klasor = Dugme("Klasörü Aç");
         var gonderildi = Dugme("Portala yüklendi (Gönderildi)");
@@ -54,7 +56,7 @@ public static class EBelgePenceresi
         var ust = new StackPanel { Children = { bilgi, senaryoPaneli, iadePaneli, hataPaneli, durumMetni } };
         DockPanel.SetDock(ust, Dock.Top);
         kok.Children.Add(ust);
-        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, sorgula, goster, klasor, gonderildi, kabul, red, iptal, kapat } };
+        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, sorgula, pdf, arsivIptal, goster, klasor, gonderildi, kabul, red, iptal, kapat } };
         if (servis.CevrimiciMi)
         {
             // Entegratör bağlıyken dosya/portal düğmeleri gereksiz; durum entegratörden sorgulanır.
@@ -62,7 +64,11 @@ public static class EBelgePenceresi
             gonderildi.Visibility = Visibility.Collapsed;
         }
         else
+        {
             sorgula.Visibility = Visibility.Collapsed;
+            pdf.Visibility = Visibility.Collapsed;
+            arsivIptal.Visibility = Visibility.Collapsed;
+        }
         DockPanel.SetDock(dugmeler, Dock.Bottom);
         kok.Children.Add(dugmeler);
         kok.Children.Add(new Border());
@@ -110,6 +116,9 @@ public static class EBelgePenceresi
                 hazirla.IsEnabled = kontrol.Hazirlanabilir;
                 goster.IsEnabled = hazirlanmis;
                 sorgula.IsEnabled = servis.CevrimiciMi && d is not (EBelgeDurumu.Yok or EBelgeDurumu.Hazirlandi);
+                pdf.IsEnabled = servis.CevrimiciMi && d is not (EBelgeDurumu.Yok or EBelgeDurumu.Hazirlandi or EBelgeDurumu.Hata);
+                arsivIptal.Visibility = servis.CevrimiciMi && kontrol.Tur == EBelgeTuru.EArsiv ? Visibility.Visible : Visibility.Collapsed;
+                arsivIptal.IsEnabled = d is EBelgeDurumu.Gonderildi or EBelgeDurumu.KabulEdildi;
                 klasor.IsEnabled = !servis.DogrudanGonderir;
                 gonderildi.IsEnabled = !servis.DogrudanGonderir && d is EBelgeDurumu.Hazirlandi or EBelgeDurumu.Hata;
                 kabul.IsEnabled = d is EBelgeDurumu.Gonderildi;
@@ -169,6 +178,24 @@ public static class EBelgePenceresi
             var bilgi = await servis.DurumSorgulaAsync(fatura.Id);
             durumMetni.Text = $"Durum: {M(bilgi.Durum)}\n{bilgi.Aciklama}";
         });
+        pdf.Click += async (_, _) => await IslemAsync(async () =>
+        {
+            var baytlar = await servis.PdfGetirAsync(fatura.Id);
+            var yol = Path.Combine(Path.GetTempPath(), $"{fatura.FaturaNo}.pdf");
+            await File.WriteAllBytesAsync(yol, baytlar);
+            Process.Start(new ProcessStartInfo(yol) { UseShellExecute = true });
+        });
+        arsivIptal.Click += async (_, _) =>
+        {
+            if (MessageBox.Show(pencere, "e-Arşiv fatura entegratör üzerinden iptal edilsin mi?\n\nİptal GİB'e raporlanır ve geri alınamaz. Sonrasında faturayı Fatura Listesi'nden de iptal edin (stok ve cari ters kaydı için).",
+                    "e-Arşiv İptal", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
+            await IslemAsync(async () =>
+            {
+                await servis.EArsivIptalAsync(fatura.Id);
+                durumMetni.Text = "✔ e-Arşiv fatura iptal edildi. Şimdi faturayı Fatura Listesi'nden iptal edin.";
+            });
+        };
         goster.Click += async (_, _) => await IslemAsync(async () =>
         {
             var xml = await servis.SonXmlGetirAsync(fatura.Id) ?? throw new InvalidOperationException("Kayıtlı XML bulunamadı.");

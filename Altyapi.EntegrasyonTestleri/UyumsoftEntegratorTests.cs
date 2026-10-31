@@ -99,6 +99,47 @@ public sealed class UyumsoftEntegratorTests
     }
 
     [Fact]
+    public async Task Test_ortaminda_firma_sorgusu_pdf_ve_earsiv_iptali_calisir()
+    {
+        await CevrimiciGerekirAsync();
+        var e = TestOrtami();
+
+        var firma = await e.FirmaSorgulaAsync(TestFirmaVkn);
+        Assert.NotNull(firma);
+        Assert.Contains("UYUMSOFT", firma!.Unvan);
+        Assert.Equal("İstanbul", firma.Il);
+        Assert.Equal("Esenler", firma.Ilce);
+        Assert.False(string.IsNullOrWhiteSpace(firma.VergiDairesi));
+        Assert.False(string.IsNullOrWhiteSpace(firma.Adres));
+        Assert.Null(await e.FirmaSorgulaAsync("123"));
+
+        // e-Arşiv: alıcının e-postası varsa entegratör PDF'i e-postayla iletir.
+        var arsiv = Paket(EBelgeTuru.EArsiv, new UblTaraf(UblTrFaturaUretici.NihaiTuketiciTckn, "Ayşe Yılmaz", Il: "İstanbul", Ilce: "Kadıköy", Eposta: "ayse@example.com"));
+        var s = await e.GonderAsync(arsiv);
+        Assert.True(s.Basarili, s.Mesaj);
+        Assert.Contains("e-postayla", s.Mesaj);
+
+        // Belge işlenince PDF üretilir; birkaç saniye beklenebilir.
+        byte[]? pdf = null;
+        for (var i = 0; i < 6 && pdf == null; i++)
+        {
+            try { pdf = await e.PdfAsync(arsiv.Ettn); }
+            catch (InvalidOperationException) { await Task.Delay(3000); }
+        }
+        Assert.NotNull(pdf);
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf!, 0, 4));
+
+        // Kuyruktaki belge iptal edilemez; işlenmesi beklenir (test ortamında genelde 1 dakikadan kısa).
+        for (var i = 0; ; i++)
+        {
+            try { await e.EArsivIptalAsync(arsiv.Ettn, DateTime.Now); break; }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("tekrar deneyin") && i < 24) { await Task.Delay(5000); }
+        }
+        var durum = await e.DurumSorgulaAsync(arsiv.Ettn, EBelgeTuru.EArsiv);
+        Assert.Equal(EBelgeDurumu.IptalEdildi, durum!.Durum);
+    }
+
+    [Fact]
     public async Task Test_ortaminda_gelen_faturalar_listelenir_ve_indirilen_xml_okunur()
     {
         await CevrimiciGerekirAsync();

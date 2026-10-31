@@ -35,6 +35,7 @@ public static class EIrsaliyePenceresi
 
         var hazirla = Dugme(servis.DogrudanGonderir ? "📨 Hazırla ve Gönder" : "📄 e-İrsaliye XML'i Oluştur", true);
         var klasor = Dugme("Klasörü Aç");
+        var sorgula = Dugme("🔄 Durumu Sorgula");
         var gonderildi = Dugme("Portala yüklendi (Gönderildi)");
         var iptal = Dugme("Portalda iptal edildi");
         var kapat = Dugme("Kapat");
@@ -53,7 +54,11 @@ public static class EIrsaliyePenceresi
         };
         DockPanel.SetDock(ust, Dock.Top);
         kok.Children.Add(ust);
-        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, klasor, gonderildi, iptal, kapat } };
+        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, sorgula, klasor, gonderildi, iptal, kapat } };
+        if (servis.CevrimiciMi)
+            klasor.Visibility = gonderildi.Visibility = Visibility.Collapsed;
+        else
+            sorgula.Visibility = Visibility.Collapsed;
         DockPanel.SetDock(dugmeler, Dock.Bottom);
         kok.Children.Add(dugmeler);
         kok.Children.Add(new Border());
@@ -76,6 +81,7 @@ public static class EIrsaliyePenceresi
             gonderildi.IsEnabled = irsaliye.EBelgeDurumu is EBelgeDurumu.Hazirlandi or EBelgeDurumu.Hata;
             iptal.IsEnabled = irsaliye.EBelgeDurumu is EBelgeDurumu.Gonderildi or EBelgeDurumu.KabulEdildi;
             klasor.IsEnabled = sonDosya != null;
+            sorgula.IsEnabled = irsaliye.EBelgeDurumu is not (EBelgeDurumu.Yok or EBelgeDurumu.Hazirlandi);
         }
 
         async Task EksikleriGosterAsync()
@@ -127,6 +133,18 @@ public static class EIrsaliyePenceresi
         {
             if (MessageBox.Show("e-İrsaliye portalda iptal edildi olarak işaretlensin mi?", "e-İrsaliye", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 await IsaretleAsync(EBelgeDurumu.IptalEdildi);
+        };
+        sorgula.Click += async (_, _) =>
+        {
+            try
+            {
+                var bilgi = await servis.IrsaliyeDurumSorgulaAsync(irsaliye.Id);
+                irsaliye.EBelgeDurumu = bilgi.Durum;
+                irsaliye.EBelgeMesaji = bilgi.Aciklama;
+                degisti = true;
+            }
+            catch (Exception ex) { hataListesi.Text = ex.Message; }
+            DurumuGoster();
         };
         kapat.Click += (_, _) => pencere.Close();
 

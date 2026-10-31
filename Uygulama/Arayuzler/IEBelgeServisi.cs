@@ -28,6 +28,24 @@ public interface IEBelgeCevrimiciEntegrator : IEBelgeEntegratoru
 
     Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
     Task<string> GelenXmlAsync(string ettn, CancellationToken cancellationToken = default);
+
+    // Gönderilmiş belgenin entegratörün ürettiği resmî PDF görüntüsü.
+    Task<byte[]> PdfAsync(Guid ettn, CancellationToken cancellationToken = default);
+
+    // e-Arşiv fatura iptali (GİB'e raporlanır). e-Fatura bu yolla iptal edilemez.
+    Task EArsivIptalAsync(Guid ettn, DateTime iptalTarihi, CancellationToken cancellationToken = default);
+
+    // Vergi/T.C. kimlik no'dan GİB kayıtlı ünvan, vergi dairesi ve adres; bulunamazsa null.
+    Task<FirmaSorguSonucu?> FirmaSorgulaAsync(string vknTckn, CancellationToken cancellationToken = default);
+
+    Task<EBelgeDurumBilgisi?> IrsaliyeDurumSorgulaAsync(Guid ettn, CancellationToken cancellationToken = default);
+}
+
+public sealed record FirmaSorguSonucu(string VknTckn, string Unvan, string? Ad, string? Soyad, string? VergiDairesi, string? Adres, string? Il, string? Ilce, bool Faal)
+{
+    // e-Fatura mükellefiyse GİB posta kutusu etiketi (servis doldurur).
+    public string? EFaturaEtiketi { get; init; }
+    public bool GercekKisi => VknTckn.Length == 11 || (!string.IsNullOrWhiteSpace(Ad) && string.IsNullOrWhiteSpace(Unvan));
 }
 
 public sealed record EntegratorHesapBilgisi(string Unvan, string VknTckn, bool EFatura, bool EArsiv);
@@ -96,6 +114,13 @@ public interface IEBelgeServisi
     Task<int> BekleyenDurumlariGuncelleAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
     Task<string> GelenXmlIndirAsync(string ettn, CancellationToken cancellationToken = default);
+    // Entegratörün ürettiği resmî fatura PDF'i (yalnız entegratör bağlıyken).
+    Task<byte[]> PdfGetirAsync(int faturaId, CancellationToken cancellationToken = default);
+    // Gönderilmiş e-Arşiv faturayı entegratör üzerinden iptal eder (GİB'e raporlanır); e-belge durumu İptal edildi olur.
+    Task EArsivIptalAsync(int faturaId, CancellationToken cancellationToken = default);
+    // Vergi/T.C. kimlik no'dan GİB kayıtlı ünvan ve adres (entegratör bağlı değilse null).
+    Task<FirmaSorguSonucu?> FirmaSorgulaAsync(string vknTckn, CancellationToken cancellationToken = default);
+    Task<EBelgeDurumBilgisi> IrsaliyeDurumSorgulaAsync(int irsaliyeId, CancellationToken cancellationToken = default);
 
     // Hazırlamadan önce kontrol; istekteki senaryo ve iade bilgisi kaydedilmeden denetime katılır.
     Task<EBelgeOnKontrol> OnKontrolAsync(EBelgeHazirlamaIstegi istek, CancellationToken cancellationToken = default);

@@ -266,10 +266,50 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     public ICommand KaydetKomutu { get; }
     public ICommand IptalKomutu { get; }
 
+    // Vergi no'dan GİB kayıtlı ünvan/adres ve e-Fatura mükellefiyeti (entegratör bağlıyken).
+    private async Task GibSorgulaAsync()
+    {
+        if (_eBelgeServisi == null) return;
+        var vkn = new string(((IsKurumsal ? VergiNo : TcNo) ?? "").Where(char.IsDigit).ToArray());
+        if (vkn.Length is not (10 or 11)) { GibMesaji = "Önce vergi numarasını (şahıs için T.C. kimlik no) yazın."; return; }
+        GibMesaji = "GİB kayıtları sorgulanıyor...";
+        try
+        {
+            var f = await _eBelgeServisi.FirmaSorgulaAsync(vkn);
+            if (f == null) { GibMesaji = $"{vkn} için GİB kaydı bulunamadı."; return; }
+            if (IsKurumsal) Unvan = f.Unvan;
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(f.Ad)) Ad = f.Ad;
+                if (!string.IsNullOrWhiteSpace(f.Soyad)) Soyad = f.Soyad;
+            }
+            if (!string.IsNullOrWhiteSpace(f.VergiDairesi)) VergiDairesi = f.VergiDairesi;
+            if (!string.IsNullOrWhiteSpace(f.Adres)) Adres = f.Adres;
+            if (!string.IsNullOrWhiteSpace(f.Il)) Il = f.Il;
+            if (!string.IsNullOrWhiteSpace(f.Ilce)) Ilce = f.Ilce;
+            EFaturaMukellefi = f.EFaturaEtiketi != null;
+            EFaturaEtiketi = f.EFaturaEtiketi;
+            GibMesaji = "✔ GİB kaydı getirildi. " + (EFaturaMukellefi ? "e-Fatura mükellefi." : "e-Fatura mükellefi değil (e-Arşiv).") +
+                        (f.Faal ? "" : " ⚠ Mükellefiyeti TERK görünüyor.");
+        }
+        catch (Exception ex)
+        {
+            GibMesaji = "Sorgulanamadı: " + ex.Message;
+        }
+    }
+
     public Action<bool>? PencereKapat { get; set; }
 
-    public MusteriDuzenleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, CariKart? mevcutCari = null)
+    private readonly IEBelgeServisi? _eBelgeServisi;
+    private string _gibMesaji = string.Empty;
+    public string GibMesaji { get => _gibMesaji; set => OzellikAyarla(ref _gibMesaji, value); }
+    public ICommand GibSorgulaKomutu { get; }
+    public bool GibSorgulaGorunur => _eBelgeServisi?.CevrimiciMi == true;
+
+    public MusteriDuzenleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, CariKart? mevcutCari = null, IEBelgeServisi? eBelgeServisi = null)
     {
+        _eBelgeServisi = eBelgeServisi;
+        GibSorgulaKomutu = new KomutSarici(async _ => await GibSorgulaAsync());
         _cariServisi = cariServisi;
         _cariTipiServisi = cariTipiServisi;
         _mevcutCari = mevcutCari;

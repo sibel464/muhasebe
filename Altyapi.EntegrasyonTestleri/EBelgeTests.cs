@@ -618,4 +618,41 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         var gelen = await servis.GelenListeAsync(DateTime.Today.AddDays(-7), DateTime.Today);
         Assert.NotEmpty(gelen);
     }
+
+    [Fact]
+    public async Task Uyumsoft_test_ortaminda_e_irsaliye_gonderilir_ve_durumu_sorgulanir()
+    {
+        await UyumsoftEntegratorTests.CevrimiciGerekirAsync();
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        o.Oturum.AktifYetkiler!.IrsaliyeGoruntule = true;
+        o.Oturum.AktifYetkiler.IrsaliyeOnayla = true;
+        var sirket = await db.Sirketler.SingleAsync(s => s.Id == o.Sirket.Id);
+        sirket.VergiNo = "9000068418";
+        var cari = await db.CariKartlar.SingleAsync(c => c.Id == o.Cari.Id);
+        cari.VergiNo = "9000068418";
+        var simdi = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+        var irsaliye = new EtkiAlani.Modeller.Irsaliye.Irsaliye
+        {
+            SirketId = o.Sirket.Id, CariKartId = o.Cari.Id, IrsaliyeNo = $"IRS-SAT-{Guid.NewGuid():N}"[..20], Tur = EtkiAlani.Modeller.Irsaliye.IrsaliyeTuru.Satis,
+            Durum = EtkiAlani.Modeller.Irsaliye.IrsaliyeDurumu.Onaylandi, Tarih = simdi, SevkTarihi = simdi,
+            TeslimatAdres = "Şantiye, Ankara Cad. 12", TeslimatIl = "İstanbul", TeslimatIlce = "Esenler",
+            AracPlaka = "34 ABC 123", SoforAdi = "Mehmet Ali Kaya", SoforTckn = GecerliTckn(Random.Shared.Next()),
+            // Ortak test hesabında numara çakışmasın.
+            EBelgeNo = "MYI" + DateTime.Now.Year + Random.Shared.NextInt64(100000000, 999999999),
+            Kalemler = [new EtkiAlani.Modeller.Irsaliye.IrsaliyeKalemi { UrunId = o.Urun.Id, UrunKodu = o.Urun.Kod, UrunAd = o.Urun.Ad, Birim = "Adet", Miktar = 3m }]
+        };
+        db.Irsaliyeler.Add(irsaliye);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var servis = new EBelgeServisi(db, o.Oturum, new UyumsoftEBelgeEntegratoru("Uyumsoft", "Uyumsoft", testOrtami: true));
+        Assert.Empty(await servis.IrsaliyeOnKontrolAsync(irsaliye.Id));
+        var sonuc = await servis.IrsaliyeHazirlaAsync(irsaliye.Id);
+        Assert.True(sonuc.Basarili, sonuc.Mesaj);
+        Assert.Equal(EBelgeDurumu.Gonderildi, sonuc.Durum);
+
+        var durum = await servis.IrsaliyeDurumSorgulaAsync(irsaliye.Id);
+        Assert.NotEqual(EBelgeDurumu.Hata, durum.Durum);
+    }
 }

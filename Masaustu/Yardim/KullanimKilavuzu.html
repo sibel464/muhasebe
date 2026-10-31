@@ -136,6 +136,7 @@
 <ul>
   <li>Kurumsal caride vergi dairesi ve vergi numarası, bireysel caride T.C. kimlik numarası girilir. Program numaraların doğruluğunu (son hane kontrolü) denetler.</li>
   <li><b>e-Fatura mükellefi</b> kutusu: Müşteriniz GİB e-Fatura sistemine kayıtlıysa işaretleyin; faturası e-Fatura olarak kesilir. İşaretli değilse e-Arşiv fatura kesilir. Emin değilseniz müşterinize ya da entegratörünüzün mükellef sorgulama ekranına danışın.</li>
+  <li><b>🔎 GİB'den Getir</b> (Uyumsoft bağlıysa görünür): vergi numarasını yazıp basın; ünvan, vergi dairesi, adres, il/ilçe ve e-Fatura mükellefiyeti GİB kayıtlarından kendiliğinden dolar. Mükellefiyeti terk edilmiş firmada uyarı verir.</li>
   <li>İl ve ilçe e-belgeler için gereklidir.</li>
   <li>Risk limiti ve vade günü girerseniz satışta limit aşımı uyarısı ve vade hesabı yapılır.</li>
 </ul>
@@ -244,7 +245,8 @@
 </ol>
 <p>Gönderim sırasında internet kesilirse ya da entegratör yanıt vermezse belge "Hata" görünebilir. Yeniden gönderdiğinizde program önce entegratöre sorar: belge zaten ulaşmışsa <b>ikinci kez gönderilmez</b>, yalnız durumu düzeltilir.</p>
 <p><b>Toplu hazırlama:</b> Fatura Listesi'nin üstündeki <b>Toplu e-Belge</b> ile seçtiğiniz tarih aralığındaki tüm bekleyen faturalar tek seferde gönderilir (dosya modunda dosyaları oluşturulur). Bilgisi eksik olan fatura atlanır ve nedeni listede yazar. Uyumsoft bağlıysa aynı pencerede <b>🔄 Bekleyen Durumları Güncelle</b> ile yanıt bekleyen tüm belgelerin durumu bir seferde alınır.</p>
-<p>e-Belgesi hazırlanmış faturanın çıktısında belge türü ve ETTN yazar. Müşteriye gönderilecek resmî görüntü, entegratörün ürettiği PDF'tir.</p>
+<p>e-Belgesi hazırlanmış faturanın çıktısında belge türü ve ETTN yazar. Müşteriye gönderilecek resmî görüntü, entegratörün ürettiği PDF'tir. Uyumsoft bağlıysa 📨 penceresindeki <b>📄 Resmî PDF</b> ile bu PDF'i açıp yazdırabilir ya da kaydedebilirsiniz.</p>
+<p><b>e-Arşiv faturanın teslimi:</b> e-Arşiv fatura alıcıya elektronik olarak iletilmelidir. Cari kartta e-posta adresi varsa Uyumsoft faturanın PDF'ini gönderimle birlikte alıcıya e-postayla yollar; yoksa pencerede uyarı çıkar ve PDF'i sizin iletmeniz gerekir.</p>
 
 <h3 id="efatura-durum">Durum takibi ve iptal</h3>
 <table>
@@ -256,7 +258,7 @@
   <tr><td>Hata</td><td>Gönderim başarısız oldu; bilgiyi düzeltip yeniden hazırlayın.</td></tr>
 </table>
 <p>Durum, Fatura Listesi'nde fatura durumunun altında küçük yazıyla görünür.</p>
-<div class="dikkat"><b>Gönderilmiş belgenin iptali:</b> e-Arşiv faturayı entegratör/GİB portalından iptal edin. e-Fatura tek taraflı iptal edilemez: ticari faturada alıcı reddeder, aksi halde alıcı size iade faturası keser (ya da GİB portalından iptal talebi yapılır). Sonra 📨 penceresinde <b>Portalda iptal edildi</b> veya <b>Reddedildi</b> deyip faturayı Fatura Listesi'nden iptal edin.</div>
+<div class="dikkat"><b>Gönderilmiş belgenin iptali:</b> Uyumsoft bağlıysa e-Arşiv faturayı 📨 penceresindeki <b>e-Arşiv İptal Et</b> ile programdan iptal edin (gönderimden hemen sonra belge işlenirken iptal edilemez; birkaç dakika sonra deneyin). Değilse entegratör/GİB portalından iptal edin. e-Fatura tek taraflı iptal edilemez: ticari faturada alıcı reddeder, aksi halde alıcı size iade faturası keser (ya da GİB portalından iptal talebi yapılır). Sonra 📨 penceresinde <b>Portalda iptal edildi</b> veya <b>Reddedildi</b> deyip faturayı Fatura Listesi'nden iptal edin.</div>
 
 <h3 id="efatura-gelen">Gelen e-Fatura aktarma</h3>
 <p>Tedarikçinizden gelen e-Faturayı programa aktararak alış faturasını elle girmekten kurtulursunuz. Uyumsoft bağlıysa <b>e-Fatura İçe Aktar</b> düğmesi önce "entegratörden indirilsin mi?" diye sorar: <b>Evet</b> derseniz gelen kutunuz listelenir (programa aktarılmış olanlar işaretlidir), aktarmak istediklerinizi seçip <b>Seçilenleri Aktar</b> dersiniz. Aşağıdaki adımlar XML dosyasıyla aktarma içindir (dosya entegratör portalından indirilebilir).</p>
@@ -275,6 +277,7 @@
   <li>Açılan pencerede <b>araç plakası</b>, <b>şoförün adı soyadı</b> ve <b>T.C. kimlik numarasını</b> girin (GİB bunları zorunlu tutar). Eksik firma ya da alıcı bilgisi varsa pencerede listelenir.</li>
   <li><b>e-İrsaliye XML'i Oluştur</b> deyin. Program belgeye GİB biçiminde bir e-İrsaliye numarası (ör. <code>IRS2026000000001</code>) ve ETTN verir, XML dosyasını e-Belge klasörüne yazar.</li>
   <li>Dosyayı entegratörünüzün portalına yükleyin, sonra <b>Portala yüklendi</b> ile işaretleyin. Gönderilmiş e-İrsaliye yeniden hazırlanamaz.</li>
+  <li>Uyumsoft bağlıysa düğme <b>Hazırla ve Gönder</b> olur: e-İrsaliye doğrudan alıcıya gönderilir (alıcı e-İrsaliye sistemine kayıtlı değilse program söyler; ona kâğıt irsaliye düzenlenir). Sonucu <b>🔄 Durumu Sorgula</b> ile görürsünüz.</li>
 </ol>
 <div class="not">e-İrsaliye numarası ve ETTN ilk hazırlamada verilir ve değişmez; hata alıp bilgileri düzeltirseniz aynı numarayla yeniden hazırlanır. Teslimat adresi irsaliyede girilmişse o adres, girilmemişse carinin adresi kullanılır.</div>
 

@@ -41,6 +41,8 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
 
     public async Task<EBelgeGonderimSonucu> GonderAsync(EBelgePaketi paket, CancellationToken cancellationToken = default)
     {
+        if (paket.Tur == EBelgeTuru.EIrsaliye)
+            return await IrsaliyeGonderAsync(paket, cancellationToken);
         var ubl = XDocument.Parse(paket.Xml).Root ?? throw new InvalidOperationException("e-Belge XML'i boş.");
         var musteri = ubl.Element(Cac + "AccountingCustomerParty")?.Element(Cac + "Party");
         var unvan = musteri?.Element(Cac + "PartyName")?.Element(Cbc + "Name")?.Value;
@@ -49,6 +51,9 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
             var kisi = musteri?.Element(Cac + "Person");
             unvan = $"{kisi?.Element(Cbc + "FirstName")?.Value} {kisi?.Element(Cbc + "FamilyName")?.Value}".Trim();
         }
+
+        var eposta = musteri?.Element(Cac + "Contact")?.Element(Cbc + "ElectronicMail")?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(eposta) || !eposta.Contains('@')) eposta = null;
 
         string? etiket = null;
         if (paket.Tur == EBelgeTuru.EFatura)
@@ -70,6 +75,15 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
                 new XAttribute("Title", unvan ?? string.Empty)),
             paket.Tur == EBelgeTuru.EArsiv ? new XElement(Tns + "EArchiveInvoiceInfo", new XAttribute("DeliveryType", "Electronic")) : null,
             new XElement(Tns + "Scenario", paket.Tur == EBelgeTuru.EFatura ? "eInvoice" : "eArchive"),
+            // e-Arşiv fatura alıcıya elektronik olarak teslim edilmelidir: alıcının e-postası varsa entegratör PDF'i gönderir.
+            paket.Tur == EBelgeTuru.EArsiv && eposta != null
+                ? new XElement(Tns + "Notification",
+                    new XElement(Tns + "Mailing",
+                        new XAttribute("EnableNotification", "true"), new XAttribute("To", eposta),
+                        new XElement(Tns + "Subject", $"{paket.FaturaNo} numaralı e-Arşiv faturanız"),
+                        new XElement(Tns + "Attachment", new XAttribute("Xml", "false"), new XAttribute("Pdf", "true"),
+                            new XAttribute("Html", "false"), new XAttribute("AdditionalDocuments", "false"))))
+                : null,
             new XElement(Tns + "CreateDateUtc", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)));
 
         var sonuc = await CagirAsync("SendInvoice", new XElement(Tns + "SendInvoice", new XElement(Tns + "invoices", bilgi)), cancellationToken);
@@ -80,7 +94,146 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
         var no = kimlik?.Attribute("Number")?.Value;
         return new EBelgeGonderimSonucu(true, EBelgeDurumu.Gonderildi,
             $"{Ad} üzerinden gönderildi" + (string.IsNullOrEmpty(no) ? "." : $" (belge no {no}).") +
-            (paket.Tur == EBelgeTuru.EFatura ? $" Alıcı etiketi: {etiket}." : " Alıcıya e-Arşiv olarak iletilir."));
+            (paket.Tur == EBelgeTuru.EFatura ? $" Alıcı etiketi: {etiket}."
+                : eposta != null ? $" Fatura PDF'i alıcıya e-postayla iletilecek ({eposta})."
+                : " Alıcının e-posta adresi kayıtlı değil: faturayı (PDF) alıcıya siz iletin."));
+    }
+
+    // e-İrsaliye: alıcı e-İrsaliye sistemine kayıtlı olmalıdır (posta kutusu etiketi irsaliye servisinden sorgulanır).
+    private async Task<EBelgeGonderimSonucu> IrsaliyeGonderAsync(EBelgePaketi paket, CancellationToken cancellationToken)
+    {
+        var belge = XDocument.Parse(paket.Xml).Root ?? throw new InvalidOperationException("e-İrsaliye XML'i boş.");
+        var alici = belge.Element(Cac + "DeliveryCustomerParty")?.Element(Cac + "Party");
+        var unvan = alici?.Element(Cac + "PartyName")?.Element(Cbc + "Name")?.Value;
+        if (string.IsNullOrWhiteSpace(unvan))
+        {
+            var kisi = alici?.Element(Cac + "Person");
+            unvan = $"{kisi?.Element(Cbc + "FirstName")?.Value} {kisi?.Element(Cbc + "FamilyName")?.Value}".Trim();
+        }
+        var etiket = await IrsaliyeEtiketiAsync(paket.AliciVknTckn, cancellationToken);
+        if (etiket == null)
+            return new EBelgeGonderimSonucu(false, EBelgeDurumu.Hata,
+                $"Alıcı ({paket.AliciVknTckn}) GİB e-İrsaliye sistemine kayıtlı görünmüyor. Bu alıcıya kâğıt irsaliye düzenleyin.");
+
+        var bilgi = new XElement(Tns + "DespatchInfo",
+            new XAttribute("LocalDocumentId", paket.FaturaNo),
+            new XElement(belge),
+            new XElement(Tns + "TargetCustomer",
+                new XAttribute("VknTckn", paket.AliciVknTckn), new XAttribute("Alias", etiket), new XAttribute("Title", unvan ?? string.Empty)));
+        var sonuc = await CagirAsync("SendDespatch", new XElement(Tns + "SendDespatch", new XElement(Tns + "despatches", bilgi)), cancellationToken, "IDespatchIntegration");
+        if (!Basarili(sonuc, out var mesaj))
+            return new EBelgeGonderimSonucu(false, EBelgeDurumu.Hata, "Entegratör e-İrsaliyeyi kabul etmedi: " + mesaj);
+        var no = sonuc.Elements(Tns + "Value").FirstOrDefault()?.Attribute("Number")?.Value;
+        return new EBelgeGonderimSonucu(true, EBelgeDurumu.Gonderildi,
+            $"e-İrsaliye {Ad} üzerinden gönderildi" + (string.IsNullOrEmpty(no) ? "." : $" (belge no {no}).") + $" Alıcı etiketi: {etiket}.");
+    }
+
+    private async Task<string?> IrsaliyeEtiketiAsync(string vknTckn, CancellationToken cancellationToken)
+    {
+        var sonuc = await CagirAsync("GetUserAliasses", new XElement(Tns + "GetUserAliasses", new XElement(Tns + "vknTckn", vknTckn.Trim())), cancellationToken, "IDespatchIntegration");
+        if (!Basarili(sonuc, out var mesaj))
+        {
+            if (mesaj.Contains("bulun", StringComparison.OrdinalIgnoreCase) || mesaj.Contains("not found", StringComparison.OrdinalIgnoreCase) || mesaj.Contains("kayıtlı değil", StringComparison.OrdinalIgnoreCase))
+                return null;
+            throw new InvalidOperationException("Alıcı sorgulanamadı: " + mesaj);
+        }
+        var etiketler = sonuc.Element(Tns + "Value")?.Elements(Tns + "DespatchReceiverboxAliases")
+            .Where(e => (string?)e.Attribute("Enabled") != "false")
+            .Select(e => (string?)e.Attribute("Alias")).Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? [];
+        return etiketler.FirstOrDefault(e => e!.StartsWith("urn:mail:", StringComparison.OrdinalIgnoreCase)) ?? etiketler.FirstOrDefault();
+    }
+
+    public async Task<EBelgeDurumBilgisi?> IrsaliyeDurumSorgulaAsync(Guid ettn, CancellationToken cancellationToken = default)
+    {
+        var sonuc = await CagirAsync("QueryOutboxDespatchStatus", new XElement(Tns + "QueryOutboxDespatchStatus",
+            new XElement(Tns + "despatchIds", new XElement(Tns + "string", ettn.ToString().ToUpperInvariant()))), cancellationToken, "IDespatchIntegration");
+        if (!Basarili(sonuc, out var mesaj))
+        {
+            if (mesaj.Contains("bulun", StringComparison.OrdinalIgnoreCase) || mesaj.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                return null;
+            throw new InvalidOperationException("Durum sorgulanamadı: " + mesaj);
+        }
+        var deger = sonuc.Elements(Tns + "Value").FirstOrDefault();
+        if (deger == null) return null;
+        var durum = (string?)deger.Attribute("StatusEnum") ?? string.Empty;
+        var aciklama = (string?)deger.Attribute("Message");
+        var d = durum switch
+        {
+            "Approved" or "PartialApproved" => EBelgeDurumu.KabulEdildi,
+            "Canceled" or "Deleted" => EBelgeDurumu.IptalEdildi,
+            "Error" or "Draft" => EBelgeDurumu.Hata,
+            _ => EBelgeDurumu.Gonderildi
+        };
+        var metin = durum switch
+        {
+            "Approved" => "Entegratör: e-İrsaliye alıcıya ulaştı / onaylandı",
+            "PartialApproved" => "Entegratör: alıcı irsaliyeyi kısmen kabul etti (irsaliye yanıtını kontrol edin)",
+            _ => DurumAciklamasi(durum)
+        };
+        return new EBelgeDurumBilgisi(d, metin + (string.IsNullOrWhiteSpace(aciklama) ? "" : $" — {aciklama}"));
+    }
+
+    public async Task<byte[]> PdfAsync(Guid ettn, CancellationToken cancellationToken = default)
+    {
+        var sonuc = await CagirAsync("GetOutboxInvoicePdf", new XElement(Tns + "GetOutboxInvoicePdf", new XElement(Tns + "invoiceId", ettn.ToString().ToUpperInvariant())), cancellationToken);
+        if (!Basarili(sonuc, out var mesaj))
+            throw new InvalidOperationException("PDF alınamadı: " + mesaj);
+        var veri = sonuc.Element(Tns + "Value")?.Element(Tns + "Data")?.Value;
+        if (string.IsNullOrWhiteSpace(veri))
+            throw new InvalidOperationException("Entegratör PDF göndermedi (belge henüz işleniyor olabilir).");
+        var baytlar = Convert.FromBase64String(veri);
+        if (baytlar.Length > 2 && baytlar[0] == (byte)'P' && baytlar[1] == (byte)'K')
+        {
+            using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(baytlar));
+            var giris = zip.Entries.FirstOrDefault(e => e.FullName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) ?? zip.Entries.First();
+            using var akis = giris.Open();
+            using var bellek = new MemoryStream();
+            await akis.CopyToAsync(bellek, cancellationToken);
+            baytlar = bellek.ToArray();
+        }
+        return baytlar;
+    }
+
+    public async Task EArsivIptalAsync(Guid ettn, DateTime iptalTarihi, CancellationToken cancellationToken = default)
+    {
+        var sonuc = await CagirAsync("CancelEArchiveInvoice", new XElement(Tns + "CancelEArchiveInvoice",
+            new XElement(Tns + "request",
+                new XAttribute("InvoiceId", ettn.ToString().ToUpperInvariant()),
+                new XAttribute("CancelDate", iptalTarihi.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)))), cancellationToken);
+        if (!Basarili(sonuc, out var mesaj) || (string?)sonuc.Attribute("Value") == "false")
+            throw new InvalidOperationException("e-Arşiv fatura iptal edilemedi: " + mesaj +
+                (mesaj.Contains("Kuyruk", StringComparison.OrdinalIgnoreCase) || mesaj.Contains("işleniyor", StringComparison.OrdinalIgnoreCase)
+                    ? "\nBelge entegratörde henüz işleniyor; birkaç dakika sonra tekrar deneyin." : ""));
+    }
+
+    public async Task<FirmaSorguSonucu?> FirmaSorgulaAsync(string vknTckn, CancellationToken cancellationToken = default)
+    {
+        var kimlik = new string((vknTckn ?? "").Where(char.IsDigit).ToArray());
+        if (kimlik.Length is not (10 or 11)) return null;
+        var sonuc = await CagirAsync("TryToGetAddressFromVknTckn", new XElement(Tns + "TryToGetAddressFromVknTckn",
+            new XElement(Tns + "vknTckn", kimlik), new XElement(Tns + "queryType", "Normal")), cancellationToken, "ICustomerServiceBase");
+        if (!Basarili(sonuc, out _)) return null;
+        var d = sonuc.Element(Tns + "Value");
+        string? D(XElement? e, string ad) => e?.Element(Tns + ad)?.Value is { Length: > 0 } v ? v.Trim() : null;
+        var unvan = D(d, "Unvan");
+        var ad = D(d, "Adi");
+        var soyad = D(d, "Soyadi");
+        if (d == null || (unvan == null && ad == null)) return null;
+        var adres = d.Element(Tns + "IsAdresi") is { HasElements: true } i && D(i, "IlAdi") != null ? i : d.Element(Tns + "IkametgahAdresi");
+        var acik = string.Join(" ", new[] { D(adres, "MahalleSemt"), D(adres, "CaddeSokak"),
+                D(adres, "KapiNO") is { } k ? "No:" + k : null, D(adres, "DaireNO") is { } dn ? "D:" + dn : null }
+            .Where(x => !string.IsNullOrWhiteSpace(x)));
+        return new FirmaSorguSonucu(kimlik, unvan ?? $"{ad} {soyad}".Trim(), ad, soyad,
+            D(d, "VergiDairesiAdi"), acik.Length > 0 ? acik : null, Baslik(D(adres, "IlAdi")), Baslik(D(adres, "IlceAdi")),
+            D(d, "FaalTerkBilgisi") is null or "Faal");
+    }
+
+    // "İSTANBUL" → "İstanbul" (Türkçe büyük/küçük harf kurallarıyla).
+    private static string? Baslik(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        var tr = CultureInfo.GetCultureInfo("tr-TR");
+        return string.Join(' ', s.Trim().ToLower(tr).Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(p => char.ToUpper(p[0], tr) + p[1..]));
     }
 
     public async Task<EntegratorHesapBilgisi> BaglantiDeneAsync(CancellationToken cancellationToken = default)
@@ -214,7 +367,11 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
         return (string?)sonuc.Attribute("IsSucceded") == "true";
     }
 
-    private async Task<XElement> CagirAsync(string islem, XElement govde, CancellationToken cancellationToken)
+    // e-İrsaliye ayrı serviste: .../Services/DespatchIntegration
+    private string IrsaliyeAdresi => _adres.EndsWith("/Integration", StringComparison.OrdinalIgnoreCase)
+        ? _adres[..^"Integration".Length] + "DespatchIntegration" : _adres;
+
+    private async Task<XElement> CagirAsync(string islem, XElement govde, CancellationToken cancellationToken, string sozlesme = "IIntegration")
     {
         if (string.IsNullOrWhiteSpace(_kullanici) || string.IsNullOrEmpty(_sifre))
             throw new InvalidOperationException("Entegratör kullanıcı adı ve şifresi Ayarlar > Firma & Parametreler > e-Belge bölümünde girilmemiş.");
@@ -230,11 +387,11 @@ public sealed class UyumsoftEBelgeEntegratoru : IEBelgeCevrimiciEntegrator
                             _sifre)))),
             new XElement(Soap + "Body", govde)));
 
-        using var istek = new HttpRequestMessage(HttpMethod.Post, _adres)
+        using var istek = new HttpRequestMessage(HttpMethod.Post, sozlesme == "IDespatchIntegration" ? IrsaliyeAdresi : _adres)
         {
             Content = new StringContent(zarf.ToString(SaveOptions.DisableFormatting), Encoding.UTF8, "text/xml")
         };
-        istek.Headers.Add("SOAPAction", $"\"http://tempuri.org/IIntegration/{islem}\"");
+        istek.Headers.Add("SOAPAction", $"\"http://tempuri.org/{sozlesme}/{islem}\"");
 
         HttpResponseMessage yanit;
         try

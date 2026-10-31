@@ -184,7 +184,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         static T G<T>(IServiceProvider sp) where T : notnull => sp.GetRequiredService<T>();
         _navigasyon.Kaydet("Dashboard", sp => new DashboardGorunumModeli(G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke(), G<IKasaServisi>(sp), G<IFaturaServisi>(sp), sp.GetService<IBaslangicKontrolServisi>(), sp.GetService<IVeritabaniYedekServisi>(), sp.GetService<ITekrarlayanFaturaServisi>(), sp.GetService<IRaporMerkeziServisi>(), sp.GetService<IPersonelServisi>()));
         _navigasyon.Kaydet("Musteri", sp => new MusteriGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke()));
-        _navigasyon.Kaydet("CariEkle", sp => new CariEkleGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon));
+        _navigasyon.Kaydet("CariEkle", sp => new CariEkleGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon, sp.GetService<IEBelgeServisi>()));
         _navigasyon.Kaydet("CariSil", sp => new CariSilGorunumModeli(G<ICariServisi>(sp), G<IKvkkServisi>(sp)));
         _navigasyon.Kaydet("UrunEkle", sp => new UrunEkleGorunumModeli(G<IUrunServisi>(sp), G<IMerkeziTanimServisi>(sp), _navigasyon));
         _navigasyon.Kaydet("UrunSil", sp => new UrunSilGorunumModeli(G<IUrunServisi>(sp)));

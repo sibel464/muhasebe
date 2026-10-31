@@ -120,8 +120,18 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1" Visibility="{Binding IsKurumsal, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock Text="Vergi Numarası" Style="{StaticResource EtiketMetin}"/>
-                            <TextBox Text="{Binding VergiNo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
-                                     Style="{StaticResource ModernMetinKutusu}" Height="40" MaxLength="10"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding VergiNo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                         Style="{StaticResource ModernMetinKutusu}" Height="40" MaxLength="10"/>
+                                <Button Grid.Column="1" Command="{Binding GibSorgulaKomutu}" Content="🔎 GİB'den Getir" Margin="8,0,0,0" Padding="10,0" Height="40"
+                                        Style="{StaticResource IkinciDugme}" ToolTip="Vergi numarasından GİB kayıtlı ünvan, vergi dairesi, adres ve e-Fatura mükellefiyetini getirir"
+                                        Visibility="{Binding GibSorgulaGorunur, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </Grid>
+                            <TextBlock Text="{Binding GibMesaji}" TextWrapping="Wrap" FontSize="12" Foreground="#2563EB" Margin="0,4,0,0"/>
                         </StackPanel>
 
                         <!-- Bireysel T.C. Kimlik Bilgileri -->
