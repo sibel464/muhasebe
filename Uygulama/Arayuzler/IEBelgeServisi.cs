@@ -14,6 +14,29 @@ public interface IEBelgeEntegratoru
     Task<EBelgeGonderimSonucu> GonderAsync(EBelgePaketi paket, CancellationToken cancellationToken = default);
 }
 
+// Web servisiyle doğrudan çalışan entegratörlerin ek yetenekleri (durum sorgulama, alıcı sorgulama, gelen kutusu).
+public interface IEBelgeCevrimiciEntegrator : IEBelgeEntegratoru
+{
+    // Kullanıcı adı/şifre doğruysa entegratördeki firma unvanı ve vergi no'su döner.
+    Task<EntegratorHesapBilgisi> BaglantiDeneAsync(CancellationToken cancellationToken = default);
+
+    // Alıcı GİB e-Fatura sistemine kayıtlıysa posta kutusu etiketini (PK), değilse null döner.
+    Task<string?> AliciEtiketiAsync(string vknTckn, CancellationToken cancellationToken = default);
+
+    // Gönderilmiş belgenin entegratördeki durumu; entegratör belgeyi tanımıyorsa null.
+    Task<EBelgeDurumBilgisi?> DurumSorgulaAsync(Guid ettn, EBelgeTuru tur, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
+    Task<string> GelenXmlAsync(string ettn, CancellationToken cancellationToken = default);
+}
+
+public sealed record EntegratorHesapBilgisi(string Unvan, string VknTckn, bool EFatura, bool EArsiv);
+public sealed record EBelgeDurumBilgisi(EBelgeDurumu Durum, string Aciklama);
+public sealed record GelenEBelgeOzeti(string Ettn, string FaturaNo, DateTime Tarih, string GonderenUnvan, string GonderenVknTckn, decimal Tutar, string ParaBirimi, string Durum)
+{
+    public bool Aktarildi { get; set; }
+}
+
 public sealed record EBelgePaketi(string FaturaNo, Guid Ettn, EBelgeTuru Tur, string AliciVknTckn, string? AliciEtiketi, string Xml);
 
 public sealed record EBelgeGonderimSonucu(bool Basarili, EBelgeDurumu Durum, string? Mesaj = null, string? DosyaYolu = null);
@@ -64,6 +87,15 @@ public interface IEBelgeServisi
 {
     string EntegratorAdi { get; }
     bool DogrudanGonderir { get; }
+    // Entegratör web servisi bağlı mı (durum sorgulama ve gelen kutusu yalnız bu durumda çalışır).
+    bool CevrimiciMi { get; }
+
+    // Ayarlar ekranındaki "Bağlantıyı Dene": şifre boşsa kayıtlı şifre kullanılır.
+    Task<EntegratorHesapBilgisi> BaglantiDeneAsync(int entegrator, string kullanici, string? sifre, bool testOrtami, CancellationToken cancellationToken = default);
+    Task<EBelgeDurumBilgisi> DurumSorgulaAsync(int faturaId, CancellationToken cancellationToken = default);
+    Task<int> BekleyenDurumlariGuncelleAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default);
+    Task<string> GelenXmlIndirAsync(string ettn, CancellationToken cancellationToken = default);
 
     // Hazırlamadan önce kontrol; istekteki senaryo ve iade bilgisi kaydedilmeden denetime katılır.
     Task<EBelgeOnKontrol> OnKontrolAsync(EBelgeHazirlamaIstegi istek, CancellationToken cancellationToken = default);

@@ -18,6 +18,11 @@ public partial class AyarlarSayfasi : System.Windows.Controls.UserControl
         if (DataContext is Masaustu.GorunumModelleri.AyarlarGorunumModeli vm) vm.SmtpSifreYeni = SmtpSifreKutusu.Password;
     }
 
+    private void EBelgeSifreKutusu_PasswordChanged(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is Masaustu.GorunumModelleri.AyarlarGorunumModeli vm) vm.EBelgeSifreYeni = EBelgeSifreKutusu.Password;
+    }
+
     private void AgAyarlari_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         var oturum = App.HizmetSaglayici.GetService(typeof(Uygulama.Arayuzler.IKullaniciServisi)) as Uygulama.Arayuzler.IKullaniciServisi;

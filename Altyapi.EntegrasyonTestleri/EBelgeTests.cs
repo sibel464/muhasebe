@@ -558,4 +558,64 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         Assert.Equal(900m, fatura.TevkifatTutari);
         Assert.Equal(5100m, fatura.OdenecekTutar);
     }
+
+    // Uyumsoft TEST ortamıyla uçtan uca: alıcının mükellefiyeti GİB listesinden düzeltilir, belge doğrudan gönderilir,
+    // durum sorgulanır; yanıtı kaybolmuş gönderim yeniden denendiğinde belge ikinci kez gönderilmez. Gelen kutusu listelenir.
+    [Fact]
+    public async Task Uyumsoft_test_ortaminda_servis_uzerinden_gonderim_durum_ve_gelen_kutusu()
+    {
+        await UyumsoftEntegratorTests.CevrimiciGerekirAsync();
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        // Test hesabı Uyumsoft'un kendi firmasıdır; gönderen ve (kendi posta kutusuna) alıcı bu VKN olur.
+        var sirket = await db.Sirketler.SingleAsync(s => s.Id == o.Sirket.Id);
+        sirket.VergiNo = "9000068418";
+        var cari = await db.CariKartlar.SingleAsync(c => c.Id == o.Cari.Id);
+        cari.VergiNo = "9000068418";
+        cari.EFaturaMukellefi = false;   // yanlış işaretlenmiş: servis GİB listesinden düzeltmeli
+        cari.EFaturaEtiketi = null;
+        await db.SaveChangesAsync();
+
+        var fatura = await SatisFaturasiAsync(o, cari);
+        // Ortak test hesabında numara çakışmasın.
+        var kayit = await db.Faturalar.SingleAsync(f => f.Id == fatura.Id);
+        kayit.FaturaNo = "MYT" + DateTime.Now.Year + Random.Shared.NextInt64(100000000, 999999999);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var servis = new EBelgeServisi(db, o.Oturum, new UyumsoftEBelgeEntegratoru("Uyumsoft", "Uyumsoft", testOrtami: true));
+        Assert.True(servis.CevrimiciMi);
+        Assert.True(servis.DogrudanGonderir);
+
+        var sonuc = await servis.HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(fatura.Id));
+        Assert.True(sonuc.Basarili, sonuc.Mesaj);
+        Assert.Equal(EBelgeDurumu.Gonderildi, sonuc.Durum);
+        Assert.Contains("e-Fatura mükellefi", sonuc.Mesaj);
+
+        await using (var oku = new MuhasebeBaglami(fixture.Options) { AktifSirketId = o.Sirket.Id })
+        {
+            var c = await oku.CariKartlar.AsNoTracking().SingleAsync(x => x.Id == cari.Id);
+            Assert.True(c.EFaturaMukellefi);
+            Assert.False(string.IsNullOrWhiteSpace(c.EFaturaEtiketi));
+            var f = await oku.Faturalar.AsNoTracking().SingleAsync(x => x.Id == fatura.Id);
+            Assert.Equal(EBelgeTuru.EFatura, f.EBelgeTuru);
+            Assert.Equal(EBelgeDurumu.Gonderildi, f.EBelgeDurumu);
+        }
+
+        var durum = await servis.DurumSorgulaAsync(fatura.Id);
+        Assert.NotEqual(EBelgeDurumu.Hata, durum.Durum);
+
+        // Yanıtı kaybolmuş gönderim: program "Hata" sanıyor; yeniden denemede entegratör belgeyi tanıdığı için tekrar gönderilmez.
+        db.ChangeTracker.Clear();
+        var f2 = await db.Faturalar.SingleAsync(x => x.Id == fatura.Id);
+        f2.EBelgeDurumu = EBelgeDurumu.Hata;
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var tekrar = await servis.HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(fatura.Id));
+        Assert.True(tekrar.Basarili, tekrar.Mesaj);
+        Assert.Contains("yeniden gönderilmedi", tekrar.Mesaj);
+
+        var gelen = await servis.GelenListeAsync(DateTime.Today.AddDays(-7), DateTime.Today);
+        Assert.NotEmpty(gelen);
+    }
 }

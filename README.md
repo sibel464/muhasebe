@@ -166,6 +166,19 @@ powershell -ExecutionPolicy Bypass -File kurulum\Paketle.ps1 -Surum 1.0.2 -Yayin
 `https://ornek.com/guncelleme/guncelleme.json` olur (`kurulum\appsettings.Kurulum.json`).
 Bildirim elle de üretilebilir: `dotnet run --project LisansUretici -- guncelleme --msi ... --surum ... --adres ...`.
 
+## e-Fatura entegratörü
+
+**Ayarlar → Firma & Parametreler → Gönderim yolu**:
+
+- **XML dosyası** (varsayılan): UBL-TR XML klasöre yazılır, müşteri entegratör portalına yükler.
+- **Uyumsoft**: web servis kullanıcı adı/şifresiyle doğrudan gönderim (`Altyapi/EBelge/UyumsoftEBelgeEntegratoru.cs`).
+  Her gönderimde alıcının mükellefiyeti GİB listesinden sorgulanıp cari kart düzeltilir; durum sorgulama,
+  bekleyen durumları toplu güncelleme ve gelen kutusundan fatura aktarma vardır. Şifre veritabanında şifreli durur.
+  Test ortamı herkese açıktır (kullanıcı/şifre `Uyumsoft`); `UyumsoftEntegratorTests` ve
+  `EBelgeTests.Uyumsoft_test_ortaminda_...` bu ortama gerçekten gönderir (internet yoksa atlanır).
+- e-İrsaliye her durumda XML dosyası olarak üretilir.
+- Başka entegratör eklemek için `IEBelgeCevrimiciEntegrator` uygulanır ve `EBelgeServisi.AyardanEntegrator`'a eklenir.
+
 ## Ağ (çok kullanıcılı) kullanım
 
 **Ayarlar → 🌐 Ağ** (Ayarları Yönet yetkisi gerekir):
@@ -207,5 +220,7 @@ program bunları üretmez.
 - [ ] Ürün/üretici adı (`Paket.wxs`, `appsettings.Kurulum.json`) son haline getirildi.
 - [ ] Güncelleme adresi belirlendi ve `GuncellemeAdresi` dolduruldu.
 - [ ] Kod imzalama sertifikası alındı (yoksa müşteride Windows SmartScreen uyarısı çıkar).
+      Paketlerken: `kurulum\Paketle.ps1 -Surum x -ImzaSertifikasi <parmak izi | dosya.pfx> [-ImzaSifresi ...]`
+      (Masaustu.exe ve MSI imzalanır, DigiCert zaman damgası eklenir).
 - [ ] MSI temiz bir bilgisayarda kurulup ilk açılış, lisans, yedek/geri yükleme, güncelleme ve
       iki bilgisayarlı ağ kurulumu denendi.

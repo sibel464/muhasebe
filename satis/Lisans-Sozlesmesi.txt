@@ -1,0 +1,46 @@
+# MUHASEBE YÖNETİM SİSTEMİ — SON KULLANICI LİSANS SÖZLEŞMESİ
+! Bu metin bir taslaktır; satıştan önce bir hukukçu tarafından gözden geçirilmeli, [köşeli parantez] içindeki yerler doldurulmalıdır.
+
+Programı kurarak ya da kullanarak bu sözleşmeyi kabul etmiş olursunuz. Kabul etmiyorsanız kurulumu iptal edin.
+
+## 1. Taraflar ve tanımlar
+"Lisans Veren": [Ünvan, adres, vergi dairesi ve numarası]. "Kullanıcı": programı satın alan ya da deneme sürümünü kuran gerçek veya tüzel kişi. "Program": Muhasebe Yönetim Sistemi yazılımı, kurulum paketi, kullanım kılavuzu ve güncellemeleri. "Lisans Dosyası": Lisans Veren'in Kullanıcı'nın bilgisayarına özel ürettiği elektronik imzalı dosya.
+
+## 2. Lisansın kapsamı
+2.1. Lisans Veren, Kullanıcı'ya Program'ı kendi işletmesinin iç işlerinde kullanmak üzere münhasır olmayan, devredilemez bir kullanım hakkı verir. Program satılmaz, kullanım hakkı lisanslanır; Program üzerindeki tüm fikri mülkiyet hakları Lisans Veren'e aittir (5846 sayılı Fikir ve Sanat Eserleri Kanunu).
+2.2. Lisans, Lisans Dosyası'nda yazan bilgisayar(lar) ve süre için geçerlidir. Süre yazmıyorsa lisans süresizdir. Bilgisayar değişikliğinde Kullanıcı yeni Lisans Dosyası talep eder; eski bilgisayardaki kullanım sona erer.
+2.3. Deneme sürümü ilk kurulumdan itibaren 30 gün kullanılabilir. Süre bitince veriler silinmez, yalnız kayıt girişi lisans yüklenene kadar durur.
+
+## 3. Yasaklar
+Kullanıcı; Program'ı kopyalayamaz (yedekleme amaçlı kopya hariç), çoğaltamaz, kiralayamaz, satamaz, alt lisans veremez, ağ üzerinden üçüncü kişilerin kullanımına açamaz; kaynak kodunu elde etmeye çalışamaz, tersine mühendislik yapamaz; lisans denetimini atlatmaya yönelik değişiklik yapamaz.
+
+## 4. Veriler, yedekleme ve sorumluluk
+4.1. Kullanıcı'nın verileri (cari, fatura, stok, kasa, banka, muhasebe ve personel kayıtları) Kullanıcı'nın kendi bilgisayarında ya da kendi sunucusunda tutulur. Lisans Veren bu verilere erişmez; Kullanıcı'nın açıkça izin verdiği uzaktan destek oturumları hariç.
+4.2. Program her gün otomatik yedek alır ve ikinci bir yedek konumu tanımlanmasına imkân verir. Yedeklerin bilgisayar dışında (harici disk, bulut vb.) saklanması ve düzenli kontrolü Kullanıcı'nın sorumluluğundadır.
+4.3. Program bir ön muhasebe ve kayıt aracıdır. Beyanname, bildirge ve yasal defterlerin doğruluğundan Kullanıcı ve mali müşaviri sorumludur. Program'ın ürettiği rapor ve belgeler mali müşavir kontrolü yerine geçmez.
+4.4. Bordro hesaplaması yapılmaz; maaş tutarları Kullanıcı'nın (ya da müşavirinin) hazırladığı bordrodan girilir.
+
+## 5. e-Fatura / e-Arşiv
+5.1. e-Belgelerin GİB'e iletimi Kullanıcı'nın ayrıca sözleşme yaptığı özel entegratör aracılığıyla yapılır. Entegratör hizmeti, kontör ve mali mühür bedelleri bu lisansa dahil değildir.
+5.2. Entegratörün hizmet kesintisi, GİB sistemlerindeki aksaklıklar ve mevzuat değişikliklerinden doğan gecikmelerden Lisans Veren sorumlu değildir. Lisans Veren, mevzuat değişikliklerine uyum güncellemelerini makul süre içinde yayınlamaya çalışır.
+
+## 6. Kişisel veriler (KVKK)
+6.1. Program'a girilen kişisel verilerin (müşteri, tedarikçi, personel) 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında veri sorumlusu Kullanıcı'dır. Aydınlatma yükümlülüğü, VERBİS kaydı ve saklama-imha politikası Kullanıcı'ya aittir.
+6.2. Uzaktan destek ya da veri aktarımı hizmeti verildiğinde Lisans Veren, ayrıca imzalanacak Veri İşleme Ekine göre veri işleyen sıfatıyla hareket eder.
+
+## 7. Güncelleme ve destek
+[Satış modeline göre doldurulacak — örnek:] Lisans bedeline ilk [12] ay güncelleme ve [e-posta / telefon] desteği dahildir. Sonraki dönemler için yıllık bakım bedeli [ ] TL + KDV'dir. Bakım anlaşması olmayan Kullanıcı, satın aldığı sürümü kullanmaya devam eder.
+
+## 8. Garanti ve sorumluluğun sınırı
+8.1. Lisans Veren, Program'ın kullanım kılavuzunda anlatıldığı şekilde çalışacağını taahhüt eder; bildirilen hataları makul sürede gidermeye çalışır. Program'ın her donanım ve yazılım ortamında kesintisiz ve hatasız çalışacağı garanti edilmez.
+8.2. Lisans Veren'in kast veya ağır ihmali dışında; veri kaybı, kâr kaybı, vergi cezası ve dolaylı zararlardan sorumluluğu, Kullanıcı'nın son 12 ayda ödediği lisans bedeli ile sınırlıdır.
+
+## 9. Sözleşmenin sona ermesi
+Kullanıcı bu sözleşmeye aykırı davranırsa Lisans Veren yazılı bildirimle lisansı sona erdirebilir. Sona ermede Kullanıcı'nın verileri silinmez; Kullanıcı verilerini Excel/PDF çıktısı ve yedek dosyası olarak alabilir.
+
+## 10. Uyuşmazlıklar
+Bu sözleşmeye Türk hukuku uygulanır. Uyuşmazlıklarda [ ] Mahkemeleri ve İcra Daireleri yetkilidir. Kullanıcı tüketici ise 6502 sayılı Kanun'daki tüketici hakem heyeti ve tüketici mahkemesine başvuru hakları saklıdır.
+
+## 11. Üçüncü taraf bileşenler
+Program aşağıdaki açık kaynak bileşenleri içerir; lisans metinleri kurulum klasöründedir (pgsql\LISANSLAR):
+PostgreSQL (PostgreSQL License), .NET ve Entity Framework Core (MIT), Npgsql (PostgreSQL License), MailKit / MimeKit (MIT), BCrypt.Net-Next (MIT), MahApps.Metro.IconPacks (MIT).

@@ -80,6 +80,10 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
             mevcut.SmtpGuvenlik = guncelAyarlar.SmtpGuvenlik is >= 0 and <= 3 ? guncelAyarlar.SmtpGuvenlik : 0;
             mevcut.SmtpKullanici = string.IsNullOrWhiteSpace(guncelAyarlar.SmtpKullanici) ? null : guncelAyarlar.SmtpKullanici.Trim();
             mevcut.SmtpSifre = guncelAyarlar.SmtpSifre;
+            mevcut.EBelgeEntegrator = guncelAyarlar.EBelgeEntegrator is >= 0 and <= 1 ? guncelAyarlar.EBelgeEntegrator : 0;
+            mevcut.EBelgeKullanici = string.IsNullOrWhiteSpace(guncelAyarlar.EBelgeKullanici) ? null : guncelAyarlar.EBelgeKullanici.Trim();
+            mevcut.EBelgeSifre = guncelAyarlar.EBelgeSifre;
+            mevcut.EBelgeTestOrtami = guncelAyarlar.EBelgeTestOrtami;
             mevcut.EpostaGonderenAdi = string.IsNullOrWhiteSpace(guncelAyarlar.EpostaGonderenAdi) ? null : guncelAyarlar.EpostaGonderenAdi.Trim();
             mevcut.FisHeader = guncelAyarlar.FisHeader?.Trim();
             mevcut.FisFooter = guncelAyarlar.FisFooter?.Trim();

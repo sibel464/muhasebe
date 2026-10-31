@@ -41,6 +41,7 @@ public static class EBelgePenceresi
         var durumMetni = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Foreground = Brushes.DarkSlateBlue };
 
         var hazirla = Dugme(servis.DogrudanGonderir ? "📨 Hazırla ve Gönder" : "📄 XML Dosyası Oluştur", true);
+        var sorgula = Dugme("🔄 Durumu Sorgula");
         var goster = Dugme("XML'i Görüntüle");
         var klasor = Dugme("Klasörü Aç");
         var gonderildi = Dugme("Portala yüklendi (Gönderildi)");
@@ -53,7 +54,15 @@ public static class EBelgePenceresi
         var ust = new StackPanel { Children = { bilgi, senaryoPaneli, iadePaneli, hataPaneli, durumMetni } };
         DockPanel.SetDock(ust, Dock.Top);
         kok.Children.Add(ust);
-        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, goster, klasor, gonderildi, kabul, red, iptal, kapat } };
+        var dugmeler = new WrapPanel { Margin = new Thickness(0, 16, 0, 0), Children = { hazirla, sorgula, goster, klasor, gonderildi, kabul, red, iptal, kapat } };
+        if (servis.CevrimiciMi)
+        {
+            // Entegratör bağlıyken dosya/portal düğmeleri gereksiz; durum entegratörden sorgulanır.
+            klasor.Visibility = Visibility.Collapsed;
+            gonderildi.Visibility = Visibility.Collapsed;
+        }
+        else
+            sorgula.Visibility = Visibility.Collapsed;
         DockPanel.SetDock(dugmeler, Dock.Bottom);
         kok.Children.Add(dugmeler);
         kok.Children.Add(new Border());
@@ -100,6 +109,7 @@ public static class EBelgePenceresi
                 var hazirlanmis = d != EBelgeDurumu.Yok;
                 hazirla.IsEnabled = kontrol.Hazirlanabilir;
                 goster.IsEnabled = hazirlanmis;
+                sorgula.IsEnabled = servis.CevrimiciMi && d is not (EBelgeDurumu.Yok or EBelgeDurumu.Hazirlandi);
                 klasor.IsEnabled = !servis.DogrudanGonderir;
                 gonderildi.IsEnabled = !servis.DogrudanGonderir && d is EBelgeDurumu.Hazirlandi or EBelgeDurumu.Hata;
                 kabul.IsEnabled = d is EBelgeDurumu.Gonderildi;
@@ -154,6 +164,11 @@ public static class EBelgePenceresi
             sonDosya = sonuc.DosyaYolu ?? sonDosya;
             durumMetni.Text = (sonuc.Basarili ? "✔ " : "✖ ") + sonuc.Mesaj + (sonuc.DosyaYolu != null ? $"\nDosya: {sonuc.DosyaYolu}" : string.Empty);
         });
+        sorgula.Click += async (_, _) => await IslemAsync(async () =>
+        {
+            var bilgi = await servis.DurumSorgulaAsync(fatura.Id);
+            durumMetni.Text = $"Durum: {M(bilgi.Durum)}\n{bilgi.Aciklama}";
+        });
         goster.Click += async (_, _) => await IslemAsync(async () =>
         {
             var xml = await servis.SonXmlGetirAsync(fatura.Id) ?? throw new InvalidOperationException("Kayıtlı XML bulunamadı.");
@@ -191,6 +206,9 @@ public static class EBelgePenceresi
         var bit = new DatePicker { SelectedDate = bugun, Width = 140, Margin = new Thickness(8, 0, 0, 0) };
         var calistir = Dugme(servis.DogrudanGonderir ? "Hazırla ve Gönder" : "XML Dosyalarını Oluştur", true);
         calistir.Margin = new Thickness(12, 0, 0, 0);
+        var durumlar = Dugme("🔄 Bekleyen Durumları Güncelle");
+        durumlar.Margin = new Thickness(8, 0, 0, 0);
+        durumlar.Visibility = servis.CevrimiciMi ? Visibility.Visible : Visibility.Collapsed;
         var ozet = new TextBlock { Margin = new Thickness(0, 12, 0, 8), TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold };
         var tablo = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, HeadersVisibility = DataGridHeadersVisibility.Column, CanUserAddRows = false, Background = Brushes.White };
         tablo.Columns.Add(new DataGridTextColumn { Header = "Fatura No", Binding = new System.Windows.Data.Binding(nameof(EBelgeTopluSonuc.FaturaNo)), Width = 150 });
@@ -207,7 +225,7 @@ public static class EBelgePenceresi
             Children =
             {
                 new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10), Text = "Seçilen tarihler arasındaki onaylı satış faturaları ve alış iadelerinden e-belgesi henüz hazırlanmamış ya da hata almış olanlar hazırlanır. Eksik bilgisi olan fatura atlanır ve nedeni listede yazar." },
-                new StackPanel { Orientation = Orientation.Horizontal, Children = { new TextBlock { Text = "Tarih aralığı:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) }, bas, bit, calistir } },
+                new StackPanel { Orientation = Orientation.Horizontal, Children = { new TextBlock { Text = "Tarih aralığı:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) }, bas, bit, calistir, durumlar } },
                 ozet
             }
         };
@@ -223,6 +241,27 @@ public static class EBelgePenceresi
             Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
         };
         var degisti = false;
+        durumlar.Click += async (_, _) =>
+        {
+            durumlar.IsEnabled = false;
+            pencere.Cursor = System.Windows.Input.Cursors.Wait;
+            ozet.Text = "Entegratörden durumlar alınıyor...";
+            try
+            {
+                var adet = await servis.BekleyenDurumlariGuncelleAsync();
+                degisti |= adet > 0;
+                ozet.Text = adet == 0 ? "Yanıt bekleyen belgelerin durumunda değişiklik yok." : $"{adet} belgenin durumu güncellendi (kabul / red / hata). Fatura listesinde görebilirsiniz.";
+            }
+            catch (Exception ex)
+            {
+                ozet.Text = "Durumlar alınamadı: " + ex.Message;
+            }
+            finally
+            {
+                durumlar.IsEnabled = true;
+                pencere.Cursor = null;
+            }
+        };
         calistir.Click += async (_, _) =>
         {
             if (bas.SelectedDate is not DateTime b || bit.SelectedDate is not DateTime s || b > s)
@@ -261,6 +300,13 @@ public static class EBelgePenceresi
     // Aktarılan fatura sayısını döner.
     public static async Task<int> GelenAktarAsync(IEBelgeServisi servis)
     {
+        if (servis.CevrimiciMi)
+        {
+            var cevap = MessageBox.Show("Gelen faturalar entegratörden indirilsin mi?\n\nEvet: entegratördeki gelen kutusu listelenir.\nHayır: bilgisayardaki XML dosyalarını seçersiniz.",
+                "Gelen e-Fatura", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (cevap == MessageBoxResult.Cancel) return 0;
+            if (cevap == MessageBoxResult.Yes) return await GelenKutusuAsync(servis);
+        }
         var secim = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Gelen e-Fatura XML dosyalarını seçin", Filter = "e-Fatura XML (*.xml)|*.xml|Tüm dosyalar (*.*)|*.*", Multiselect = true
@@ -300,6 +346,134 @@ public static class EBelgePenceresi
             }
         }
         return aktarilan;
+    }
+
+    // Entegratördeki gelen kutusu: tarih aralığındaki faturalar listelenir, seçilenler indirilip önizlemeyle aktarılır.
+    private static async Task<int> GelenKutusuAsync(IEBelgeServisi servis)
+    {
+        var bugun = DateTime.Today;
+        var bas = new DatePicker { SelectedDate = bugun.AddDays(-30), Width = 140 };
+        var bit = new DatePicker { SelectedDate = bugun, Width = 140, Margin = new Thickness(8, 0, 0, 0) };
+        var listele = Dugme("Listele", true);
+        listele.Margin = new Thickness(12, 0, 0, 0);
+        var sadeceYeni = new CheckBox { Content = "Yalnız aktarılmamışlar", IsChecked = true, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
+        var ozet = new TextBlock { Margin = new Thickness(0, 10, 0, 8), TextWrapping = TextWrapping.Wrap };
+        var tablo = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, HeadersVisibility = DataGridHeadersVisibility.Column, CanUserAddRows = false, Background = Brushes.White, SelectionMode = DataGridSelectionMode.Extended };
+        void Kolon(string ad, string yol, string? bicim = null, double genislik = 110) =>
+            tablo.Columns.Add(new DataGridTextColumn { Header = ad, Binding = new System.Windows.Data.Binding(yol) { StringFormat = bicim }, Width = genislik });
+        Kolon("Tarih", nameof(GelenEBelgeOzeti.Tarih), "dd.MM.yyyy", 90);
+        Kolon("Fatura No", nameof(GelenEBelgeOzeti.FaturaNo), genislik: 150);
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Gönderen", Binding = new System.Windows.Data.Binding(nameof(GelenEBelgeOzeti.GonderenUnvan)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+        Kolon("Tutar", nameof(GelenEBelgeOzeti.Tutar), "N2", 100);
+        Kolon("Para", nameof(GelenEBelgeOzeti.ParaBirimi), genislik: 50);
+        Kolon("Durum", nameof(GelenEBelgeOzeti.Durum), genislik: 170);
+        tablo.Columns.Add(new DataGridTextColumn { Header = "Programda", Binding = new System.Windows.Data.Binding(nameof(GelenEBelgeOzeti.Aktarildi)) { Converter = new AktarildiMetni() }, Width = 90 });
+        var aktar = Dugme("Seçilenleri Aktar", true);
+        aktar.IsEnabled = false;
+        var kapat = Dugme("Kapat");
+
+        var ust = new StackPanel
+        {
+            Children =
+            {
+                new StackPanel { Orientation = Orientation.Horizontal, Children = { new TextBlock { Text = "Tarih aralığı:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) }, bas, bit, listele, sadeceYeni } },
+                ozet
+            }
+        };
+        var alt = new WrapPanel { Margin = new Thickness(0, 12, 0, 0), Children = { aktar, kapat } };
+        var kok = new DockPanel { Margin = new Thickness(20) };
+        DockPanel.SetDock(ust, Dock.Top);
+        DockPanel.SetDock(alt, Dock.Bottom);
+        kok.Children.Add(ust);
+        kok.Children.Add(alt);
+        kok.Children.Add(tablo);
+        var pencere = new Window
+        {
+            Title = "Gelen e-Faturalar (" + servis.EntegratorAdi + ")", Width = 1000, Height = 600, MinWidth = 700, MinHeight = 420,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false, Background = Brushes.White, Content = kok,
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
+
+        IReadOnlyList<GelenEBelgeOzeti> tumu = [];
+        var aktarilan = 0;
+        void Goster()
+        {
+            tablo.ItemsSource = sadeceYeni.IsChecked == true ? tumu.Where(x => !x.Aktarildi).ToList() : tumu.ToList();
+            ozet.Text = $"{tumu.Count} gelen fatura, {tumu.Count(x => !x.Aktarildi)} tanesi programa aktarılmamış. Aktarmak istediklerinizi seçin (Ctrl / Shift ile çoklu seçim)." +
+                        (aktarilan > 0 ? $"\n✔ Bu pencerede {aktarilan} fatura taslak olarak aktarıldı; Fatura listesinden kontrol edip onaylayın." : "");
+        }
+        async Task ListeleAsync()
+        {
+            if (bas.SelectedDate is not DateTime b || bit.SelectedDate is not DateTime s || b > s)
+            {
+                MessageBox.Show(pencere, "Geçerli bir tarih aralığı seçin.", "Gelen e-Fatura");
+                return;
+            }
+            listele.IsEnabled = false;
+            pencere.Cursor = System.Windows.Input.Cursors.Wait;
+            ozet.Text = "Entegratörden alınıyor...";
+            try
+            {
+                tumu = await servis.GelenListeAsync(b, s);
+                Goster();
+            }
+            catch (Exception ex)
+            {
+                ozet.Text = "❌ " + ex.Message;
+            }
+            finally
+            {
+                listele.IsEnabled = true;
+                pencere.Cursor = null;
+            }
+        }
+
+        listele.Click += async (_, _) => await ListeleAsync();
+        sadeceYeni.Click += (_, _) => Goster();
+        tablo.SelectionChanged += (_, _) => aktar.IsEnabled = tablo.SelectedItems.Count > 0;
+        kapat.Click += (_, _) => pencere.Close();
+        aktar.Click += async (_, _) =>
+        {
+            foreach (var x in tablo.SelectedItems.OfType<GelenEBelgeOzeti>().ToList())
+            {
+                if (x.Aktarildi) continue;
+                string xml;
+                GelenFaturaOnizleme onizleme;
+                try
+                {
+                    xml = await servis.GelenXmlIndirAsync(x.Ettn);
+                    onizleme = await servis.GelenFaturaOnizleAsync(xml);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(pencere, $"{x.FaturaNo} indirilemedi:\n\n{ex.Message}", "Gelen e-Fatura", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    continue;
+                }
+                var sonuc = GelenOnizlemeGoster(x.FaturaNo, onizleme);
+                if (sonuc == null) break;
+                if (sonuc == false) continue;
+                try
+                {
+                    await servis.GelenFaturaAktarAsync(xml);
+                    x.Aktarildi = true;
+                    aktarilan++;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(pencere, $"{x.FaturaNo} aktarılamadı:\n\n{ex.Message}", "Gelen e-Fatura", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            Goster();
+        };
+        pencere.Loaded += async (_, _) => await ListeleAsync();
+        pencere.ShowDialog();
+        return aktarilan;
+    }
+
+    private sealed class AktarildiMetni : System.Windows.Data.IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => value is true ? "✔ Aktarıldı" : "—";
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => System.Windows.Data.Binding.DoNothing;
     }
 
     // true: aktar, false: bu dosyayı atla, null: vazgeç.

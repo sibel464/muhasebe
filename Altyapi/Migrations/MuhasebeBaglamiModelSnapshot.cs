@@ -33,8 +33,20 @@ namespace Altyapi.Migrations
                     b.Property<string>("Adres")
                         .HasColumnType("text");
 
+                    b.Property<int>("EBelgeEntegrator")
+                        .HasColumnType("integer");
+
                     b.Property<string>("EBelgeKlasoru")
                         .HasColumnType("text");
+
+                    b.Property<string>("EBelgeKullanici")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EBelgeSifre")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("EBelgeTestOrtami")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("EFaturaVarsayilanSenaryo")
                         .HasColumnType("integer");
@@ -137,6 +149,8 @@ namespace Altyapi.Migrations
                         new
                         {
                             Id = 1,
+                            EBelgeEntegrator = 0,
+                            EBelgeTestOrtami = false,
                             EFaturaVarsayilanSenaryo = 0,
                             FaturaNotu = "Mal tesliminde faturanın ibrazı zorunludur.",
                             FirmaUnvani = "",

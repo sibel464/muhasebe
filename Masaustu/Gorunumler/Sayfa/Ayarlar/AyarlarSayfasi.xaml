@@ -145,6 +145,46 @@
                                         </ComboBox>
                                     </StackPanel>
                                 </Grid>
+                                <StackPanel Margin="0,12,0,0">
+                                    <TextBlock Text="Gönderim yolu (entegratör)" Style="{StaticResource EtiketMetin}"/>
+                                    <ComboBox ItemsSource="{Binding EBelgeEntegratorSecenekleri}" SelectedIndex="{Binding EBelgeEntegratorIndex}" Height="36"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,10,0,0">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding EBelgeEntegratorSecili}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock TextWrapping="Wrap" Foreground="#64748B" FontSize="12" Margin="0,0,0,8"
+                                               Text="Entegratörle yaptığınız sözleşmede verilen web servis kullanıcı adı ve şifresini girin. Faturalar programdan doğrudan gönderilir, alıcının e-Fatura mükellefi olup olmadığı GİB listesinden kontrol edilir, durumlar ve gelen faturalar programa çekilir."/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,10,0">
+                                            <TextBlock Text="Web servis kullanıcı adı" Style="{StaticResource EtiketMetin}"/>
+                                            <TextBox Text="{Binding EBelgeKullanici, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Web servis şifresi" Style="{StaticResource EtiketMetin}"/>
+                                            <PasswordBox x:Name="EBelgeSifreKutusu" PasswordChanged="EBelgeSifreKutusu_PasswordChanged" Height="36" Padding="8,0" VerticalContentAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="{Binding EBelgeSifreBilgisi}" FontSize="12" Foreground="#64748B" Margin="0,4,0,8"/>
+                                    <CheckBox IsChecked="{Binding EBelgeTestOrtami}" Margin="0,0,0,10"
+                                              Content="Test ortamı (deneme amaçlı; belgeler GİB'e gitmez. Uyumsoft deneme hesabı: Uyumsoft / Uyumsoft)"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Command="{Binding EBelgeBaglantiDeneKomutu}" Style="{StaticResource IkinciDugme}" Content="Bağlantıyı Dene"/>
+                                        <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Margin="8,0,0,0" Content="Kaydet"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding EBelgeDurumu}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 

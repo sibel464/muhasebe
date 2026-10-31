@@ -12,18 +12,130 @@ public class EBelgeServisi : IEBelgeServisi
 {
     private readonly MuhasebeBaglami _baglam;
     private readonly IKullaniciServisi? _kullaniciServisi;
-    private readonly IEBelgeEntegratoru _entegrator;
+    private readonly Lazy<IEBelgeEntegratoru> _entegratorKaynagi;
+    private readonly DosyaEBelgeEntegratoru _dosyaEntegrator;
 
     public EBelgeServisi(MuhasebeBaglami baglam, IKullaniciServisi? kullaniciServisi = null, IEBelgeEntegratoru? entegrator = null)
     {
         _baglam = baglam;
         _kullaniciServisi = kullaniciServisi;
-        _entegrator = entegrator ?? new DosyaEBelgeEntegratoru(() =>
+        _dosyaEntegrator = new DosyaEBelgeEntegratoru(() =>
             _baglam.SistemAyarlari.AsNoTracking().Where(a => a.Id == 1).Select(a => a.EBelgeKlasoru).FirstOrDefault() ?? string.Empty);
+        // Gönderim yolu Ayarlar'dan okunur (her pencere kendi servis örneğini aldığı için ayar değişikliği hemen geçerli olur).
+        _entegratorKaynagi = new Lazy<IEBelgeEntegratoru>(() => entegrator ?? AyardanEntegrator(
+            _baglam.SistemAyarlari.AsNoTracking().FirstOrDefault(a => a.Id == 1)) ?? _dosyaEntegrator);
     }
+
+    private IEBelgeEntegratoru _entegrator => _entegratorKaynagi.Value;
+    private IEBelgeCevrimiciEntegrator? Cevrimici => _entegrator as IEBelgeCevrimiciEntegrator;
+
+    public static IEBelgeEntegratoru? AyardanEntegrator(EtkiAlani.Modeller.Ayar.SistemAyarlari? ayar) =>
+        ayar?.EBelgeEntegrator switch
+        {
+            1 => new UyumsoftEBelgeEntegratoru(ayar.EBelgeKullanici ?? string.Empty, Eposta.SmtpSifreleyici.Coz(ayar.EBelgeSifre) ?? string.Empty, ayar.EBelgeTestOrtami),
+            _ => null
+        };
 
     public string EntegratorAdi => _entegrator.Ad;
     public bool DogrudanGonderir => _entegrator.DogrudanGonderir;
+    public bool CevrimiciMi => Cevrimici != null;
+
+    public async Task<EntegratorHesapBilgisi> BaglantiDeneAsync(int entegrator, string kullanici, string? sifre, bool testOrtami, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.AyarlariYonet, "e-Belge Bağlantı Denemesi");
+        if (string.IsNullOrEmpty(sifre))
+            sifre = Eposta.SmtpSifreleyici.Coz(await _baglam.SistemAyarlari.AsNoTracking().Where(a => a.Id == 1).Select(a => a.EBelgeSifre).FirstOrDefaultAsync(cancellationToken));
+        var e = AyardanEntegrator(new EtkiAlani.Modeller.Ayar.SistemAyarlari
+                    { EBelgeEntegrator = entegrator, EBelgeKullanici = kullanici, EBelgeSifre = Eposta.SmtpSifreleyici.Sifrele(sifre), EBelgeTestOrtami = testOrtami })
+                as IEBelgeCevrimiciEntegrator
+                ?? throw new InvalidOperationException("Dosya modunda bağlantı denemesi gerekmez.");
+        return await e.BaglantiDeneAsync(cancellationToken);
+    }
+
+    // Çevrimiçi entegratörde alıcının e-Fatura mükellefiyeti GİB listesinden doğrulanır ve cari kart düzeltilir;
+    // yanlış belge türü (e-Fatura yerine e-Arşiv ya da tersi) kesilmesin. Değişiklik varsa açıklaması döner.
+    private async Task<string?> AliciyiDogrulaAsync(Fatura fatura, CancellationToken cancellationToken)
+    {
+        if (Cevrimici is not { } e || fatura.CariKart is not { } cari) return null;
+        var kimlik = Rakamlar(cari.VergiNo) is { Length: 10 or 11 } v ? v : Rakamlar(cari.TcNo);
+        if (kimlik.Length is not (10 or 11)) return null;
+        var etiket = await e.AliciEtiketiAsync(kimlik, cancellationToken);
+        var mukellef = etiket != null;
+        string? not = null;
+        if (cari.EFaturaMukellefi != mukellef)
+            not = mukellef
+                ? $"Alıcı GİB e-Fatura sistemine kayıtlı çıktı; cari kart 'e-Fatura mükellefi' olarak güncellendi ve belge e-Fatura olarak gönderildi."
+                : $"Alıcı GİB e-Fatura sistemine kayıtlı değil; cari karttaki 'e-Fatura mükellefi' işareti kaldırıldı ve belge e-Arşiv olarak gönderildi.";
+        cari.EFaturaMukellefi = mukellef;
+        if (mukellef && string.IsNullOrWhiteSpace(cari.EFaturaEtiketi))
+            cari.EFaturaEtiketi = etiket;
+        return not;
+    }
+
+    public async Task<EBelgeDurumBilgisi> DurumSorgulaAsync(int faturaId, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "e-Belge Durum Sorgulama");
+        var e = Cevrimici ?? throw new InvalidOperationException("Durum sorgulama yalnız entegratör bağlantısı kurulduğunda yapılabilir (Ayarlar > e-Belge).");
+        var fatura = await FaturaGetirAsync(faturaId, izle: true, cancellationToken);
+        if (fatura.Ettn is not { } ettn || fatura.EBelgeDurumu == EBelgeDurumu.Yok)
+            throw new InvalidOperationException("Bu fatura için henüz e-belge gönderilmedi.");
+        var bilgi = await e.DurumSorgulaAsync(ettn, fatura.EBelgeTuru, cancellationToken)
+                    ?? new EBelgeDurumBilgisi(fatura.EBelgeDurumu == EBelgeDurumu.Gonderildi ? EBelgeDurumu.Gonderildi : EBelgeDurumu.Hata,
+                        "Entegratör bu belgeyi bulamadı" + (fatura.EBelgeDurumu == EBelgeDurumu.Gonderildi ? " (henüz işlenmemiş olabilir)." : "."));
+        // Programda iptal edildi olarak işaretlenmiş belge geri açılmaz; yalnız bilgi verilir.
+        if (fatura.EBelgeDurumu != bilgi.Durum && fatura.EBelgeDurumu != EBelgeDurumu.IptalEdildi && fatura.EBelgeDurumu != EBelgeDurumu.Hazirlandi)
+        {
+            fatura.EBelgeDurumu = bilgi.Durum;
+            fatura.EBelgeTarihi = DateTime.UtcNow;
+            fatura.EBelgeMesaji = Kisalt(bilgi.Aciklama);
+            _baglam.EBelgeKayitlari.Add(new EBelgeKaydi
+            {
+                FaturaId = fatura.Id, Ettn = ettn, Tur = fatura.EBelgeTuru, Durum = bilgi.Durum, Entegrator = _entegrator.Ad,
+                Mesaj = fatura.EBelgeMesaji, KullaniciId = _kullaniciServisi?.AktifKullanici?.Id
+            });
+            await _baglam.SaveChangesAsync(cancellationToken);
+        }
+        return bilgi;
+    }
+
+    // Gönderilmiş ve sonucu beklenen (Gönderildi) tüm belgelerin durumunu entegratörden günceller; değişen sayısını döner.
+    public async Task<int> BekleyenDurumlariGuncelleAsync(CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "e-Belge Durum Sorgulama");
+        if (Cevrimici == null) return 0;
+        var bekleyenler = await _baglam.Faturalar.AsNoTracking()
+            .Where(f => f.EBelgeDurumu == EBelgeDurumu.Gonderildi && f.Ettn != null)
+            .OrderBy(f => f.Tarih).Select(f => f.Id).Take(500).ToListAsync(cancellationToken);
+        var degisen = 0;
+        foreach (var id in bekleyenler)
+        {
+            var bilgi = await DurumSorgulaAsync(id, cancellationToken);
+            if (bilgi.Durum != EBelgeDurumu.Gonderildi) degisen++;
+        }
+        return degisen;
+    }
+
+    public async Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime baslangic, DateTime bitis, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "Gelen e-Fatura Listesi");
+        var e = Cevrimici ?? throw new InvalidOperationException("Gelen faturaları indirmek için Ayarlar > e-Belge bölümünde entegratör bağlantısı kurulmalı.");
+        var liste = await e.GelenListeAsync(baslangic, bitis, cancellationToken);
+        var ettnler = liste.Select(x => Guid.TryParse(x.Ettn, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).ToList();
+        var kayitli = (await _baglam.Faturalar.IgnoreQueryFilters().AsNoTracking()
+            .Where(f => f.Ettn != null && ettnler.Contains(f.Ettn.Value)).Select(f => f.Ettn!.Value).ToListAsync(cancellationToken)).ToHashSet();
+        foreach (var x in liste)
+            x.Aktarildi = Guid.TryParse(x.Ettn, out var g) && kayitli.Contains(g);
+        return liste.OrderByDescending(x => x.Tarih).ToList();
+    }
+
+    public async Task<string> GelenXmlIndirAsync(string ettn, CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "Gelen e-Fatura İndirme");
+        var e = Cevrimici ?? throw new InvalidOperationException("Entegratör bağlantısı kurulmamış.");
+        return await e.GelenXmlAsync(ettn, cancellationToken);
+    }
+
+    private static string Kisalt(string metin) => metin.Length > 1000 ? metin[..1000] : metin;
 
     public async Task<EBelgeOnKontrol> OnKontrolAsync(EBelgeHazirlamaIstegi istek, CancellationToken cancellationToken = default)
     {
@@ -44,6 +156,22 @@ public class EBelgeServisi : IEBelgeServisi
         var fatura = await FaturaGetirAsync(istek.FaturaId, izle: true, cancellationToken);
 
         IadeBilgisiUygula(fatura, istek);
+
+        // Daha önce gönderilip hata alınmış (ya da yanıtı gelmemiş) belge: entegratör onu zaten almışsa yeniden gönderilmez.
+        if (Cevrimici is { } cevrimici && fatura.Ettn is { } eskiEttn && fatura.EBelgeDurumu == EBelgeDurumu.Hata)
+        {
+            var mevcut = await cevrimici.DurumSorgulaAsync(eskiEttn, fatura.EBelgeTuru, cancellationToken);
+            if (mevcut != null && mevcut.Durum != EBelgeDurumu.Hata)
+            {
+                fatura.EBelgeDurumu = mevcut.Durum;
+                fatura.EBelgeTarihi = DateTime.UtcNow;
+                fatura.EBelgeMesaji = Kisalt("Belge entegratöre daha önce ulaşmış; yeniden gönderilmedi. " + mevcut.Aciklama);
+                await _baglam.SaveChangesAsync(cancellationToken);
+                return new EBelgeGonderimSonucu(true, mevcut.Durum, fatura.EBelgeMesaji);
+            }
+        }
+
+        var aliciNotu = DurumHatalari(fatura).Count == 0 ? await AliciyiDogrulaAsync(fatura, cancellationToken) : null;
 
         var girdi = await GirdiOlusturAsync(fatura, istek.Senaryo, cancellationToken);
         var hatalar = DurumHatalari(fatura);
@@ -67,6 +195,8 @@ public class EBelgeServisi : IEBelgeServisi
         {
             sonuc = new EBelgeGonderimSonucu(false, EBelgeDurumu.Hata, ex.Message);
         }
+        if (aliciNotu != null)
+            sonuc = sonuc with { Mesaj = $"{sonuc.Mesaj} {aliciNotu}".Trim() };
 
         fatura.EBelgeDurumu = sonuc.Durum;
         fatura.EBelgeTarihi = DateTime.UtcNow;
@@ -453,7 +583,8 @@ public class EBelgeServisi : IEBelgeServisi
         EBelgeGonderimSonucu sonuc;
         try
         {
-            sonuc = await _entegrator.GonderAsync(new EBelgePaketi(irsaliye.EBelgeNo, irsaliye.Ettn.Value, EBelgeTuru.EIrsaliye, girdi.Alici.VknTckn,
+            // e-İrsaliye entegratör bağlantısı henüz yok: her zaman XML dosyası üretilir.
+            sonuc = await _dosyaEntegrator.GonderAsync(new EBelgePaketi(irsaliye.EBelgeNo, irsaliye.Ettn.Value, EBelgeTuru.EIrsaliye, girdi.Alici.VknTckn,
                 irsaliye.CariKart?.EFaturaEtiketi, xml), cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

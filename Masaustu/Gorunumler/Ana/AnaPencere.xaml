@@ -534,6 +534,14 @@
                                 </StackPanel>
                             </Button>
 
+                            <Button Command="{Binding DestekKomutu}" Height="48" ToolTip="Sorun bildirirken destek ekibine gönderilecek dosyayı masaüstüne oluşturur (muhasebe verileriniz içinde yer almaz)"
+                                    Style="{StaticResource MenuOgeDugme}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🧰" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Destek Dosyası" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
                         </StackPanel>
                     </ScrollViewer>
 

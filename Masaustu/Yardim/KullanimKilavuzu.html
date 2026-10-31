@@ -227,7 +227,11 @@
   <li>e-Belge olarak yalnız <b>satış faturası</b> ve <b>alış iadesi</b> (tedarikçiye iade faturası) düzenlenir. Alış faturası ve müşteri iadesi size karşı taraftan gelir.</li>
   <li>e-Fatura için iki senaryo vardır: <b>Temel</b> (alıcı kabul/red veremez) ve <b>Ticari</b> (alıcı 8 gün içinde kabul ya da red verebilir). Varsayılanı Ayarlar'dan seçebilirsiniz.</li>
 </ul>
-<div class="not"><b>Çalışma şekli:</b> Entegratörünüzle program arasında doğrudan bağlantı kurulana kadar program XML dosyasını <span class="yol">Ayarlar → e-Belge XML klasörü</span>'ne (boşsa <code>Belgelerim\MuhasebeYonetim\e-Belge</code>) yazar. Dosyayı entegratörünüzün web portalındaki "XML/UBL yükle" bölümünden gönderirsiniz. Entegratör bağlantısı kurulduğunda gönderim tek tıkla programdan yapılır; diğer her şey aynı kalır.</div>
+<div class="not"><b>İki çalışma şekli vardır</b> (<span class="yol">Ayarlar → Firma &amp; Parametreler → Gönderim yolu</span>):
+<ul>
+  <li><b>Uyumsoft (doğrudan gönderim):</b> Uyumsoft ile e-Fatura sözleşmeniz varsa, size verilen <b>web servis kullanıcı adı ve şifresini</b> girip <b>Bağlantıyı Dene</b> deyin ve kaydedin. Belgeler programdan tek tıkla gönderilir; alıcının e-Fatura mükellefi olup olmadığı her gönderimde GİB listesinden kontrol edilir (cari kart kendiliğinden düzeltilir); kabul/red/hata durumları ve size gelen faturalar programa çekilir. <b>Test ortamı</b> kutusuyla (kullanıcı ve şifre: <code>Uyumsoft</code>) gerçek fatura kesmeden deneme yapabilirsiniz.</li>
+  <li><b>XML dosyası:</b> Başka bir entegratör kullanıyorsanız program XML dosyasını <span class="yol">e-Belge XML klasörü</span>'ne (boşsa <code>Belgelerim\MuhasebeYonetim\e-Belge</code>) yazar; dosyayı entegratörünüzün web portalındaki "XML/UBL yükle" bölümünden gönderirsiniz.</li>
+</ul></div>
 
 <h3 id="efatura-hazirla">Belge hazırlama ve gönderme</h3>
 <ol>
@@ -235,10 +239,11 @@
   <li><span class="yol">Fatura Listesi</span>'nde faturanın satırındaki 📨 düğmesine basın.</li>
   <li>Açılan pencerede belge türü (e-Fatura/e-Arşiv) ve eksik bilgiler görünür. Kırmızı uyarı varsa (ör. firmanızın ili girilmemiş, alıcının vergi numarası hatalı) önce onu düzeltin.</li>
   <li>Alış iadesinde iade edilen (tedarikçinin) fatura numarasını ve tarihini girin.</li>
-  <li><b>XML Dosyası Oluştur</b> deyin. Program belgeye benzersiz bir <b>ETTN</b> verir ve dosyayı klasöre yazar. <b>Klasörü Aç</b> ile dosyayı bulabilir, <b>XML'i Görüntüle</b> ile içeriğine bakabilirsiniz.</li>
-  <li>Dosyayı entegratör portalına yükleyip gönderin, ardından pencerede <b>Portala yüklendi (Gönderildi)</b> deyin.</li>
+  <li><b>Uyumsoft bağlıysa:</b> <b>Hazırla ve Gönder</b> deyin; belge entegratöre gider ve durumu <b>Gönderildi</b> olur. Sonucu birkaç dakika sonra <b>🔄 Durumu Sorgula</b> ile görürsünüz (GİB'e ulaştı / alıcı kabul etti / reddetti / hata).</li>
+  <li><b>XML dosyası modundaysa:</b> <b>XML Dosyası Oluştur</b> deyin. Program belgeye benzersiz bir <b>ETTN</b> verir ve dosyayı klasöre yazar. <b>Klasörü Aç</b> ile dosyayı bulabilir, <b>XML'i Görüntüle</b> ile içeriğine bakabilirsiniz. Dosyayı entegratör portalına yükleyip gönderin, ardından pencerede <b>Portala yüklendi (Gönderildi)</b> deyin.</li>
 </ol>
-<p><b>Toplu hazırlama:</b> Fatura Listesi'nin üstündeki <b>Toplu e-Belge</b> ile seçtiğiniz tarih aralığındaki tüm bekleyen faturaların dosyaları tek seferde oluşturulur. Bilgisi eksik olan fatura atlanır ve nedeni listede yazar.</p>
+<p>Gönderim sırasında internet kesilirse ya da entegratör yanıt vermezse belge "Hata" görünebilir. Yeniden gönderdiğinizde program önce entegratöre sorar: belge zaten ulaşmışsa <b>ikinci kez gönderilmez</b>, yalnız durumu düzeltilir.</p>
+<p><b>Toplu hazırlama:</b> Fatura Listesi'nin üstündeki <b>Toplu e-Belge</b> ile seçtiğiniz tarih aralığındaki tüm bekleyen faturalar tek seferde gönderilir (dosya modunda dosyaları oluşturulur). Bilgisi eksik olan fatura atlanır ve nedeni listede yazar. Uyumsoft bağlıysa aynı pencerede <b>🔄 Bekleyen Durumları Güncelle</b> ile yanıt bekleyen tüm belgelerin durumu bir seferde alınır.</p>
 <p>e-Belgesi hazırlanmış faturanın çıktısında belge türü ve ETTN yazar. Müşteriye gönderilecek resmî görüntü, entegratörün ürettiği PDF'tir.</p>
 
 <h3 id="efatura-durum">Durum takibi ve iptal</h3>
@@ -254,7 +259,7 @@
 <div class="dikkat"><b>Gönderilmiş belgenin iptali:</b> e-Arşiv faturayı entegratör/GİB portalından iptal edin. e-Fatura tek taraflı iptal edilemez: ticari faturada alıcı reddeder, aksi halde alıcı size iade faturası keser (ya da GİB portalından iptal talebi yapılır). Sonra 📨 penceresinde <b>Portalda iptal edildi</b> veya <b>Reddedildi</b> deyip faturayı Fatura Listesi'nden iptal edin.</div>
 
 <h3 id="efatura-gelen">Gelen e-Fatura aktarma</h3>
-<p>Tedarikçinizden gelen e-Faturanın XML dosyasını (entegratör portalından indirilebilir) programa aktararak alış faturasını elle girmekten kurtulursunuz.</p>
+<p>Tedarikçinizden gelen e-Faturayı programa aktararak alış faturasını elle girmekten kurtulursunuz. Uyumsoft bağlıysa <b>e-Fatura İçe Aktar</b> düğmesi önce "entegratörden indirilsin mi?" diye sorar: <b>Evet</b> derseniz gelen kutunuz listelenir (programa aktarılmış olanlar işaretlidir), aktarmak istediklerinizi seçip <b>Seçilenleri Aktar</b> dersiniz. Aşağıdaki adımlar XML dosyasıyla aktarma içindir (dosya entegratör portalından indirilebilir).</p>
 <ol>
   <li>Fatura Listesi'nin üstündeki <b>e-Fatura İçe Aktar</b> düğmesine basın ve bir ya da birden fazla XML dosyası seçin.</li>
   <li>Önizlemede gönderen firma, kalemler ve her kalemin programdaki hangi ürünle eşleştiği görünür. Ürün kodu/barkodu ya da adı tutan ürün otomatik eşleşir; eşleşmeyen için yeni ürün kartı açılır. Tedarikçi cari kartı yoksa açılır.</li>

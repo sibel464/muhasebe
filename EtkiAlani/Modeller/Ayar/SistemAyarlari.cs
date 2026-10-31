@@ -19,6 +19,11 @@ public class SistemAyarlari : TemelVarlik
     // e-Fatura / e-Arşiv
     public string? EBelgeKlasoru { get; set; }                    // Boşsa Belgelerim\MuhasebeYonetim\e-Belge
     public EtkiAlani.Modeller.Fatura.EFaturaSenaryosu EFaturaVarsayilanSenaryo { get; set; } = EtkiAlani.Modeller.Fatura.EFaturaSenaryosu.Temel;
+    // Gönderim yolu: 0 = XML dosyası (portala elle yükleme), 1 = Uyumsoft web servisi (doğrudan gönderim).
+    public int EBelgeEntegrator { get; set; }
+    public string? EBelgeKullanici { get; set; }
+    public string? EBelgeSifre { get; set; }                    // Şifrelenmiş saklanır (SmtpSifreleyici)
+    public bool EBelgeTestOrtami { get; set; }
     // E-posta (SMTP) gönderimi; şifre SmtpSifre alanında şifrelenmiş saklanır.
     public string? SmtpSunucu { get; set; }
     public int SmtpPort { get; set; } = 587;

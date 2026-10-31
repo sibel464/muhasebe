@@ -68,6 +68,21 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string SmtpSifreBilgisi => string.IsNullOrEmpty(_smtpSifreKayitli) ? "Şifre kayıtlı değil." : "Şifre kayıtlı (değiştirmek için yenisini yazın).";
     public string[] SmtpGuvenlikSecenekleri { get; } = ["Otomatik (465 → SSL, diğerleri STARTTLS)", "SSL / TLS (genelde 465)", "STARTTLS (genelde 587)", "Şifresiz (önerilmez)"];
     public ICommand EpostaTestKomutu { get; }
+
+    // e-Belge entegratörü (0: XML dosyası, 1: Uyumsoft)
+    private int _eBelgeEntegratorIndex;
+    private string _eBelgeKullanici = string.Empty, _eBelgeDurumu = string.Empty;
+    private bool _eBelgeTestOrtami;
+    private string? _eBelgeSifreKayitli;
+    public int EBelgeEntegratorIndex { get => _eBelgeEntegratorIndex; set { if (OzellikAyarla(ref _eBelgeEntegratorIndex, value)) BildirimGonder(nameof(EBelgeEntegratorSecili)); } }
+    public bool EBelgeEntegratorSecili => EBelgeEntegratorIndex > 0;
+    public string[] EBelgeEntegratorSecenekleri { get; } = ["XML dosyası (entegratör portalına elle yükleme)", "Uyumsoft (doğrudan gönderim)"];
+    public string EBelgeKullanici { get => _eBelgeKullanici; set => OzellikAyarla(ref _eBelgeKullanici, value); }
+    public bool EBelgeTestOrtami { get => _eBelgeTestOrtami; set => OzellikAyarla(ref _eBelgeTestOrtami, value); }
+    public string EBelgeDurumu { get => _eBelgeDurumu; set => OzellikAyarla(ref _eBelgeDurumu, value); }
+    public string EBelgeSifreYeni { get; set; } = string.Empty;
+    public string EBelgeSifreBilgisi => string.IsNullOrEmpty(_eBelgeSifreKayitli) ? "Şifre kayıtlı değil." : "Şifre kayıtlı (değiştirmek için yenisini yazın).";
+    public ICommand EBelgeBaglantiDeneKomutu { get; }
     public string EBelgeVarsayilanKlasor => Altyapi.EBelge.DosyaEBelgeEntegratoru.VarsayilanKlasor;
     // 0: Temel fatura, 1: Ticari fatura
     public int EFaturaSenaryoIndex { get => _eFaturaSenaryoIndex; set => OzellikAyarla(ref _eFaturaSenaryoIndex, value); }
@@ -118,6 +133,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     {
         _ayarlarServisi = ayarlarServisi;
         EpostaTestKomutu = new KomutSarici(async _ => await EpostaTestAsync());
+        EBelgeBaglantiDeneKomutu = new KomutSarici(async _ => await EBelgeBaglantiDeneAsync());
         _auditLogServisi = auditLogServisi;
         _yedekServisi = yedekServisi;
         YedekAlKomutu = new KomutSarici(async _ => await YedekAlAsync(), _ => !YedekAliniyor && _yedekServisi != null);
@@ -174,6 +190,11 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             EpostaGonderenAdi = ayar.EpostaGonderenAdi ?? string.Empty;
             _smtpSifreKayitli = ayar.SmtpSifre;
             BildirimGonder(nameof(SmtpSifreBilgisi));
+            EBelgeEntegratorIndex = ayar.EBelgeEntegrator;
+            EBelgeKullanici = ayar.EBelgeKullanici ?? string.Empty;
+            EBelgeTestOrtami = ayar.EBelgeTestOrtami;
+            _eBelgeSifreKayitli = ayar.EBelgeSifre;
+            BildirimGonder(nameof(EBelgeSifreBilgisi));
             if (string.IsNullOrEmpty(EpostaTestAdresi)) EpostaTestAdresi = ayar.Eposta ?? ayar.SmtpKullanici ?? string.Empty;
             EFaturaSenaryoIndex = (int)ayar.EFaturaVarsayilanSenaryo;
             FisHeader = ayar.FisHeader ?? string.Empty;
@@ -277,6 +298,10 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
                 SmtpKullanici = SmtpKullanici,
                 SmtpSifre = SmtpSifreKaydi(),
                 EpostaGonderenAdi = EpostaGonderenAdi,
+                EBelgeEntegrator = EBelgeEntegratorIndex,
+                EBelgeKullanici = EBelgeKullanici,
+                EBelgeSifre = EBelgeSifreKaydi(),
+                EBelgeTestOrtami = EBelgeTestOrtami,
                 EFaturaVarsayilanSenaryo = (EtkiAlani.Modeller.Fatura.EFaturaSenaryosu)EFaturaSenaryoIndex,
                 FisHeader = FisHeader,
                 FisFooter = FisFooter,
@@ -291,6 +316,8 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             await _ayarlarServisi.AyarlariKaydetAsync(ayar);
             _smtpSifreKayitli = ayar.SmtpSifre;
             BildirimGonder(nameof(SmtpSifreBilgisi));
+            _eBelgeSifreKayitli = ayar.EBelgeSifre;
+            BildirimGonder(nameof(EBelgeSifreBilgisi));
             BasariMesaji = "✅ Firma ve sistem ayarları kaydedildi.";
             await AuditLoglariYukleAsync();
         }
@@ -301,6 +328,35 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         finally
         {
             Yukleniyor = false;
+        }
+    }
+
+    private string? EBelgeSifreKaydi() => string.IsNullOrEmpty(EBelgeSifreYeni) ? _eBelgeSifreKayitli : Altyapi.Eposta.SmtpSifreleyici.Sifrele(EBelgeSifreYeni);
+
+    // Formdaki (henüz kaydedilmemiş olabilir) bilgilerle entegratöre bağlanır; firmanın vergi no'su ile karşılaştırır.
+    private async Task EBelgeBaglantiDeneAsync()
+    {
+        if (Altyapi.EBelge.EBelgeServisi.AyardanEntegrator(new SistemAyarlari
+            {
+                EBelgeEntegrator = EBelgeEntegratorIndex, EBelgeKullanici = EBelgeKullanici, EBelgeSifre = EBelgeSifreKaydi(), EBelgeTestOrtami = EBelgeTestOrtami
+            }) is not IEBelgeCevrimiciEntegrator e)
+        {
+            EBelgeDurumu = "XML dosyası modunda bağlantı gerekmez.";
+            return;
+        }
+        EBelgeDurumu = "Bağlanılıyor...";
+        try
+        {
+            var h = await e.BaglantiDeneAsync();
+            var vkn = new string((VergiNo ?? "").Where(char.IsDigit).ToArray());
+            EBelgeDurumu = $"✅ Bağlantı başarılı: {h.Unvan} ({h.VknTckn})." +
+                           (vkn.Length > 0 && vkn != h.VknTckn && !EBelgeTestOrtami ? $"\n⚠ Dikkat: firma vergi no'nuz ({vkn}) entegratördeki hesapla aynı değil; faturalar reddedilir." : "") +
+                           (EBelgeTestOrtami ? "\nTEST ortamı: gönderilen belgeler gerçek değildir, GİB'e gitmez." : "") +
+                           "\nAyarları kaydetmeyi unutmayın.";
+        }
+        catch (Exception ex)
+        {
+            EBelgeDurumu = "❌ " + ex.Message;
         }
     }
 

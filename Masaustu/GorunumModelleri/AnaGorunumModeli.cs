@@ -50,6 +50,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
     public ICommand UrunKomutu { get; }
     public ICommand SatisKomutu { get; }
     public ICommand YardimKomutu { get; }
+    public ICommand DestekKomutu { get; }
     public ICommand IrsaliyeKomutu { get; }
     public ICommand FaturaEkleKomutu { get; }
     public ICommand FaturaKomutu { get; }
@@ -262,6 +263,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         RaporKomutu = new KomutSarici(() => MenuGit("Rapor"));
         AyarlarKomutu = new KomutSarici(() => MenuGit("Ayarlar"));
         YardimKomutu = new KomutSarici(() => YardimAc());
+        DestekKomutu = new KomutSarici(() => DestekDosyasiOlustur());
         KullanicilarKomutu = new KomutSarici(() => MenuGit("Kullanicilar"));
         FirmaIslemleriKomutu = new KomutSarici(() => MenuGit("FirmaIslemleri"));
         TicariIslemlerKomutu = new KomutSarici(() => MenuGit("TicariIslemler"));
@@ -275,6 +277,23 @@ public class AnaGorunumModeli : TemelGorunumModeli
     {
         AktifMenu = sayfa;
         _navigasyon.Git(sayfa);
+    }
+
+    public static void DestekDosyasiOlustur()
+    {
+        try
+        {
+            var yol = Masaustu.Yardimcilar.DestekPaketi.Olustur();
+            System.Windows.MessageBox.Show(
+                "Destek dosyası masaüstünüze kaydedildi:" + System.Environment.NewLine + System.Environment.NewLine + System.IO.Path.GetFileName(yol) + System.Environment.NewLine + System.Environment.NewLine +
+                "Sorununuzu anlatan e-postanıza bu dosyayı ekleyip destek ekibine gönderin. Dosyada program sürümü, lisans durumu ve hata kayıtları bulunur; cari, fatura gibi muhasebe verileriniz ve şifreleriniz yer almaz.",
+                "Destek Dosyası", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "/select,\"" + yol + "\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("Destek dosyası oluşturulamadı: " + ex.Message, "Destek Dosyası", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+        }
     }
 
     // Kullanım kılavuzu programla birlikte kurulan HTML dosyasıdır; varsayılan tarayıcıda açılır (F1 / Yardım menüsü).

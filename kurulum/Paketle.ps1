@@ -6,14 +6,40 @@
   -YayinAdresi verilirse (ör. https://site.com/guncelleme) lisans anahtarıyla imzalı kurulum\cikti\guncelleme.json da üretilir;
   MSI ve guncelleme.json o adrese yüklenir, programdaki GuncellemeAdresi = <YayinAdresi>/guncelleme.json olur.
   Her yeni sürümde -Surum artırılmalıdır (ör. 1.0.1); aynı sürüm üzerine kurulmaz.
+  Kod imzalama: -ImzaSertifikasi ile sertifikanın parmak izi (Windows sertifika deposunda, ör. USB token'lı EV sertifikası)
+  ya da .pfx dosyası (-ImzaSifresi ile) verilirse Masaustu.exe ve MSI imzalanır, zaman damgası eklenir. İmzasız paket
+  müşteride Windows SmartScreen "tanınmayan uygulama" uyarısı verir.
 #>
 param(
     [string]$Surum = "1.0.0",
     [string]$PostgresKaynak = "C:\Program Files\PostgreSQL\16",
     [string]$YayinAdresi = "",
-    [string]$Notlar = ""
+    [string]$Notlar = "",
+    [string]$ImzaSertifikasi = "",
+    [string]$ImzaSifresi = "",
+    [string]$ZamanDamgasi = "http://timestamp.digicert.com"
 )
 $ErrorActionPreference = "Stop"
+
+$sertifika = $null
+if ($ImzaSertifikasi) {
+    if (Test-Path $ImzaSertifikasi) {
+        $sertifika = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($ImzaSertifikasi, $ImzaSifresi)
+    } else {
+        $parmakIzi = ($ImzaSertifikasi -replace '\s', '').ToUpperInvariant()
+        $sertifika = Get-ChildItem Cert:\CurrentUser\My, Cert:\LocalMachine\My | Where-Object { $_.Thumbprint -eq $parmakIzi } | Select-Object -First 1
+    }
+    if (-not $sertifika -or -not $sertifika.HasPrivateKey) { throw "İmza sertifikası bulunamadı ya da özel anahtarı yok: $ImzaSertifikasi" }
+    Write-Host "Kod imzalama sertifikası: $($sertifika.Subject) (geçerlilik $($sertifika.NotAfter.ToString('dd.MM.yyyy')))"
+}
+function Imzala([string]$dosya) {
+    if (-not $sertifika) { return }
+    $sonuc = Set-AuthenticodeSignature -FilePath $dosya -Certificate $sertifika -HashAlgorithm SHA256 -TimestampServer $ZamanDamgasi
+    if (-not $sonuc.SignerCertificate) { throw "İmzalanamadı ($dosya): $($sonuc.StatusMessage)" }
+    if ($sonuc.Status -ne "Valid") { Write-Host "  UYARI ($(Split-Path -Leaf $dosya)): imza eklendi ama Windows sertifikaya güvenmiyor: $($sonuc.StatusMessage)" -ForegroundColor Yellow }
+    if (-not $sonuc.TimeStamperCertificate) { Write-Host "  UYARI: zaman damgası eklenemedi (internet?). Sertifika süresi bitince imza geçersiz sayılır." -ForegroundColor Yellow }
+    Write-Host "  imzalandı: $(Split-Path -Leaf $dosya)"
+}
 $kok = Split-Path -Parent $PSScriptRoot
 $cikti = Join-Path $PSScriptRoot "cikti"
 $uygulama = Join-Path $cikti "uygulama"
@@ -30,6 +56,8 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish başarısız." }
 # Geliştirme ayarları yerine kurulum ayarları (gömülü PostgreSQL, ayrı port, veri ProgramData'da)
 Copy-Item (Join-Path $PSScriptRoot "appsettings.Kurulum.json") (Join-Path $uygulama "appsettings.json") -Force
 Get-ChildItem $uygulama -Filter "appsettings.local.json" | Remove-Item -Force
+
+Imzala (Join-Path $uygulama "Masaustu.exe")
 
 Write-Host "2/4 PostgreSQL dosyaları ekleniyor..."
 $pg = Join-Path $uygulama "pgsql"
@@ -62,6 +90,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "MSI oluşturulamadı." }
 }
 finally { Pop-Location }
+
+Imzala $msi
+if (-not $sertifika) { Write-Host "UYARI: paket imzasız (müşteride SmartScreen uyarısı çıkar). İmzalamak için -ImzaSertifikasi verin." -ForegroundColor Yellow }
 
 $boyut = [math]::Round((Get-Item $msi).Length / 1MB, 1)
 Write-Host "Hazır: $msi ($boyut MB)"
