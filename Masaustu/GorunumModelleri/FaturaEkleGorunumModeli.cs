@@ -503,7 +503,9 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 // Peşin alış faturasında ödeme (kasa/banka çıkışı) da onayla birlikte kaydedilir.
                 if (durum == BelgeDurumu.Onaylandi) eklenenFatura = await _faturaServisi.OnaylaVeOdemeyiKaydetAsync(eklenenFatura.Id);
             }
-            MessageBox.Show($"{eklenenFatura.FaturaNo} numaralı fatura başarıyla oluşturuldu.", "Fatura oluşturuldu", MessageBoxButton.OK, MessageBoxImage.Information);
+            var eBelgeNotu = eklenenFatura.Durum == BelgeDurumu.Onaylandi ? await Masaustu.Yardimcilar.EBelgeOtomatik.GonderAsync(eklenenFatura.Id) : null;
+            MessageBox.Show($"{eklenenFatura.FaturaNo} numaralı fatura başarıyla oluşturuldu." + (eBelgeNotu != null ? Environment.NewLine + Environment.NewLine + eBelgeNotu : ""),
+                "Fatura oluşturuldu", MessageBoxButton.OK, eBelgeNotu?.StartsWith("⚠") == true ? MessageBoxImage.Warning : MessageBoxImage.Information);
             Kapat?.Invoke();
             _navigasyon.Git("Fatura");
         }

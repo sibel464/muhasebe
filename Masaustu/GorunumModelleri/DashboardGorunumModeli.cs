@@ -78,8 +78,11 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         IVeritabaniYedekServisi? yedekServisi = null,
         ITekrarlayanFaturaServisi? tekrarlayanServisi = null,
         IRaporMerkeziServisi? raporServisi = null,
-        IPersonelServisi? personelServisi = null)
+        IPersonelServisi? personelServisi = null,
+        IEBelgeServisi? eBelgeServisi = null)
     {
+        _eBelgeServisi = eBelgeServisi;
+        FaturalarKomutu = new KomutSarici(_ => _navigasyon?.Git("Fatura"));
         _personelServisi = personelServisi;
         _raporServisi = raporServisi;
         _tekrarlayanServisi = tekrarlayanServisi;
@@ -117,6 +120,30 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         TekrarlayanFaturalarKomutu = new KomutSarici(_ => { });
         VadeTakvimiKomutu = new KomutSarici(_ => { });
         PersonelKomutu = new KomutSarici(_ => { });
+        FaturalarKomutu = new KomutSarici(_ => { });
+    }
+
+    private readonly IEBelgeServisi? _eBelgeServisi;
+    private string _eBelgeUyarisi = string.Empty;
+    public string EBelgeUyarisi { get => _eBelgeUyarisi; set { OzellikAyarla(ref _eBelgeUyarisi, value); BildirimGonder(nameof(EBelgeUyarisiGorunur)); } }
+    public bool EBelgeUyarisiGorunur => EBelgeUyarisi.Length > 0;
+    public ICommand FaturalarKomutu { get; }
+
+    private async Task EBelgeYukleAsync()
+    {
+        if (_eBelgeServisi == null) return;
+        try
+        {
+            EBelgeUyarisi = (await _eBelgeServisi.UyariAsync()).Metin();
+        }
+        catch (Uygulama.Arayuzler.YetkisizErisimException)
+        {
+            EBelgeUyarisi = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli.EBelge");
+        }
     }
 
     private async Task VerileriYukleAsync()
@@ -158,6 +185,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         await TekrarlayanYukleAsync();
         await VadeYukleAsync();
         await PersonelYukleAsync();
+        await EBelgeYukleAsync();
     }
 
     private async Task PersonelYukleAsync()

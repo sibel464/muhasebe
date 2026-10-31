@@ -48,6 +48,19 @@
                 </DockPanel>
             </Border>
 
+            <!-- e-Belge: reddedilen / hatalı belgeler, gönderilmemiş satışlar, yeni gelen e-Faturalar -->
+            <Border Background="{StaticResource WarningLightFirca}" CornerRadius="12" Padding="16,12" Margin="0,0,0,16"
+                    BorderBrush="{StaticResource WarningDarkFirca}" BorderThickness="1"
+                    Visibility="{Binding EBelgeUyarisiGorunur, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding FaturalarKomutu}" Style="{StaticResource IkinciDugme}" VerticalAlignment="Center">
+                        <TextBlock Text="🧾 Faturalara Git"/>
+                    </Button>
+                    <TextBlock Text="{Binding EBelgeUyarisi}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                </DockPanel>
+            </Border>
+
             <!-- Personel: geçen ayın tahakkuku, ödenmemiş maaş, ödenecek vergi / SGK -->
             <Border Background="{StaticResource WarningLightFirca}" CornerRadius="12" Padding="16,12" Margin="0,0,0,16"
                     BorderBrush="{StaticResource WarningDarkFirca}" BorderThickness="1"

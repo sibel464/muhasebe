@@ -24,6 +24,8 @@ public class SistemAyarlari : TemelVarlik
     public string? EBelgeKullanici { get; set; }
     public string? EBelgeSifre { get; set; }                    // Şifrelenmiş saklanır (SmtpSifreleyici)
     public bool EBelgeTestOrtami { get; set; }
+    // Entegratör bağlıyken satış faturası / alış iadesi onaylanınca e-belge kendiliğinden gönderilir.
+    public bool EBelgeOtomatikGonder { get; set; }
     // E-posta (SMTP) gönderimi; şifre SmtpSifre alanında şifrelenmiş saklanır.
     public string? SmtpSunucu { get; set; }
     public int SmtpPort { get; set; } = 587;

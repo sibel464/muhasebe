@@ -179,6 +179,8 @@
                                     <TextBlock Text="{Binding EBelgeSifreBilgisi}" FontSize="12" Foreground="#64748B" Margin="0,4,0,8"/>
                                     <CheckBox IsChecked="{Binding EBelgeTestOrtami}" Margin="0,0,0,10"
                                               Content="Test ortamı (deneme amaçlı; belgeler GİB'e gitmez. Uyumsoft deneme hesabı: Uyumsoft / Uyumsoft)"/>
+                                    <CheckBox IsChecked="{Binding EBelgeOtomatikGonder}" Margin="0,0,0,10"
+                                              Content="Satış faturası onaylanınca e-belgeyi otomatik gönder (hızlı satış dahil; eksik bilgi varsa fatura kaydedilir, e-belge için uyarı verilir)"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Command="{Binding EBelgeBaglantiDeneKomutu}" Style="{StaticResource IkinciDugme}" Content="Bağlantıyı Dene"/>
                                         <Button Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Margin="8,0,0,0" Content="Kaydet"/>

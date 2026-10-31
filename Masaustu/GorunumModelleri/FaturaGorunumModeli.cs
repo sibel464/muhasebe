@@ -475,7 +475,7 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 	}
 
 	private async Task SilAsync() { if (SeciliFatura == null) return; try { await _faturaServisi.SilAsync(SeciliFatura.Id); DurumMesaji = "Taslak fatura silindi."; Yeni(); await YukleAsync(); } catch (Exception ex) { DurumMesaji = ex.Message; HatayiLogla(ex, "FaturaGorunumModeli.SilAsync"); } }
-	private async Task OnaylaAsync() { if (SeciliFatura == null) return; try { var f = await _faturaServisi.OnaylaAsync(SeciliFatura.Id); SeciliFatura = f; Durum = f.Durum; DurumMesaji = "Fatura onaylandı; cari ve stok hareketleri oluşturuldu."; await YukleAsync(); } catch (Exception ex) { DurumMesaji = $"Fatura onaylanamadı: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.OnaylaAsync"); } }
+	private async Task OnaylaAsync() { if (SeciliFatura == null) return; try { var f = await _faturaServisi.OnaylaAsync(SeciliFatura.Id); SeciliFatura = f; Durum = f.Durum; DurumMesaji = "Fatura onaylandı; cari ve stok hareketleri oluşturuldu."; if (await Masaustu.Yardimcilar.EBelgeOtomatik.GonderAsync(f.Id) is { } eBelgeNotu) DurumMesaji += " " + eBelgeNotu; await YukleAsync(); } catch (Exception ex) { DurumMesaji = $"Fatura onaylanamadı: {ex.Message}"; HatayiLogla(ex, "FaturaGorunumModeli.OnaylaAsync"); } }
 	private async Task IptalAsync()
 	{
 		if (SeciliFatura == null) return;

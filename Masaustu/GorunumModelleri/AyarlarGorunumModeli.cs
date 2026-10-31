@@ -79,6 +79,8 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string[] EBelgeEntegratorSecenekleri { get; } = ["XML dosyası (entegratör portalına elle yükleme)", "Uyumsoft (doğrudan gönderim)"];
     public string EBelgeKullanici { get => _eBelgeKullanici; set => OzellikAyarla(ref _eBelgeKullanici, value); }
     public bool EBelgeTestOrtami { get => _eBelgeTestOrtami; set => OzellikAyarla(ref _eBelgeTestOrtami, value); }
+    private bool _eBelgeOtomatikGonder;
+    public bool EBelgeOtomatikGonder { get => _eBelgeOtomatikGonder; set => OzellikAyarla(ref _eBelgeOtomatikGonder, value); }
     public string EBelgeDurumu { get => _eBelgeDurumu; set => OzellikAyarla(ref _eBelgeDurumu, value); }
     public string EBelgeSifreYeni { get; set; } = string.Empty;
     public string EBelgeSifreBilgisi => string.IsNullOrEmpty(_eBelgeSifreKayitli) ? "Şifre kayıtlı değil." : "Şifre kayıtlı (değiştirmek için yenisini yazın).";
@@ -193,6 +195,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             EBelgeEntegratorIndex = ayar.EBelgeEntegrator;
             EBelgeKullanici = ayar.EBelgeKullanici ?? string.Empty;
             EBelgeTestOrtami = ayar.EBelgeTestOrtami;
+            EBelgeOtomatikGonder = ayar.EBelgeOtomatikGonder;
             _eBelgeSifreKayitli = ayar.EBelgeSifre;
             BildirimGonder(nameof(EBelgeSifreBilgisi));
             if (string.IsNullOrEmpty(EpostaTestAdresi)) EpostaTestAdresi = ayar.Eposta ?? ayar.SmtpKullanici ?? string.Empty;
@@ -302,6 +305,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
                 EBelgeKullanici = EBelgeKullanici,
                 EBelgeSifre = EBelgeSifreKaydi(),
                 EBelgeTestOrtami = EBelgeTestOrtami,
+                EBelgeOtomatikGonder = EBelgeOtomatikGonder,
                 EFaturaVarsayilanSenaryo = (EtkiAlani.Modeller.Fatura.EFaturaSenaryosu)EFaturaSenaryoIndex,
                 FisHeader = FisHeader,
                 FisFooter = FisFooter,

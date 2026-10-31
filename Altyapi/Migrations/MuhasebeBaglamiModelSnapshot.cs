@@ -42,6 +42,9 @@ namespace Altyapi.Migrations
                     b.Property<string>("EBelgeKullanici")
                         .HasColumnType("text");
 
+                    b.Property<bool>("EBelgeOtomatikGonder")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("EBelgeSifre")
                         .HasColumnType("text");
 
@@ -150,6 +153,7 @@ namespace Altyapi.Migrations
                         {
                             Id = 1,
                             EBelgeEntegrator = 0,
+                            EBelgeOtomatikGonder = false,
                             EBelgeTestOrtami = false,
                             EFaturaVarsayilanSenaryo = 0,
                             FaturaNotu = "Mal tesliminde faturanın ibrazı zorunludur.",

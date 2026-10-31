@@ -193,6 +193,66 @@ public class EBelgeServisi : IEBelgeServisi
         return bilgi;
     }
 
+    private static DateTime _sonCevrimiciKontrol = DateTime.MinValue;
+    private static int _sonYeniGelen;
+
+    public async Task<EBelgeUyariDto> UyariAsync(CancellationToken cancellationToken = default)
+    {
+        Yetki(y => y.FaturaGoruntule, "e-Belge Uyarıları");
+        var bugun = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc);
+        var guncellenen = 0;
+        var yeniGelen = _sonYeniGelen;
+        // Ana sayfa her açıldığında entegratöre gidilmez: en fazla 10 dakikada bir.
+        if (Cevrimici is { } e && DateTime.UtcNow - _sonCevrimiciKontrol > TimeSpan.FromMinutes(10))
+        {
+            _sonCevrimiciKontrol = DateTime.UtcNow;
+            try
+            {
+                var bekleyen = await _baglam.Faturalar.AsNoTracking()
+                    .Where(f => f.EBelgeDurumu == EBelgeDurumu.Gonderildi && f.Ettn != null && f.Tarih >= bugun.AddDays(-30))
+                    .OrderByDescending(f => f.Tarih).Select(f => f.Id).Take(50).ToListAsync(cancellationToken);
+                foreach (var id in bekleyen)
+                    if ((await DurumSorgulaAsync(id, cancellationToken)).Durum != EBelgeDurumu.Gonderildi) guncellenen++;
+                yeniGelen = _sonYeniGelen = (await GelenListeAsync(DateTime.Today.AddDays(-7), DateTime.Today, cancellationToken)).Count(x => !x.Aktarildi);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+            {
+                // İnternet yoksa ya da entegratör yanıt vermiyorsa ana sayfa yine açılır; yalnız yerel sayılar gösterilir.
+            }
+        }
+
+        var sorunlu = await _baglam.Faturalar.AsNoTracking().CountAsync(f =>
+            f.Durum == BelgeDurumu.Onaylandi && (f.EBelgeDurumu == EBelgeDurumu.Hata || f.EBelgeDurumu == EBelgeDurumu.Reddedildi) &&
+            f.Tarih >= bugun.AddDays(-60), cancellationToken);
+        // e-Belge kullanmayan firmayı uyarmamak için: entegratör bağlıysa ya da daha önce e-belge hazırlanmışsa sayılır.
+        var eBelgeKullaniliyor = Cevrimici != null || await _baglam.Faturalar.AsNoTracking().AnyAsync(f => f.EBelgeDurumu != EBelgeDurumu.Yok, cancellationToken);
+        var gonderilmemis = !eBelgeKullaniliyor ? 0 : await _baglam.Faturalar.AsNoTracking().CountAsync(f =>
+            f.Durum == BelgeDurumu.Onaylandi && (f.Tur == FaturaTuru.Satis || f.Tur == FaturaTuru.AlisIade) &&
+            f.EBelgeDurumu == EBelgeDurumu.Yok && f.Tarih >= bugun.AddDays(-30) && f.Tarih < bugun.AddDays(1), cancellationToken);
+        return new EBelgeUyariDto(sorunlu, gonderilmemis, yeniGelen, guncellenen);
+    }
+
+    public async Task<EBelgeGonderimSonucu?> OtomatikGonderAsync(int faturaId, CancellationToken cancellationToken = default)
+    {
+        if (Cevrimici == null || _kullaniciServisi?.YetkiliMi(y => y.FaturaOnayla) != true) return null;
+        if (!await _baglam.SistemAyarlari.AsNoTracking().Where(a => a.Id == 1).Select(a => a.EBelgeOtomatikGonder).FirstOrDefaultAsync(cancellationToken))
+            return null;
+        var f = await _baglam.Faturalar.AsNoTracking().Where(x => x.Id == faturaId)
+            .Select(x => new { x.Tur, x.Durum, x.EBelgeDurumu }).FirstOrDefaultAsync(cancellationToken);
+        if (f == null || f.Durum != BelgeDurumu.Onaylandi || f.Tur is not (FaturaTuru.Satis or FaturaTuru.AlisIade) ||
+            f.EBelgeDurumu is not (EBelgeDurumu.Yok or EBelgeDurumu.Hata))
+            return null;
+        try
+        {
+            return await HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(faturaId), cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _baglam.ChangeTracker.Clear();
+            return new EBelgeGonderimSonucu(false, EBelgeDurumu.Yok, ex.Message);
+        }
+    }
+
     private static string Kisalt(string metin) => metin.Length > 1000 ? metin[..1000] : metin;
 
     public async Task<EBelgeOnKontrol> OnKontrolAsync(EBelgeHazirlamaIstegi istek, CancellationToken cancellationToken = default)

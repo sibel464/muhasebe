@@ -619,6 +619,96 @@ public sealed class EBelgeTests(IsolatedPostgreSqlFixture fixture)
         Assert.NotEmpty(gelen);
     }
 
+    private sealed class SahteCevrimiciEntegrator : IEBelgeCevrimiciEntegrator
+    {
+        public List<EBelgePaketi> Gonderilen { get; } = [];
+        public string Ad => "Sahte entegratör";
+        public bool DogrudanGonderir => true;
+        public Task<EBelgeGonderimSonucu> GonderAsync(EBelgePaketi paket, CancellationToken c = default)
+        {
+            Gonderilen.Add(paket);
+            return Task.FromResult(new EBelgeGonderimSonucu(true, EBelgeDurumu.Gonderildi, "gönderildi"));
+        }
+        public Task<EntegratorHesapBilgisi> BaglantiDeneAsync(CancellationToken c = default) => Task.FromResult(new EntegratorHesapBilgisi("", "", true, true));
+        public Task<string?> AliciEtiketiAsync(string vknTckn, CancellationToken c = default) => Task.FromResult<string?>("urn:mail:defaultpk@alici.com.tr");
+        public Task<EBelgeDurumBilgisi?> DurumSorgulaAsync(Guid ettn, EBelgeTuru tur, CancellationToken c = default) => Task.FromResult<EBelgeDurumBilgisi?>(null);
+        public Task<IReadOnlyList<GelenEBelgeOzeti>> GelenListeAsync(DateTime b, DateTime s, CancellationToken c = default) => Task.FromResult<IReadOnlyList<GelenEBelgeOzeti>>([]);
+        public Task<string> GelenXmlAsync(string ettn, CancellationToken c = default) => throw new NotSupportedException();
+        public Task<byte[]> PdfAsync(Guid ettn, CancellationToken c = default) => throw new NotSupportedException();
+        public Task EArsivIptalAsync(Guid ettn, DateTime t, CancellationToken c = default) => Task.CompletedTask;
+        public Task<FirmaSorguSonucu?> FirmaSorgulaAsync(string v, CancellationToken c = default) => Task.FromResult<FirmaSorguSonucu?>(null);
+        public Task<EBelgeDurumBilgisi?> IrsaliyeDurumSorgulaAsync(Guid ettn, CancellationToken c = default) => Task.FromResult<EBelgeDurumBilgisi?>(null);
+    }
+
+    [Fact]
+    public async Task Otomatik_gonderim_yalniz_ayar_acikken_ve_bir_kez_yapilir()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var entegrator = new SahteCevrimiciEntegrator();
+        var servis = new EBelgeServisi(db, o.Oturum, entegrator);
+        var fatura = await SatisFaturasiAsync(o, o.Cari);
+
+        var ayar = await db.SistemAyarlari.SingleAsync(a => a.Id == 1);
+        var eski = ayar.EBelgeOtomatikGonder;
+        try
+        {
+            ayar.EBelgeOtomatikGonder = false;
+            await db.SaveChangesAsync();
+            Assert.Null(await servis.OtomatikGonderAsync(fatura.Id));
+            Assert.Empty(entegrator.Gonderilen);
+
+            ayar.EBelgeOtomatikGonder = true;
+            await db.SaveChangesAsync();
+            var sonuc = await servis.OtomatikGonderAsync(fatura.Id);
+            Assert.True(sonuc!.Basarili, sonuc.Mesaj);
+            Assert.Single(entegrator.Gonderilen);
+
+            // Gönderilmiş belge ikinci kez gönderilmez.
+            Assert.Null(await servis.OtomatikGonderAsync(fatura.Id));
+            Assert.Single(entegrator.Gonderilen);
+        }
+        finally
+        {
+            ayar.EBelgeOtomatikGonder = eski;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Ana_sayfa_uyarisi_hatali_ve_gonderilmemis_belgeleri_sayar()
+    {
+        var o = await OrtamHazirlaAsync();
+        await using var db = o.Db;
+        var klasor = Path.Combine(Path.GetTempPath(), "ebelge-uyari-" + Guid.NewGuid().ToString("N"));
+        var servis = new EBelgeServisi(db, o.Oturum, new DosyaEBelgeEntegratoru(() => klasor));
+        try
+        {
+            var f1 = await SatisFaturasiAsync(o, o.Cari);
+            var f2 = await SatisFaturasiAsync(o, o.Cari);
+            await SatisFaturasiAsync(o, o.Cari);
+
+            // Hiç e-belge hazırlanmamış firmada "gönderilmedi" uyarısı çıkmaz (e-belge kullanmıyor olabilir).
+            Assert.Equal(string.Empty, (await servis.UyariAsync()).Metin());
+
+            await servis.HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(f1.Id));
+            await servis.HazirlaVeGonderAsync(new EBelgeHazirlamaIstegi(f2.Id, EFaturaSenaryosu.Ticari));
+            await servis.DurumIsaretleAsync(f2.Id, EBelgeDurumu.Gonderildi);
+            await servis.DurumIsaretleAsync(f2.Id, EBelgeDurumu.Reddedildi);
+
+            var u = await servis.UyariAsync();
+            Assert.Equal(1, u.SorunluBelge);
+            Assert.Equal(1, u.GonderilmemisSatis);
+            Assert.Equal(0, u.YeniGelen);
+            Assert.Contains("reddedildi", u.Metin());
+            Assert.Contains("7 gün", u.Metin());
+        }
+        finally
+        {
+            if (Directory.Exists(klasor)) Directory.Delete(klasor, true);
+        }
+    }
+
     [Fact]
     public async Task Uyumsoft_test_ortaminda_e_irsaliye_gonderilir_ve_durumu_sorgulanir()
     {

@@ -84,6 +84,7 @@ public class SistemAyarlariServisi : ISistemAyarlariServisi
             mevcut.EBelgeKullanici = string.IsNullOrWhiteSpace(guncelAyarlar.EBelgeKullanici) ? null : guncelAyarlar.EBelgeKullanici.Trim();
             mevcut.EBelgeSifre = guncelAyarlar.EBelgeSifre;
             mevcut.EBelgeTestOrtami = guncelAyarlar.EBelgeTestOrtami;
+            mevcut.EBelgeOtomatikGonder = guncelAyarlar.EBelgeOtomatikGonder;
             mevcut.EpostaGonderenAdi = string.IsNullOrWhiteSpace(guncelAyarlar.EpostaGonderenAdi) ? null : guncelAyarlar.EpostaGonderenAdi.Trim();
             mevcut.FisHeader = guncelAyarlar.FisHeader?.Trim();
             mevcut.FisFooter = guncelAyarlar.FisFooter?.Trim();

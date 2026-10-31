@@ -48,6 +48,19 @@ public sealed record FirmaSorguSonucu(string VknTckn, string Unvan, string? Ad, 
     public bool GercekKisi => VknTckn.Length == 11 || (!string.IsNullOrWhiteSpace(Ad) && string.IsNullOrWhiteSpace(Unvan));
 }
 
+// Ana sayfa uyarısı: sorunlu (red/hata) belgeler, e-belgesi kesilmemiş satışlar, aktarılmamış gelen faturalar.
+public sealed record EBelgeUyariDto(int SorunluBelge, int GonderilmemisSatis, int YeniGelen, int DurumuGuncellenen)
+{
+    public string Metin()
+    {
+        var parcalar = new List<string>();
+        if (SorunluBelge > 0) parcalar.Add($"{SorunluBelge} e-belge reddedildi ya da hata aldı");
+        if (GonderilmemisSatis > 0) parcalar.Add($"{GonderilmemisSatis} onaylı satış faturasının e-belgesi henüz gönderilmedi (e-Arşiv 7 gün içinde düzenlenmelidir)");
+        if (YeniGelen > 0) parcalar.Add($"entegratörde programa aktarılmamış {YeniGelen} gelen e-Fatura var");
+        return parcalar.Count == 0 ? string.Empty : "e-Belge: " + string.Join(" • ", parcalar) + ".";
+    }
+}
+
 public sealed record EntegratorHesapBilgisi(string Unvan, string VknTckn, bool EFatura, bool EArsiv);
 public sealed record EBelgeDurumBilgisi(EBelgeDurumu Durum, string Aciklama);
 public sealed record GelenEBelgeOzeti(string Ettn, string FaturaNo, DateTime Tarih, string GonderenUnvan, string GonderenVknTckn, decimal Tutar, string ParaBirimi, string Durum)
@@ -121,6 +134,11 @@ public interface IEBelgeServisi
     // Vergi/T.C. kimlik no'dan GİB kayıtlı ünvan ve adres (entegratör bağlı değilse null).
     Task<FirmaSorguSonucu?> FirmaSorgulaAsync(string vknTckn, CancellationToken cancellationToken = default);
     Task<EBelgeDurumBilgisi> IrsaliyeDurumSorgulaAsync(int irsaliyeId, CancellationToken cancellationToken = default);
+    // Ana sayfa için; entegratör bağlıysa önce son 30 günde yanıt bekleyen belgelerin durumunu günceller (bağlantı hatası uyarıyı engellemez).
+    Task<EBelgeUyariDto> UyariAsync(CancellationToken cancellationToken = default);
+    // "Onaylanınca otomatik gönder" açıksa ve entegratör bağlıysa onaylı satış faturasının / alış iadesinin e-belgesini gönderir.
+    // Ayar kapalıysa, belge türü uygun değilse ya da zaten gönderilmişse null döner; eksik bilgi hata olarak değil sonuç olarak döner.
+    Task<EBelgeGonderimSonucu?> OtomatikGonderAsync(int faturaId, CancellationToken cancellationToken = default);
 
     // Hazırlamadan önce kontrol; istekteki senaryo ve iade bilgisi kaydedilmeden denetime katılır.
     Task<EBelgeOnKontrol> OnKontrolAsync(EBelgeHazirlamaIstegi istek, CancellationToken cancellationToken = default);

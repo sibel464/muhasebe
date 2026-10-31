@@ -501,6 +501,8 @@ public class SatisGorunumModeli : TemelGorunumModeli
             (_sonFatura, _sonOdeme) = (eklenenFatura, odemeYontemi);
             if (SatistanSonraFisYazdir)
                 await FisYazdirAsync(yaziciSor: false);
+            if (await Masaustu.Yardimcilar.EBelgeOtomatik.GonderAsync(eklenenFatura.Id) is { } eBelgeNotu)
+                DurumMesaji += " — " + eBelgeNotu;
         }
         catch (Exception ex)
         {
