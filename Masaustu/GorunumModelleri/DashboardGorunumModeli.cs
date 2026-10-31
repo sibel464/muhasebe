@@ -17,6 +17,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     private readonly IVeritabaniYedekServisi? _yedekServisi;
     private readonly ITekrarlayanFaturaServisi? _tekrarlayanServisi;
     private readonly IRaporMerkeziServisi? _raporServisi;
+    private readonly IPersonelServisi? _personelServisi;
 
     private int _musteriSayisi;
     private int _urunSayisi;
@@ -52,6 +53,11 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     public string VadeOdeme { get => _vadeOdeme; set => OzellikAyarla(ref _vadeOdeme, value); }
     public bool VadeGorunur { get => _vadeGorunur; set => OzellikAyarla(ref _vadeGorunur, value); }
     public ICommand VadeTakvimiKomutu { get; }
+    // Geçen ayın maaş tahakkuku, ödenmemiş maaşlar ve ödenecek vergi / SGK; personel yetkisi yoksa gizli.
+    private string _personelUyarisi = string.Empty;
+    public string PersonelUyarisi { get => _personelUyarisi; set { OzellikAyarla(ref _personelUyarisi, value); BildirimGonder(nameof(PersonelUyarisiGorunur)); } }
+    public bool PersonelUyarisiGorunur => PersonelUyarisi.Length > 0;
+    public ICommand PersonelKomutu { get; }
 
     // Dialog açma fonksiyonları
     public Func<Task<bool>>? MusteriDuzenleFormAc { get; set; }
@@ -71,8 +77,10 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         IBaslangicKontrolServisi? baslangicServisi = null,
         IVeritabaniYedekServisi? yedekServisi = null,
         ITekrarlayanFaturaServisi? tekrarlayanServisi = null,
-        IRaporMerkeziServisi? raporServisi = null)
+        IRaporMerkeziServisi? raporServisi = null,
+        IPersonelServisi? personelServisi = null)
     {
+        _personelServisi = personelServisi;
         _raporServisi = raporServisi;
         _tekrarlayanServisi = tekrarlayanServisi;
         _cariServisi = cariServisi;
@@ -89,6 +97,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         CikisKomutu = new KomutSarici(_ => cikisAction?.Invoke());
         AdimaGitKomutu = new KomutSarici(p => { if (p is string sayfa) _navigasyon?.Git(sayfa); });
         VadeTakvimiKomutu = new KomutSarici(_ => Masaustu.Gorunumler.Ortak.VadeTakvimiPenceresi.Ac(null));
+        PersonelKomutu = new KomutSarici(_ => _navigasyon?.Git("Personel"));
         TekrarlayanFaturalarKomutu = new KomutSarici(async _ =>
         {
             Masaustu.Gorunumler.Sayfa.TekrarlayanFaturalarPenceresi.Ac(null);
@@ -107,6 +116,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         AdimaGitKomutu = new KomutSarici(_ => { });
         TekrarlayanFaturalarKomutu = new KomutSarici(_ => { });
         VadeTakvimiKomutu = new KomutSarici(_ => { });
+        PersonelKomutu = new KomutSarici(_ => { });
     }
 
     private async Task VerileriYukleAsync()
@@ -147,6 +157,25 @@ public class DashboardGorunumModeli : TemelGorunumModeli
         await BaslangicVeYedekYukleAsync();
         await TekrarlayanYukleAsync();
         await VadeYukleAsync();
+        await PersonelYukleAsync();
+    }
+
+    private async Task PersonelYukleAsync()
+    {
+        if (_personelServisi == null) return;
+        try
+        {
+            var u = await _personelServisi.UyariAsync(DateTime.Today);
+            PersonelUyarisi = u.Metin(DateTime.Today);
+        }
+        catch (Uygulama.Arayuzler.YetkisizErisimException)
+        {
+            PersonelUyarisi = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await App.HatayiLoglaAsync(ex, "DashboardGorunumModeli.Personel");
+        }
     }
 
     private async Task VadeYukleAsync()

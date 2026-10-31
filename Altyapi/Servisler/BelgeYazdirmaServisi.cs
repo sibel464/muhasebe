@@ -702,6 +702,77 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         return await DosyayaKaydetVeAcAsync(html, null, dosyaAdi);
     }
 
+    // Ücret pusulası: tutarlar tahakkuk kaydındandır (program bordro hesaplamaz). Personel imzalayıp teslim alır.
+    public string MaasPusulasiHtmlUret(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar, FirmaBilgisi? firma = null)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var tr = new CultureInfo("tr-TR");
+        var donemAdi = tr.DateTimeFormat.GetMonthName(ay) + " " + yil;
+        string T(decimal d) => d.ToString("N2", tr);
+        string Satir(string ad, decimal tutar, bool kalin = false) =>
+            "<tr" + (kalin ? " style='font-weight:700;'" : "") + "><td>" + ad + "</td><td class='text-right'>" + T(tutar) + "</td></tr>";
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Ücret Pusulası - " + H(donemAdi) + "</title><style>" + GetCommonCss() +
+            " .pusula { page-break-after: always; } .pusula:last-child { page-break-after: auto; } @media screen { .pusula + .pusula { margin-top: 32px; padding-top: 32px; border-top: 2px dashed #CBD5E1; } } .ikili { width: 100%; border-collapse: collapse; } .ikili > tbody > tr > td { width: 50%; vertical-align: top; padding: 0 8px; }" +
+            " .ikili .data-table td, .ikili .data-table th { padding: 7px 10px; }</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        foreach (var s in satirlar.OrderBy(x => x.AdSoyad, StringComparer.Create(tr, true)))
+        {
+            sb.AppendLine("<div class='container pusula'>");
+            sb.AppendLine("<table class='header-table'><tr><td>" + FirmaKunyesiHtml(f) + "</td>");
+            sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>Ücret Pusulası</div><div style='font-weight:700;'>" + H(donemAdi) + "</div>" +
+                "<div style='color:#64748B; font-size:12px;'>Dönem: 01." + ay.ToString("00") + "." + yil + " - " + DateTime.DaysInMonth(yil, ay) + "." + ay.ToString("00") + "." + yil + "</div></td></tr></table>");
+
+            var kimlik = new List<string> { "<strong>" + H(s.AdSoyad) + "</strong>" };
+            if (!string.IsNullOrWhiteSpace(s.TcKimlikNo)) kimlik.Add("T.C. Kimlik No: " + H(s.TcKimlikNo));
+            if (!string.IsNullOrWhiteSpace(s.Gorev)) kimlik.Add("Görev: " + H(s.Gorev));
+            var kart = new List<string> { "Sicil / Kod: " + H(s.Kod) };
+            if (s.IseGirisTarihi is DateTime giris) kart.Add("İşe giriş: " + giris.ToString("dd.MM.yyyy", tr));
+            if (!string.IsNullOrWhiteSpace(s.Iban)) kart.Add("IBAN: " + H(s.Iban));
+            sb.AppendLine("<table class='info-grid'><tr><td><div class='info-label'>Personel</div><div class='info-value'>" + string.Join("<br>", kimlik) + "</div></td>");
+            sb.AppendLine("<td><div class='info-label'>Kart</div><div class='info-value'>" + string.Join("<br>", kart) + "</div></td></tr></table>");
+
+            sb.AppendLine("<table class='ikili'><tr><td>");
+            sb.AppendLine("<table class='data-table'><thead><tr><th>Kazanç ve kesintiler</th><th class='text-right'>Tutar (TL)</th></tr></thead><tbody>");
+            sb.AppendLine(Satir("Brüt ücret", s.BrutUcret, true));
+            sb.AppendLine(Satir("SGK primi işçi payı", s.SgkIsciPayi));
+            sb.AppendLine(Satir("İşsizlik sigortası işçi payı", s.IssizlikIsciPayi));
+            sb.AppendLine(Satir("Gelir vergisi", s.GelirVergisi));
+            sb.AppendLine(Satir("Damga vergisi", s.DamgaVergisi));
+            sb.AppendLine(Satir("Toplam yasal kesinti", s.BrutUcret - s.NetUcret, true));
+            sb.AppendLine(Satir("Net ücret", s.NetUcret, true));
+            sb.AppendLine("</tbody></table></td><td>");
+            sb.AppendLine("<table class='data-table'><thead><tr><th>İşveren payları (bilgi)</th><th class='text-right'>Tutar (TL)</th></tr></thead><tbody>");
+            sb.AppendLine(Satir("SGK primi işveren payı", s.SgkIsverenPayi));
+            sb.AppendLine(Satir("İşsizlik sigortası işveren payı", s.IssizlikIsverenPayi));
+            sb.AppendLine(Satir("Toplam işveren maliyeti", s.IsverenMaliyeti, true));
+            sb.AppendLine("</tbody></table>");
+            if (s.AvansKesintisi > 0)
+                sb.AppendLine("<table class='data-table'><tbody>" + Satir("Net ücret", s.NetUcret) + Satir("Mahsup edilen avans", -s.AvansKesintisi) + "</tbody></table>");
+            sb.AppendLine("</td></tr></table>");
+
+            sb.AppendLine("<div style='background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:16px; text-align:center; margin:8px 0 20px 0;'>");
+            sb.AppendLine("<div style='font-size:12px; font-weight:700; color:#4338CA; text-transform:uppercase;'>Ödenecek net tutar</div>");
+            sb.AppendLine("<div style='font-size:24px; font-weight:800; color:#1E1B4B; margin:4px 0;'>" + T(s.OdenecekNet) + " ₺</div>");
+            sb.AppendLine("<div style='font-size:12px; font-weight:600; color:#312E81;'>" + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(s.OdenecekNet)) + "</div></div>");
+
+            sb.AppendLine("<p style='font-size:12px; color:#334155;'>" + H(donemAdi) + " dönemine ait yukarıdaki ücretimi eksiksiz aldım.</p>");
+            sb.AppendLine("<table class='signature-table'><tr><td><div class='signature-line'>" + H(f.FirmaUnvani) + "<br><span style='font-weight:400;'>Kaşe / İmza</span></div></td>" +
+                "<td><div class='signature-line'>" + H(s.AdSoyad) + "<br><span style='font-weight:400;'>Tarih / İmza</span></div></td></tr></table>");
+            sb.AppendLine("<div class='footer-note'>Bu pusula muhasebe kayıtlarındaki maaş tahakkukundan düzenlenmiştir. Resmi ücret bordrosu mali müşavirinizin düzenlediği bordrodur.</div>");
+            sb.AppendLine("</div>");
+        }
+        sb.AppendLine("</body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> MaasPusulasiYazdirAsync(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar)
+    {
+        var html = MaasPusulasiHtmlUret(yil, ay, satirlar, await FirmaBilgisiGetirAsync());
+        return await DosyayaKaydetVeAcAsync(html, null, $"MaasPusulasi_{yil}_{ay:00}.html");
+    }
+
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)
     {
         // Uzantısız dosyayı Windows tarayıcıda açamaz, "hangi programla açılsın" diye sorar.

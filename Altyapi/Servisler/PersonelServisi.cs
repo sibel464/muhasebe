@@ -192,6 +192,7 @@ public class PersonelServisi : IPersonelServisi
         o.Yapilanlar = yapilan.Select(h => new MaasTahakkukSatiriDto
         {
             PersonelId = h.PersonelId, Kod = h.Personel?.Kod ?? "", AdSoyad = h.Personel?.AdSoyad ?? "", GiderHesapKodu = h.Personel?.GiderHesapKodu ?? "",
+            TcKimlikNo = h.Personel?.TcKimlikNo, Gorev = h.Personel?.Gorev, IseGirisTarihi = h.Personel?.IseGirisTarihi, Iban = h.Personel?.Iban,
             NetUcret = h.NetUcret, SgkIsciPayi = h.SgkIsciPayi, IssizlikIsciPayi = h.IssizlikIsciPayi, GelirVergisi = h.GelirVergisi, DamgaVergisi = h.DamgaVergisi,
             SgkIsverenPayi = h.SgkIsverenPayi, IssizlikIsverenPayi = h.IssizlikIsverenPayi, AvansKesintisi = h.AvansKesintisi
         }).ToList();
@@ -207,7 +208,8 @@ public class PersonelServisi : IPersonelServisi
             var avans = Math.Max(0, bakiyeler.GetValueOrDefault(p.Id).Avans);
             o.Bekleyenler.Add(new MaasTahakkukSatiriDto
             {
-                PersonelId = p.Id, Kod = p.Kod, AdSoyad = p.AdSoyad, GiderHesapKodu = p.GiderHesapKodu, NetUcret = p.NetUcret, SgkIsciPayi = p.SgkIsciPayi,
+                PersonelId = p.Id, Kod = p.Kod, AdSoyad = p.AdSoyad, TcKimlikNo = p.TcKimlikNo, Gorev = p.Gorev, IseGirisTarihi = p.IseGirisTarihi, Iban = p.Iban,
+                GiderHesapKodu = p.GiderHesapKodu, NetUcret = p.NetUcret, SgkIsciPayi = p.SgkIsciPayi,
                 IssizlikIsciPayi = p.IssizlikIsciPayi, GelirVergisi = p.GelirVergisi, DamgaVergisi = p.DamgaVergisi, SgkIsverenPayi = p.SgkIsverenPayi,
                 IssizlikIsverenPayi = p.IssizlikIsverenPayi, AvansBakiye = avans, AvansKesintisi = Math.Min(avans, p.NetUcret)
             });
@@ -592,6 +594,30 @@ public class PersonelServisi : IPersonelServisi
         sirketId = _baglam.SirketIdCoz(sirketId);
         Goruntule();
         return new VergiSgkBakiyeDto { OdenecekVergi = await AlacakBakiyesiAsync(sirketId, "360"), OdenecekSgk = await AlacakBakiyesiAsync(sirketId, "361") };
+    }
+
+    public async Task<PersonelUyariDto> UyariAsync(DateTime bugun, Guid sirketId = default)
+    {
+        sirketId = _baglam.SirketIdCoz(sirketId);
+        Goruntule();
+        var o = new PersonelUyariDto
+        {
+            CalisanSayisi = await _baglam.Personeller.CountAsync(p => p.SirketId == sirketId && p.IstenCikisTarihi == null)
+        };
+        var bakiyeler = await BakiyelerAsync(sirketId);
+        o.OdenmemisKisi = bakiyeler.Values.Count(b => b.Odenecek > 0);
+        o.OdenmemisNet = bakiyeler.Values.Where(b => b.Odenecek > 0).Sum(b => b.Odenecek);
+        if (o.CalisanSayisi == 0 && o.OdenmemisKisi == 0) return o;
+
+        var gecenAy = bugun.Date.AddMonths(-1);
+        (o.TahakkukYil, o.TahakkukAy) = (gecenAy.Year, gecenAy.Month);
+        var donem = await DonemHazirlaAsync(gecenAy.Year, gecenAy.Month, sirketId);
+        // Hiç tahakkuk yapılmamış bir firmada (bordroyu yalnız müşavir işliyorsa) her ay uyarmak gürültü olur.
+        var hicTahakkukVar = await _baglam.PersonelHareketleri.AnyAsync(h => h.SirketId == sirketId && h.Tur == PersonelHareketTuru.MaasTahakkuku);
+        if (donem.Engeller.Count == 0 && hicTahakkukVar) o.TahakkukBekleyen = donem.Bekleyenler.Count;
+        o.OdenecekVergi = Math.Max(0, await AlacakBakiyesiAsync(sirketId, "360"));
+        o.OdenecekSgk = Math.Max(0, await AlacakBakiyesiAsync(sirketId, "361"));
+        return o;
     }
 
     public async Task VergiSgkOdeAsync(string hesapKodu, decimal tutar, DateTime tarih, string kaynak, int hesapId, string? aciklama = null, Guid sirketId = default)

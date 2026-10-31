@@ -60,6 +60,7 @@ public class TahakkukSatiriModeli : TemelGorunumModeli
 public class PersonelGorunumModeli : TemelGorunumModeli
 {
     private readonly IPersonelServisi _servis;
+    private readonly IBelgeYazdirmaServisi? _yazdirma;
     private PersonelListeDto? _secili;
     private PersonelEkstreSatiriDto? _seciliEkstre;
     private bool _ayrilanlar;
@@ -72,9 +73,10 @@ public class PersonelGorunumModeli : TemelGorunumModeli
     private string _durumMesaji = string.Empty;
     private bool _mesgul;
 
-    public PersonelGorunumModeli(IPersonelServisi servis)
+    public PersonelGorunumModeli(IPersonelServisi servis, IBelgeYazdirmaServisi? yazdirma = null)
     {
         _servis = servis;
+        _yazdirma = yazdirma;
         YenileKomutu = new KomutSarici(async () => await YukleAsync());
         YeniKomutu = new KomutSarici(async () => await FormAcAsync(null));
         DuzenleKomutu = new KomutSarici(async () => await FormAcAsync(Secili), () => Secili != null);
@@ -84,6 +86,7 @@ public class PersonelGorunumModeli : TemelGorunumModeli
         IptalKomutu = new KomutSarici(async () => await IptalAsync(), () => SeciliEkstre?.IptalEdilebilir == true);
         TahakkukKomutu = new KomutSarici(async () => await TahakkukAsync(), () => !_mesgul && Donem?.Engeller.Count == 0 && Satirlar.Any(s => s.Secili));
         GeriAlKomutu = new KomutSarici(async () => await GeriAlAsync(), () => !_mesgul && Donem?.FisNolari.Count > 0);
+        PusulaKomutu = new KomutSarici(async () => await PusulaYazdirAsync(), () => _yazdirma != null && Yapilanlar.Count > 0);
         TopluOdemeKomutu = new KomutSarici(async () => await TopluOdemeAsync(), () => !_mesgul && OdemeHesabi != null && ToplamOdenecek > 0);
         VergiOdeKomutu = new KomutSarici(async () => await VergiSgkOdeAsync("360"), () => !_mesgul && OdemeHesabi != null && VergiSgk?.OdenecekVergi > 0);
         SgkOdeKomutu = new KomutSarici(async () => await VergiSgkOdeAsync("361"), () => !_mesgul && OdemeHesabi != null && VergiSgk?.OdenecekSgk > 0);
@@ -107,6 +110,7 @@ public class PersonelGorunumModeli : TemelGorunumModeli
     public ICommand IptalKomutu { get; }
     public ICommand TahakkukKomutu { get; }
     public ICommand GeriAlKomutu { get; }
+    public ICommand PusulaKomutu { get; }
     public ICommand TopluOdemeKomutu { get; }
     public ICommand VergiOdeKomutu { get; }
     public ICommand SgkOdeKomutu { get; }
@@ -297,6 +301,13 @@ public class PersonelGorunumModeli : TemelGorunumModeli
         catch (Exception ex) { DurumMesaji = "Tahakkuk edilemedi: " + ex.Message; }
         finally { _mesgul = false; }
         await YukleAsync();
+    }
+
+    private async Task PusulaYazdirAsync()
+    {
+        if (_yazdirma == null || Yapilanlar.Count == 0) return;
+        try { await _yazdirma.MaasPusulasiYazdirAsync(Yil, Ay, Yapilanlar.ToList()); }
+        catch (Exception ex) { DurumMesaji = "Pusula hazırlanamadı: " + ex.Message; }
     }
 
     private async Task GeriAlAsync()

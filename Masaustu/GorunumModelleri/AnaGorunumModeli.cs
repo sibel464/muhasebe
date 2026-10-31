@@ -181,7 +181,7 @@ public class AnaGorunumModeli : TemelGorunumModeli
         // Sayfa fabrikalarını kaydet. Servisler her sayfanın kendi kapsamından (sp) alınır; böylece her sayfa kendi
         // veritabanı bağlamıyla çalışır ve açılışta güncel veriyi okur (bkz. NavigasyonServisi).
         static T G<T>(IServiceProvider sp) where T : notnull => sp.GetRequiredService<T>();
-        _navigasyon.Kaydet("Dashboard", sp => new DashboardGorunumModeli(G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke(), G<IKasaServisi>(sp), G<IFaturaServisi>(sp), sp.GetService<IBaslangicKontrolServisi>(), sp.GetService<IVeritabaniYedekServisi>(), sp.GetService<ITekrarlayanFaturaServisi>(), sp.GetService<IRaporMerkeziServisi>()));
+        _navigasyon.Kaydet("Dashboard", sp => new DashboardGorunumModeli(G<ICariServisi>(sp), G<IUrunServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke(), G<IKasaServisi>(sp), G<IFaturaServisi>(sp), sp.GetService<IBaslangicKontrolServisi>(), sp.GetService<IVeritabaniYedekServisi>(), sp.GetService<ITekrarlayanFaturaServisi>(), sp.GetService<IRaporMerkeziServisi>(), sp.GetService<IPersonelServisi>()));
         _navigasyon.Kaydet("Musteri", sp => new MusteriGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon, () => CikisYapildi?.Invoke()));
         _navigasyon.Kaydet("CariEkle", sp => new CariEkleGorunumModeli(G<ICariServisi>(sp), G<ICariTipiTanimiServisi>(sp), _navigasyon));
         _navigasyon.Kaydet("CariSil", sp => new CariSilGorunumModeli(G<ICariServisi>(sp), G<IKvkkServisi>(sp)));

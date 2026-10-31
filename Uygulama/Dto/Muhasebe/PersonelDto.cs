@@ -23,6 +23,11 @@ public class MaasTahakkukSatiriDto
     public int PersonelId { get; set; }
     public string Kod { get; set; } = "";
     public string AdSoyad { get; set; } = "";
+    // Maaş pusulasında yazılan kart bilgileri.
+    public string? TcKimlikNo { get; set; }
+    public string? Gorev { get; set; }
+    public DateTime? IseGirisTarihi { get; set; }
+    public string? Iban { get; set; }
     public string GiderHesapKodu { get; set; } = "770";
     public decimal NetUcret { get; set; }
     public decimal SgkIsciPayi { get; set; }
@@ -78,4 +83,37 @@ public class VergiSgkBakiyeDto
     // 360: gelir vergisi, damga vergisi, ödenecek KDV, tevkifat. 361: SGK primleri ve işsizlik sigortası.
     public decimal OdenecekVergi { get; set; }
     public decimal OdenecekSgk { get; set; }
+}
+
+// Ana sayfa hatırlatması: geçen ayın tahakkuku, ödenmemiş maaşlar ve 360/361 borçları.
+public class PersonelUyariDto
+{
+    public int CalisanSayisi { get; set; }
+    // Geçen ay tahakkuk edilmemiş çalışan sayısı (dönem kilitli / kapalıysa ya da firma hiç tahakkuk yapmadıysa 0).
+    public int TahakkukBekleyen { get; set; }
+    public int TahakkukYil { get; set; }
+    public int TahakkukAy { get; set; }
+    public int OdenmemisKisi { get; set; }
+    public decimal OdenmemisNet { get; set; }
+    public decimal OdenecekVergi { get; set; }
+    public decimal OdenecekSgk { get; set; }
+
+    // Muhtasar ve SGK bildirgesi ödemeleri izleyen ayın 26'sında; vergi satırı 360'ın tamamıdır (KDV dahil).
+    public string Metin(DateTime bugun)
+    {
+        var satirlar = new List<string>();
+        if (TahakkukBekleyen > 0)
+            satirlar.Add($"{TahakkukAy:00}.{TahakkukYil} maaşı {TahakkukBekleyen} personel için tahakkuk edilmedi.");
+        if (OdenmemisNet > 0)
+            satirlar.Add($"{OdenmemisKisi} personele ödenmemiş maaş: {OdenmemisNet:N2} ₺.");
+        if (CalisanSayisi > 0 && (OdenecekVergi > 0 || OdenecekSgk > 0))
+        {
+            var sonGun = new DateTime(bugun.Year, bugun.Month, 26);
+            var parcalar = new List<string>();
+            if (OdenecekVergi > 0) parcalar.Add($"vergi {OdenecekVergi:N2} ₺");
+            if (OdenecekSgk > 0) parcalar.Add($"SGK {OdenecekSgk:N2} ₺");
+            satirlar.Add($"Ödenecek {string.Join(", ", parcalar)}" + (bugun.Date <= sonGun ? $" (son ödeme genellikle {sonGun:dd.MM.yyyy})." : "."));
+        }
+        return satirlar.Count == 0 ? string.Empty : "👥 " + string.Join("  ", satirlar);
+    }
 }

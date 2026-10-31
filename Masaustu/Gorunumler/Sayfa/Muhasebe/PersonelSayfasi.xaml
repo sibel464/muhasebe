@@ -111,7 +111,8 @@
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Command="{Binding TahakkukKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="Maaşları Tahakkuk Et"/></Button>
-                                <Button Command="{Binding GeriAlKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="↩ Geri Al"/></Button>
+                                <Button Command="{Binding GeriAlKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="↩ Geri Al"/></Button>
+                                <Button Command="{Binding PusulaKomutu}" Style="{StaticResource IkinciDugme}" ToolTip="Bu ay tahakkuk edilen personelin ücret pusulaları (her kişi ayrı sayfa)"><TextBlock Text="🖨 Maaş Pusulası"/></Button>
                             </StackPanel>
                             <TextBlock Text="{Binding DonemMetni}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#1E3A8A" Margin="0,0,12,0"/>
                         </DockPanel>

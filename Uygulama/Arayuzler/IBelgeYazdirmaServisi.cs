@@ -48,6 +48,10 @@ public interface IBelgeYazdirmaServisi
     string HesapEkstresiHtmlUret(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
     Task<string> HesapEkstresiYazdirAsync(HesapEkstresiBelgesi belge, FirmaBilgisi? firma = null);
 
+    // Tahakkuk edilmiş maaşların ücret pusulası; her personel ayrı sayfada.
+    string MaasPusulasiHtmlUret(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar, FirmaBilgisi? firma = null);
+    Task<string> MaasPusulasiYazdirAsync(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar);
+
     // Doğrudan Görüntüleme & Yazdırma Diyaloğu Açma
     Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi);
 }

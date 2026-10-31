@@ -22,5 +22,7 @@ public interface IPersonelServisi
     Task<List<PersonelEkstreSatiriDto>> EkstreAsync(int personelId, Guid sirketId = default);
 
     Task<VergiSgkBakiyeDto> VergiSgkBakiyeAsync(Guid sirketId = default);
+    // bugun: ana sayfanın tarihi; geçen ay bu tarihe göre bulunur.
+    Task<PersonelUyariDto> UyariAsync(DateTime bugun, Guid sirketId = default);
     Task VergiSgkOdeAsync(string hesapKodu, decimal tutar, DateTime tarih, string kaynak, int hesapId, string? aciklama = null, Guid sirketId = default);
 }

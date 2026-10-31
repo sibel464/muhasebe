@@ -4,6 +4,7 @@ using EtkiAlani.Modeller.Finans;
 using EtkiAlani.Modeller.Kullanici;
 using EtkiAlani.Modeller.Kurumsal;
 using EtkiAlani.Modeller.Muhasebe;
+using EtkiAlani.Modeller.Ortak;
 using Microsoft.EntityFrameworkCore;
 using Uygulama.Arayuzler;
 using Xunit;
@@ -146,5 +147,53 @@ public sealed class PersonelMaasTests(IsolatedPostgreSqlFixture fixture)
         var d = await s.DonemAsync(2025, 1, f);
         await Assert.ThrowsAsync<YetkisizErisimException>(() => s.TahakkukEtAsync(2025, 1, d.Bekleyenler, f));
         await Assert.ThrowsAsync<YetkisizErisimException>(() => s.AvansVerAsync(id, 100, T(1, 5), PersonelServisi.Kasa, kasaId, null, f));
+    }
+
+    [Fact]
+    public async Task Ana_sayfa_uyarisi_ve_maas_pusulasi()
+    {
+        var (f, kasaId) = await FirmaAsync();
+        await using var c = new MuhasebeBaglami(fixture.Options);
+        var s = new PersonelServisi(c, TamYetkili());
+        // Hiç tahakkuk yapılmamış firmada geçen ay için uyarılmaz.
+        var a = (await s.KaydetAsync(new Personel
+        {
+            AdSoyad = "Elif Şahin", TcKimlikNo = "10000000146", Gorev = "Muhasebe", IseGirisTarihi = T(1, 1), NetUcret = 20000, SgkIsciPayi = 3000,
+            IssizlikIsciPayi = 200, GelirVergisi = 1500, DamgaVergisi = 150, SgkIsverenPayi = 4000, IssizlikIsverenPayi = 400
+        }, f)).Id;
+        await s.KaydetAsync(new Personel { AdSoyad = "Fatih Kaya", IseGirisTarihi = T(1, 1), NetUcret = 15000 }, f);
+        var u = await s.UyariAsync(T(4, 10), f);
+        Assert.Equal(2, u.CalisanSayisi);
+        Assert.Equal(0, u.TahakkukBekleyen);
+        Assert.Equal("", u.Metin(T(4, 10)));
+
+        await s.AvansVerAsync(a, 2000, T(2, 10), PersonelServisi.Kasa, kasaId, null, f);
+        var d = await s.DonemAsync(2025, 2, f);
+        await s.TahakkukEtAsync(2025, 2, d.Bekleyenler.Where(x => x.PersonelId == a).ToList(), f);
+
+        // Mart (geçen ay) hiç tahakkuk edilmedi; şubatın neti ödenmedi; 360/361 borcu var.
+        u = await s.UyariAsync(T(4, 10), f);
+        Assert.Equal((2025, 3, 2), (u.TahakkukYil, u.TahakkukAy, u.TahakkukBekleyen));
+        Assert.Equal((1, 18000m), (u.OdenmemisKisi, u.OdenmemisNet));
+        Assert.Equal((1650m, 7600m), (u.OdenecekVergi, u.OdenecekSgk));
+        var metin = u.Metin(T(4, 10));
+        Assert.Contains("03.2025 maaşı 2 personel", metin);
+        Assert.Contains("26.04.2025", metin);
+
+        // Mart başında geçen ay şubattır.
+        u = await s.UyariAsync(new DateTime(2025, 3, 5), f);
+        Assert.Equal(1, u.TahakkukBekleyen); // şubatta Fatih kaldı
+
+        var yapilan = (await s.DonemAsync(2025, 2, f)).Yapilanlar;
+        Assert.Equal("10000000146", yapilan.Single().TcKimlikNo);
+        var html = System.Net.WebUtility.HtmlDecode(new BelgeYazdirmaServisi().MaasPusulasiHtmlUret(2025, 2, yapilan,
+            new FirmaBilgisi { FirmaUnvani = "Deneme Ltd." }));
+        Assert.Contains("Ücret Pusulası", html);
+        Assert.Contains("Şubat 2025", html);
+        Assert.Contains("Elif Şahin", html);
+        Assert.Contains("24.850,00", html); // brüt
+        Assert.Contains("-2.000,00", html); // avans mahsubu
+        Assert.Contains("18.000,00", html); // ödenecek net
+        Assert.Contains("Muhasebe", html);
     }
 }

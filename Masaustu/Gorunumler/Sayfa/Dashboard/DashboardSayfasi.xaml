@@ -48,6 +48,19 @@
                 </DockPanel>
             </Border>
 
+            <!-- Personel: geçen ayın tahakkuku, ödenmemiş maaş, ödenecek vergi / SGK -->
+            <Border Background="{StaticResource WarningLightFirca}" CornerRadius="12" Padding="16,12" Margin="0,0,0,16"
+                    BorderBrush="{StaticResource WarningDarkFirca}" BorderThickness="1"
+                    Visibility="{Binding PersonelUyarisiGorunur, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding PersonelKomutu}" Style="{StaticResource IkinciDugme}" VerticalAlignment="Center">
+                        <TextBlock Text="👥 Personel ve Maaş"/>
+                    </Button>
+                    <TextBlock Text="{Binding PersonelUyarisi}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimaryFirca}"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                </DockPanel>
+            </Border>
+
             <!-- Önümüzdeki 7 gün: vadesi gelen tahsilat ve ödemeler -->
             <Border Background="White" CornerRadius="12" Padding="16,12" Margin="0,0,0,16" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1"
                     Visibility="{Binding VadeGorunur, Converter={StaticResource BoolToVis}}">
