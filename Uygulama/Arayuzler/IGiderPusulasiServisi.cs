@@ -11,4 +11,6 @@ public interface IGiderPusulasiServisi
     // Kaydeder, fişler ve kasa/bankadan öder; belge numarasını döner.
     Task<GiderPusulasi> KaydetAsync(GiderPusulasiGirisDto giris, Guid sirketId = default);
     Task IptalAsync(int id, string neden, Guid sirketId = default);
+    // KVKK: yasal saklama süresi (belge yılı sonundan itibaren 10 yıl) dolan belgelerde satıcının kişisel verileri silinir; tutarlar kalır.
+    Task<int> SuresiDolanlariAnonimlestirAsync(DateTime bugun, Guid sirketId = default);
 }

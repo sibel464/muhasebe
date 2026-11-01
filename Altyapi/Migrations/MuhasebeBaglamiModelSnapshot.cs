@@ -3134,8 +3134,20 @@ namespace Altyapi.Migrations
                     b.Property<DateTime?>("IptalTarihi")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("KarsiBelgeNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<int?>("KasaHareketiId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("KdvOrani")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("KdvTutari")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal>("NetTutar")
                         .HasPrecision(18, 2)

@@ -131,6 +131,68 @@ public sealed class GiderPusulasiTests(IsolatedPostgreSqlFixture fixture)
     }
 
     [Fact]
+    public async Task Kira_ve_serbest_meslek_stopaj_ve_kdv_ile_fislenir_kvkk_anonimlestirir()
+    {
+        var (f, kasaId, bankaId) = await FirmaAsync();
+        var tarih = DateTime.Today.AddDays(-1);
+        await using (var c = new MuhasebeBaglami(fixture.Options))
+        {
+            var s = new GiderPusulasiServisi(c, TamYetkili());
+            var kira = await s.KaydetAsync(new GiderPusulasiGirisDto
+            {
+                Tur = GiderPusulasiTuru.KiraOdemesi, Tarih = tarih, SaticiAdSoyad = "Fatma Ev Sahibi", StopajOrani = 20,
+                OdemeKaynagi = GiderPusulasiServisi.Banka, OdemeHesabiId = bankaId, Kalemler = { new() { Cinsi = "Ekim kirası", Birim = "Ay", BirimFiyat = 10000 } }
+            }, f);
+            Assert.StartsWith($"KR-{tarih.Year}-", kira.BelgeNo);
+            Assert.Equal(8000m, kira.NetTutar);
+
+            // KDV yalnız serbest meslekte; makbuz no zorunlu
+            await Assert.ThrowsAsync<InvalidOperationException>(() => s.KaydetAsync(new GiderPusulasiGirisDto
+            {
+                Tur = GiderPusulasiTuru.KiraOdemesi, Tarih = tarih, SaticiAdSoyad = "X", KdvOrani = 20, OdemeKaynagi = GiderPusulasiServisi.Kasa, OdemeHesabiId = kasaId,
+                Kalemler = { new() { Cinsi = "a", BirimFiyat = 100 } }
+            }, f));
+            var smmGiris = new GiderPusulasiGirisDto
+            {
+                Tur = GiderPusulasiTuru.SerbestMeslekMakbuzu, Tarih = tarih, SaticiAdSoyad = "Av. Kemal Hukuk", StopajOrani = 20, KdvOrani = 20,
+                OdemeKaynagi = GiderPusulasiServisi.Kasa, OdemeHesabiId = kasaId, Kalemler = { new() { Cinsi = "Danışmanlık ücreti", Birim = "Hizmet", BirimFiyat = 5000 } }
+            };
+            await Assert.ThrowsAsync<InvalidOperationException>(() => s.KaydetAsync(smmGiris, f));
+            smmGiris.KarsiBelgeNo = "SMM2026000000123";
+            var smm = await s.KaydetAsync(smmGiris, f);
+            Assert.Equal(1000m, smm.StopajTutari);
+            Assert.Equal(1000m, smm.KdvTutari);
+            Assert.Equal(5000m, smm.NetTutar);
+
+            var tam = await s.GetirAsync(smm.Id, f);
+            var html = System.Net.WebUtility.HtmlDecode(new BelgeYazdirmaServisi().GiderPusulasiHtmlUret(tam!, new FirmaBilgisi { FirmaUnvani = "Test" }));
+            Assert.Contains("SMM2026000000123", html);
+            Assert.Contains("KDV %20", html);
+
+            // 11 yıl önceki belge anonimleştirilir, bugünkü kalır
+            var eski = new GiderPusulasi
+            {
+                SirketId = f, BelgeNo = "GP-ESKI-1", Tarih = new DateTime(DateTime.Today.Year - 11, 6, 1, 0, 0, 0, DateTimeKind.Utc), SaticiAdSoyad = "Eski Satıcı",
+                SaticiTcKimlikNo = "10000000146", SaticiAdres = "Adres", BrutTutar = 10, NetTutar = 10
+            };
+            c.GiderPusulalari.Add(eski);
+            await c.SaveChangesAsync();
+            Assert.Equal(1, await s.SuresiDolanlariAnonimlestirAsync(DateTime.Today, f));
+            Assert.Equal(0, await s.SuresiDolanlariAnonimlestirAsync(DateTime.Today, f));
+            var anonim = await s.GetirAsync(eski.Id, f);
+            Assert.Equal(GiderPusulasiServisi.AnonimAd, anonim!.SaticiAdSoyad);
+            Assert.Null(anonim.SaticiTcKimlikNo);
+            Assert.Equal("Fatma Ev Sahibi", (await s.GetirAsync(kira.Id, f))!.SaticiAdSoyad);
+        }
+        Assert.Equal(15000m, await BakiyeAsync(f, "770"));
+        Assert.Equal(1000m, await BakiyeAsync(f, "191"));
+        Assert.Equal(-3000m, await BakiyeAsync(f, "360"));
+        Assert.Equal(0m, await BakiyeAsync(f, "336"));
+        Assert.Equal(-5000m, await BakiyeAsync(f, "100"));
+        Assert.Equal(-8000m, await BakiyeAsync(f, "102"));
+    }
+
+    [Fact]
     public async Task Yetkisiz_kullanici_gider_pusulasi_kesemez()
     {
         var (f, kasaId, _) = await FirmaAsync();

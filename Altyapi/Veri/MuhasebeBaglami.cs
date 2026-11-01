@@ -521,6 +521,9 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<GiderPusulasi>().Property(x => x.StopajOrani).HasPrecision(5, 2);
         modelBuilder.Entity<GiderPusulasi>().Property(x => x.StopajTutari).HasPrecision(18, 2);
         modelBuilder.Entity<GiderPusulasi>().Property(x => x.NetTutar).HasPrecision(18, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.KdvOrani).HasPrecision(5, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.KdvTutari).HasPrecision(18, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.KarsiBelgeNo).HasMaxLength(50);
         modelBuilder.Entity<GiderPusulasi>().HasMany(x => x.Kalemler).WithOne().HasForeignKey(x => x.GiderPusulasiId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<GiderPusulasiKalemi>().HasQueryFilter(x => !x.Silindi);
         modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.Cinsi).HasMaxLength(300);

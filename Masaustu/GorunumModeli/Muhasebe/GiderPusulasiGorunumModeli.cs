@@ -30,6 +30,7 @@ public class GiderPusulasiGorunumModeli : TemelGorunumModeli
         YeniKomutu = new KomutSarici(async () => await YeniAsync());
         YazdirKomutu = new KomutSarici(async () => await YazdirAsync(Secili), () => Secili != null);
         IptalKomutu = new KomutSarici(async () => await IptalAsync(), () => Secili is { IptalEdildi: false });
+        AnonimlestirKomutu = new KomutSarici(async () => await AnonimlestirAsync());
         _ = YukleAsync();
     }
 
@@ -38,6 +39,20 @@ public class GiderPusulasiGorunumModeli : TemelGorunumModeli
     public ICommand YeniKomutu { get; }
     public ICommand YazdirKomutu { get; }
     public ICommand IptalKomutu { get; }
+    public ICommand AnonimlestirKomutu { get; }
+
+    private async Task AnonimlestirAsync()
+    {
+        if (MessageBox.Show("Yasal saklama süresi (belge yılını izleyen yıldan itibaren 10 yıl) dolmuş belgelerde satıcının adı, T.C. kimlik numarası ve adresi kalıcı olarak silinecek; tutarlar ve muhasebe kayıtları kalır. Devam edilsin mi?",
+                "KVKK - Kişisel Verileri Sil", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        try
+        {
+            var sayi = await _servis.SuresiDolanlariAnonimlestirAsync(DateTime.Today);
+            DurumMesaji = sayi == 0 ? "Saklama süresi dolmuş belge yok." : $"{sayi} belgede satıcının kişisel verileri silindi.";
+            await YukleAsync();
+        }
+        catch (Exception ex) { DurumMesaji = ex.Message; }
+    }
 
     public GiderPusulasiListeDto? Secili
     {
@@ -167,15 +182,18 @@ public class GiderPusulasiFormuModeli : TemelGorunumModeli
     public IReadOnlyList<TurSecenegi> Turler { get; } =
     [
         new(GiderPusulasiTuru.GiderPusulasi, "Gider Pusulası (esnaf muaflığındaki kişi, birey)"),
-        new(GiderPusulasiTuru.MustahsilMakbuzu, "Müstahsil Makbuzu (çiftçiden zirai ürün)")
+        new(GiderPusulasiTuru.MustahsilMakbuzu, "Müstahsil Makbuzu (çiftçiden zirai ürün)"),
+        new(GiderPusulasiTuru.KiraOdemesi, "Kira Ödemesi (şahıs mal sahibine işyeri kirası)"),
+        new(GiderPusulasiTuru.SerbestMeslekMakbuzu, "Serbest Meslek Makbuzu (avukat, müşavir, doktor)")
     ];
+    public IReadOnlyList<decimal> KdvOranlari { get; } = [20m, 10m, 1m, 0m];
     public IReadOnlyList<Secenek> GiderHesaplari { get; } =
     [
         new("770", "Genel yönetim giderleri"), new("760", "Pazarlama satış dağıtım giderleri"), new("740", "Hizmet üretim maliyeti"),
         new("730", "Genel üretim giderleri"), new("150", "İlk madde ve malzeme"), new("153", "Ticari mallar")
     ];
     public IReadOnlyList<StopajSecenegi> StopajSecenekleri => GiderPusulasiServisi.StopajSecenekleri;
-    public IReadOnlyList<string> Birimler { get; } = ["Adet", "Kg", "Ton", "Lt", "Metre", "M²", "Saat", "Gün", "Hizmet"];
+    public IReadOnlyList<string> Birimler { get; } = ["Adet", "Kg", "Ton", "Lt", "Metre", "M²", "Saat", "Gün", "Ay", "Hizmet"];
 
     private readonly IGiderPusulasiServisi _servis;
     private TurSecenegi _tur;
@@ -215,17 +233,43 @@ public class GiderPusulasiFormuModeli : TemelGorunumModeli
         set
         {
             if (!OzellikAyarla(ref _tur, value)) return;
-            // Müstahsil makbuzunda varsayılan: zirai ürün %2, ticari mal.
-            if (value.Tur == GiderPusulasiTuru.MustahsilMakbuzu)
+            // Türe göre varsayılan stopaj ve hesap; kullanıcı değiştirebilir.
+            switch (value.Tur)
             {
-                StopajSecenegi = StopajSecenekleri[^1];
-                GiderHesabi = GiderHesaplari.First(g => g.Kod == "153");
+                case GiderPusulasiTuru.MustahsilMakbuzu:
+                    StopajSecenegi = StopajSecenekleri.First(s => s.Ad.Contains("diğer zirai"));
+                    GiderHesabi = GiderHesaplari.First(g => g.Kod == "153");
+                    break;
+                case GiderPusulasiTuru.KiraOdemesi:
+                    StopajSecenegi = StopajSecenekleri.First(s => s.Ad.Contains("Kira"));
+                    GiderHesabi = GiderHesaplari[0];
+                    if (Kalemler.Count == 1 && string.IsNullOrWhiteSpace(Kalemler[0].Cinsi)) { Kalemler[0].Cinsi = $"{DateTime.Today:MM.yyyy} işyeri kirası (brüt)"; Kalemler[0].Birim = "Ay"; }
+                    break;
+                case GiderPusulasiTuru.SerbestMeslekMakbuzu:
+                    StopajSecenegi = StopajSecenekleri.First(s => s.Ad.Contains("Serbest meslek"));
+                    GiderHesabi = GiderHesaplari[0];
+                    break;
+                default:
+                    StopajSecenegi = StopajSecenekleri[0];
+                    break;
             }
+            KdvOrani = value.Tur == GiderPusulasiTuru.SerbestMeslekMakbuzu ? 20 : 0;
             BildirimGonder(nameof(SaticiEtiketi));
+            BildirimGonder(nameof(SmmMi));
         }
     }
 
-    public string SaticiEtiketi => Tur.Tur == GiderPusulasiTuru.MustahsilMakbuzu ? "Çiftçinin adı soyadı *" : "Malı satan / işi yapanın adı soyadı *";
+    public string SaticiEtiketi => Tur.Tur switch
+    {
+        GiderPusulasiTuru.MustahsilMakbuzu => "Çiftçinin adı soyadı *",
+        GiderPusulasiTuru.KiraOdemesi => "Kiraya verenin adı soyadı *",
+        GiderPusulasiTuru.SerbestMeslekMakbuzu => "Makbuzu kesenin adı soyadı / unvanı *",
+        _ => "Malı satan / işi yapanın adı soyadı *"
+    };
+    public bool SmmMi => Tur.Tur == GiderPusulasiTuru.SerbestMeslekMakbuzu;
+    public string KarsiBelgeNo { get; set; } = "";
+    private decimal _kdvOrani;
+    public decimal KdvOrani { get => _kdvOrani; set { if (OzellikAyarla(ref _kdvOrani, value)) ToplamlarDegisti(); } }
     public DateTime Tarih { get; set; } = DateTime.Today;
     public string SaticiAdSoyad { get; set; } = "";
     public string SaticiTcKimlikNo { get; set; } = "";
@@ -249,12 +293,14 @@ public class GiderPusulasiFormuModeli : TemelGorunumModeli
 
     public decimal Brut => Kalemler.Sum(k => k.Tutar);
     public decimal Stopaj => GiderPusulasiServisi.StopajHesapla(Brut, StopajOrani);
-    public decimal Net => Brut - Stopaj;
+    public decimal Kdv => GiderPusulasiServisi.StopajHesapla(Brut, KdvOrani);
+    public decimal Net => Brut - Stopaj + Kdv;
 
     private void ToplamlarDegisti()
     {
         BildirimGonder(nameof(Brut));
         BildirimGonder(nameof(Stopaj));
+        BildirimGonder(nameof(Kdv));
         BildirimGonder(nameof(Net));
     }
 
@@ -272,10 +318,10 @@ public class GiderPusulasiFormuModeli : TemelGorunumModeli
         {
             Tur = Tur.Tur, Tarih = Tarih, SaticiAdSoyad = SaticiAdSoyad, SaticiTcKimlikNo = SaticiTcKimlikNo, SaticiAdres = SaticiAdres,
             GiderHesapKodu = GiderHesabi.Kod, StopajOrani = StopajOrani, OdemeKaynagi = OdemeHesabi.Kaynak, OdemeHesabiId = OdemeHesabi.Id,
-            Aciklama = Aciklama,
+            Aciklama = Aciklama, KdvOrani = SmmMi ? KdvOrani : 0, KarsiBelgeNo = SmmMi ? KarsiBelgeNo : null,
             Kalemler = Kalemler.Select(k => new GiderPusulasiKalemDto { Cinsi = k.Cinsi, Miktar = k.Miktar, Birim = k.Birim, BirimFiyat = k.BirimFiyat }).ToList()
         };
-        if (MessageBox.Show($"{GiderPusulasiServisi.TurAdi(Tur.Tur)} kaydedilecek:\n\nBrüt: {Brut:N2} TL\nStopaj (%{StopajOrani:0.##}): {Stopaj:N2} TL\nÖdenecek: {Net:N2} TL ({OdemeHesabi.Kaynak}: {OdemeHesabi.Ad})\n\nKayıttan sonra belge değiştirilemez, yalnız iptal edilebilir. Devam edilsin mi?",
+        if (MessageBox.Show($"{GiderPusulasiServisi.TurAdi(Tur.Tur)} kaydedilecek:\n\nBrüt: {Brut:N2} TL\nStopaj (%{StopajOrani:0.##}): {Stopaj:N2} TL\n{(Kdv > 0 ? $"KDV (%{KdvOrani:0.##}): {Kdv:N2} TL\n" : "")}Ödenecek: {Net:N2} TL ({OdemeHesabi.Kaynak}: {OdemeHesabi.Ad})\n\nKayıttan sonra belge değiştirilemez, yalnız iptal edilebilir. Devam edilsin mi?",
                 "Onay", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         try
         {

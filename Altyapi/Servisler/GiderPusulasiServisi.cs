@@ -27,8 +27,11 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         new(5, "%5 - Muaf esnaf: diğer mal (GVK 94/13-a)"),
         new(10, "%10 - Muaf esnaf: hizmet (GVK 94/13-a)"),
         new(1, "%1 - Çiftçi: hayvan ve hayvan ürünleri (GVK 94/11)"),
-        new(2, "%2 - Çiftçi: diğer zirai ürün ve hizmet (GVK 94/11)")
+        new(2, "%2 - Çiftçi: diğer zirai ürün ve hizmet (GVK 94/11)"),
+        new(20, "%20 - Kira: gerçek kişiden işyeri kirası (GVK 94/5-a)"),
+        new(20, "%20 - Serbest meslek ödemesi (GVK 94/2)")
     ];
+    public const string KdvHesabi = "191";
 
     private readonly MuhasebeBaglami _baglam;
     private readonly IKullaniciServisi? _kullaniciServisi;
@@ -42,7 +45,21 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
     private IKullaniciServisi Oturum => _kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama");
     private void Goruntule() => _kullaniciServisi?.YetkiKontrolEt(y => y.FaturaGoruntule, "Gider pusulası görüntüleme");
 
-    public static string TurAdi(GiderPusulasiTuru tur) => tur == GiderPusulasiTuru.MustahsilMakbuzu ? "Müstahsil Makbuzu" : "Gider Pusulası";
+    public static string TurAdi(GiderPusulasiTuru tur) => tur switch
+    {
+        GiderPusulasiTuru.MustahsilMakbuzu => "Müstahsil Makbuzu",
+        GiderPusulasiTuru.KiraOdemesi => "Kira Ödemesi",
+        GiderPusulasiTuru.SerbestMeslekMakbuzu => "Serbest Meslek Makbuzu",
+        _ => "Gider Pusulası"
+    };
+
+    private static string NoOnEki(GiderPusulasiTuru tur) => tur switch
+    {
+        GiderPusulasiTuru.MustahsilMakbuzu => "MM",
+        GiderPusulasiTuru.KiraOdemesi => "KR",
+        GiderPusulasiTuru.SerbestMeslekMakbuzu => "SM",
+        _ => "GP"
+    };
 
     public async Task<List<GiderPusulasiListeDto>> ListeAsync(DateTime baslangic, DateTime bitis, bool iptallerDahil = true, Guid sirketId = default)
     {
@@ -63,7 +80,7 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         {
             Id = g.Id, Tur = g.Tur, BelgeNo = g.BelgeNo, Tarih = g.Tarih, SaticiAdSoyad = g.SaticiAdSoyad, SaticiTcKimlikNo = g.SaticiTcKimlikNo,
             GiderHesapKodu = g.GiderHesapKodu, BrutTutar = g.BrutTutar, StopajOrani = g.StopajOrani, StopajTutari = g.StopajTutari, NetTutar = g.NetTutar,
-            IptalEdildi = g.IptalEdildi, Aciklama = g.Aciklama,
+            KdvTutari = g.KdvTutari, KarsiBelgeNo = g.KarsiBelgeNo, IptalEdildi = g.IptalEdildi, Aciklama = g.Aciklama,
             OdemeHesabi = g.KasaHareketiId is int k ? $"Kasa: {kasaAdlari.GetValueOrDefault(k)}" : g.BankaHareketiId is int b ? $"Banka: {bankaAdlari.GetValueOrDefault(b)}" : ""
         }).ToList();
     }
@@ -128,7 +145,14 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         var brut = kalemler.Sum(k => k.Tutar);
         FinansKurallari.TutarDogrula(brut, turAdi);
         var stopaj = StopajHesapla(brut, giris.StopajOrani);
-        var net = brut - stopaj;
+        var smm = giris.Tur == GiderPusulasiTuru.SerbestMeslekMakbuzu;
+        if (!smm && giris.KdvOrani != 0) throw new InvalidOperationException("KDV yalnız serbest meslek makbuzunda girilir.");
+        if (giris.KdvOrani is not (0 or 1 or 10 or 20)) throw new InvalidOperationException("KDV oranı %0, %1, %10 ya da %20 olmalıdır.");
+        var kdv = StopajHesapla(brut, giris.KdvOrani);
+        var karsiNo = Bos(giris.KarsiBelgeNo);
+        if (karsiNo?.Length > 50) throw new InvalidOperationException("Makbuz numarası en fazla 50 karakter olabilir.");
+        if (smm && karsiNo == null) throw new InvalidOperationException("Serbest meslek makbuzunun numarasını yazın.");
+        var net = brut - stopaj + kdv;
         if (net <= 0) throw new InvalidOperationException("Ödenecek net tutar sıfırdan büyük olmalıdır.");
 
         var tarih = FinansKurallari.TarihNormalizeEt(giris.Tarih.Date);
@@ -142,7 +166,7 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         await using var islem = await _baglam.Database.BeginTransactionAsync();
         try
         {
-            var belge = await KaydetIcAsync(giris, sirketId, turAdi, satici, tc, adres, giderKodu, kalemler, brut, stopaj, net, tarih, aciklama);
+            var belge = await KaydetIcAsync(giris, sirketId, turAdi, satici, tc, adres, giderKodu, kalemler, brut, stopaj, net, tarih, aciklama, kdv, karsiNo);
             await islem.CommitAsync();
             return belge;
         }
@@ -155,13 +179,13 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
     }
 
     private async Task<GiderPusulasi> KaydetIcAsync(GiderPusulasiGirisDto giris, Guid sirketId, string turAdi, string satici, string? tc, string? adres,
-        string giderKodu, List<GiderPusulasiKalemDto> kalemler, decimal brut, decimal stopaj, decimal net, DateTime tarih, string aciklama)
+        string giderKodu, List<GiderPusulasiKalemDto> kalemler, decimal brut, decimal stopaj, decimal net, DateTime tarih, string aciklama, decimal kdv, string? karsiNo)
     {
         await _baglam.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", $"giderpusulasi:{sirketId}");
         // Ödeme hesabı ve bakiye belge yazılmadan önce denetlenir.
         await OdemeYapilabilirAsync(sirketId, giris.OdemeKaynagi, giris.OdemeHesabiId, net);
 
-        var onEk = giris.Tur == GiderPusulasiTuru.MustahsilMakbuzu ? "MM" : "GP";
+        var onEk = NoOnEki(giris.Tur);
         var yilOnEki = $"{onEk}-{tarih.Year}-";
         var sonNolar = await _baglam.GiderPusulalari.IgnoreQueryFilters()
             .Where(g => g.SirketId == sirketId && g.BelgeNo.StartsWith(yilOnEki)).Select(g => g.BelgeNo).ToListAsync();
@@ -171,7 +195,7 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         {
             SirketId = sirketId, Tur = giris.Tur, BelgeNo = $"{yilOnEki}{sira:00000}", Tarih = tarih, SaticiAdSoyad = satici, SaticiTcKimlikNo = tc,
             SaticiAdres = adres, GiderHesapKodu = giderKodu, BrutTutar = brut, StopajOrani = giris.StopajOrani, StopajTutari = stopaj, NetTutar = net,
-            Aciklama = aciklama,
+            KdvOrani = giris.KdvOrani, KdvTutari = kdv, KarsiBelgeNo = karsiNo, Aciklama = aciklama,
             Kalemler = kalemler.Select(k => new GiderPusulasiKalemi
             {
                 Cinsi = k.Cinsi.Trim(), Miktar = k.Miktar, Birim = string.IsNullOrWhiteSpace(k.Birim) ? "Adet" : k.Birim.Trim(), BirimFiyat = k.BirimFiyat, Tutar = k.Tutar
@@ -180,10 +204,11 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         _baglam.GiderPusulalari.Add(belge);
         await _baglam.SaveChangesAsync();
 
-        var fisAciklama = $"{turAdi} {belge.BelgeNo} - {satici}";
+        var fisAciklama = $"{turAdi} {karsiNo ?? belge.BelgeNo} - {satici}";
         var satirlar = new List<Satir> { new(giderKodu, brut, 0), new(SaticiHesabi, 0, net) };
+        if (kdv > 0) satirlar.Add(new Satir(KdvHesabi, kdv, 0));
         if (stopaj > 0) satirlar.Add(new Satir(StopajHesabi, 0, stopaj));
-        await FisEkleAsync(_baglam, sirketId, BelgeTipi, belge.Id, tarih, fisAciklama, belge.BelgeNo, satirlar.ToArray());
+        await FisEkleAsync(_baglam, sirketId, BelgeTipi, belge.Id, tarih, fisAciklama, karsiNo ?? belge.BelgeNo, satirlar.ToArray());
         var fis = await _baglam.YevmiyeFisleri.SingleAsync(f => f.SirketId == sirketId && f.BelgeTipi == BelgeTipi && f.BelgeId == belge.Id);
         belge.YevmiyeFisId = fis.Id;
 
@@ -243,6 +268,28 @@ public class GiderPusulasiServisi : IGiderPusulasiServisi
         await _baglam.SaveChangesAsync();
         await BankaHareketiFisiEkleAsync(_baglam, bh, SaticiHesabi);
         return (null, bh);
+    }
+
+    public const string AnonimAd = "ANONİMLEŞTİRİLDİ (KVKK)";
+
+    public async Task<int> SuresiDolanlariAnonimlestirAsync(DateTime bugun, Guid sirketId = default)
+    {
+        sirketId = _baglam.SirketIdCoz(sirketId);
+        Oturum.YetkiKontrolEt(y => y.FaturaIptal, "Kişisel veri anonimleştirme");
+        // TTK 82 / VUK 253: belgeler düzenlendikleri yılı izleyen yıldan başlayarak 10 yıl saklanır.
+        var sonYil = bugun.Year - KvkkServisi.SaklamaYili - 1;
+        var sinir = new DateTime(sonYil + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var belgeler = await _baglam.GiderPusulalari.IgnoreQueryFilters()
+            .Where(g => g.SirketId == sirketId && g.Tarih < sinir && g.SaticiAdSoyad != AnonimAd).ToListAsync();
+        foreach (var g in belgeler)
+        {
+            g.SaticiAdSoyad = AnonimAd;
+            g.SaticiTcKimlikNo = null;
+            g.SaticiAdres = null;
+            g.GuncellemeTarihi = DateTime.UtcNow;
+        }
+        await _baglam.SaveChangesAsync();
+        return belgeler.Count;
     }
 
     // İptal: belge fişi ve ödeme hareketi ters kayıtla kapanır; belge "İptal" olarak listede kalır (numara boşluğu oluşmaz).

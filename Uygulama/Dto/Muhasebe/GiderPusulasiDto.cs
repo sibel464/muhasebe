@@ -6,7 +6,15 @@ public class GiderPusulasiListeDto
 {
     public int Id { get; set; }
     public GiderPusulasiTuru Tur { get; set; }
-    public string TurAdi => Tur == GiderPusulasiTuru.MustahsilMakbuzu ? "Müstahsil Makbuzu" : "Gider Pusulası";
+    public string TurAdi => Tur switch
+    {
+        GiderPusulasiTuru.MustahsilMakbuzu => "Müstahsil Makbuzu",
+        GiderPusulasiTuru.KiraOdemesi => "Kira Ödemesi",
+        GiderPusulasiTuru.SerbestMeslekMakbuzu => "Serbest Meslek Mk.",
+        _ => "Gider Pusulası"
+    };
+    public decimal KdvTutari { get; set; }
+    public string? KarsiBelgeNo { get; set; }
     public string BelgeNo { get; set; } = "";
     public DateTime Tarih { get; set; }
     public string SaticiAdSoyad { get; set; } = "";
@@ -32,6 +40,9 @@ public class GiderPusulasiGirisDto
     public string? SaticiAdres { get; set; }
     public string GiderHesapKodu { get; set; } = "770";
     public decimal StopajOrani { get; set; }
+    // Yalnız serbest meslek makbuzunda.
+    public decimal KdvOrani { get; set; }
+    public string? KarsiBelgeNo { get; set; }
     // "Kasa" veya "Banka"
     public string OdemeKaynagi { get; set; } = "Kasa";
     public int OdemeHesabiId { get; set; }

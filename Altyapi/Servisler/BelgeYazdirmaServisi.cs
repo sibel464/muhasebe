@@ -779,9 +779,13 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         var f = firma ?? _firmaBilgisi;
         var tr = new CultureInfo("tr-TR");
         string T(decimal d) => d.ToString("N2", tr);
-        var mustahsil = belge.Tur == EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu;
-        var baslik = mustahsil ? "Müstahsil Makbuzu" : "Gider Pusulası";
-        var dayanak = mustahsil ? "VUK md. 235" : "VUK md. 234";
+        var (baslik, dayanak, saticiEtiketi) = belge.Tur switch
+        {
+            EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu => ("Müstahsil Makbuzu", "VUK md. 235", "Çiftçi (satıcı)"),
+            EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.KiraOdemesi => ("Kira Ödeme Belgesi", "GVK md. 94/5-a", "Kiraya veren"),
+            EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.SerbestMeslekMakbuzu => ("Serbest Meslek Ödemesi", "GVK md. 94/2", "Serbest meslek erbabı"),
+            _ => ("Gider Pusulası", "VUK md. 234", "Malı satan / işi yapan")
+        };
 
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>" + baslik + " - " + H(belge.BelgeNo) + "</title><style>" + GetCommonCss() +
@@ -799,9 +803,11 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
             var satici = new List<string> { "<strong>" + H(belge.SaticiAdSoyad) + "</strong>" };
             if (!string.IsNullOrWhiteSpace(belge.SaticiTcKimlikNo)) satici.Add("T.C. Kimlik No: " + H(belge.SaticiTcKimlikNo));
             if (!string.IsNullOrWhiteSpace(belge.SaticiAdres)) satici.Add(H(belge.SaticiAdres));
-            sb.AppendLine("<table class='info-grid'><tr><td><div class='info-label'>" + (mustahsil ? "Çiftçi (satıcı)" : "Malı satan / işi yapan") + "</div><div class='info-value'>" +
+            sb.AppendLine("<table class='info-grid'><tr><td><div class='info-label'>" + saticiEtiketi + "</div><div class='info-value'>" +
                 string.Join("<br>", satici) + "</div></td>");
-            sb.AppendLine("<td><div class='info-label'>Açıklama</div><div class='info-value'>" + (string.IsNullOrWhiteSpace(belge.Aciklama) ? "-" : H(belge.Aciklama)) + "</div></td></tr></table>");
+            var aciklamaHtml = (string.IsNullOrWhiteSpace(belge.Aciklama) ? "-" : H(belge.Aciklama)) +
+                (string.IsNullOrWhiteSpace(belge.KarsiBelgeNo) ? "" : "<br>Makbuz no: " + H(belge.KarsiBelgeNo));
+            sb.AppendLine("<td><div class='info-label'>Açıklama</div><div class='info-value'>" + aciklamaHtml + "</div></td></tr></table>");
 
             sb.AppendLine("<table class='data-table'><thead><tr><th>Malın / işin cinsi</th><th class='text-right'>Miktar</th><th>Birim</th><th class='text-right'>Birim fiyat</th><th class='text-right'>Tutar (TL)</th></tr></thead><tbody>");
             foreach (var k in belge.Kalemler.Where(k => !k.Silindi).OrderBy(k => k.Id))
@@ -809,6 +815,8 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
                     "</td><td class='text-right'>" + k.BirimFiyat.ToString("N2", tr) + "</td><td class='text-right'>" + T(k.Tutar) + "</td></tr>");
             sb.AppendLine("<tr style='font-weight:700;'><td colspan='4'>Brüt tutar</td><td class='text-right'>" + T(belge.BrutTutar) + "</td></tr>");
             sb.AppendLine("<tr><td colspan='4'>Gelir vergisi kesintisi (stopaj) %" + belge.StopajOrani.ToString("0.##", tr) + "</td><td class='text-right'>" + T(belge.StopajTutari) + "</td></tr>");
+            if (belge.KdvTutari > 0)
+                sb.AppendLine("<tr><td colspan='4'>KDV %" + belge.KdvOrani.ToString("0.##", tr) + " (eklenir)</td><td class='text-right'>" + T(belge.KdvTutari) + "</td></tr>");
             sb.AppendLine("<tr style='font-weight:700;'><td colspan='4'>Ödenen net tutar</td><td class='text-right'>" + T(belge.NetTutar) + "</td></tr>");
             sb.AppendLine("</tbody></table>");
             sb.AppendLine("<p style='font-size:12px; color:#334155;'>Yalnız: " + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(belge.NetTutar)) + " nakden / hesaben ödenmiştir.</p>");
@@ -824,7 +832,7 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
     public async Task<string> GiderPusulasiYazdirAsync(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge)
     {
         var html = GiderPusulasiHtmlUret(belge, await FirmaBilgisiGetirAsync(belge.SirketId));
-        return await DosyayaKaydetVeAcAsync(html, null, $"{(belge.Tur == EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu ? "MustahsilMakbuzu" : "GiderPusulasi")}_{belge.BelgeNo}.html");
+        return await DosyayaKaydetVeAcAsync(html, null, $"Belge_{belge.BelgeNo}.html");
     }
 
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)

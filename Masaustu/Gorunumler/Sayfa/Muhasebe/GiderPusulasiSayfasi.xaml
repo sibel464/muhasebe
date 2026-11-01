@@ -33,14 +33,16 @@
                     <TextBlock Text="📝" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="GİDER PUSULASI VE MÜSTAHSİL MAKBUZU" Style="{StaticResource SayfaBasligi}"/>
-                    <TextBlock Text="Fatura kesemeyen kişilerden alım: stopaj kesilir, net tutar ödenir, belge yazdırılır" Style="{StaticResource SayfaAltBaslik}"/>
+                    <TextBlock Text="GİDER PUSULASI, KİRA VE SERBEST MESLEK" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Stopajlı ödemeler: fatura kesemeyen kişiden ve çiftçiden alım, şahsa kira, serbest meslek makbuzu" Style="{StaticResource SayfaAltBaslik}"/>
                 </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Command="{Binding YeniKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="+ Yeni Belge"/></Button>
                 <Button Command="{Binding YazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="🖨 Yazdır"/></Button>
                 <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="⛔ İptal Et"/></Button>
+                <Button Command="{Binding AnonimlestirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"
+                        ToolTip="Saklama süresi dolan belgelerde satıcının kişisel verilerini siler (KVKK)"><TextBlock Text="🛡 KVKK"/></Button>
                 <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="🔄"/></Button>
             </StackPanel>
         </Grid>

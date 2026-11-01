@@ -1,13 +1,14 @@
 <Window x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.GiderPusulasiPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Yeni Gider Pusulası / Müstahsil Makbuzu" Width="760" SizeToContent="Height"
+        Title="Yeni Stopajlı Ödeme Belgesi" Width="760" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F8FAFC">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Gorunur"/>
             <Style x:Key="Sag" TargetType="TextBlock">
                 <Setter Property="HorizontalAlignment" Value="Right"/>
                 <Setter Property="Margin" Value="0,0,6,0"/>
@@ -60,6 +61,21 @@
             <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,0,10">
                 <TextBlock Text="Ödeme yapılan kasa / banka *" Style="{StaticResource EtiketMetni}"/>
                 <ComboBox ItemsSource="{Binding OdemeHesaplari}" SelectedItem="{Binding OdemeHesabi}" Style="{StaticResource FormComboBox}"/>
+            </StackPanel>
+        </Grid>
+        <Grid Visibility="{Binding SmmMi, Converter={StaticResource Gorunur}}" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Makbuz numarası (e-SMM no) *" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding KarsiBelgeNo}" Style="{StaticResource FormMetinKutusu}" MaxLength="50"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="KDV oranı (%)" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding KdvOranlari}" SelectedItem="{Binding KdvOrani}" Style="{StaticResource FormComboBox}"/>
             </StackPanel>
         </Grid>
         <TextBlock Text="{Binding StokUyarisi}" Foreground="#92400E" TextWrapping="Wrap" Margin="0,0,0,6"/>
@@ -118,13 +134,16 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="Brüt tutar" Margin="0,2"/>
                     <TextBlock Grid.Column="1" Text="{Binding Brut, StringFormat={}{0:N2} TL}" Margin="0,2"/>
                     <TextBlock Grid.Row="1" Text="Stopaj" Margin="0,2"/>
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stopaj, StringFormat={}{0:N2} TL}" Margin="0,2"/>
-                    <TextBlock Grid.Row="2" Text="Ödenecek net" FontWeight="Bold" FontSize="15" Margin="0,6,0,0"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Net, StringFormat={}{0:N2} TL}" FontWeight="Bold" FontSize="15" Margin="0,6,0,0" Foreground="#1E1B4B"/>
+                    <TextBlock Grid.Row="2" Text="KDV (eklenir)" Margin="0,2" Visibility="{Binding SmmMi, Converter={StaticResource Gorunur}}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Kdv, StringFormat={}{0:N2} TL}" Margin="0,2" Visibility="{Binding SmmMi, Converter={StaticResource Gorunur}}"/>
+                    <TextBlock Grid.Row="3" Text="Ödenecek net" FontWeight="Bold" FontSize="15" Margin="0,6,0,0"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Net, StringFormat={}{0:N2} TL}" FontWeight="Bold" FontSize="15" Margin="0,6,0,0" Foreground="#1E1B4B"/>
                 </Grid>
             </Border>
         </Grid>
