@@ -202,6 +202,31 @@ public static class OrnekVeriServisi
             }
         }
 
+        // Fatura kesemeyen kişilerden alımlar: gider pusulası ve müstahsil makbuzu (stopajlı).
+        await using (var c = baglamUret())
+        {
+            var gp = new GiderPusulasiServisi(c, oturum);
+            var odeme = (await gp.OdemeHesaplariAsync()).First(h => h.Kaynak == GiderPusulasiServisi.Kasa);
+            await gp.KaydetAsync(new Uygulama.Dto.Muhasebe.GiderPusulasiGirisDto
+            {
+                Tarih = Gun(20, 0), SaticiAdSoyad = "Hüseyin Usta (boyacı)", StopajOrani = 10, GiderHesapKodu = "770",
+                OdemeKaynagi = odeme.Kaynak, OdemeHesabiId = odeme.Id, Aciklama = "Depo boyası",
+                Kalemler = { new() { Cinsi = "Depo duvar boyası işçiliği", Miktar = 1, Birim = "Hizmet", BirimFiyat = 3500 } }
+            });
+            await gp.KaydetAsync(new Uygulama.Dto.Muhasebe.GiderPusulasiGirisDto
+            {
+                Tarih = Gun(9, 0), SaticiAdSoyad = "Mehmet Kaya", StopajOrani = 5, GiderHesapKodu = "770",
+                OdemeKaynagi = odeme.Kaynak, OdemeHesabiId = odeme.Id,
+                Kalemler = { new() { Cinsi = "İkinci el çalışma masası", Miktar = 2, BirimFiyat = 750 } }
+            });
+            await gp.KaydetAsync(new Uygulama.Dto.Muhasebe.GiderPusulasiGirisDto
+            {
+                Tur = EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu, Tarih = Gun(4, 0), SaticiAdSoyad = "Ayşe Çiftçi", StopajOrani = 2,
+                GiderHesapKodu = "770", OdemeKaynagi = odeme.Kaynak, OdemeHesabiId = odeme.Id, Aciklama = "Ofis ikramı",
+                Kalemler = { new() { Cinsi = "Köy yumurtası", Miktar = 30, Birim = "Adet", BirimFiyat = 6 }, new() { Cinsi = "Süzme bal", Miktar = 2, Birim = "Kg", BirimFiyat = 450 } }
+            });
+        }
+
         // Kalan tedarikçi borcunun bir kısmı kasadan nakit ödenir (kasada işletme harçlığı kalır).
         await using (var c = baglamUret())
         {

@@ -773,6 +773,60 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         return await DosyayaKaydetVeAcAsync(html, null, $"MaasPusulasi_{yil}_{ay:00}.html");
     }
 
+    // VUK 234/235: belgeyi düzenleyen işletme ile satıcı imzalar; asıl satıcıya verilir, suret işletmede kalır.
+    public string GiderPusulasiHtmlUret(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge, FirmaBilgisi? firma = null)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var tr = new CultureInfo("tr-TR");
+        string T(decimal d) => d.ToString("N2", tr);
+        var mustahsil = belge.Tur == EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu;
+        var baslik = mustahsil ? "Müstahsil Makbuzu" : "Gider Pusulası";
+        var dayanak = mustahsil ? "VUK md. 235" : "VUK md. 234";
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>" + baslik + " - " + H(belge.BelgeNo) + "</title><style>" + GetCommonCss() +
+            " .nusha { page-break-after: always; } .nusha:last-child { page-break-after: auto; } @media screen { .nusha + .nusha { margin-top: 32px; padding-top: 32px; border-top: 2px dashed #CBD5E1; } }" +
+            " .iptal { color:#B91C1C; border:2px solid #B91C1C; display:inline-block; padding:4px 12px; font-weight:800; transform:rotate(-4deg); margin-bottom:8px; }</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        foreach (var nusha in new[] { "Asıl (satıcıya verilir)", "Suret (işletmede kalır)" })
+        {
+            sb.AppendLine("<div class='container nusha'>");
+            sb.AppendLine("<table class='header-table'><tr><td>" + FirmaKunyesiHtml(f) + "</td>");
+            sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>" + baslik + "</div><div style='font-weight:700;'>No: " + H(belge.BelgeNo) + "</div>" +
+                "<div>Tarih: " + belge.Tarih.ToString("dd.MM.yyyy", tr) + "</div><div style='color:#64748B; font-size:12px;'>" + H(nusha) + " · " + dayanak + "</div></td></tr></table>");
+            if (belge.IptalEdildi) sb.AppendLine("<div class='iptal'>İPTAL EDİLMİŞTİR</div>");
+
+            var satici = new List<string> { "<strong>" + H(belge.SaticiAdSoyad) + "</strong>" };
+            if (!string.IsNullOrWhiteSpace(belge.SaticiTcKimlikNo)) satici.Add("T.C. Kimlik No: " + H(belge.SaticiTcKimlikNo));
+            if (!string.IsNullOrWhiteSpace(belge.SaticiAdres)) satici.Add(H(belge.SaticiAdres));
+            sb.AppendLine("<table class='info-grid'><tr><td><div class='info-label'>" + (mustahsil ? "Çiftçi (satıcı)" : "Malı satan / işi yapan") + "</div><div class='info-value'>" +
+                string.Join("<br>", satici) + "</div></td>");
+            sb.AppendLine("<td><div class='info-label'>Açıklama</div><div class='info-value'>" + (string.IsNullOrWhiteSpace(belge.Aciklama) ? "-" : H(belge.Aciklama)) + "</div></td></tr></table>");
+
+            sb.AppendLine("<table class='data-table'><thead><tr><th>Malın / işin cinsi</th><th class='text-right'>Miktar</th><th>Birim</th><th class='text-right'>Birim fiyat</th><th class='text-right'>Tutar (TL)</th></tr></thead><tbody>");
+            foreach (var k in belge.Kalemler.Where(k => !k.Silindi).OrderBy(k => k.Id))
+                sb.AppendLine("<tr><td>" + H(k.Cinsi) + "</td><td class='text-right'>" + k.Miktar.ToString("0.###", tr) + "</td><td>" + H(k.Birim) +
+                    "</td><td class='text-right'>" + k.BirimFiyat.ToString("N2", tr) + "</td><td class='text-right'>" + T(k.Tutar) + "</td></tr>");
+            sb.AppendLine("<tr style='font-weight:700;'><td colspan='4'>Brüt tutar</td><td class='text-right'>" + T(belge.BrutTutar) + "</td></tr>");
+            sb.AppendLine("<tr><td colspan='4'>Gelir vergisi kesintisi (stopaj) %" + belge.StopajOrani.ToString("0.##", tr) + "</td><td class='text-right'>" + T(belge.StopajTutari) + "</td></tr>");
+            sb.AppendLine("<tr style='font-weight:700;'><td colspan='4'>Ödenen net tutar</td><td class='text-right'>" + T(belge.NetTutar) + "</td></tr>");
+            sb.AppendLine("</tbody></table>");
+            sb.AppendLine("<p style='font-size:12px; color:#334155;'>Yalnız: " + H(EtkiAlani.Yardimcilar.TutarYazici.Yaziyla(belge.NetTutar)) + " nakden / hesaben ödenmiştir.</p>");
+            sb.AppendLine("<table class='signature-table'><tr><td><div class='signature-line'>" + H(f.FirmaUnvani) + "<br><span style='font-weight:400;'>Düzenleyen - Kaşe / İmza</span></div></td>" +
+                "<td><div class='signature-line'>" + H(belge.SaticiAdSoyad) + "<br><span style='font-weight:400;'>Parayı aldım - İmza</span></div></td></tr></table>");
+            sb.AppendLine("<div class='footer-note'>Kesilen gelir vergisi muhtasar beyanname ile beyan edilir.</div>");
+            sb.AppendLine("</div>");
+        }
+        sb.AppendLine("</body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> GiderPusulasiYazdirAsync(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge)
+    {
+        var html = GiderPusulasiHtmlUret(belge, await FirmaBilgisiGetirAsync(belge.SirketId));
+        return await DosyayaKaydetVeAcAsync(html, null, $"{(belge.Tur == EtkiAlani.Modeller.Muhasebe.GiderPusulasiTuru.MustahsilMakbuzu ? "MustahsilMakbuzu" : "GiderPusulasi")}_{belge.BelgeNo}.html");
+    }
+
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)
     {
         // Uzantısız dosyayı Windows tarayıcıda açamaz, "hangi programla açılsın" diye sorar.

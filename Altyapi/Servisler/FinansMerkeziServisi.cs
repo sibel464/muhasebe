@@ -1081,6 +1081,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
                 if (asil.OzelKod == CekSenetServisi.CekSenetOzelKodu)
                     throw new InvalidOperationException("Çek/senet tahsilatı veya ödemesi iptal edilemez.");
+                if (asil.OzelKod == GiderPusulasiServisi.OzelKod)
+                    throw new InvalidOperationException("Gider pusulası / müstahsil makbuzu ödemesi Gider Pusulası ekranından iptal edilir.");
                 if (asil.OzelKod == PersonelServisi.PersonelOzelKodu)
                     throw new InvalidOperationException("Maaş ödemesi ve personel avansı Personel ve Maaş ekranından iptal edilir.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is KasaFisTuru.KasaVirman or KasaFisTuru.BankayaYatirma or KasaFisTuru.BankadanCekme or KasaFisTuru.SayimFarki);
@@ -1128,6 +1130,8 @@ public sealed class FinansMerkeziServisi : IFinansMerkeziServisi
                     throw new InvalidOperationException("Faturaya bağlı tahsilat/ödeme fatura ekranından iptal edilmelidir.");
                 if (asil.OzelKod == CekSenetServisi.CekSenetOzelKodu)
                     throw new InvalidOperationException("Çek/senet tahsilatı veya ödemesi iptal edilemez.");
+                if (asil.OzelKod == GiderPusulasiServisi.OzelKod)
+                    throw new InvalidOperationException("Gider pusulası / müstahsil makbuzu ödemesi Gider Pusulası ekranından iptal edilir.");
                 if (asil.OzelKod == PersonelServisi.PersonelOzelKodu)
                     throw new InvalidOperationException("Maaş ödemesi ve personel avansı Personel ve Maaş ekranından iptal edilir.");
                 IptalEdilebilirMi(asil.IslemDurumu, asil.FisTuru is BankaFisTuru.BankaVirman or BankaFisTuru.BankayaYatirma or BankaFisTuru.KasadanCekme or BankaFisTuru.PosHesabaGecis);

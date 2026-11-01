@@ -89,6 +89,8 @@ public class MuhasebeBaglami : DbContext
     public DbSet<AmortismanKaydi> AmortismanKayitlari => Set<AmortismanKaydi>();
     public DbSet<Personel> Personeller => Set<Personel>();
     public DbSet<PersonelHareketi> PersonelHareketleri => Set<PersonelHareketi>();
+    public DbSet<GiderPusulasi> GiderPusulalari => Set<GiderPusulasi>();
+    public DbSet<GiderPusulasiKalemi> GiderPusulasiKalemleri => Set<GiderPusulasiKalemi>();
     public DbSet<BankaHesabi> BankaHesaplari => Set<BankaHesabi>();
     public DbSet<KasaHareketi> KasaHareketleri => Set<KasaHareketi>();
     public DbSet<BankaHareketi> BankaHareketleri => Set<BankaHareketi>();
@@ -504,6 +506,28 @@ public class MuhasebeBaglami : DbContext
         modelBuilder.Entity<PersonelHareketi>().HasOne(x => x.Personel).WithMany().HasForeignKey(x => x.PersonelId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<PersonelHareketi>().HasIndex(x => new { x.PersonelId, x.Donem }).IsUnique()
             .HasFilter("\"Silindi\" = false AND \"Tur\" = 1");
+        modelBuilder.Entity<GiderPusulasi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
+        modelBuilder.Entity<GiderPusulasi>().HasQueryFilter(SilinmisFiltresi, x => !x.Silindi);
+        modelBuilder.Entity<GiderPusulasi>().HasIndex(x => new { x.SirketId, x.BelgeNo }).IsUnique();
+        modelBuilder.Entity<GiderPusulasi>().HasIndex(x => new { x.SirketId, x.Tarih });
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.BelgeNo).HasMaxLength(30);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.SaticiAdSoyad).HasMaxLength(200);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.SaticiTcKimlikNo).HasMaxLength(11);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.SaticiAdres).HasMaxLength(500);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.GiderHesapKodu).HasMaxLength(20);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.IptalNedeni).HasMaxLength(200);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.Aciklama).HasMaxLength(500);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.BrutTutar).HasPrecision(18, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.StopajOrani).HasPrecision(5, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.StopajTutari).HasPrecision(18, 2);
+        modelBuilder.Entity<GiderPusulasi>().Property(x => x.NetTutar).HasPrecision(18, 2);
+        modelBuilder.Entity<GiderPusulasi>().HasMany(x => x.Kalemler).WithOne().HasForeignKey(x => x.GiderPusulasiId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<GiderPusulasiKalemi>().HasQueryFilter(x => !x.Silindi);
+        modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.Cinsi).HasMaxLength(300);
+        modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.Birim).HasMaxLength(20);
+        modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.Miktar).HasPrecision(18, 3);
+        modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.BirimFiyat).HasPrecision(18, 4);
+        modelBuilder.Entity<GiderPusulasiKalemi>().Property(x => x.Tutar).HasPrecision(18, 2);
         modelBuilder.Entity<KasaHareketi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
         modelBuilder.Entity<KasaSayimMutabakat>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);
         modelBuilder.Entity<BankaHesabi>().HasQueryFilter(SirketFiltresi, x => AktifSirketId == null || x.SirketId == AktifSirketId);

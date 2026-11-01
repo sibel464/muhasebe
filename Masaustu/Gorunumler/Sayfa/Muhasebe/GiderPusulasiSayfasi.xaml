@@ -1,0 +1,84 @@
+<UserControl x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.GiderPusulasiSayfasi"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Sag" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource BaslikIkonKutusu}">
+                    <TextBlock Text="📝" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="GİDER PUSULASI VE MÜSTAHSİL MAKBUZU" Style="{StaticResource SayfaBasligi}"/>
+                    <TextBlock Text="Fatura kesemeyen kişilerden alım: stopaj kesilir, net tutar ödenir, belge yazdırılır" Style="{StaticResource SayfaAltBaslik}"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding YeniKomutu}" Style="{StaticResource BirinciDugme}" Margin="0,0,8,0"><TextBlock Text="+ Yeni Belge"/></Button>
+                <Button Command="{Binding YazdirKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="🖨 Yazdır"/></Button>
+                <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,8,0"><TextBlock Text="⛔ İptal Et"/></Button>
+                <Button Command="{Binding YenileKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="🔄"/></Button>
+            </StackPanel>
+        </Grid>
+
+        <WrapPanel Grid.Row="1" Margin="0,0,0,10" VerticalAlignment="Center">
+            <TextBlock Text="Tarih:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <DatePicker SelectedDate="{Binding Baslangic}" Width="120" Margin="0,0,6,0"/>
+            <TextBlock Text="-" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <DatePicker SelectedDate="{Binding Bitis}" Width="120" Margin="0,0,16,0"/>
+            <CheckBox Content="İptal edilenleri göster" IsChecked="{Binding IptalleriGoster}" VerticalAlignment="Center"/>
+        </WrapPanel>
+
+        <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1">
+            <DataGrid ItemsSource="{Binding Belgeler}" SelectedItem="{Binding Secili}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="True"
+                      MouseDoubleClick="Grid_MouseDoubleClick">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="BELGE NO" Binding="{Binding BelgeNo}" Width="118"/>
+                    <DataGridTextColumn Header="TÜR" Binding="{Binding TurAdi}" Width="126"/>
+                    <DataGridTextColumn Header="TARİH" Binding="{Binding Tarih, StringFormat={}{0:dd.MM.yyyy}}" Width="90"/>
+                    <DataGridTextColumn Header="SATICI" Binding="{Binding SaticiAdSoyad}" Width="*" MinWidth="120"/>
+                    <DataGridTextColumn Header="HESAP" Binding="{Binding GiderHesapKodu}" Width="62"/>
+                    <DataGridTextColumn Header="BRÜT" Binding="{Binding BrutTutar, StringFormat={}{0:N2}}" Width="100" ElementStyle="{StaticResource Sag}"/>
+                    <DataGridTextColumn Header="STOPAJ" Binding="{Binding StopajTutari, StringFormat={}{0:N2}}" Width="90" ElementStyle="{StaticResource Sag}"/>
+                    <DataGridTextColumn Header="ÖDENEN" Binding="{Binding NetTutar, StringFormat={}{0:N2}}" Width="100" ElementStyle="{StaticResource Sag}"/>
+                    <DataGridTextColumn Header="ÖDEME" Binding="{Binding OdemeHesabi}" Width="140"/>
+                    <DataGridTextColumn Header="DURUM" Binding="{Binding Durum}" Width="70"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,12,0,0">
+            <StackPanel>
+                <TextBlock Text="{Binding Ozet}" FontWeight="Bold" Foreground="#1E3A8A" TextWrapping="Wrap"/>
+                <TextBlock Foreground="#1E3A8A" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Kesilen stopaj 360 hesabında birikir ve muhtasar beyannameyle ödenir (ödemeyi Personel ve Maaş ekranındaki Vergi / SGK ödemesi bölümünden kaydedebilirsiniz). Stopaj oranını mali müşavirinizle teyit edin."/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="4" Text="{Binding DurumMesaji}" Margin="0,8,0,0" Foreground="#334155" TextWrapping="Wrap"/>
+    </Grid>
+</UserControl>

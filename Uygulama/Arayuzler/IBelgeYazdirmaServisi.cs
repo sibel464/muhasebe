@@ -52,6 +52,10 @@ public interface IBelgeYazdirmaServisi
     string MaasPusulasiHtmlUret(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar, FirmaBilgisi? firma = null);
     Task<string> MaasPusulasiYazdirAsync(int yil, int ay, IReadOnlyList<Uygulama.Dto.Muhasebe.MaasTahakkukSatiriDto> satirlar);
 
+    // Gider pusulası / müstahsil makbuzu: iki nüsha (asıl satıcıya, suret işletmede kalır).
+    string GiderPusulasiHtmlUret(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge, FirmaBilgisi? firma = null);
+    Task<string> GiderPusulasiYazdirAsync(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge);
+
     // Doğrudan Görüntüleme & Yazdırma Diyaloğu Açma
     Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi);
 }

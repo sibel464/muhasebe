@@ -1,0 +1,138 @@
+<Window x:Class="Masaustu.Gorunumler.Sayfa.Muhasebe.GiderPusulasiPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yeni Gider Pusulası / Müstahsil Makbuzu" Width="760" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F8FAFC">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Masaustu;component/Kaynaklar/Stiller.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Sag" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <StackPanel Margin="20">
+        <TextBlock Text="Yeni Belge" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
+                <TextBlock Text="Belge türü *" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding Turler}" SelectedItem="{Binding Tur}" Style="{StaticResource FormComboBox}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
+                <TextBlock Text="Tarih *" Style="{StaticResource EtiketMetni}"/>
+                <DatePicker SelectedDate="{Binding Tarih}"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,10">
+                <TextBlock Text="{Binding SaticiEtiketi}" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding SaticiAdSoyad}" Style="{StaticResource FormMetinKutusu}" MaxLength="200"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
+                <TextBlock Text="T.C. kimlik no" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding SaticiTcKimlikNo}" Style="{StaticResource FormMetinKutusu}" MaxLength="11"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,10">
+                <TextBlock Text="Adres" Style="{StaticResource EtiketMetni}"/>
+                <TextBox Text="{Binding SaticiAdres}" Style="{StaticResource FormMetinKutusu}" MaxLength="500"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,0,10">
+                <TextBlock Text="Gider / maliyet hesabı *" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding GiderHesaplari}" SelectedItem="{Binding GiderHesabi}" Style="{StaticResource FormComboBox}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,0,10">
+                <TextBlock Text="Ödeme yapılan kasa / banka *" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding OdemeHesaplari}" SelectedItem="{Binding OdemeHesabi}" Style="{StaticResource FormComboBox}"/>
+            </StackPanel>
+        </Grid>
+        <TextBlock Text="{Binding StokUyarisi}" Foreground="#92400E" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+        <DockPanel Margin="0,4,0,6">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Command="{Binding SatirEkleKomutu}" Style="{StaticResource IkinciDugme}" Margin="0,0,6,0"><TextBlock Text="+ Satır"/></Button>
+                <Button Command="{Binding SatirSilKomutu}" Style="{StaticResource IkinciDugme}"><TextBlock Text="− Seçili satırı sil"/></Button>
+            </StackPanel>
+            <TextBlock Text="Malın / işin cinsi ve tutarı" FontWeight="Bold" VerticalAlignment="Center"/>
+        </DockPanel>
+        <Border Background="White" CornerRadius="8" BorderBrush="{StaticResource BorderFirca}" BorderThickness="1" Height="170">
+            <DataGrid ItemsSource="{Binding Kalemler}" SelectedItem="{Binding SeciliKalem}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                      HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeight="28" Background="White">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="CİNSİ" Binding="{Binding Cinsi, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTextColumn Header="MİKTAR" Binding="{Binding Miktar, UpdateSourceTrigger=LostFocus}" Width="80" ElementStyle="{StaticResource Sag}"/>
+                    <DataGridComboBoxColumn Header="BİRİM" SelectedItemBinding="{Binding Birim}" Width="90">
+                        <DataGridComboBoxColumn.ElementStyle>
+                            <Style TargetType="ComboBox"><Setter Property="ItemsSource" Value="{Binding DataContext.Birimler, RelativeSource={RelativeSource AncestorType=Window}}"/></Style>
+                        </DataGridComboBoxColumn.ElementStyle>
+                        <DataGridComboBoxColumn.EditingElementStyle>
+                            <Style TargetType="ComboBox"><Setter Property="ItemsSource" Value="{Binding DataContext.Birimler, RelativeSource={RelativeSource AncestorType=Window}}"/></Style>
+                        </DataGridComboBoxColumn.EditingElementStyle>
+                    </DataGridComboBoxColumn>
+                    <DataGridTextColumn Header="BİRİM FİYAT" Binding="{Binding BirimFiyat, StringFormat={}{0:N2}, UpdateSourceTrigger=LostFocus}" Width="100" ElementStyle="{StaticResource Sag}"/>
+                    <DataGridTextColumn Header="TUTAR" Binding="{Binding Tutar, StringFormat={}{0:N2}, Mode=OneWay}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource Sag}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="260"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Gelir vergisi kesintisi (stopaj)" Style="{StaticResource EtiketMetni}"/>
+                <ComboBox ItemsSource="{Binding StopajSecenekleri}" SelectedItem="{Binding StopajSecenegi}" Style="{StaticResource FormComboBox}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <TextBlock Text="Oran (%):" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Text="{Binding StopajOrani, UpdateSourceTrigger=LostFocus}" Width="60" Style="{StaticResource FormMetinKutusu}"/>
+                    <TextBlock Text="  Oranı mali müşavirinizle teyit edin." Foreground="{StaticResource TextSecondaryFirca}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Açıklama" Style="{StaticResource EtiketMetni}" Margin="0,8,0,0"/>
+                <TextBox Text="{Binding Aciklama}" Style="{StaticResource FormMetinKutusu}" MaxLength="500"/>
+            </StackPanel>
+            <Border Grid.Column="2" Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="1" CornerRadius="8" Padding="14,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Brüt tutar" Margin="0,2"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Brut, StringFormat={}{0:N2} TL}" Margin="0,2"/>
+                    <TextBlock Grid.Row="1" Text="Stopaj" Margin="0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stopaj, StringFormat={}{0:N2} TL}" Margin="0,2"/>
+                    <TextBlock Grid.Row="2" Text="Ödenecek net" FontWeight="Bold" FontSize="15" Margin="0,6,0,0"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Net, StringFormat={}{0:N2} TL}" FontWeight="Bold" FontSize="15" Margin="0,6,0,0" Foreground="#1E1B4B"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <TextBlock Text="{Binding Hata}" Foreground="#B91C1C" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Vazgeç" IsCancel="True" Style="{StaticResource IkinciDugme}" Width="110" Margin="0,0,10,0"/>
+            <Button Content="Kaydet ve Öde" Command="{Binding KaydetKomutu}" Style="{StaticResource BirinciDugme}" Width="140"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

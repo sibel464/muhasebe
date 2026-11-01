@@ -3091,6 +3091,166 @@ namespace Altyapi.Migrations
                     b.ToTable("AmortismanKayitlari");
                 });
 
+            modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.GiderPusulasi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Aciklama")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("BankaHareketiId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BelgeNo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<decimal>("BrutTutar")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("GiderHesapKodu")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IptalEdildi")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("IptalNedeni")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("IptalTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("KasaHareketiId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NetTutar")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("OlusturmaTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SaticiAdSoyad")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SaticiAdres")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SaticiTcKimlikNo")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<bool>("Silindi")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SilinmeNedeni")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SilinmeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SirketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("StopajOrani")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("StopajTutari")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("Tarih")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Tur")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("YevmiyeFisId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SirketId", "BelgeNo")
+                        .IsUnique();
+
+                    b.HasIndex("SirketId", "Tarih");
+
+                    b.ToTable("GiderPusulalari");
+                });
+
+            modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.GiderPusulasiKalemi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Birim")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("BirimFiyat")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Cinsi")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("GiderPusulasiId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GuncellemeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Miktar")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<DateTime>("OlusturmaTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Silindi")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SilinmeNedeni")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SilinmeTarihi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Tutar")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GiderPusulasiId");
+
+                    b.ToTable("GiderPusulasiKalemleri");
+                });
+
             modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.HesapPlani", b =>
                 {
                     b.Property<int>("Id")
@@ -5522,6 +5682,15 @@ namespace Altyapi.Migrations
                     b.Navigation("SabitKiymet");
                 });
 
+            modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.GiderPusulasiKalemi", b =>
+                {
+                    b.HasOne("EtkiAlani.Modeller.Muhasebe.GiderPusulasi", null)
+                        .WithMany("Kalemler")
+                        .HasForeignKey("GiderPusulasiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.HesapPlani", b =>
                 {
                     b.HasOne("EtkiAlani.Modeller.Kurumsal.Sirket", "Sirket")
@@ -5888,6 +6057,11 @@ namespace Altyapi.Migrations
             modelBuilder.Entity("EtkiAlani.Modeller.Kurumsal.Sube", b =>
                 {
                     b.Navigation("Depolar");
+                });
+
+            modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.GiderPusulasi", b =>
+                {
+                    b.Navigation("Kalemler");
                 });
 
             modelBuilder.Entity("EtkiAlani.Modeller.Muhasebe.HesapPlani", b =>
