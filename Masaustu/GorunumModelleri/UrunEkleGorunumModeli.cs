@@ -352,7 +352,15 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
         {
             if (DuzenlemeModu) { HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı."; return; }
             BarkodOtomatik = false; Barkod = aranan;
-            HataMesaji = "Bu barkoda ait kayıtlı ürün bulunamadı. Yeni ürün olarak devam edebilirsiniz.";
+            BasariMesaji = "Bu barkod kayıtlı değil; yeni ürün olarak açıldı. Ürün adı internetteki açık ürün veritabanında aranıyor...";
+            var bilgi = await Masaustu.Servisler.CevrimiciUrunBilgisi.BulAsync(aranan);
+            if (bilgi != null && string.IsNullOrWhiteSpace(Ad))
+            {
+                Ad = bilgi.Ad;
+                BasariMesaji = $"Yeni ürün: adı '{bilgi.Ad}' olarak dolduruldu ({bilgi.Kaynak}). Adı kontrol edin; fiyat, KDV ve birimi girip kaydedin.";
+            }
+            else
+                BasariMesaji = "Bu barkod kayıtlı değil; yeni ürün olarak devam edin (ürün adı internette bulunamadı ya da bağlantı yok, adı elle yazın).";
             return;
         }
         UrunuFormaYukle(u);

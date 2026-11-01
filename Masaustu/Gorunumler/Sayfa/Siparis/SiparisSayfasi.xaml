@@ -59,7 +59,12 @@
     <TextBox Text="{Binding Form.TeslimatAdres}" AcceptsReturn="True" TextWrapping="Wrap" Height="55" Margin="0,3"/>
    </StackPanel></ScrollViewer>
    <Grid Grid.Column="1" Margin="10,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <DockPanel><Button DockPanel.Dock="Right" Content="Ürün Seç" Command="{Binding UrunSecKomutu}" Padding="10,5"/></DockPanel>
+    <DockPanel><Button DockPanel.Dock="Right" Content="Ürün Seç" Command="{Binding UrunSecKomutu}" Padding="10,5"/>
+     <TextBlock Text="Barkod:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+     <TextBox Text="{Binding OkunanBarkod, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" Padding="4" VerticalContentAlignment="Center"
+              ToolTip="Barkodu okutun; ürün fiyatıyla eklenir">
+      <TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding BarkodOkutKomutu}"/></TextBox.InputBindings>
+     </TextBox></DockPanel>
     <DataGrid Grid.Row="1" ItemsSource="{Binding Kalemler}" AutoGenerateColumns="False" CanUserAddRows="False" CellEditEnding="KalemGrid_CellEditEnding">
      <DataGrid.Columns><DataGridTextColumn Header="Kod" Binding="{Binding UrunKodu}" IsReadOnly="True"/><DataGridTextColumn Header="Ürün" Binding="{Binding UrunAdi}" Width="*"/>
       <DataGridTextColumn Header="Miktar" Binding="{Binding Miktar}"/><DataGridTextColumn Header="Birim Fiyat" Binding="{Binding BirimFiyat}"/>

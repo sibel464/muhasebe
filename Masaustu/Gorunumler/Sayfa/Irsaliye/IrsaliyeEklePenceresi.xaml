@@ -134,7 +134,11 @@
                                     Text="{Binding UrunAramaMetni, UpdateSourceTrigger=PropertyChanged}"
                                     IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
                                     DisplayMemberPath="Ad" Style="{StaticResource FormAcilirKutu}"
-                                    ToolTip="Ürün adı, kodu veya barkodu ile arayın veya listeden seçin"/>
+                                    ToolTip="Ürün adı, kodu veya barkodu ile arayın veya listeden seçin; barkod okutunca ürün doğrudan eklenir">
+                              <ComboBox.InputBindings>
+                                  <KeyBinding Key="Return" Command="{Binding BarkodOkutKomutu}"/>
+                              </ComboBox.InputBindings>
+                          </ComboBox>
                       </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,12,0">

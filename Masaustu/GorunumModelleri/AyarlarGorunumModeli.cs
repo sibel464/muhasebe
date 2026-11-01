@@ -111,7 +111,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string YedekKlasoru => _yedekServisi?.YedekKlasoru ?? string.Empty;
     public string YedekBilgisi => _yedekServisi == null
         ? string.Empty
-        : $"Son yedek 24 saatten eskiyse program otomatik yedek alır (açılışta ve açık kaldığı sürece saatte bir bakılır). Her yedek alındıktan sonra açılarak denetlenir. Son {_yedekServisi.SaklanacakYedekSayisi} yedek saklanır, daha eskiler silinir.";
+        : $"Dakikalık yedek: program açıkken veri her değiştiğinde dakikada bir yedek alınır (internet gerekmez); son 2 saatin her yedeği ve son 2 günün saatlik yedekleri saklanır." +
+          (_yedekServisi.SonDakikalikYedek is DateTime d ? $" Son dakikalık yedek: {d:dd.MM.yyyy HH:mm}." : "") +
+          $" Ayrıca günde bir tam yedek alınır ve son {_yedekServisi.SaklanacakYedekSayisi} günlük yedek saklanır. Her yedek alındıktan sonra açılarak denetlenir; ikinci konum (USB / harici disk) seçerseniz her yedeğin kopyası oraya da yazılır.";
     private string _ikinciYedekKlasoru = string.Empty;
     public string IkinciYedekKlasoru { get => _ikinciYedekKlasoru; set => OzellikAyarla(ref _ikinciYedekKlasoru, value); }
     private string _ikinciKopyaDurumu = string.Empty;
@@ -228,9 +230,9 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             var tablo = string.IsNullOrWhiteSpace(AuditTabloArama) ? null : AuditTabloArama.Trim();
             var kullanici = AuditKullaniciArama.Trim();
             // Kullanıcı süzgeci ada göre yapılır; süzgeç varken daha geniş bir pencereden aranır.
-            var loglar = await _auditLogServisi.LoglariGetirAsync(tabloAdi: tablo, limit: kullanici.Length > 0 ? 1000 : 50);
+            var loglar = await _auditLogServisi.LoglariGetirAsync(tabloAdi: tablo, limit: kullanici.Length > 0 ? 0 : 5000);
             AuditLoglar.Clear();
-            foreach (var log in loglar.Where(l => kullanici.Length == 0 || (l.KullaniciAdi ?? string.Empty).Contains(kullanici, StringComparison.CurrentCultureIgnoreCase)).Take(50))
+            foreach (var log in loglar.Where(l => kullanici.Length == 0 || (l.KullaniciAdi ?? string.Empty).Contains(kullanici, StringComparison.CurrentCultureIgnoreCase)))
             {
                 AuditLoglar.Add(log);
             }
@@ -396,6 +398,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         if (_yedekServisi == null) return;
         foreach (var yedek in _yedekServisi.YedekleriListele())
             Yedekler.Add(yedek);
+        BildirimGonder(nameof(YedekBilgisi));
         YedekDurumu = Yedekler.Count == 0
             ? "Henüz yedek alınmamış."
             : $"Son yedek: {Yedekler[0].OlusturmaTarihi:dd.MM.yyyy HH:mm} ({Yedekler[0].BoyutMetni})";

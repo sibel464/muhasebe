@@ -156,8 +156,21 @@
 
                         <!-- Ürün Seçimi -->
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="Eklenecek Ürün / Stok *" Style="{StaticResource EtiketMetin}"/>
-                            <Button Content="{Binding SeciliUrunMetni}" Command="{Binding UrunSecKomutu}" Style="{StaticResource BirinciDugme}" HorizontalAlignment="Stretch"/>
+                            <TextBlock Text="Barkod okutun ya da ürün seçin *" Style="{StaticResource EtiketMetin}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="txtFaturaBarkod" Text="{Binding OkunanBarkod, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"
+                                         ToolTip="Barkod okuyucuyla okutun (ya da barkodu / ürün kodunu yazıp Enter'a basın); ürün fiyatı ve KDV'siyle doğrudan eklenir. Terazi etiketleri kilosuyla gelir.">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding BarkodOkutKomutu}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <Button Grid.Column="2" Content="{Binding SeciliUrunMetni}" Command="{Binding UrunSecKomutu}" Style="{StaticResource BirinciDugme}" HorizontalAlignment="Stretch"/>
+                            </Grid>
                         </StackPanel>
 
                         <!-- Miktar -->
@@ -219,7 +232,7 @@
                                 Background="#F8FAFC" Padding="24" HorizontalAlignment="Stretch">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="🛒 Henüz listeye ürün eklenmedi" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextSecondaryFirca}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                                <TextBlock Text="Faturaya ürün eklemek için yukarıdaki '+ Ürün Ekle' butonuna basarak stok ürününüzü ve miktarını belirleyiniz." FontSize="12" Foreground="{StaticResource TextMutedFirca}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Barkod okutun (ürün fiyatıyla doğrudan eklenir) ya da '+ Ürün Seç' ile ürünü seçip miktarını belirleyin." FontSize="12" Foreground="{StaticResource TextMutedFirca}" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                     <DataGrid ItemsSource="{Binding Kalemler}"

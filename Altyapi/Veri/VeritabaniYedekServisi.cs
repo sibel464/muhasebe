@@ -79,6 +79,75 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     private string DosyaOneki => $"{_baglanti.Database}_";
 
+    // ---------------- Dakikalık yedek ----------------
+    // Program açıkken her dakika, yalnız veri değiştiyse alınır (internet gerekmez; yerel diske ve varsa ikinci konuma).
+    // Saklama: son 2 saatin her yedeği, 48 saate kadar saatte bir, daha eskisi silinir (günlük yedekler ayrıca 30 gün durur).
+    public const string DakikalikKlasorAdi = "Dakikalik";
+    public static readonly TimeSpan DakikalikTumunuSakla = TimeSpan.FromHours(2);
+    public static readonly TimeSpan DakikalikSaatlikSakla = TimeSpan.FromHours(48);
+    private string DakikalikKlasor => Path.Combine(YedekKlasoru, DakikalikKlasorAdi);
+    private long? _sonDegisiklikSayaci;
+    // Geri yükleme veritabanını yer değiştirirken dakikalık yedek bağlantı açmasın.
+    private static volatile bool _geriYuklemeSuruyor;
+    private DateTime _sonDakikalikBaslangic = DateTime.MinValue;
+    private TimeSpan _sonDakikalikSure = TimeSpan.Zero;
+
+    // Testlerde kısaltılabilir.
+    public TimeSpan DakikalikEnKisaAralik { get; set; } = TimeSpan.FromSeconds(55);
+
+    public DateTime? SonDakikalikYedek => DakikalikYedekleriListele().FirstOrDefault()?.OlusturmaTarihi;
+
+    public IReadOnlyList<YedekDosyasi> DakikalikYedekleriListele() => Listele(DakikalikKlasor);
+
+    // Veritabanındaki ekleme/güncelleme/silme sayaçlarının toplamı; değişmediyse yedek alınmaz.
+    private async Task<long> DegisiklikSayaciAsync(CancellationToken ct)
+    {
+        await using var bag = new NpgsqlConnection(_baglanti.ConnectionString);
+        await bag.OpenAsync(ct);
+        await using var kmt = new NpgsqlCommand("SELECT COALESCE(SUM(n_tup_ins + n_tup_upd + n_tup_del), 0)::bigint FROM pg_stat_user_tables", bag);
+        return Convert.ToInt64(await kmt.ExecuteScalarAsync(ct));
+    }
+
+    public async Task<YedekDosyasi?> GerekirseDakikalikYedekAlAsync(CancellationToken cancellationToken = default)
+    {
+        // Büyük veritabanında yedek uzun sürerse aralık kendiliğinden açılır (en az 1 dk, yedek süresinin 3 katı).
+        if (_geriYuklemeSuruyor) return null;
+        var aralik = TimeSpan.FromTicks(Math.Max(DakikalikEnKisaAralik.Ticks, _sonDakikalikSure.Ticks * 3));
+        if (DateTime.Now - _sonDakikalikBaslangic < aralik) return null;
+        var sayac = await DegisiklikSayaciAsync(cancellationToken);
+        // İlk çalışmada son dakikalık yedek yoksa ya da sayaç değiştiyse alınır.
+        if (_sonDegisiklikSayaci == sayac && DakikalikYedekleriListele().Count > 0) return null;
+        _sonDakikalikBaslangic = DateTime.Now;
+        var sure = System.Diagnostics.Stopwatch.StartNew();
+        var dosya = await YedekAlAsync(cancellationToken, dakikalik: true);
+        _sonDakikalikSure = sure.Elapsed;
+        _sonDegisiklikSayaci = sayac;
+        return dosya;
+    }
+
+    public static void DakikalikTemizle(string klasor, string onek)
+    {
+        if (!Directory.Exists(klasor)) return;
+        var simdi = DateTime.Now;
+        var dosyalar = new DirectoryInfo(klasor).GetFiles($"{onek}*.dump").OrderByDescending(f => f.LastWriteTime).ToList();
+        var tutulanSaatler = new HashSet<DateTime>();
+        foreach (var f in dosyalar)
+        {
+            var yas = simdi - f.LastWriteTime;
+            if (yas <= DakikalikTumunuSakla) continue;
+            var saat = new DateTime(f.LastWriteTime.Year, f.LastWriteTime.Month, f.LastWriteTime.Day, f.LastWriteTime.Hour, 0, 0);
+            if (yas <= DakikalikSaatlikSakla && tutulanSaatler.Add(saat)) continue;
+            try { f.Delete(); } catch { }
+        }
+    }
+
+    private IReadOnlyList<YedekDosyasi> Listele(string klasor)
+    {
+        if (!Directory.Exists(klasor)) return Array.Empty<YedekDosyasi>();
+        return new DirectoryInfo(klasor).GetFiles($"{DosyaOneki}*.dump").OrderByDescending(f => f.LastWriteTime)
+            .Select(f => new YedekDosyasi(f.Name, f.FullName, f.LastWriteTime, f.Length)).ToList();
+    }
+
     public Task<YedekDosyasi> ElleYedekAlAsync(CancellationToken cancellationToken = default)
     {
         (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama"))
@@ -90,36 +159,29 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     public async Task<YedekDosyasi?> GerekirseGunlukYedekAlAsync(CancellationToken cancellationToken = default)
     {
-        var sonYedek = YedekleriListele().FirstOrDefault();
+        var sonYedek = Listele(YedekKlasoru).FirstOrDefault();
         if (sonYedek != null && DateTime.Now - sonYedek.OlusturmaTarihi < GunlukAralik)
             return null;
         return await YedekAlAsync(cancellationToken);
     }
 
-    public IReadOnlyList<YedekDosyasi> YedekleriListele()
-    {
-        if (!Directory.Exists(YedekKlasoru))
-            return Array.Empty<YedekDosyasi>();
+    // Günlük / elle alınan ve dakikalık yedekler birlikte, en yenisi başta.
+    public IReadOnlyList<YedekDosyasi> YedekleriListele() =>
+        Listele(YedekKlasoru).Concat(Listele(DakikalikKlasor)).OrderByDescending(y => y.OlusturmaTarihi).ToList();
 
-        return new DirectoryInfo(YedekKlasoru)
-            .GetFiles($"{DosyaOneki}*.dump")
-            .OrderByDescending(f => f.LastWriteTime)
-            .Select(f => new YedekDosyasi(f.Name, f.FullName, f.LastWriteTime, f.Length))
-            .ToList();
-    }
-
-    private async Task<YedekDosyasi> YedekAlAsync(CancellationToken cancellationToken)
+    private async Task<YedekDosyasi> YedekAlAsync(CancellationToken cancellationToken, bool dakikalik = false)
     {
         await YedekKilidi.WaitAsync(cancellationToken);
         try
         {
-            Directory.CreateDirectory(YedekKlasoru);
-            YarimKalanlariTemizle();
+            var klasor = dakikalik ? DakikalikKlasor : YedekKlasoru;
+            Directory.CreateDirectory(klasor);
+            YarimKalanlariTemizle(klasor);
 
             var pgDump = PostgreSqlSunucuYoneticisi.AracBul("pg_dump.exe")
                 ?? throw new InvalidOperationException("pg_dump.exe bulunamadı. PostgreSQL kurulumunu kontrol edin.");
 
-            var hedef = Path.Combine(YedekKlasoru, $"{DosyaOneki}{DateTime.Now:yyyy-MM-dd_HHmmss_fff}.dump");
+            var hedef = Path.Combine(klasor, $"{DosyaOneki}{DateTime.Now:yyyy-MM-dd_HHmmss_fff}.dump");
             // Önce geçici dosyaya yazılır; yarım kalan bir yedek hiçbir zaman geçerli yedek gibi görünmez.
             var gecici = hedef + ".tmp";
 
@@ -171,8 +233,9 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
             }
 
             File.Move(gecici, hedef);
-            EskiYedekleriTemizle();
-            IkinciKonumaKopyala(hedef);
+            if (dakikalik) DakikalikTemizle(klasor, DosyaOneki);
+            else EskiYedekleriTemizle();
+            IkinciKonumaKopyala(hedef, dakikalik);
 
             var dosya = new FileInfo(hedef);
             return new YedekDosyasi(dosya.Name, dosya.FullName, dosya.LastWriteTime, dosya.Length);
@@ -192,6 +255,13 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         var pgRestore = PostgreSqlSunucuYoneticisi.AracBul("pg_restore.exe")
             ?? throw new InvalidOperationException("pg_restore.exe bulunamadı. PostgreSQL kurulumunu kontrol edin.");
 
+        _geriYuklemeSuruyor = true;
+        try { return await GeriYukleIcAsync(yedekYolu, pgRestore, cancellationToken); }
+        finally { _geriYuklemeSuruyor = false; }
+    }
+
+    private async Task<string> GeriYukleIcAsync(string yedekYolu, string pgRestore, CancellationToken cancellationToken)
+    {
         // 1. Geri dönüş garantisi: şu anki verinin yedeği (bu da başarısızsa hiçbir şeye dokunulmaz).
         await YedekAlAsync(cancellationToken);
 
@@ -312,10 +382,11 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     // Asıl yedek alındıktan sonra ikinci konuma kopyalanır. Kopyalanamazsa (USB takılı değil, ağ yok) yedek yine de
     // geçerlidir; hata yalnız durum olarak gösterilir. Kopya da önce geçici adla yazılır.
-    private void IkinciKonumaKopyala(string kaynak)
+    private void IkinciKonumaKopyala(string kaynak, bool dakikalik = false)
     {
         var klasor = IkinciYedekKlasoru;
         if (klasor == null) return;
+        if (dakikalik) klasor = Path.Combine(klasor, DakikalikKlasorAdi);
         try
         {
             Directory.CreateDirectory(klasor);
@@ -325,10 +396,12 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
             if (new FileInfo(gecici).Length != new FileInfo(kaynak).Length)
                 throw new IOException("Kopyalanan dosyanın boyutu asıl yedekle aynı değil.");
             File.Move(gecici, hedef, overwrite: true);
-            foreach (var eski in new DirectoryInfo(klasor).GetFiles($"{DosyaOneki}*.dump").OrderByDescending(f => f.LastWriteTime).Skip(SaklanacakYedekSayisi))
-            {
-                try { eski.Delete(); } catch { }
-            }
+            if (dakikalik) DakikalikTemizle(klasor, DosyaOneki);
+            else
+                foreach (var eski in new DirectoryInfo(klasor).GetFiles($"{DosyaOneki}*.dump").OrderByDescending(f => f.LastWriteTime).Skip(SaklanacakYedekSayisi))
+                {
+                    try { eski.Delete(); } catch { }
+                }
             IkinciKopyaDurumu = $"✅ Son kopya: {DateTime.Now:dd.MM.yyyy HH:mm} → {klasor}";
         }
         catch (Exception ex)
@@ -337,9 +410,9 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         }
     }
 
-    private void YarimKalanlariTemizle()
+    private void YarimKalanlariTemizle(string klasor)
     {
-        foreach (var dosya in Directory.GetFiles(YedekKlasoru, $"{DosyaOneki}*.dump.tmp"))
+        foreach (var dosya in Directory.GetFiles(klasor, $"{DosyaOneki}*.dump.tmp"))
         {
             try { File.Delete(dosya); } catch { }
         }
@@ -347,7 +420,7 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     private void EskiYedekleriTemizle()
     {
-        foreach (var eski in YedekleriListele().Skip(SaklanacakYedekSayisi))
+        foreach (var eski in Listele(YedekKlasoru).Skip(SaklanacakYedekSayisi))
         {
             try { File.Delete(eski.TamYol); } catch { }
         }

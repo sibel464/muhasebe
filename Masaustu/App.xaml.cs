@@ -404,6 +404,30 @@ public partial class App : Application
                 }
             } while (await zamanlayici.WaitForNextTickAsync());
         });
+
+        // Dakikalık yedek: veri değiştiyse her dakika yerel yedek (elektrik kesilse, disk bozulsa en fazla 1 dakikalık iş kaybolur).
+        if (string.Equals(HizmetSaglayici.GetRequiredService<IConfiguration>()["YedekAyarlari:DakikalikYedek"], "false", StringComparison.OrdinalIgnoreCase)) return;
+        _ = Task.Run(async () =>
+        {
+            using var zamanlayici = new PeriodicTimer(TimeSpan.FromMinutes(1));
+            var sonHataKaydi = DateTime.MinValue;
+            while (await zamanlayici.WaitForNextTickAsync())
+            {
+                try
+                {
+                    await yedekServisi.GerekirseDakikalikYedekAlAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Her dakika aynı hatayla log dolmasın.
+                    if (DateTime.Now - sonHataKaydi > TimeSpan.FromHours(1))
+                    {
+                        sonHataKaydi = DateTime.Now;
+                        await HatayiLoglaAsync(ex, "DakikalikYedek");
+                    }
+                }
+            }
+        });
     }
 
     // Başlangıç yönetici kaydındaki (admin / admin123) şifre özeti; MuhasebeBaglami'ndaki başlangıç verisiyle aynıdır.

@@ -111,18 +111,16 @@ public class CariServisi : ICariServisi
     private async Task<string> SonrakiKoduHesaplaAsync()
     {
         var kodlar = await _baglam.CariKartlar.IgnoreQueryFilters().Where(x => x.Kod.StartsWith("C-")).Select(x => x.Kod).ToListAsync();
-        var son = kodlar.Select(x => Regex.Match(x, "^C-(\\d{6})$"))
-            .Where(x => x.Success).Select(x => int.Parse(x.Groups[1].Value, CultureInfo.InvariantCulture)).DefaultIfEmpty().Max();
-        if (son == 999999) throw new InvalidOperationException("Otomatik cari kodu kapasitesi doldu.");
+        var son = kodlar.Select(x => Regex.Match(x, "^C-(\\d{6,18})$"))
+            .Where(x => x.Success).Select(x => long.Parse(x.Groups[1].Value, CultureInfo.InvariantCulture)).DefaultIfEmpty().Max();
         return $"C-{son + 1:000000}";
     }
 
     private async Task<string> SonrakiGrupKodunuHesaplaAsync()
     {
         var kodlar = await _baglam.CariKartlar.IgnoreQueryFilters().Where(x => x.GrupKodu != null && x.GrupKodu.StartsWith("GRP-")).Select(x => x.GrupKodu!).Distinct().ToListAsync();
-        var son = kodlar.Select(x => Regex.Match(x, "^GRP-(\\d{6})$"))
-            .Where(x => x.Success).Select(x => int.Parse(x.Groups[1].Value, CultureInfo.InvariantCulture)).DefaultIfEmpty().Max();
-        if (son == 999999) throw new InvalidOperationException("Otomatik grup kodu kapasitesi doldu.");
+        var son = kodlar.Select(x => Regex.Match(x, "^GRP-(\\d{6,18})$"))
+            .Where(x => x.Success).Select(x => long.Parse(x.Groups[1].Value, CultureInfo.InvariantCulture)).DefaultIfEmpty().Max();
         return $"GRP-{son + 1:000000}";
     }
 

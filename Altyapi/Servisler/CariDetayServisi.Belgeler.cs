@@ -14,7 +14,7 @@ public sealed partial class CariDetayServisi
         if(kaynak=="Fatura") {
             result.Kalemler=await _baglam.FaturaKalemleri.IgnoreQueryFilters().AsNoTracking()
                 .Where(x=>x.FaturaId==belgeId && x.Fatura!.CariKartId==cariId && x.Fatura.SirketId==sirketId)
-                .OrderBy(x=>x.Id).Take(100).Select(x=>new CariMerkezSatirDto { Id=x.Id,BelgeNo=x.UrunKodu,Aciklama=x.UrunAd,Miktar=x.Miktar,Net=x.BirimFiyat,Kdv=x.KdvTutari,Toplam=x.SatirToplami }).ToListAsync(cancellationToken);
+                .OrderBy(x=>x.Id).Select(x=>new CariMerkezSatirDto { Id=x.Id,BelgeNo=x.UrunKodu,Aciklama=x.UrunAd,Miktar=x.Miktar,Net=x.BirimFiyat,Kdv=x.KdvTutari,Toplam=x.SatirToplami }).ToListAsync(cancellationToken);
             var f=await Faturalar(cariId,sirketId).Where(x=>x.Id==belgeId).Select(x=>new { x.SiparisId,x.IrsaliyeId }).SingleAsync(cancellationToken);
             if(f.SiparisId.HasValue && _kullanici!.YetkiliMi(x=>x.SatisGecmisiGoruntule))
                 result.Baglantilar.AddRange((await GetSayfaAsync(cariId,sirketId,CariSekme.Siparisler,new CariSorgu { BelgeId=f.SiparisId,IptalleriGoster=true },cancellationToken)).Satirlar);
@@ -27,18 +27,18 @@ public sealed partial class CariDetayServisi
                         (x.FaturaCariHareket.HareketTuru==CariHareketTuru.SatisFaturasi || x.FaturaCariHareket.HareketTuru==CariHareketTuru.AlisFaturasi ||
                          x.FaturaCariHareket.HareketTuru==CariHareketTuru.SatisIadesi || x.FaturaCariHareket.HareketTuru==CariHareketTuru.AlisIadesi) &&
                         x.OdenenCariHareket!.CariKartId==cariId && x.OdenenCariHareket.CariKart!.SirketId==sirketId)
-                    .OrderByDescending(x=>x.KapamaTarihi).Take(100)
+                    .OrderByDescending(x=>x.KapamaTarihi)
                     .Select(x=>new CariMerkezSatirDto { Id=x.OdenenCariHareketId,BelgeId=x.OdenenCariHareketId,Kaynak="Cari",BelgeNo=x.OdenenCariHareket!.BelgeNo ?? "",Tarih=x.OdenenCariHareket.Tarih,Toplam=x.KapananTutar,Tur="Kapama" }).ToListAsync(cancellationToken));
             }
         } else if(kaynak is "Sipariş" or "İrsaliye") {
             if(_kullanici!.YetkiliMi(x=>x.FaturaGoruntule)) {
                 var ids=Faturalar(cariId,sirketId).Where(x=>kaynak=="Sipariş" ? x.SiparisId==belgeId : x.IrsaliyeId==belgeId).Select(x=>x.Id);
-                result.Baglantilar.AddRange(await FaturaSatirlari(cariId,sirketId).Where(x=>ids.Contains(x.Id)).OrderBy(x=>x.Tarih).Take(100).ToListAsync(cancellationToken));
+                result.Baglantilar.AddRange(await FaturaSatirlari(cariId,sirketId).Where(x=>ids.Contains(x.Id)).OrderBy(x=>x.Tarih).ToListAsync(cancellationToken));
             }
             if(kaynak=="Sipariş" && _kullanici.YetkiliMi(x=>x.IrsaliyeGoruntule)) {
                 result.Baglantilar.AddRange(await _baglam.Irsaliyeler.IgnoreQueryFilters().AsNoTracking()
                     .Where(x=>x.SiparisId==belgeId && x.CariKartId==cariId && x.CariKart!.SirketId==sirketId)
-                    .OrderBy(x=>x.Tarih).Take(100).Select(x=>new CariMerkezSatirDto { Id=x.Id,BelgeId=x.Id,Kaynak="İrsaliye",BelgeNo=x.IrsaliyeNo,Tarih=x.Tarih,Toplam=x.GenelToplam }).ToListAsync(cancellationToken));
+                    .OrderBy(x=>x.Tarih).Select(x=>new CariMerkezSatirDto { Id=x.Id,BelgeId=x.Id,Kaynak="İrsaliye",BelgeNo=x.IrsaliyeNo,Tarih=x.Tarih,Toplam=x.GenelToplam }).ToListAsync(cancellationToken));
             }
         }
         if(row.TersKayitId.HasValue && kaynak is "Kasa" or "Banka")

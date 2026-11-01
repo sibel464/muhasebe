@@ -267,18 +267,22 @@ public class SatisGorunumModeli : TemelGorunumModeli
         var arama = Barkod.Trim();
         Barkod = string.Empty;
 
+        var sonuc = await _urunServisi.BarkodlaBulAsync(arama);
+        if (sonuc != null)
+        {
+            // Terazi etiketinde miktar etiketteki ağırlıktır.
+            await UrunuSepeteEkleAsync(sonuc.Urun, sonuc.TeraziEtiketi ? sonuc.Miktar : HizliMiktar);
+            if (sonuc.TeraziEtiketi) DurumMesaji = $"✓ {sonuc.Urun.Ad} {sonuc.Miktar:0.###} kg sepete eklendi (terazi etiketi).";
+            return;
+        }
+        // Barkod değil de ad yazıldıysa ve tek ürün eşleşiyorsa onu ekle.
         var bulunanlar = await _urunServisi.AraAsync(arama);
-        var urun = bulunanlar.FirstOrDefault(u => u.Barkod == arama || u.Kod == arama);
-
-        if (urun != null)
-        {
-            await UrunuSepeteEkleAsync(urun, HizliMiktar);
-        }
+        if (bulunanlar.Count(u => u.Aktif) == 1)
+            await UrunuSepeteEkleAsync(bulunanlar.First(u => u.Aktif), HizliMiktar);
         else
-        {
-            DurumMesaji = "Ürün bulunamadı!";
-            DurumMesaji = "Bu barkoda ait ürün bulunamadı.";
-        }
+            DurumMesaji = bulunanlar.Count == 0
+                ? $"'{arama}' barkodlu ürün kayıtlı değil. Ürün Ekle ekranında bu barkodla tanımlayabilirsiniz."
+                : $"'{arama}' için {bulunanlar.Count} ürün bulundu; barkodu okutun ya da listeden seçin.";
     }
 
     public async Task UrunuSepeteEkleAsync(Urun urun, decimal miktar = 1)

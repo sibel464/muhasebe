@@ -27,7 +27,13 @@ public interface IVeritabaniYedekServisi
     // Program yeni sürüme güncellenip veritabanı yapısı değişmeden hemen önce sistemin aldığı yedek (oturum gerekmez).
     Task<YedekDosyasi> GuncellemeOncesiYedekAlAsync(CancellationToken cancellationToken = default);
 
+    // Günlük / elle alınan ve dakikalık yedekler birlikte, en yenisi başta.
     IReadOnlyList<YedekDosyasi> YedekleriListele();
+
+    // Program açıkken dakikada bir çağrılır: son yedekten beri veri değiştiyse yerel dakikalık yedek alır (internet gerekmez).
+    Task<YedekDosyasi?> GerekirseDakikalikYedekAlAsync(CancellationToken cancellationToken = default);
+    IReadOnlyList<YedekDosyasi> DakikalikYedekleriListele();
+    DateTime? SonDakikalikYedek { get; }
 
     // Seçilen yedeği geri yükler: önce güncel durumun yedeği alınır, yedek ayrı bir veritabanına açılıp doğrulanır,
     // sonra kullanılan veritabanıyla yer değiştirir. Eski veritabanı silinmez, dönen adla saklanır.

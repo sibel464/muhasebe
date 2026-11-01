@@ -183,6 +183,25 @@ public class UrunServisi : IUrunServisi
         .Include(x => x.KategoriTanimi).Include(x => x.MarkaTanimi).Include(x => x.BirimTanimi)
         .Include(x => x.SatisFiyatlari).Include(x => x.LokasyonStoklari).ThenInclude(x => x.Depo)
         .FirstOrDefaultAsync(x => x.Barkod == barkod.Trim());
+    public async Task<BarkodSonucu?> BarkodlaBulAsync(string okunan)
+    {
+        var kod = (okunan ?? "").Trim();
+        if (kod.Length == 0) return null;
+        var urun = await _baglam.Urunler.Include(x => x.SatisFiyatlari).Include(x => x.LokasyonStoklari)
+            .Where(x => x.Barkod == kod || x.Kod == kod).OrderByDescending(x => x.Barkod == kod).ThenByDescending(x => x.Aktif).FirstOrDefaultAsync();
+        if (urun != null) return new BarkodSonucu(urun, 1, false);
+
+        // Terazi etiketi: ürün kartındaki barkod "27"+PLU (7 hane) ya da ürün kodu PLU (baştaki sıfırlar olmadan da) olabilir.
+        var t = EtkiAlani.Yardimcilar.TeraziBarkodu.Coz(kod);
+        if (t == null) return null;
+        var plu = t.PluKodu.TrimStart('0');
+        var adaylar = new[] { t.YediHane, t.PluKodu, plu }.Where(a => a.Length > 0).Distinct().ToArray();
+        urun = await _baglam.Urunler.Include(x => x.SatisFiyatlari).Include(x => x.LokasyonStoklari)
+            .Where(x => (x.Barkod != null && adaylar.Contains(x.Barkod)) || adaylar.Contains(x.Kod))
+            .OrderByDescending(x => x.Barkod == t.YediHane).ThenByDescending(x => x.Aktif).FirstOrDefaultAsync();
+        return urun == null ? null : new BarkodSonucu(urun, t.Kilogram, true);
+    }
+
     public Task<List<string>> KullanilanKodlariGetirAsync() => _baglam.Urunler.Select(x => x.Kod).OrderBy(x => x).ToListAsync();
     public Task<List<string>> KullanilanBarkodlariGetirAsync() => _baglam.Urunler.Where(x => x.Barkod != null).Select(x => x.Barkod!).OrderBy(x => x).ToListAsync();
 

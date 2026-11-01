@@ -3,6 +3,8 @@ using EtkiAlani.Modeller.Kurumsal;
 
 namespace Uygulama.Arayuzler;
 
+public sealed record BarkodSonucu(Urun Urun, decimal Miktar, bool TeraziEtiketi);
+
 public interface IUrunServisi
 {
     Task<List<Urun>> TumunuGetirAsync();
@@ -19,6 +21,8 @@ public interface IUrunServisi
     Task<bool> KodMevcutMuAsync(string kod, int? haricId = null);
     Task<bool> BarkodMevcutMuAsync(string barkod, int? haricId = null);
     Task<Urun?> BarkodIleGetirAsync(string barkod);
+    // Okutulan barkod: kayıtlı barkod, ürün kodu ya da terazi etiketi (27/28/29 + PLU + gram). Terazide miktar kilogramdır.
+    Task<BarkodSonucu?> BarkodlaBulAsync(string okunan);
     Task<string> OtomatikKodOnizleAsync();
     Task<string> OtomatikBarkodOnizleAsync();
     Task<Urun> GuvenliEkleAsync(Urun urun, bool otomatikKod, bool otomatikBarkod);

@@ -231,6 +231,32 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     public ICommand FormuTemizleKomutu { get; }
     public ICommand CariSecKomutu { get; }
     public ICommand UrunSecKomutu { get; }
+    public ICommand BarkodOkutKomutu { get; }
+    private string _okunanBarkod = string.Empty;
+    public string OkunanBarkod { get => _okunanBarkod; set => OzellikAyarla(ref _okunanBarkod, value); }
+
+    // Barkod okuyucu Enter gönderir: ürün bulunur ve fiyatı, KDV'si ile hemen listeye eklenir (aynı ürün tekrar okutulursa miktar artar).
+    private async Task BarkodOkutAsync()
+    {
+        var okunan = (OkunanBarkod ?? "").Trim();
+        OkunanBarkod = string.Empty;
+        if (okunan.Length == 0) return;
+        HataMesaji = string.Empty;
+        try
+        {
+            var sonuc = await _urunServisi.BarkodlaBulAsync(okunan);
+            if (sonuc == null)
+            {
+                HataMesaji = $"'{okunan}' barkodlu ürün kayıtlı değil. Ürün Ekle ekranında bu barkodla tanımlayabilir ya da '+ Ürün Seç' ile listeden seçebilirsiniz.";
+                return;
+            }
+            if (!sonuc.Urun.Aktif) { HataMesaji = $"'{sonuc.Urun.Ad}' pasif durumda; önce ürün kartından aktif yapın."; return; }
+            SeciliUrun = sonuc.Urun;
+            EklenecekMiktar = sonuc.Miktar;
+            KalemEkle();
+        }
+        catch (Exception ex) { HataMesaji = "Barkod okunamadı: " + ex.Message; }
+    }
     public ICommand StokDagilimiKomutu { get; }
     public ICommand KaydetKomutu { get; }
     public ICommand IptalKomutu { get; }
@@ -257,6 +283,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         FormuTemizleKomutu = new KomutSarici(FormuTemizle);
         CariSecKomutu = new KomutSarici(CariSec);
         UrunSecKomutu = new KomutSarici(UrunSec);
+        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
         StokDagilimiKomutu = new KomutSarici(p => StokDagilimiAc(p as FaturaKalemiGorunumModeli));
         KaydetKomutu = new KomutSarici(async () => await FaturaKaydetAsync(BelgeDurumu.Onaylandi), () => !Kaydediliyor);
         IptalKomutu = new KomutSarici(() => { if (Kapat != null) Kapat(); else _navigasyon.Git("Fatura"); });

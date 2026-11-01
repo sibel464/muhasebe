@@ -21,11 +21,11 @@ public class UrunKodBarkodUreteci : IUrunKodBarkodUreteci
             .Select(u => u.Kod)
             .ToListAsync(cancellationToken);
 
-        int maxSayi = 0;
+        long maxSayi = 0;
         foreach (var k in kodlar)
         {
             var parca = k.Replace("URN-", "").Trim();
-            if (int.TryParse(parca, out var sayi) && sayi > maxSayi)
+            if (long.TryParse(parca, out var sayi) && sayi > maxSayi)
             {
                 maxSayi = sayi;
             }

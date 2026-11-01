@@ -249,6 +249,28 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
     public Action<bool>? KapatIstendi { get; set; }
 
     public ICommand KalemEkleKomutu { get; }
+    public ICommand BarkodOkutKomutu { get; }
+
+    // Arama kutusunda Enter: okunan barkod / kod tam eşleşirse (terazi etiketi dahil) ürün doğrudan eklenir.
+    private async Task BarkodOkutAsync()
+    {
+        var okunan = (UrunAramaMetni ?? "").Trim();
+        if (okunan.Length == 0) return;
+        try
+        {
+            var sonuc = await _urunServisi.BarkodlaBulAsync(okunan);
+            if (sonuc == null || !sonuc.Urun.Aktif)
+            {
+                if (SeciliUrun != null && KalemEkleKomutu.CanExecute(null)) KalemEkle();
+                return;
+            }
+            SeciliUrun = _tumUrunler.FirstOrDefault(u => u.Id == sonuc.Urun.Id) ?? sonuc.Urun;
+            KalemMiktar = sonuc.Miktar.ToString("0.###");
+            KalemEkle();
+            UrunAramaMetni = string.Empty;
+        }
+        catch (Exception ex) { DurumMesaji = "Barkod okunamadı: " + ex.Message; }
+    }
     public ICommand KalemSilKomutu { get; }
     public ICommand KaydetKomutu { get; }
     public ICommand KaydetVeOnaylaKomutu { get; }
@@ -264,6 +286,7 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
         _urunServisi = urunServisi;
 
         KalemEkleKomutu = new KomutSarici(KalemEkle, () => SeciliUrun != null);
+        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
         KalemSilKomutu = new KomutSarici(KalemSil, () => SeciliKalem != null);
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync(onayla: false));
         KaydetVeOnaylaKomutu = new KomutSarici(async () => await KaydetAsync(onayla: true));

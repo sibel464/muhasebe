@@ -197,7 +197,7 @@ public class DepoServisi : IDepoServisi
             query = query.Where(sh => sh.Tarih < aralik.BitisSonrasi);
         }
 
-        var list = await query.OrderByDescending(sh => sh.Tarih).Take(300).ToListAsync();
+        var list = await query.OrderByDescending(sh => sh.Tarih).ThenByDescending(sh => sh.Id).ToListAsync();
 
         return list.Select(sh => new DepoHareketDetayDto
         {

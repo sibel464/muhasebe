@@ -79,6 +79,26 @@ public class SiparisGorunumModeli : TemelGorunumModeli
     public ICommand SiparisIptalKomutu { get; }
     public ICommand CariSecKomutu { get; }
     public ICommand UrunSecKomutu { get; }
+    public ICommand BarkodOkutKomutu { get; }
+    private string _okunanBarkod = string.Empty;
+    public string OkunanBarkod { get => _okunanBarkod; set => OzellikAyarla(ref _okunanBarkod, value); }
+
+    private async Task BarkodOkutAsync()
+    {
+        var okunan = (OkunanBarkod ?? "").Trim();
+        OkunanBarkod = string.Empty;
+        if (okunan.Length == 0) return;
+        if (!Duzenlenebilir) { Mesaj = "Bu sipariş düzenlenemez."; return; }
+        try
+        {
+            var sonuc = await _urunServisi.BarkodlaBulAsync(okunan);
+            if (sonuc == null || !sonuc.Urun.Aktif) { Mesaj = $"'{okunan}' barkodlu aktif ürün bulunamadı."; return; }
+            SeciliUrun = sonuc.Urun;
+            UrunEkle(sonuc.Miktar);
+            Mesaj = $"{sonuc.Urun.Ad} eklendi.";
+        }
+        catch (Exception ex) { Mesaj = "Barkod okunamadı: " + ex.Message; }
+    }
     public ICommand GoruntuleKomutu { get; }
     public ICommand DuzenleKomutu { get; }
     public ICommand FiltreleriTemizleKomutu { get; }
@@ -110,6 +130,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
         SiparisIptalKomutu = new KomutSarici(async x => { if (x is Siparis s) { await DuzenleAsync(s.Id, false); await IptalAsync(); FormAcik = false; } });
         CariSecKomutu = new KomutSarici(CariSec);
         UrunSecKomutu = new KomutSarici(UrunSec);
+        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
         GoruntuleKomutu = new KomutSarici(async x => await GoruntuleAsync(x as Siparis));
         DuzenleKomutu = new KomutSarici(async x => { if (x is Siparis s) await DuzenleAsync(s.Id); });
         FiltreleriTemizleKomutu = new KomutSarici(FiltreleriTemizle);
@@ -146,10 +167,12 @@ public class SiparisGorunumModeli : TemelGorunumModeli
         FormAcik = formuAc; FormuYenile(); if (formuAc) FormPenceresiniAc();
     }
 
-    private void UrunEkle()
+    private void UrunEkle() => UrunEkle(1);
+
+    private void UrunEkle(decimal miktar)
     {
         if (SeciliUrun == null || !Duzenlenebilir) return;
-        Kalemler.Add(new SiparisKalemi { UrunId = SeciliUrun.Id, UrunKodu = SeciliUrun.Kod, Barkod = SeciliUrun.Barkod ?? "", UrunAdi = SeciliUrun.Ad, Birim = SeciliUrun.Birim, Miktar = 1, BirimFiyat = Form.SiparisTuru == SiparisTuru.Satis ? SeciliUrun.PerakendeSatisFiyati : SeciliUrun.AlisFiyati, KdvOrani = SeciliUrun.KdvOrani });
+        Kalemler.Add(new SiparisKalemi { UrunId = SeciliUrun.Id, UrunKodu = SeciliUrun.Kod, Barkod = SeciliUrun.Barkod ?? "", UrunAdi = SeciliUrun.Ad, Birim = SeciliUrun.Birim, Miktar = miktar, BirimFiyat = Form.SiparisTuru == SiparisTuru.Satis ? SeciliUrun.PerakendeSatisFiyati : SeciliUrun.AlisFiyati, KdvOrani = SeciliUrun.KdvOrani });
         Hesapla();
     }
 
