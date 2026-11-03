@@ -179,7 +179,9 @@
 <ul>
   <li><b>Stok Girişi / Stok Çıkışı:</b> faturasız giriş-çıkış (ör. numune, fire, sarf).</li>
   <li><b>Transfer Yap:</b> depolar arası mal aktarımı. Toplam stok değişmez.</li>
-  <li><b>Stok Sayımı:</b> fiili sayımı girersiniz; program farkı sayım fişiyle düzeltir.</li>
+  <li><b>Stok Sayımı:</b> depoyu seçip ürünleri barkod okuyucuyla okutun; her okutma sayılan miktarı 1 artırır (koli için <b>12*barkod</b> yazın, terazi etiketi kilosuyla sayılır). Miktarı SAYILAN sütununa elle de yazabilirsiniz. Onayda yalnız <b>sayılan</b> ürünlerin stoğu düzeltilir, sayılmayanlara dokunulmaz. Depodaki her şeyi saydıysanız “Tam sayım” kutusunu işaretleyin: okutulmayan ürünlerin o depodaki stoğu sıfırlanır. Sayım günlerce sürecekse <b>Kaydet, Sonra Devam Et</b> düğmesine basın: stok değişmez, pencereyi tekrar açınca program kaldığınız yerden devam etmeyi önerir. Kaydetmeden kapatırsanız uyarır.</li>
+  <li><b>Sayım Geçmişi:</b> Stok Operasyon Merkezi'ndeki düğmeyle açılır. Onaylanan, iptal edilen ve yarım kalan sayımlar listelenir; seçili sayımın <b>sayım tutanağını</b> (kayıtlı/sayılan/fark ve maliyet etkisi, imza yerleri) yazdırabilir, yarım sayıma devam edebilir ya da iptal edebilirsiniz.</li>
+  <li><b>Stok Giriş/Çıkış ve Transfer:</b> ürünü barkod okutarak ya da adını yazarak seçin; seçili deponun mevcut stoğu altında görünür.</li>
   <li><b>Stok 360°:</b> ürünün tüm hareketleri, yürüyen bakiyesi, depolara dağılımı ve maliyet/kârlılık özeti.</li>
 </ul>
 <div class="not"><b>Maliyet nasıl hesaplanır?</b> Program "hareketli ağırlıklı ortalama" yöntemini kullanır: her alışta ortalama birim maliyet yeniden hesaplanır, her satış o günkü ortalama maliyetle değerlenir. Bu yüzden alış fiyatı sonradan değişse de geçmiş ayların kârı değişmez.</div>

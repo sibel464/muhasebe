@@ -104,6 +104,9 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     public Action<int, bool>? StokIslemAcAction { get; set; }
     public Action<int?>? TransferAcAction { get; set; }
     public Action? SayimAcAction { get; set; }
+    public Action? SayimGecmisiAcAction { get; set; }
+    public ICommand SayimGecmisiKomutu => _sayimGecmisiKomutu ??= new KomutSarici(_ => SayimGecmisiAcAction?.Invoke(), _ => _kullaniciServisi.YetkiliMi(x => x.StokGoruntule || x.StokDuzenle));
+    private ICommand? _sayimGecmisiKomutu;
 
     public StokOperasyonMerkeziGorunumModeli(
         IStokOperasyonServisi operasyonServisi,

@@ -33,7 +33,7 @@ public class StokTransferGorunumModeli : TemelGorunumModeli
     public int? KaynakDepoId
     {
         get => _kaynakDepoId;
-        set => OzellikAyarla(ref _kaynakDepoId, value);
+        set { if (OzellikAyarla(ref _kaynakDepoId, value)) _ = DepoStokBilgisiGuncelleAsync(); }
     }
 
     public int? HedefDepoId
@@ -47,9 +47,53 @@ public class StokTransferGorunumModeli : TemelGorunumModeli
         get => _seciliUrun;
         set
         {
-            if (OzellikAyarla(ref _seciliUrun, value) && value != null)
-                BirimFiyat = value.AlisFiyati;
+            if (OzellikAyarla(ref _seciliUrun, value))
+            {
+                if (value != null) BirimFiyat = value.AlisFiyati;
+                _ = DepoStokBilgisiGuncelleAsync();
+            }
         }
+    }
+
+    // Barkod okuyucu: ürünü bulur, terazi etiketiyse miktarı kilosuyla doldurur; "12*barkod" 12 adet.
+    private string _barkodArama = string.Empty;
+    public string BarkodArama { get => _barkodArama; set => OzellikAyarla(ref _barkodArama, value); }
+    public ICommand BarkodOkutKomutu => _barkodOkutKomutu ??= new KomutSarici(async _ => await BarkodOkutAsync());
+    private ICommand? _barkodOkutKomutu;
+
+    public async Task BarkodOkutAsync()
+    {
+        var okunan = BarkodArama.Trim();
+        if (okunan.Length == 0) return;
+        HataMesaji = string.Empty;
+        var bulunan = await StokBarkodu.BulAsync(_urunServisi, okunan);
+        BarkodArama = string.Empty;
+        if (bulunan == null)
+        {
+            HataMesaji = $"Barkod/kod bulunamadı: {okunan}";
+            System.Media.SystemSounds.Exclamation.Play();
+            return;
+        }
+        var urun = Urunler.FirstOrDefault(u => u.Id == bulunan.Value.Urun.Id);
+        if (urun == null) { urun = bulunan.Value.Urun; Urunler.Add(urun); }
+        SeciliUrun = urun;
+        Miktar = bulunan.Value.Miktar;
+    }
+
+    private string _depoStokMetni = string.Empty;
+    public string DepoStokMetni { get => _depoStokMetni; private set => OzellikAyarla(ref _depoStokMetni, value); }
+
+    private async Task DepoStokBilgisiGuncelleAsync()
+    {
+        var urun = SeciliUrun; var depoId = KaynakDepoId;
+        if (urun == null || !depoId.HasValue) { DepoStokMetni = string.Empty; return; }
+        try
+        {
+            var stoklar = await _urunServisi.DepoStoklariniGetirAsync(depoId.Value);
+            if (SeciliUrun != urun || KaynakDepoId != depoId) return;
+            DepoStokMetni = $"Kaynak depodaki stok: {(stoklar.TryGetValue(urun.Id, out var m) ? m : 0):#,##0.###} {urun.Birim}";
+        }
+        catch { DepoStokMetni = string.Empty; }
     }
 
     public decimal Miktar
@@ -143,7 +187,7 @@ public class StokTransferGorunumModeli : TemelGorunumModeli
         if (seciliUrunId.HasValue && seciliUrunId > 0)
             SeciliUrun = Urunler.FirstOrDefault(u => u.Id == seciliUrunId.Value);
         else
-            SeciliUrun = Urunler.FirstOrDefault();
+            SeciliUrun = null; // ilk ürünü kendiliğinden seçmek yanlış ürüne fiş kesilmesine yol açıyordu
     }
 
     public async Task KaydetAsync()

@@ -96,6 +96,7 @@ public partial class App : Application
         servisler.AddTransient<UrunStok360GorunumModeli>();
         servisler.AddTransient<StokTransferGorunumModeli>();
         servisler.AddTransient<StokSayimGorunumModeli>();
+        servisler.AddTransient<StokSayimGecmisiGorunumModeli>();
         servisler.AddTransient<StokIslemGorunumModeli>();
         servisler.AddTransient<FinansMerkeziGorunumModeli>();
         servisler.AddTransient<Kasa360GorunumModeli>();

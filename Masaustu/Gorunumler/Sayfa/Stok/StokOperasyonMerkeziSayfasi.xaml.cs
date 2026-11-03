@@ -30,6 +30,10 @@ public partial class StokOperasyonMerkeziSayfasi : UserControl
                     new StokSayimPenceresi() { Owner = parentWindow }.ShowDialog();
                     _ = vm.YukleAsync();
                 };
+                vm.SayimGecmisiAcAction = () => {
+                    new StokSayimGecmisiPenceresi() { Owner = parentWindow }.ShowDialog();
+                    _ = vm.YukleAsync();
+                };
 
                 await vm.InitAsync();
             }

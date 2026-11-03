@@ -14,6 +14,6 @@ public partial class StokIslemPenceresi : Window
         _model = App.HizmetSaglayici.GetRequiredService<StokIslemGorunumModeli>();
         DataContext = _model;
         _model.KapatAction = Close;
-        Loaded += async (_, _) => await _model.InitAsync(urunId, isGiris);
+        Loaded += async (_, _) => { await _model.InitAsync(urunId, isGiris); if (urunId is null or 0) BarkodKutusu.Focus(); };
     }
 }

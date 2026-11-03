@@ -835,6 +835,63 @@ public class BelgeYazdirmaServisi : IBelgeYazdirmaServisi
         return await DosyayaKaydetVeAcAsync(html, null, $"Belge_{belge.BelgeNo}.html");
     }
 
+    public string SayimTutanagiHtmlUret(EtkiAlani.Modeller.Stok.StokSayimi sayim, FirmaBilgisi? firma = null)
+    {
+        var f = firma ?? _firmaBilgisi;
+        var tr = new CultureInfo("tr-TR");
+        string M(decimal d) => d.ToString("#,##0.###", tr);
+        string T(decimal d) => d.ToString("N2", tr);
+        var durum = sayim.Durum switch
+        {
+            EtkiAlani.Modeller.Stok.StokSayimDurumu.Onaylandi => "Onaylandı" + (sayim.OnayTarihi is { } o ? " (" + o.ToLocalTime().ToString("dd.MM.yyyy HH:mm", tr) + ")" : ""),
+            EtkiAlani.Modeller.Stok.StokSayimDurumu.Iptal => "İPTAL",
+            _ => "Devam ediyor (stoğa işlenmedi)"
+        };
+        var satirlar = sayim.Kalemler.Where(k => !k.Silindi)
+            .OrderBy(k => k.Urun?.Ad ?? "", StringComparer.Create(tr, true)).ToList();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Sayım Tutanağı - " + H(sayim.SayimNo) + "</title><style>" + GetCommonCss() +
+            " .fazla { color:#047857; font-weight:700; } .eksik { color:#B91C1C; font-weight:700; }</style></head><body>");
+        sb.AppendLine("<div class='toolbar no-print'><button onclick='window.print()'>🖨️ Yazdır / PDF Kaydet</button></div>");
+        sb.AppendLine("<div class='container'>");
+        sb.AppendLine("<table class='header-table'><tr><td>" + FirmaKunyesiHtml(f, false) + "</td>");
+        sb.AppendLine("<td class='doc-title-box'><div class='doc-title'>Stok Sayım Tutanağı</div><div style='font-weight:700;'>No: " + H(sayim.SayimNo) + "</div>" +
+            "<div>Tarih: " + sayim.Tarih.ToString("dd.MM.yyyy", tr) + "</div><div>Depo: " + H(sayim.Depo?.DepoAdi ?? "") + "</div>" +
+            "<div style='color:#64748B; font-size:12px;'>Durum: " + H(durum) + "</div></td></tr></table>");
+        if (!string.IsNullOrWhiteSpace(sayim.Aciklama))
+            sb.AppendLine("<p style='font-size:13px;'>" + H(sayim.Aciklama) + "</p>");
+
+        sb.AppendLine("<table class='data-table'><thead><tr><th>Kod</th><th>Ürün</th><th>Birim</th><th class='text-right'>Kayıtlı</th><th class='text-right'>Sayılan</th>" +
+            "<th class='text-right'>Fark</th><th class='text-right'>Birim maliyet</th><th class='text-right'>Fark tutarı (TL)</th></tr></thead><tbody>");
+        foreach (var k in satirlar)
+        {
+            var sinif = k.FarkMiktari > 0 ? " fazla" : k.FarkMiktari < 0 ? " eksik" : "";
+            sb.AppendLine("<tr><td>" + H(k.Urun?.Kod ?? "") + "</td><td>" + H(k.Urun?.Ad ?? ("#" + k.UrunId)) + "</td><td>" + H(k.Urun?.Birim ?? "") +
+                "</td><td class='text-right'>" + M(k.SistemMiktari) + "</td><td class='text-right'>" + M(k.SayilanMiktar) +
+                "</td><td class='text-right" + sinif + "'>" + (k.FarkMiktari > 0 ? "+" : "") + M(k.FarkMiktari) +
+                "</td><td class='text-right'>" + T(k.BirimFiyat) + "</td><td class='text-right" + sinif + "'>" + T(k.ToplamFarkTutari) + "</td></tr>");
+        }
+        var fazla = satirlar.Where(k => k.FarkMiktari > 0).Sum(k => k.ToplamFarkTutari);
+        var eksik = -satirlar.Where(k => k.FarkMiktari < 0).Sum(k => k.ToplamFarkTutari);
+        sb.AppendLine("<tr style='font-weight:700;'><td colspan='7'>Sayım fazlası (" + satirlar.Count(k => k.FarkMiktari > 0) + " ürün)</td><td class='text-right fazla'>" + T(fazla) + "</td></tr>");
+        sb.AppendLine("<tr style='font-weight:700;'><td colspan='7'>Sayım eksiği (" + satirlar.Count(k => k.FarkMiktari < 0) + " ürün)</td><td class='text-right eksik'>" + T(eksik) + "</td></tr>");
+        sb.AppendLine("<tr style='font-weight:700;'><td colspan='7'>Net fark (" + satirlar.Count + " ürün sayıldı)</td><td class='text-right'>" + T(fazla - eksik) + "</td></tr>");
+        sb.AppendLine("</tbody></table>");
+        sb.AppendLine("<p style='font-size:12px; color:#334155;'>Kayıtlı miktar, sayım onaylandığı andaki depo stoğudur; onaylanmamış sayımda kaydedildiği andaki stoktur. Fark tutarı ürünün alış fiyatıyla hesaplanır.</p>");
+        sb.AppendLine("<table class='signature-table'><tr><td><div class='signature-line'>Sayımı yapan<br><span style='font-weight:400;'>Ad Soyad - İmza</span></div></td>" +
+            "<td><div class='signature-line'>Kontrol eden<br><span style='font-weight:400;'>Ad Soyad - İmza</span></div></td>" +
+            "<td><div class='signature-line'>" + H(f.FirmaUnvani) + "<br><span style='font-weight:400;'>Onaylayan - Kaşe / İmza</span></div></td></tr></table>");
+        sb.AppendLine("</div></body></html>");
+        return sb.ToString();
+    }
+
+    public async Task<string> SayimTutanagiYazdirAsync(EtkiAlani.Modeller.Stok.StokSayimi sayim)
+    {
+        var html = SayimTutanagiHtmlUret(sayim, await FirmaBilgisiGetirAsync(sayim.SirketId));
+        return await DosyayaKaydetVeAcAsync(html, null, $"Sayim_{sayim.SayimNo}.html");
+    }
+
     public Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi)
     {
         // Uzantısız dosyayı Windows tarayıcıda açamaz, "hangi programla açılsın" diye sorar.

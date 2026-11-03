@@ -45,8 +45,19 @@
                 </Grid>
 
                 <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="Transfer Edilecek Ürün *" Style="{StaticResource EtiketMetin}"/>
-                    <ComboBox ItemsSource="{Binding Urunler}" DisplayMemberPath="Ad" SelectedItem="{Binding SeciliUrun}" Style="{StaticResource FormAcilirKutu}"/>
+                    <TextBlock Text="🔍 Barkod / Ürün Kodu Okut (Enter) — çoklu: 12*barkod" Style="{StaticResource EtiketMetin}"/>
+                    <TextBox x:Name="BarkodKutusu" Text="{Binding BarkodArama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding BarkodOkutKomutu}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Transfer Edilecek Ürün * (adını yazarak arayabilirsiniz)" Style="{StaticResource EtiketMetin}"/>
+                    <ComboBox ItemsSource="{Binding Urunler}" DisplayMemberPath="Ad" SelectedItem="{Binding SeciliUrun}" Style="{StaticResource FormAcilirKutu}"
+                              IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" TextSearch.TextPath="Ad"/>
+                    <TextBlock Text="{Binding DepoStokMetni}" Foreground="#0F766E" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <Grid Margin="0,0,0,12">

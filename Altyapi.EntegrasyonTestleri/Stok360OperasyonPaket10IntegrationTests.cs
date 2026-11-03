@@ -420,6 +420,58 @@ public sealed class Stok360OperasyonPaket10IntegrationTests
     }
 
     [Fact]
+    public async Task Yarim_sayim_kaydedilir_sonra_devam_edilip_onaylanir_ve_tutanagi_basilir()
+    {
+        var (db, sirket, magaza, _, _, urun, _, operasyon, _) = await HazirlaAsync();
+        await using var _ = db;
+        var urun2 = new Urun { SirketId = sirket.Id, Kod = "URUN2-" + Guid.NewGuid().ToString("N")[..6], Ad = "Fare", Birim = "Adet", AlisFiyati = 100, Aktif = true };
+        db.Urunler.Add(urun2);
+        await db.SaveChangesAsync();
+        await StokVeLokasyonEkleAsync(db, sirket.Id, urun.Id, magaza.Id, 10);
+        await StokVeLokasyonEkleAsync(db, sirket.Id, urun2.Id, magaza.Id, 4);
+
+        // 1. gün: iki ürün sayıldı, kaydedildi; stok değişmez.
+        var taslak = await operasyon.SayimTaslakKaydetAsync(null, new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Yıl sonu", new List<StokSayimKalemIstegi> { new(urun.Id, 3), new(urun2.Id, 2) }), sirket.Id, 100);
+        Assert.Equal(StokSayimDurumu.Sayimda, taslak.Durum);
+        await using (var k = new MuhasebeBaglami(_fixture.Options))
+            Assert.Equal(10, (await k.UrunLokasyonStoklari.SingleAsync(l => l.UrunId == urun.Id && l.DepoId == magaza.Id)).MevcutMiktar);
+
+        var liste = await operasyon.SayimlariListeleAsync(sirket.Id);
+        var ozet = Assert.Single(liste, s => s.Id == taslak.Id);
+        Assert.Equal(2, ozet.KalemSayisi);
+        Assert.Equal("Devam ediyor", ozet.DurumMetni);
+
+        // 2. gün: kaldığı yerden; ilk ürün 12 oldu, ikinci ürün sayımdan çıkarıldı. Aynı fiş güncellenir.
+        var guncel = await operasyon.SayimTaslakKaydetAsync(taslak.Id, new StokSayimIstegi(magaza.Id, DateTime.UtcNow, "Yıl sonu", new List<StokSayimKalemIstegi> { new(urun.Id, 12) }), sirket.Id, 100);
+        Assert.Equal(taslak.Id, guncel.Id);
+        await operasyon.SayimOnaylaAsync(taslak.Id, sirket.Id, 100);
+
+        await using (var k = new MuhasebeBaglami(_fixture.Options))
+        {
+            Assert.Equal(12, (await k.UrunLokasyonStoklari.SingleAsync(l => l.UrunId == urun.Id && l.DepoId == magaza.Id)).MevcutMiktar);
+            // Sayımdan çıkarılan ürüne dokunulmaz.
+            Assert.Equal(4, (await k.UrunLokasyonStoklari.SingleAsync(l => l.UrunId == urun2.Id && l.DepoId == magaza.Id)).MevcutMiktar);
+        }
+
+        // Onaylı sayım taslak olarak değiştirilemez.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => operasyon.SayimTaslakKaydetAsync(taslak.Id,
+            new StokSayimIstegi(magaza.Id, DateTime.UtcNow, null, new List<StokSayimKalemIstegi> { new(urun.Id, 1) }), sirket.Id, 100));
+
+        var ozet2 = Assert.Single(await operasyon.SayimlariListeleAsync(sirket.Id), s => s.Id == taslak.Id);
+        Assert.Equal(StokSayimDurumu.Onaylandi, ozet2.Durum);
+        Assert.Equal(1, ozet2.FazlaKalem);
+        Assert.Equal(2 * 10000m, ozet2.FazlaTutar);
+
+        var tam = await operasyon.SayimGetirAsync(taslak.Id, sirket.Id);
+        var html = System.Net.WebUtility.HtmlDecode(new BelgeYazdirmaServisi().SayimTutanagiHtmlUret(tam!, new EtkiAlani.Modeller.Ortak.FirmaBilgisi { FirmaUnvani = "Test A.Ş." }));
+        Assert.Contains("Stok Sayım Tutanağı", html);
+        Assert.Contains("Laptop Pro 15", html);
+        Assert.Contains("Merkez Mağaza", html);
+        Assert.Contains("+2", html);
+        Assert.DoesNotContain("Fare", html);
+    }
+
+    [Fact]
     public async Task Sayimda_ayni_urun_iki_satirda_veya_eksi_miktarla_olamaz()
     {
         var (db, sirket, magaza, _, _, urun, _, operasyon, _) = await HazirlaAsync();

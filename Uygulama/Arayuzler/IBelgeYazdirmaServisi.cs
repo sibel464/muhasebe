@@ -56,6 +56,10 @@ public interface IBelgeYazdirmaServisi
     string GiderPusulasiHtmlUret(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge, FirmaBilgisi? firma = null);
     Task<string> GiderPusulasiYazdirAsync(EtkiAlani.Modeller.Muhasebe.GiderPusulasi belge);
 
+    // Stok sayım tutanağı: satırlar, farklar ve maliyet etkisi, sayan/onaylayan imza yerleri.
+    string SayimTutanagiHtmlUret(EtkiAlani.Modeller.Stok.StokSayimi sayim, FirmaBilgisi? firma = null);
+    Task<string> SayimTutanagiYazdirAsync(EtkiAlani.Modeller.Stok.StokSayimi sayim);
+
     // Doğrudan Görüntüleme & Yazdırma Diyaloğu Açma
     Task BelgeyiGoruntuleVeYazdirAsync(string htmlIcerik, string geciciBelgeAdi);
 }

@@ -47,6 +47,29 @@ public sealed record StokSayimKalemIstegi(
     decimal SayilanMiktar
 );
 
+public sealed record StokSayimOzetiDto(
+    int Id,
+    string SayimNo,
+    DateTime Tarih,
+    int DepoId,
+    string DepoAdi,
+    StokSayimDurumu Durum,
+    int KalemSayisi,
+    int FazlaKalem,
+    int EksikKalem,
+    decimal FazlaTutar,
+    decimal EksikTutar,
+    string Aciklama)
+{
+    public string DurumMetni => Durum switch
+    {
+        StokSayimDurumu.Onaylandi => "Onaylandı",
+        StokSayimDurumu.Iptal => "İptal",
+        _ => "Devam ediyor"
+    };
+    public decimal NetFarkTutari => FazlaTutar - EksikTutar;
+}
+
 public sealed record StokOperasyonMatrisOzetDto(
     int UrunId,
     string UrunKodu,

@@ -539,7 +539,7 @@ public class StokOperasyonServisi : IStokOperasyonServisi
                 Miktar = Math.Abs(fark),
                 BirimFiyat = k.BirimFiyat,
                 IlgiliBelgeId = sayim.Id,
-                Aciklama = $"Sayım Düzeltmesi (Sayılan: {k.SayilanMiktar:N0}, Fark: {(fark > 0 ? "+" : "")}{fark:N0})"
+                Aciklama = $"Sayım Düzeltmesi (Sayılan: {k.SayilanMiktar:#,##0.###}, Fark: {(fark > 0 ? "+" : "")}{fark:#,##0.###})"
             };
 
             _baglam.StokHareketleri.Add(sh);
@@ -572,5 +572,103 @@ public class StokOperasyonServisi : IStokOperasyonServisi
 
         await _baglam.SaveChangesAsync();
         await tx.CommitAsync();
+    }
+
+    public async Task<StokSayimi> SayimTaslakKaydetAsync(int? sayimId, StokSayimIstegi istek, Guid sirketId, int kullaniciId)
+    {
+        if (sayimId is null or 0)
+        {
+            // Yeni taslak: SayimOlusturAsync zaten "Sayımda" durumunda, stoğa dokunmadan kaydeder.
+            return await SayimOlusturAsync(istek, sirketId, kullaniciId);
+        }
+
+        YetkiKontrol(y => y.StokEkle || y.StokDuzenle, "Stok Sayımı Kaydetme");
+        if (istek.Kalemler == null || istek.Kalemler.Count == 0)
+            throw new ArgumentException("Sayım fişinde en az 1 ürün kalemi bulunmalıdır.");
+        if (istek.Kalemler.Any(k => k.SayilanMiktar < 0))
+            throw new ArgumentException("Sayılan miktar eksi olamaz.");
+        if (istek.Kalemler.GroupBy(k => k.UrunId).Any(g => g.Count() > 1))
+            throw new ArgumentException("Sayım fişinde aynı ürün birden fazla satırda olamaz.");
+        sirketId = _baglam.SirketIdCoz(sirketId);
+
+        await using var tx = await _baglam.Database.BeginTransactionAsync();
+        await _baglam.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"StokSayimlari\" WHERE \"Id\" = {sayimId.Value} FOR UPDATE");
+        var sayim = await _baglam.StokSayimlari.Include(s => s.Kalemler)
+            .FirstOrDefaultAsync(s => s.Id == sayimId.Value && s.SirketId == sirketId)
+            ?? throw new InvalidOperationException("Sayım fişi bulunamadı veya yetkisiz erişim.");
+        if (sayim.Durum is StokSayimDurumu.Onaylandi or StokSayimDurumu.Iptal)
+            throw new InvalidOperationException("Onaylanmış ya da iptal edilmiş sayım değiştirilemez.");
+        if (sayim.DepoId != istek.DepoId)
+            throw new InvalidOperationException("Kaydedilmiş sayımın deposu değiştirilemez; yeni sayım başlatın.");
+
+        var urunIdleri = istek.Kalemler.Select(k => k.UrunId).ToList();
+        var urunler = await _baglam.Urunler.Where(u => urunIdleri.Contains(u.Id) && (u.SirketId == null || u.SirketId == sirketId)).ToDictionaryAsync(u => u.Id);
+        var lokasyonlar = await _baglam.UrunLokasyonStoklari.Where(l => l.DepoId == sayim.DepoId && urunIdleri.Contains(l.UrunId)).ToDictionaryAsync(l => l.UrunId);
+        var istenen = istek.Kalemler.Where(k => urunler.ContainsKey(k.UrunId)).ToDictionary(k => k.UrunId);
+
+        foreach (var eski in sayim.Kalemler.Where(k => !istenen.ContainsKey(k.UrunId)).ToList())
+        {
+            sayim.Kalemler.Remove(eski);
+            _baglam.StokSayimKalemleri.Remove(eski);
+        }
+        foreach (var k in istenen.Values)
+        {
+            var sistem = lokasyonlar.TryGetValue(k.UrunId, out var l) ? l.MevcutMiktar : 0;
+            var mevcut = sayim.Kalemler.FirstOrDefault(x => x.UrunId == k.UrunId);
+            if (mevcut == null)
+                sayim.Kalemler.Add(new StokSayimKalemi { UrunId = k.UrunId, SistemMiktari = sistem, SayilanMiktar = k.SayilanMiktar, BirimFiyat = urunler[k.UrunId].AlisFiyati });
+            else
+            {
+                mevcut.SayilanMiktar = k.SayilanMiktar;
+                mevcut.SistemMiktari = sistem;
+                mevcut.GuncellemeTarihi = DateTime.UtcNow;
+            }
+        }
+
+        sayim.Tarih = DateTime.SpecifyKind(istek.Tarih, DateTimeKind.Utc);
+        if (!string.IsNullOrWhiteSpace(istek.Aciklama)) sayim.Aciklama = istek.Aciklama;
+        sayim.Durum = StokSayimDurumu.Sayimda;
+        sayim.GuncellemeTarihi = DateTime.UtcNow;
+
+        await _baglam.SaveChangesAsync();
+        await tx.CommitAsync();
+        return sayim;
+    }
+
+    public async Task<List<StokSayimOzetiDto>> SayimlariListeleAsync(Guid sirketId, CancellationToken cancellationToken = default)
+    {
+        YetkiKontrol(y => y.StokGoruntule || y.StokDuzenle, "Stok Sayımı Listeleme");
+        sirketId = _baglam.SirketIdCoz(sirketId);
+
+        var sayimlar = await _baglam.StokSayimlari.AsNoTracking()
+            .Where(s => s.SirketId == sirketId && !s.Silindi)
+            .OrderByDescending(s => s.Tarih).ThenByDescending(s => s.Id)
+            .Select(s => new
+            {
+                s.Id, s.SayimNo, s.Tarih, s.DepoId, DepoAdi = s.Depo != null ? s.Depo.DepoAdi : "",
+                s.Durum, s.Aciklama,
+                Kalemler = s.Kalemler.Select(k => new { k.SistemMiktari, k.SayilanMiktar, k.BirimFiyat }).ToList()
+            })
+            .ToListAsync(cancellationToken);
+
+        return sayimlar.Select(s =>
+        {
+            var farklar = s.Kalemler.Select(k => (Fark: k.SayilanMiktar - k.SistemMiktari, k.BirimFiyat)).ToList();
+            return new StokSayimOzetiDto(s.Id, s.SayimNo, s.Tarih, s.DepoId, s.DepoAdi, s.Durum, s.Kalemler.Count,
+                farklar.Count(f => f.Fark > 0), farklar.Count(f => f.Fark < 0),
+                farklar.Where(f => f.Fark > 0).Sum(f => f.Fark * f.BirimFiyat),
+                farklar.Where(f => f.Fark < 0).Sum(f => -f.Fark * f.BirimFiyat),
+                s.Aciklama);
+        }).ToList();
+    }
+
+    public async Task<StokSayimi?> SayimGetirAsync(int sayimId, Guid sirketId)
+    {
+        YetkiKontrol(y => y.StokGoruntule || y.StokDuzenle, "Stok Sayımı Görüntüleme");
+        sirketId = _baglam.SirketIdCoz(sirketId);
+        return await _baglam.StokSayimlari.AsNoTracking()
+            .Include(s => s.Depo)
+            .Include(s => s.Kalemler).ThenInclude(k => k.Urun)
+            .FirstOrDefaultAsync(s => s.Id == sayimId && s.SirketId == sirketId);
     }
 }

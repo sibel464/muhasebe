@@ -1,7 +1,7 @@
 <Window x:Class="Masaustu.Gorunumler.Sayfa.Stok.StokSayimPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Stok Sayımı Ve Düzeltme Fişi" Width="960" Height="620"
+        Title="Stok Sayımı Ve Düzeltme Fişi" Width="1040" Height="680" MinWidth="820" MinHeight="520"
         WindowStartupLocation="CenterOwner" Background="White">
 
     <Window.Resources>
@@ -13,8 +13,9 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -22,19 +23,24 @@
         </Grid.RowDefinitions>
 
         <!-- BAŞLIK -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock Text="📋 LOKASYON STOK SAYIMI VE DÜZELTME" Style="{StaticResource SayfaBasligi}" FontSize="18"/>
-            <TextBlock Text="Fiziksel stok sayımı yaparak sistem stok farklarını otomatik güncelleyin" Style="{StaticResource SayfaAltBaslik}"/>
+            <TextBlock TextWrapping="Wrap" Style="{StaticResource SayfaAltBaslik}"
+                       Text="Barkod okuttukça ürün sıfırdan sayılır (12*barkod = 12 adet; terazi etiketi kilosuyla). Yalnız sayılan ürünlerin stoğu düzeltilir; sayılmayanlara dokunulmaz."/>
         </StackPanel>
 
         <!-- ÜST SEÇİMLER VE BARKOD -->
-        <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="8" Padding="12" Margin="0,0,0,12" BorderBrush="#E2E8F0" BorderThickness="1">
+        <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#E2E8F0" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="210"/>
+                    <ColumnDefinition Width="150"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
                     <TextBlock Text="Sayım Yapılacak Depo *" Style="{StaticResource EtiketMetin}"/>
                     <ComboBox ItemsSource="{Binding Depolar}" DisplayMemberPath="Ad" SelectedValuePath="Id" SelectedValue="{Binding SeciliDepoId}" Style="{StaticResource FormAcilirKutu}"/>
@@ -44,42 +50,69 @@
                     <DatePicker SelectedDate="{Binding Tarih}" Height="38" FontSize="13" VerticalContentAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                    <TextBlock Text="🔍 Barkod / Ürün Kodu Okut (Enter)" Style="{StaticResource EtiketMetin}"/>
-                    <TextBox Text="{Binding BarkodArama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}">
+                    <TextBlock Text="🔍 Barkod / Ürün Kodu Okut (Enter) — çoklu: 12*barkod" Style="{StaticResource EtiketMetin}"/>
+                    <TextBox x:Name="BarkodKutusu" Text="{Binding BarkodArama, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding BarkodOkutKomutu}"/>
                         </TextBox.InputBindings>
                     </TextBox>
                 </StackPanel>
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Margin="0,8,0,0" Text="{Binding SonOkuma}" FontWeight="Bold" Foreground="#0F766E" TextTrimming="CharacterEllipsis"/>
             </Grid>
         </Border>
 
+        <!-- SÜZGEÇ -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}" ToolTip="Ürün adı, kodu ya da barkoduyla listede ara"/>
+            <CheckBox Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Content="Yalnız sayılanlar" IsChecked="{Binding YalnizSayilanlar}"/>
+            <TextBlock Grid.Column="2" Margin="12,0" VerticalAlignment="Center" Text="{Binding Ozet}" Foreground="#334155" TextTrimming="CharacterEllipsis"/>
+            <Button Grid.Column="3" Command="{Binding SistemStokunuYazKomutu}" Style="{StaticResource IkinciDugme}" Content="Seçili = Sistem" Padding="10,0" Margin="0,0,8,0" ToolTip="Seçili ürünün sayılan miktarını sistem stoğuyla aynı yap (tam çıktı)"/>
+            <Button Grid.Column="4" Command="{Binding SayimiTemizleKomutu}" Style="{StaticResource IkinciDugme}" Content="Sayımları Temizle" Padding="10,0"/>
+        </Grid>
+
         <!-- TABLO -->
-        <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
-            <DataGrid ItemsSource="{Binding Kalemler}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="False">
+        <Border Grid.Row="3" Background="White" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="KalemTablosu" ItemsSource="{Binding KalemGorunumu}" SelectedItem="{Binding SeciliKalem}" Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False" IsReadOnly="False">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="KOD" Binding="{Binding UrunKodu}" Width="100" IsReadOnly="True" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="110" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="BARKOD" Binding="{Binding Barkod}" Width="120" IsReadOnly="True"/>
                     <DataGridTextColumn Header="ÜRÜN ADI" Binding="{Binding UrunAdi}" Width="2*" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="SİSTEM STOK" Binding="{Binding SistemMiktari, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="SAYILAN STOK" Binding="{Binding SayilanMiktar, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:N0}}" Width="120" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="FARK" Binding="{Binding FarkMiktari, StringFormat={}{0:N0}}" Width="90" IsReadOnly="True" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="DURUM" Binding="{Binding FarkTuru}" Width="100" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="BİRİM" Binding="{Binding Birim}" Width="70" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="SİSTEM STOK" Binding="{Binding SistemMiktari, StringFormat={}{0:#,##0.###}}" Width="105" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="SAYILAN" Binding="{Binding SayilanMiktar, StringFormat={}{0:#,##0.###}, TargetNullValue=''}" Width="105" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="FARK" Binding="{Binding FarkMiktari, StringFormat={}{0:+#,##0.###;-#,##0.###;0}, TargetNullValue=''}" Width="90" IsReadOnly="True" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="DURUM" Binding="{Binding FarkTuru}" Width="95" IsReadOnly="True"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
 
         <!-- FOOTER -->
-        <StackPanel Grid.Row="3" Margin="0,16,0,0">
-            <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}" FontWeight="Bold" Margin="0,0,0,8"/>
-            <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}" FontWeight="Bold" Margin="0,0,0,8"/>
+        <StackPanel Grid.Row="4" Margin="0,12,0,0">
+            <TextBlock Text="{Binding HataMesaji}" Foreground="{StaticResource DangerDarkFirca}" FontWeight="Bold" Margin="0,0,0,6" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding BasariMesaji}" Foreground="{StaticResource SuccessDarkFirca}" FontWeight="Bold" Margin="0,0,0,6"/>
+            <TextBlock Text="{Binding TaslakBilgisi}" Foreground="#B45309" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Command="{Binding IptalKomutu}" Style="{StaticResource IkinciDugme}" Content="Vazgeç" Width="100"/>
-                <Button Grid.Column="1" Command="{Binding SayimOnaylaKomutu}" Style="{StaticResource BirinciDugme}" Content="Sayımı Onayla Ve Stokları Güncelle" Width="230"/>
+                <CheckBox Grid.Column="1" Margin="16,0" VerticalAlignment="Center" IsChecked="{Binding SayilmayanlariSifirla}"
+                          ToolTip="Depodaki her şeyi saydıysanız işaretleyin; okutulmayan ürünler depoda yok kabul edilir.">
+                    <TextBlock Text="Tam sayım: sayılmayan ürünlerin bu depodaki stoğunu sıfırla" TextWrapping="Wrap"/>
+                </CheckBox>
+                <Button Grid.Column="2" Command="{Binding TaslakKaydetKomutu}" Style="{StaticResource IkinciDugme}" Content="Kaydet, Sonra Devam Et" Padding="12,0" Margin="0,0,8,0"
+                        ToolTip="Sayımı stoğa işlemeden saklar; pencereyi tekrar açınca kaldığınız yerden sürer."/>
+                <Button Grid.Column="3" Command="{Binding SayimOnaylaKomutu}" Style="{StaticResource BirinciDugme}" Content="Sayımı Onayla Ve Stokları Güncelle" Width="250"/>
             </Grid>
         </StackPanel>
     </Grid>
