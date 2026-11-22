@@ -9,7 +9,8 @@ namespace Altyapi.Veri;
 public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 {
     private static readonly TimeSpan GunlukAralik = TimeSpan.FromHours(24);
-    private static readonly TimeSpan YedekZamanAsimi = TimeSpan.FromMinutes(10);
+    // Çok büyük veritabanında yedek 10 dakikayı aşınca hep kesiliyor ve hiç yedek alınamıyordu.
+    private static readonly TimeSpan YedekZamanAsimi = TimeSpan.FromHours(3);
     private static readonly SemaphoreSlim YedekKilidi = new(1, 1);
 
     private readonly NpgsqlConnectionStringBuilder _baglanti;
@@ -24,14 +25,15 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
     // böylece eski bir yedek geri yüklenince ayar değişmez.
     private string IkinciKonumAyarDosyasi => Path.Combine(YedekKlasoru, "ikinci-yedek-konumu.txt");
 
-    public VeritabaniYedekServisi(string baglantiDizesi, string? yedekKlasoru = null, int saklanacakYedekSayisi = 30, IKullaniciServisi? kullaniciServisi = null)
+    // 0 = sınırsız (varsayılan): günlük/elle alınan yedekler program tarafından hiçbir zaman silinmez.
+    public VeritabaniYedekServisi(string baglantiDizesi, string? yedekKlasoru = null, int saklanacakYedekSayisi = 0, IKullaniciServisi? kullaniciServisi = null)
     {
         _baglanti = new NpgsqlConnectionStringBuilder(baglantiDizesi);
         _kullaniciServisi = kullaniciServisi;
         YedekKlasoru = string.IsNullOrWhiteSpace(yedekKlasoru)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Muhasebe Yedekleri")
             : Environment.ExpandEnvironmentVariables(yedekKlasoru.Trim());
-        SaklanacakYedekSayisi = Math.Clamp(saklanacakYedekSayisi, 3, 365);
+        SaklanacakYedekSayisi = saklanacakYedekSayisi <= 0 ? 0 : Math.Max(3, saklanacakYedekSayisi);
         try
         {
             if (File.Exists(IkinciKonumAyarDosyasi))
@@ -81,10 +83,31 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
 
     // ---------------- Dakikalık yedek ----------------
     // Program açıkken her dakika, yalnız veri değiştiyse alınır (internet gerekmez; yerel diske ve varsa ikinci konuma).
-    // Saklama: son 2 saatin her yedeği, 48 saate kadar saatte bir, daha eskisi silinir (günlük yedekler ayrıca 30 gün durur).
+    // Saklama: son 2 günün her yedeği, 30 güne kadar her saatten biri tutulur. Daha eski dakikalık kopyalar
+    // inceltilir; o günlerin tam yedeği günlük yedeklerde süresiz durur (günlük yedekler hiç silinmez).
+    // Disk dolmak üzereyse hiçbir şey silinmez: dakikalık yedek duraklar ve DiskUyarisi dolar.
     public const string DakikalikKlasorAdi = "Dakikalik";
-    public static readonly TimeSpan DakikalikTumunuSakla = TimeSpan.FromHours(2);
-    public static readonly TimeSpan DakikalikSaatlikSakla = TimeSpan.FromHours(48);
+    public static readonly TimeSpan DakikalikTumunuSakla = TimeSpan.FromDays(2);
+    public static readonly TimeSpan DakikalikSaatlikSakla = TimeSpan.FromDays(30);
+    public const long EnAzBosAlanBayt = 2L * 1024 * 1024 * 1024;
+    public string? DiskUyarisi { get; private set; }
+
+    // Yedek klasörünün diskinde yer kalmadıysa uyarı metni döner (null = yer var).
+    private string? DiskDolulukUyarisi()
+    {
+        try
+        {
+            var kok = Path.GetPathRoot(Path.GetFullPath(YedekKlasoru));
+            if (string.IsNullOrEmpty(kok) || kok.StartsWith(@"\\")) return null;
+            var bos = new DriveInfo(kok).AvailableFreeSpace;
+            var sonBoyut = Listele(YedekKlasoru).FirstOrDefault()?.Boyut ?? 0;
+            var gereken = Math.Max(EnAzBosAlanBayt, sonBoyut * 3);
+            return bos < gereken
+                ? $"⚠ Yedek diskinde ({kok}) boş yer azaldı ({bos / 1024 / 1024:N0} MB). Dakikalık yedek durduruldu; program yedek silmez. Eski yedekleri harici diske taşıyın ya da yer açın."
+                : null;
+        }
+        catch { return null; }
+    }
     private string DakikalikKlasor => Path.Combine(YedekKlasoru, DakikalikKlasorAdi);
     private long? _sonDegisiklikSayaci;
     // Geri yükleme veritabanını yer değiştirirken dakikalık yedek bağlantı açmasın.
@@ -114,6 +137,8 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         if (_geriYuklemeSuruyor) return null;
         var aralik = TimeSpan.FromTicks(Math.Max(DakikalikEnKisaAralik.Ticks, _sonDakikalikSure.Ticks * 3));
         if (DateTime.Now - _sonDakikalikBaslangic < aralik) return null;
+        DiskUyarisi = DiskDolulukUyarisi();
+        if (DiskUyarisi != null) return null;
         var sayac = await DegisiklikSayaciAsync(cancellationToken);
         // İlk çalışmada son dakikalık yedek yoksa ya da sayaç değiştiyse alınır.
         if (_sonDegisiklikSayaci == sayac && DakikalikYedekleriListele().Count > 0) return null;
@@ -203,6 +228,8 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
                 bilgi.Environment["PGPASSWORD"] = _baglanti.Password;
 
             using var surec = Process.Start(bilgi) ?? throw new InvalidOperationException("pg_dump başlatılamadı.");
+            // Yedek alınırken kasada satış yapan kullanıcı yavaşlık hissetmesin.
+            try { surec.PriorityClass = ProcessPriorityClass.BelowNormal; } catch { }
             var hataCiktisi = surec.StandardError.ReadToEndAsync(cancellationToken);
             using var zamanAsimi = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             zamanAsimi.CancelAfter(YedekZamanAsimi);
@@ -397,7 +424,7 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
                 throw new IOException("Kopyalanan dosyanın boyutu asıl yedekle aynı değil.");
             File.Move(gecici, hedef, overwrite: true);
             if (dakikalik) DakikalikTemizle(klasor, DosyaOneki);
-            else
+            else if (SaklanacakYedekSayisi > 0)
                 foreach (var eski in new DirectoryInfo(klasor).GetFiles($"{DosyaOneki}*.dump").OrderByDescending(f => f.LastWriteTime).Skip(SaklanacakYedekSayisi))
                 {
                     try { eski.Delete(); } catch { }
@@ -418,8 +445,10 @@ public sealed class VeritabaniYedekServisi : IVeritabaniYedekServisi
         }
     }
 
+    // Yalnız kullanıcı ayarda bir sayı verdiyse (YedekAyarlari:SaklanacakYedekSayisi > 0) çalışır; varsayılan sınırsız.
     private void EskiYedekleriTemizle()
     {
+        if (SaklanacakYedekSayisi <= 0) return;
         foreach (var eski in Listele(YedekKlasoru).Skip(SaklanacakYedekSayisi))
         {
             try { File.Delete(eski.TamYol); } catch { }

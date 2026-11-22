@@ -58,7 +58,7 @@ public class StokTransferGorunumModeli : TemelGorunumModeli
     // Barkod okuyucu: ürünü bulur, terazi etiketiyse miktarı kilosuyla doldurur; "12*barkod" 12 adet.
     private string _barkodArama = string.Empty;
     public string BarkodArama { get => _barkodArama; set => OzellikAyarla(ref _barkodArama, value); }
-    public ICommand BarkodOkutKomutu => _barkodOkutKomutu ??= new KomutSarici(async _ => await BarkodOkutAsync());
+    public ICommand BarkodOkutKomutu => _barkodOkutKomutu ??= new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);
     private ICommand? _barkodOkutKomutu;
 
     public async Task BarkodOkutAsync()

@@ -9,7 +9,7 @@ public partial class StokSayimGecmisiPenceresi : Window
     public StokSayimGecmisiPenceresi()
     {
         InitializeComponent();
-        var model = App.HizmetSaglayici.GetRequiredService<StokSayimGecmisiGorunumModeli>();
+        var model = App.PencereServisi<StokSayimGecmisiGorunumModeli>(this);
         DataContext = model;
         model.DevamEtAction = async id =>
         {

@@ -11,7 +11,7 @@ public partial class StokTransferPenceresi : Window
     public StokTransferPenceresi(int? urunId = null)
     {
         InitializeComponent();
-        _model = App.HizmetSaglayici.GetRequiredService<StokTransferGorunumModeli>();
+        _model = App.PencereServisi<StokTransferGorunumModeli>(this);
         DataContext = _model;
         _model.KapatAction = Close;
         Loaded += async (_, _) => { await _model.InitAsync(urunId); if (urunId is null or 0) BarkodKutusu.Focus(); };

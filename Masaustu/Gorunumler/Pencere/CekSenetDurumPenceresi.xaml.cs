@@ -91,6 +91,7 @@ public partial class CekSenetDurumPenceresi : Window
 
     private async void Kaydet_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         var yeniDurum = DurumCombo.SelectedIndex switch
         {
             0 => CekSenetDurumu.TahsilEdildi,

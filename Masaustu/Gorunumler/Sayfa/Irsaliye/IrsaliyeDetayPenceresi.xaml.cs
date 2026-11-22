@@ -53,6 +53,7 @@ public partial class IrsaliyeDetayPenceresi : Window
 
     private async void BtnFaturayaDonustur_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         var sonuc = MessageBox.Show(
             $"'{_irsaliye.IrsaliyeNo}' numaralı irsaliye resmi faturaya dönüştürülecektir. Devam etmek istiyor musunuz?",
             "Faturaya Dönüştür",

@@ -64,7 +64,7 @@ public sealed class DakikalikYedekVeSinirTests(IsolatedPostgreSqlFixture fixture
     }
 
     [Fact]
-    public void Dakikalik_saklama_son_iki_saati_tutar_sonra_saatte_bir_iki_gunden_eskisini_siler()
+    public void Dakikalik_saklama_son_iki_gunu_tutar_sonra_saatte_bir_otuz_gunden_eskisini_inceltir()
     {
         var klasor = Path.Combine(Path.GetTempPath(), "muhasebe-dk-temizle-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(klasor);
@@ -72,13 +72,37 @@ public sealed class DakikalikYedekVeSinirTests(IsolatedPostgreSqlFixture fixture
         {
             var simdi = DateTime.Now;
             void Dosya(string ad, DateTime zaman) { var y = Path.Combine(klasor, $"Db_{ad}.dump"); File.WriteAllText(y, "x"); File.SetLastWriteTime(y, zaman); }
-            Dosya("a", simdi.AddMinutes(-5)); Dosya("b", simdi.AddMinutes(-6)); Dosya("c", simdi.AddMinutes(-90));
-            var eskiSaat = new DateTime(simdi.Year, simdi.Month, simdi.Day, simdi.Hour, 0, 0).AddHours(-5);
+            Dosya("a", simdi.AddMinutes(-5)); Dosya("b", simdi.AddMinutes(-6)); Dosya("c", simdi.AddHours(-30));
+            var eskiSaat = new DateTime(simdi.Year, simdi.Month, simdi.Day, simdi.Hour, 0, 0).AddDays(-5);
             Dosya("d", eskiSaat.AddMinutes(10)); Dosya("e", eskiSaat.AddMinutes(20)); // aynı saat: biri kalır
-            Dosya("f", simdi.AddDays(-3));
+            Dosya("f", simdi.AddDays(-40));
             VeritabaniYedekServisi.DakikalikTemizle(klasor, "Db_");
             var kalan = Directory.GetFiles(klasor).Select(Path.GetFileNameWithoutExtension).OrderBy(x => x).ToList();
             Assert.Equal(new[] { "Db_a", "Db_b", "Db_c", "Db_e" }, kalan);
+        }
+        finally { Directory.Delete(klasor, true); }
+    }
+
+    [Fact]
+    public async Task Gunluk_yedekler_varsayilan_olarak_hic_silinmez()
+    {
+        fixture.RequireDatabase();
+        var klasor = Path.Combine(Path.GetTempPath(), "muhasebe-sinirsiz-yedek-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(klasor);
+        try
+        {
+            var servis = new VeritabaniYedekServisi(BaglantiDizesi(), klasor);
+            Assert.Equal(0, servis.SaklanacakYedekSayisi);
+            var onek = new NpgsqlConnectionStringBuilder(BaglantiDizesi()).Database + "_";
+            // 40 eski günlük yedek (eski davranışta 30'dan fazlası silinirdi).
+            for (var i = 1; i <= 40; i++)
+            {
+                var y = Path.Combine(klasor, $"{onek}eski{i:D2}.dump");
+                File.WriteAllText(y, "x");
+                File.SetLastWriteTime(y, DateTime.Now.AddDays(-i));
+            }
+            await servis.GuncellemeOncesiYedekAlAsync();
+            Assert.Equal(41, Directory.GetFiles(klasor, $"{onek}*.dump").Length);
         }
         finally { Directory.Delete(klasor, true); }
     }
@@ -134,5 +158,32 @@ public sealed class DakikalikYedekVeSinirTests(IsolatedPostgreSqlFixture fixture
         var kodla = await s.BarkodlaBulAsync("NRM-" + ek);
         Assert.Equal(1m, kodla!.Miktar);
         Assert.Null(await s.BarkodlaBulAsync("0000000000000"));
+    }
+
+    [Fact]
+    public async Task Geri_alinan_islemin_yarim_kaydi_sonraki_kayda_sizmaz()
+    {
+        fixture.RequireDatabase();
+        await using var db = new MuhasebeBaglami(fixture.Options);
+        var ek = Guid.NewGuid().ToString("N")[..8];
+        var sirketId = db.SirketIdCoz(null);
+        db.Urunler.Add(new Urun { SirketId = sirketId, Kod = "GERI-" + ek, Ad = "Asıl", Birim = "Adet", Aktif = true });
+        await db.SaveChangesAsync();
+
+        // Aynı kodla ikinci ürün: benzersizlik hatası, işlem geri alınır.
+        await using (var tx = await db.Database.BeginTransactionAsync())
+        {
+            db.Urunler.Add(new Urun { SirketId = sirketId, Kod = "GERI-" + ek, Ad = "Hatalı", Birim = "Adet", Aktif = true });
+            await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            await tx.RollbackAsync();
+        }
+
+        // Eskiden hatalı satır "eklenecek" olarak kalır, sonraki her kayıt aynı hatayla düşerdi.
+        db.Urunler.Add(new Urun { SirketId = sirketId, Kod = "GERI2-" + ek, Ad = "Sonraki", Birim = "Adet", Aktif = true });
+        await db.SaveChangesAsync();
+
+        await using var kontrol = new MuhasebeBaglami(fixture.Options);
+        Assert.Equal(1, await kontrol.Urunler.IgnoreQueryFilters().CountAsync(u => u.Kod == "GERI-" + ek));
+        Assert.True(await kontrol.Urunler.IgnoreQueryFilters().AnyAsync(u => u.Kod == "GERI2-" + ek));
     }
 }

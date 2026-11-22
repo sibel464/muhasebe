@@ -10,7 +10,7 @@ public partial class Hesap360Penceresi : Window
     public Hesap360Penceresi(int hesapId)
     {
         InitializeComponent();
-        var hesapServisi = App.HizmetSaglayici.GetRequiredService<IHesapPlaniServisi>();
+        var hesapServisi = App.PencereServisi<IHesapPlaniServisi>(this);
         DataContext = new Hesap360GorunumModeli(hesapServisi, hesapId);
     }
 }

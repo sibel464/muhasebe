@@ -18,6 +18,26 @@ namespace Masaustu;
 public partial class App : Application
 {
     public static IServiceProvider HizmetSaglayici { get; private set; } = null!;
+
+    // Açılır pencereler kendi servis kapsamıyla (kendi veritabanı bağlamıyla) çalışır; kapsam pencere kapanınca bırakılır.
+    // Eskiden pencereler ana sağlayıcıdan alınıyordu: tüm pencereler program kapanana dek tek bağlamı paylaşıyor,
+    // okunan her kayıt bellekte izlenmeye devam ediyor ve gün içinde her kayıt işlemi giderek yavaşlıyordu.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, IServiceScope> _pencereKapsamlari = new();
+
+    public static IServiceProvider PencereKapsami(Window pencere)
+    {
+        if (_pencereKapsamlari.TryGetValue(pencere, out var mevcut)) return mevcut.ServiceProvider;
+        var kapsam = HizmetSaglayici.CreateScope();
+        _pencereKapsamlari.Add(pencere, kapsam);
+        KapsamiPencereyeBagla(pencere, kapsam);
+        return kapsam.ServiceProvider;
+    }
+
+    public static T PencereServisi<T>(Window pencere) where T : notnull => PencereKapsami(pencere).GetRequiredService<T>();
+
+    // Kapanıştan sonra biten yüklemeler bozulmasın diye kapsam biraz gecikmeyle kapatılır.
+    public static void KapsamiPencereyeBagla(Window pencere, IServiceScope kapsam) =>
+        pencere.Closed += (_, _) => _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => kapsam.Dispose(), TaskScheduler.Default);
     private static readonly SemaphoreSlim LogKilidi = new(1, 1);
 
     // Uygulamanın servis kaydı; OnStartup ve ekran deneme düzeneği (tüm sayfaları gerçek servislerle açar) kullanır.
@@ -30,7 +50,8 @@ public partial class App : Application
         var dbBaglanti = new Npgsql.NpgsqlConnectionStringBuilder(baglantiDizesi)
         {
             Timeout = 5,
-            CommandTimeout = 10
+            // Büyük veride yıllık rapor ve mizan 10 saniyeyi aşabiliyordu (zaman aşımı hatası). Sorgular arka planda çalışır, ekran donmaz.
+            CommandTimeout = 300
         }.ConnectionString;
         servisler.AddDbContextFactory<MuhasebeBaglami>(opts =>
         {
@@ -47,7 +68,7 @@ public partial class App : Application
         servisler.AddSingleton<IVeritabaniYedekServisi>(sp => new VeritabaniYedekServisi(
             baglantiDizesi,
             konfigurasyon["YedekAyarlari:Klasor"],
-            int.TryParse(konfigurasyon["YedekAyarlari:SaklanacakYedekSayisi"], out var saklanacak) ? saklanacak : 30,
+            int.TryParse(konfigurasyon["YedekAyarlari:SaklanacakYedekSayisi"], out var saklanacak) ? saklanacak : 0,
             sp.GetRequiredService<IKullaniciServisi>()));
         servisler.AddTransient<IAuditLogServisi, AuditLogServisi>();
         servisler.AddTransient<IUrunServisi, UrunServisi>();
@@ -178,50 +199,37 @@ public partial class App : Application
             return;
         }
 
-        DispatcherUnhandledException += async (_, args) =>
+        if (!TekKopyaKilidiniAl())
         {
-            await HatayiLoglaAsync(args.Exception, "DispatcherUnhandledException");
-            
-            if (args.Exception is DbUpdateConcurrencyException || args.Exception.InnerException is DbUpdateConcurrencyException)
-            {
-                MessageBox.Show(
-                    Altyapi.Veri.MuhasebeBaglami.EszamanliDegisiklikMesaji,
-                    "Kayıt Başka Bir İşlemle Değişti",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-            else if ((args.Exception as DbUpdateException ?? args.Exception.InnerException as DbUpdateException)?.InnerException is Npgsql.PostgresException pg
-                     && Altyapi.Veri.MuhasebeBaglami.VeritabaniHataMesaji(pg) is { } vtMesaji)
-            {
-                MessageBox.Show(vtMesaji, "Kayıt Yapılamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            else if (args.Exception is YetkisizErisimException yetkiEx)
-            {
-                MessageBox.Show(
-                    yetkiEx.Message,
-                    "Yetkisiz Erişim Engellendi",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-            else
-            {
-                MessageBox.Show(
-                    "İşlem tamamlanamadı. Lütfen tekrar deneyin. Sorun sürerse sistem yöneticisine başvurun.",
-                    "Hata",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
+            Shutdown(0);
+            return;
+        }
+
+        // Handled ilk satırda ve eşzamanlı verilmeli: işleyici önce bir await'e takılırsa WPF hatayı yakalanmamış sayar ve
+        // program kapanırdı (eskiden "async" işleyicide log dosyası yazılırken tüm uygulama çöküyordu).
+        DispatcherUnhandledException += (_, args) =>
+        {
             args.Handled = true;
+            HatayiLogla(args.Exception, "DispatcherUnhandledException");
+            try
+            {
+                HatayiGoster(args.Exception);
+            }
+            catch (Exception gosterimHatasi)
+            {
+                HatayiLogla(gosterimHatasi, "HatayiGoster");
+            }
         };
-        AppDomain.CurrentDomain.UnhandledException += async (_, args) =>
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
+            // Süreç bu olaydan sonra sonlanabilir: log beklemeden, eşzamanlı yazılır.
             if (args.ExceptionObject is Exception exception)
-                await HatayiLoglaAsync(exception, "AppDomain.UnhandledException");
+                HatayiLogla(exception, "AppDomain.UnhandledException");
         };
-        TaskScheduler.UnobservedTaskException += async (_, args) =>
+        TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            await HatayiLoglaAsync(args.Exception, "TaskScheduler.UnobservedTaskException");
             args.SetObserved();
+            HatayiLogla(args.Exception, "TaskScheduler.UnobservedTaskException");
         };
 
         try
@@ -372,6 +380,7 @@ public partial class App : Application
     {
         base.OnExit(e);
         PostgreSqlSunucuYoneticisi.SunucuyuDurdur();
+        try { _tekKopya?.ReleaseMutex(); } catch { }
         // İndirilmiş güncelleme varsa kurulur; kurulum bitince program kendini yeniden açar.
         if (GuncellemeYoneticisi.BekleyenPaket != null)
         {
@@ -515,6 +524,126 @@ public partial class App : Application
     private sealed class EskiSurumException() : InvalidOperationException(
         "Veritabanı, ağdaki başka bir bilgisayarda kurulu daha yeni bir program sürümüyle güncellenmiş. " +
         "Bu bilgisayardaki programı da aynı sürüme güncelleyin; eski sürümle çalışmak verileri bozabilir.");
+
+    // Program aynı Windows oturumunda tek kopya çalışır. İki kopya açıkken veritabanı sunucusunu başlatan kopya kapanınca
+    // sunucuyu durdurur ve diğer kopyadaki kaydedilmemiş iş kaybolurdu. İkinci tıklamada açık pencere öne getirilir;
+    // yeniden başlatmada (güncelleme, örnek veri modu) eski kopya kapanırken yeni kopya onu bekler.
+    private static System.Threading.Mutex? _tekKopya;
+
+    private static bool TekKopyaKilidiniAl()
+    {
+        _tekKopya = new System.Threading.Mutex(false, @"Local\MuhasebeMasaustu-TekKopya");
+        var sonSure = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            try
+            {
+                if (_tekKopya.WaitOne(TimeSpan.FromMilliseconds(500)))
+                    return true;
+            }
+            catch (System.Threading.AbandonedMutexException)
+            {
+                return true; // Önceki kopya kilidi bırakmadan sonlanmış (çökme): kilit artık bizde.
+            }
+            if (AcikKopyayiOneGetir() || DateTime.UtcNow > sonSure)
+                return false;
+        }
+    }
+
+    private static bool AcikKopyayiOneGetir()
+    {
+        try
+        {
+            using var bu = System.Diagnostics.Process.GetCurrentProcess();
+            foreach (var p in System.Diagnostics.Process.GetProcessesByName(bu.ProcessName))
+            {
+                using (p)
+                {
+                    if (p.Id == bu.Id || p.MainWindowHandle == IntPtr.Zero) continue;
+                    ShowWindow(p.MainWindowHandle, 9); // SW_RESTORE
+                    SetForegroundWindow(p.MainWindowHandle);
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    // Çökme anında beklemeden yazılan log (süreç sonlanmadan dosyaya düşsün).
+    internal static void HatayiLogla(Exception exception, string kaynak)
+    {
+        if (!LogKilidi.Wait(TimeSpan.FromSeconds(5)))
+            return;
+        try
+        {
+            File.AppendAllText(UygulamaKlasorleri.LogYolu("uygulama-hatalari.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {kaynak}\n{exception}\n\n");
+        }
+        catch
+        {
+        }
+        finally
+        {
+            LogKilidi.Release();
+        }
+    }
+
+    private static bool _hataPenceresiAcik;
+    private static string? _sonHataMesaji;
+    private static DateTime _sonHataZamani;
+
+    // Yakalanmamış hata kullanıcıya anlaşılır biçimde gösterilir. Aynı hata art arda gelirse (ör. her çizimde tekrarlanan
+    // bağlama hatası) pencereler üst üste yığılmaz: biri açıkken ya da 3 saniye içinde aynısı gelirse yalnız log'a yazılır.
+    private static void HatayiGoster(Exception hata)
+    {
+        var (mesaj, baslik, simge) = HataMesaji(hata);
+        if (_hataPenceresiAcik || (mesaj == _sonHataMesaji && DateTime.Now - _sonHataZamani < TimeSpan.FromSeconds(3)))
+            return;
+        _sonHataMesaji = mesaj;
+        _hataPenceresiAcik = true;
+        try
+        {
+            MessageBox.Show(mesaj, baslik, MessageBoxButton.OK, simge);
+        }
+        finally
+        {
+            _hataPenceresiAcik = false;
+            _sonHataZamani = DateTime.Now;
+        }
+    }
+
+    internal static (string Mesaj, string Baslik, MessageBoxImage Simge) HataMesaji(Exception hata)
+    {
+        var zincir = new List<Exception>();
+        for (var h = hata; h != null && zincir.Count < 20; h = h.InnerException)
+            zincir.Add(h);
+        if (hata is AggregateException toplu)
+            zincir.AddRange(toplu.Flatten().InnerExceptions);
+
+        if (zincir.Any(h => h is DbUpdateConcurrencyException))
+            return (Altyapi.Veri.MuhasebeBaglami.EszamanliDegisiklikMesaji, "Kayıt Başka Bir İşlemle Değişti", MessageBoxImage.Warning);
+        if (zincir.OfType<YetkisizErisimException>().FirstOrDefault() is { } yetki)
+            return (yetki.Message, "Yetkisiz Erişim Engellendi", MessageBoxImage.Warning);
+        if (zincir.OfType<Npgsql.PostgresException>().FirstOrDefault() is { } pg && Altyapi.Veri.MuhasebeBaglami.VeritabaniHataMesaji(pg) is { } vtMesaji)
+            return (vtMesaji, "Kayıt Yapılamadı", MessageBoxImage.Warning);
+        // Sunucuya ulaşılamıyor / bağlantı koptu (PostgresException değil, ağ ya da zaman aşımı hatası).
+        if (zincir.Any(h => h is Npgsql.NpgsqlException and not Npgsql.PostgresException or System.Net.Sockets.SocketException or TimeoutException))
+            return (AgModu == AgModu.Istemci
+                    ? "Sunucu bilgisayardaki veritabanına şu an ulaşılamıyor. Son işlem kaydedilmemiş olabilir; sunucu bilgisayarın açık ve ağa bağlı olduğunu kontrol edip işlemi tekrarlayın."
+                    : "Veritabanına şu an ulaşılamıyor. Son işlem kaydedilmemiş olabilir; birkaç saniye sonra işlemi tekrarlayın. Sorun sürerse programı kapatıp yeniden açın.",
+                "Bağlantı Sorunu", MessageBoxImage.Warning);
+        if (zincir.Any(h => h is OutOfMemoryException))
+            return ("Bilgisayarın belleği yetersiz kaldı. Açık diğer programları kapatıp işlemi tekrarlayın.", "Bellek Yetersiz", MessageBoxImage.Warning);
+        return ("İşlem tamamlanamadı. Lütfen tekrar deneyin. Sorun sürerse sistem yöneticisine başvurun.", "Hata", MessageBoxImage.Error);
+    }
 
     internal static async Task HatayiLoglaAsync(Exception exception, string kaynak)
     {

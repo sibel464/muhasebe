@@ -298,7 +298,7 @@
                         <Border Style="{StaticResource Kart}" Padding="16" Margin="0,0,0,15">
                             <StackPanel>
                                 <TextBlock Text="📈 Dönemsel Performans Karşılaştırması" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
-                                <DataGrid ItemsSource="{Binding DonemKarsilastirma.Kalemler}" Style="{StaticResource GridStyle}">
+                                <DataGrid ItemsSource="{Binding DonemKarsilastirma.Kalemler}" Style="{StaticResource GridStyle}" MaxHeight="560">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Metrik" Binding="{Binding MetrikAd}" Width="200"/>
                                         <DataGridTextColumn Header="Mevcut Dönem" Binding="{Binding MevcutDeger, StringFormat={}{0:N2}}" Width="150"/>

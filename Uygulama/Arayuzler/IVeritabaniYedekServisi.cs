@@ -34,6 +34,8 @@ public interface IVeritabaniYedekServisi
     Task<YedekDosyasi?> GerekirseDakikalikYedekAlAsync(CancellationToken cancellationToken = default);
     IReadOnlyList<YedekDosyasi> DakikalikYedekleriListele();
     DateTime? SonDakikalikYedek { get; }
+    // Yedek diskinde yer azaldıysa uyarı (program yedek silmez, dakikalık yedeği duraklatır).
+    string? DiskUyarisi { get; }
 
     // Seçilen yedeği geri yükler: önce güncel durumun yedeği alınır, yedek ayrı bir veritabanına açılıp doğrulanır,
     // sonra kullanılan veritabanıyla yer değiştirir. Eski veritabanı silinmez, dönen adla saklanır.

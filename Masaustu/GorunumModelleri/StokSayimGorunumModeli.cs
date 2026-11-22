@@ -74,7 +74,11 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
     private StokSayimKalemModeli? _seciliKalem;
 
     public ObservableCollection<DepoOption> Depolar { get; } = new();
-    public ObservableCollection<StokSayimKalemModeli> Kalemler { get; } = new();
+    public TopluKoleksiyon<StokSayimKalemModeli> Kalemler { get; } = new();
+    // Barkod okutmada ürünü bulmak için (on binlerce satırda her okutmada listeyi taramamak için).
+    private readonly Dictionary<int, StokSayimKalemModeli> _kalemDizini = new();
+    // Kayıtlı sayım yüklenirken her satır için özet yeniden hesaplanmasın.
+    private bool _topluYukleme;
     public ICollectionView KalemGorunumu { get; }
 
     public int? SeciliDepoId
@@ -148,7 +152,7 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
         if (sayim == null || sayim.DepoId != depoId || sayim.Durum is StokSayimDurumu.Onaylandi or StokSayimDurumu.Iptal) return;
         foreach (var sk in sayim.Kalemler.Where(k => !k.Silindi))
         {
-            var kalem = Kalemler.FirstOrDefault(k => k.UrunId == sk.UrunId);
+            _kalemDizini.TryGetValue(sk.UrunId, out var kalem);
             if (kalem != null) kalem.SayilanMiktar = sk.SayilanMiktar;
         }
         Tarih = sayim.Tarih;
@@ -223,7 +227,7 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
         KalemGorunumu = CollectionViewSource.GetDefaultView(Kalemler);
         KalemGorunumu.Filter = Suz;
 
-        BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync());
+        BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);
         SayimOnaylaKomutu = new KomutSarici(async _ => await SayimOnaylaAsync(), _ => !Kaydediliyor);
         IptalKomutu = new KomutSarici(() => KapatAction?.Invoke());
         // Seçili satırda sayılan = sistem stoğu (ürün tam çıktıysa elle yazmamak için).
@@ -279,7 +283,7 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
 
     private void KalemDegisti(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(StokSayimKalemModeli.SayilanMiktar)) return;
+        if (e.PropertyName != nameof(StokSayimKalemModeli.SayilanMiktar) || _topluYukleme) return;
         KaydedilmemisDegisiklik = true;
         OzetGuncelle();
     }
@@ -305,30 +309,31 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
         var depoId = SeciliDepoId.Value;
 
         foreach (var k in Kalemler) k.PropertyChanged -= KalemDegisti;
-        Kalemler.Clear();
+        Kalemler.HepsiniDegistir([]);
+        _kalemDizini.Clear();
         SonOkuma = string.Empty;
         var urunler = await _urunServisi.TumunuGetirAsync();
         // Sistem stoğu doğrudan seçilen deponun kaydından okunur.
         var depoStoklari = await _urunServisi.DepoStoklariniGetirAsync(depoId);
         if (SeciliDepoId != depoId) return; // bu arada başka depo seçildi
 
-        foreach (var u in urunler.OrderBy(u => u.Ad))
+        // On binlerce ürün tek bildirimle eklenir; satır satır eklemek pencereyi uzun süre dondururdu.
+        var yeniler = urunler.OrderBy(u => u.Ad).Select(u => new StokSayimKalemModeli
         {
-            var kalem = new StokSayimKalemModeli
-            {
-                UrunId = u.Id,
-                UrunKodu = u.Kod,
-                UrunAdi = u.Ad,
-                Barkod = u.Barkod ?? "",
-                Birim = u.Birim ?? "",
-                SistemMiktari = depoStoklari.TryGetValue(u.Id, out var miktar) ? miktar : 0
-            };
-            kalem.PropertyChanged += KalemDegisti;
-            Kalemler.Add(kalem);
-        }
+            UrunId = u.Id,
+            UrunKodu = u.Kod,
+            UrunAdi = u.Ad,
+            Barkod = u.Barkod ?? "",
+            Birim = u.Birim ?? "",
+            SistemMiktari = depoStoklari.TryGetValue(u.Id, out var miktar) ? miktar : 0
+        }).ToList();
+        foreach (var k in yeniler) { k.PropertyChanged += KalemDegisti; _kalemDizini[k.UrunId] = k; }
+        Kalemler.HepsiniDegistir(yeniler);
         _yukluDepoId = depoId;
+        _topluYukleme = true;
         try { await TaslagiYukleAsync(depoId); KaydedilmemisDegisiklik = false; }
         catch (Exception ex) { HataMesaji = "Kayıtlı sayım yüklenemedi: " + ex.Message; }
+        finally { _topluYukleme = false; }
         OzetGuncelle();
     }
 
@@ -348,7 +353,7 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
         }
 
         var (urun, eklenen) = bulunan.Value;
-        var kalem = Kalemler.FirstOrDefault(k => k.UrunId == urun.Id);
+        _kalemDizini.TryGetValue(urun.Id, out var kalem);
         if (kalem == null)
         {
             // Pencere açıldıktan sonra eklenen ürün: sistem stoğu sıfır kabul edilir; onayda gerçek depo stoğu esas alınır.
@@ -363,6 +368,7 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
             };
             kalem.PropertyChanged += KalemDegisti;
             Kalemler.Add(kalem);
+            _kalemDizini[kalem.UrunId] = kalem;
         }
 
         kalem.SayilanMiktar = (kalem.SayilanMiktar ?? 0) + eklenen;

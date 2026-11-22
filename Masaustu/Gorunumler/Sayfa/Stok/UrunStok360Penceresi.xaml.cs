@@ -11,7 +11,7 @@ public partial class UrunStok360Penceresi : Window
     public UrunStok360Penceresi(int urunId)
     {
         InitializeComponent();
-        _model = App.HizmetSaglayici.GetRequiredService<UrunStok360GorunumModeli>();
+        _model = App.PencereServisi<UrunStok360GorunumModeli>(this);
         DataContext = _model;
         _model.KapatAction = Close;
         Loaded += async (_, _) => await _model.InitAsync(urunId);

@@ -101,7 +101,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string BasariMesaji { get => _basariMesaji; set => OzellikAyarla(ref _basariMesaji, value); }
     public bool Yukleniyor { get => _yukleniyor; set => OzellikAyarla(ref _yukleniyor, value); }
 
-    public ObservableCollection<AuditLog> AuditLoglar { get; } = new();
+    public TopluKoleksiyon<AuditLog> AuditLoglar { get; } = new();
 
     // Yedekleme
     private readonly IVeritabaniYedekServisi? _yedekServisi;
@@ -111,9 +111,14 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     public string YedekKlasoru => _yedekServisi?.YedekKlasoru ?? string.Empty;
     public string YedekBilgisi => _yedekServisi == null
         ? string.Empty
-        : $"Dakikalık yedek: program açıkken veri her değiştiğinde dakikada bir yedek alınır (internet gerekmez); son 2 saatin her yedeği ve son 2 günün saatlik yedekleri saklanır." +
+        : $"Dakikalık yedek: program açıkken veri her değiştiğinde dakikada bir yedek alınır (internet gerekmez); son 2 günün her yedeği, 30 güne kadar her saatin bir yedeği saklanır." +
           (_yedekServisi.SonDakikalikYedek is DateTime d ? $" Son dakikalık yedek: {d:dd.MM.yyyy HH:mm}." : "") +
-          $" Ayrıca günde bir tam yedek alınır ve son {_yedekServisi.SaklanacakYedekSayisi} günlük yedek saklanır. Her yedek alındıktan sonra açılarak denetlenir; ikinci konum (USB / harici disk) seçerseniz her yedeğin kopyası oraya da yazılır.";
+          (_yedekServisi.SaklanacakYedekSayisi > 0
+              ? $" Ayrıca günde bir tam yedek alınır ve son {_yedekServisi.SaklanacakYedekSayisi} günlük yedek saklanır."
+              : " Ayrıca günde bir tam yedek alınır; günlük yedekler hiçbir zaman silinmez.") +
+          " Program verinizi kendiliğinden silmez; yedek diskinde yer azalırsa yedek silmek yerine uyarır." +
+          " Her yedek alındıktan sonra açılarak denetlenir; ikinci konum (USB / harici disk) seçerseniz her yedeğin kopyası oraya da yazılır." +
+          (_yedekServisi.DiskUyarisi is { } u ? " " + u : "");
     private string _ikinciYedekKlasoru = string.Empty;
     public string IkinciYedekKlasoru { get => _ikinciYedekKlasoru; set => OzellikAyarla(ref _ikinciYedekKlasoru, value); }
     private string _ikinciKopyaDurumu = string.Empty;
@@ -230,12 +235,8 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             var tablo = string.IsNullOrWhiteSpace(AuditTabloArama) ? null : AuditTabloArama.Trim();
             var kullanici = AuditKullaniciArama.Trim();
             // Kullanıcı süzgeci ada göre yapılır; süzgeç varken daha geniş bir pencereden aranır.
-            var loglar = await _auditLogServisi.LoglariGetirAsync(tabloAdi: tablo, limit: kullanici.Length > 0 ? 0 : 5000);
-            AuditLoglar.Clear();
-            foreach (var log in loglar.Where(l => kullanici.Length == 0 || (l.KullaniciAdi ?? string.Empty).Contains(kullanici, StringComparison.CurrentCultureIgnoreCase)))
-            {
-                AuditLoglar.Add(log);
-            }
+            var loglar = await _auditLogServisi.LoglariGetirAsync(tabloAdi: tablo, limit: 0); // sınırsız: tüm kayıtlar (tablo sanal çizer)
+            AuditLoglar.HepsiniDegistir(loglar.Where(l => kullanici.Length == 0 || (l.KullaniciAdi ?? string.Empty).Contains(kullanici, StringComparison.CurrentCultureIgnoreCase)));
         }
         catch
         {

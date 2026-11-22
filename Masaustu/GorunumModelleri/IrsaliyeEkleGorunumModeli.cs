@@ -286,7 +286,7 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
         _urunServisi = urunServisi;
 
         KalemEkleKomutu = new KomutSarici(KalemEkle, () => SeciliUrun != null);
-        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
+        BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);
         KalemSilKomutu = new KomutSarici(KalemSil, () => SeciliKalem != null);
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync(onayla: false));
         KaydetVeOnaylaKomutu = new KomutSarici(async () => await KaydetAsync(onayla: true));

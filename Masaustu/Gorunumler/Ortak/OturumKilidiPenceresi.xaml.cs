@@ -22,6 +22,7 @@ public partial class OturumKilidiPenceresi : Window
 
     private async void KilidiAcTiklandi(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         HataMetni.Visibility = Visibility.Collapsed;
         if (string.IsNullOrEmpty(SifreKutusu.Password))
         {

@@ -202,7 +202,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
     public DateTime VadeTarihi { get => _vadeTarihi; set => OzellikAyarla(ref _vadeTarihi, value); }
 
     // ─── Listeler ───
-    public ObservableCollection<TahsilatOdemeKaydi> Gecmis { get; } = [];
+    public TopluKoleksiyon<TahsilatOdemeKaydi> Gecmis { get; } = new();
     public ObservableCollection<AcikBelge> AcikBelgeler { get; } = [];
     public ObservableCollection<AcikBelge> SeciliBelgeler { get; } = [];
 
@@ -381,14 +381,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
             SeciliKasa ??= Kasalar.FirstOrDefault();
             SeciliBankaHesabi ??= BankaHesaplari.FirstOrDefault(b => b.HesapTuru != BankaHesapTuru.POSHesabi) ?? BankaHesaplari.FirstOrDefault();
         }
-        Gecmis.Clear();
-        var tumGecmis = await _servis.GecmisiGetirAsync(IslemTuru);
-        if (SecilenCari != null)
-        {
-            tumGecmis = tumGecmis.Where(x => x.CariKartId == SecilenCari.Id).ToList();
-        }
-        foreach (var x in tumGecmis)
-            Gecmis.Add(x);
+        Gecmis.HepsiniDegistir(await _servis.GecmisiGetirAsync(IslemTuru, null, SecilenCari?.Id));
     }
 
     private async Task Kaydet()

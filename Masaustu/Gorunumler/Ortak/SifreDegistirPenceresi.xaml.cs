@@ -25,6 +25,7 @@ public partial class SifreDegistirPenceresi : Window
 
     private async void KaydetTiklandi(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         HataMetni.Visibility = Visibility.Collapsed;
 
         if (YeniSifreKutusu.Password != YeniSifreTekrarKutusu.Password)

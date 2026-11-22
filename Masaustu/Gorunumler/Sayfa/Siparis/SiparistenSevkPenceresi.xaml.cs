@@ -46,6 +46,7 @@ public partial class SiparistenSevkPenceresi : Window
     }
     private async void Olustur_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         try
         {
             var secilen = Satirlar.Where(x => x.BuSevk > 0).ToList();

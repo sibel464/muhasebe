@@ -238,7 +238,7 @@
                     <DataGrid ItemsSource="{Binding Kalemler}"
                               Style="{StaticResource ModernDataGrid}"
                               AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False"
-                              MinHeight="180">
+                              MinHeight="180" MaxHeight="560">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="KOD" Binding="{Binding Urun.Kod}" Width="90" FontWeight="SemiBold"/>
                             <DataGridTextColumn Header="BARKOD" Binding="{Binding Urun.Barkod}" Width="115"/>

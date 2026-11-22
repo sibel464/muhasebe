@@ -162,7 +162,7 @@ public class SatisGorunumModeli : TemelGorunumModeli
         _faturaServisi = faturaServisi;
         _cariHareketServisi = cariHareketServisi;
 
-        BarkodOkunduKomutu = new KomutSarici(async _ => await BarkodIsleAsync());
+        BarkodOkunduKomutu = new KomutSarici(async _ => await BarkodIsleAsync(), tekrarGirisli: true);
         UrunAraKomutu = new KomutSarici(async _ =>
         {
             if (UrunSeciciAc == null) return;

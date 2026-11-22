@@ -42,6 +42,13 @@ public class MuhasebeBaglami : DbContext
     public MuhasebeBaglami(DbContextOptions<MuhasebeBaglami> options, IAktifFirmaBaglami? aktifFirmaBaglami = null) : base(options)
         => _aktifFirmaBaglami = aktifFirmaBaglami;
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        // Geri alınan işlemin yarım değişiklikleri bir sonraki kayıtla veritabanına sızmasın.
+        optionsBuilder.AddInterceptors(GeriAlmaTemizleyici.Ornek);
+        base.OnConfiguring(optionsBuilder);
+    }
+
     // Kullanici & Guvenlik
     public DbSet<Kullanici> Kullanicilar => Set<Kullanici>();
     public DbSet<KullaniciYetkileri> KullaniciYetkileri => Set<KullaniciYetkileri>();

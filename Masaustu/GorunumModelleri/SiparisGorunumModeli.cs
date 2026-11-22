@@ -36,9 +36,9 @@ public class SiparisGorunumModeli : TemelGorunumModeli
     private bool _kaydediliyor;
     private bool _formAcik;
 
-    public ObservableCollection<Siparis> Siparisler { get; } = new();
-    public ObservableCollection<CariKart> Cariler { get; } = new();
-    public ObservableCollection<Urun> Urunler { get; } = new();
+    public TopluKoleksiyon<Siparis> Siparisler { get; } = new();
+    public TopluKoleksiyon<CariKart> Cariler { get; } = new();
+    public TopluKoleksiyon<Urun> Urunler { get; } = new();
     public ObservableCollection<Kullanici> Olusturanlar { get; } = new();
     public ObservableCollection<SiparisKalemi> Kalemler { get; } = new();
     public Array Turler => Enum.GetValues(typeof(SiparisTuru));
@@ -130,7 +130,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
         SiparisIptalKomutu = new KomutSarici(async x => { if (x is Siparis s) { await DuzenleAsync(s.Id, false); await IptalAsync(); FormAcik = false; } });
         CariSecKomutu = new KomutSarici(CariSec);
         UrunSecKomutu = new KomutSarici(UrunSec);
-        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
+        BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);
         GoruntuleKomutu = new KomutSarici(async x => await GoruntuleAsync(x as Siparis));
         DuzenleKomutu = new KomutSarici(async x => { if (x is Siparis s) await DuzenleAsync(s.Id); });
         FiltreleriTemizleKomutu = new KomutSarici(FiltreleriTemizle);
@@ -144,9 +144,9 @@ public class SiparisGorunumModeli : TemelGorunumModeli
             var liste = await _servis.ListeleAsync(new SiparisFiltre { Arama = Arama, SiparisNo = SiparisNoFiltre, Tur = TurFiltre, Durum = DurumFiltre,
                 CariKartId = FiltreCari?.Id, OlusturanKullaniciId = FiltreOlusturan?.Id, BaslangicTarihi = BaslangicTarihi,
                 BitisTarihi = BitisTarihi, TeslimTarihi = TeslimTarihiFiltre });
-            Siparisler.Clear(); foreach (var x in liste) Siparisler.Add(x);
-            if (Cariler.Count == 0) foreach (var x in await _cariServisi.TumunuGetirAsync()) Cariler.Add(x);
-            if (Urunler.Count == 0) foreach (var x in (await _urunServisi.TumunuGetirAsync()).Where(x => x.Aktif)) Urunler.Add(x);
+            Siparisler.HepsiniDegistir(liste);
+            if (Cariler.Count == 0) Cariler.HepsiniDegistir(await _cariServisi.TumunuGetirAsync());
+            if (Urunler.Count == 0) Urunler.HepsiniDegistir((await _urunServisi.TumunuGetirAsync()).Where(x => x.Aktif));
             foreach (var kullanici in liste.Select(x => x.OlusturanKullanici).Where(x => x != null).Cast<Kullanici>().DistinctBy(x => x.Id))
                 if (Olusturanlar.All(x => x.Id != kullanici.Id)) Olusturanlar.Add(kullanici);
             OzetleriYenile(); Mesaj = $"{liste.Count} sipariş listelendi.";

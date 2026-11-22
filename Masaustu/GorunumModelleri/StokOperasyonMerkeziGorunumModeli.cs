@@ -22,7 +22,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
     private string _durumMesaji = string.Empty;
     private StokOperasyonMatrisOzetDto? _seciliSatir;
 
-    public ObservableCollection<StokOperasyonMatrisOzetDto> Urunler { get; } = new();
+    public TopluKoleksiyon<StokOperasyonMatrisOzetDto> Urunler { get; } = new();
     public ObservableCollection<DepoOption> Depolar { get; } = new();
 
     public string AramaMetni
@@ -215,14 +215,8 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
             if (yuklemeNo != _yuklemeNo)
                 return;
 
-            Urunler.Clear();
-
-            var pasifSayisi = 0;
-            foreach (var r in result)
-            {
-                if (!r.Aktif && !PasifleriGoster) { pasifSayisi++; continue; }
-                Urunler.Add(r);
-            }
+            var pasifSayisi = result.Count(r => !r.Aktif && !PasifleriGoster);
+            Urunler.HepsiniDegistir(result.Where(r => r.Aktif || PasifleriGoster));
 
             BildirimGonder(nameof(ToplamFizikselStok));
             BildirimGonder(nameof(ToplamKullanilabilirStok));

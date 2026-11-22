@@ -34,8 +34,32 @@ public sealed class IsolatedPostgreSqlFixture : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 
-    // Denetim veritabanı kanıt olarak korunur; mevcut veritabanları silinmez.
-    public Task DisposeAsync() => Task.CompletedTask;
+    // Test bitince yalnız bu çalışmanın açtığı geçici veritabanı silinir (eskiden hepsi kalıyordu: yüzlerce kopya birikip
+    // sunucunun açılışını dakikalarca uzatıyordu). İncelemek için MUHASEBE_TEST_DB_KORU=1 verilirse korunur.
+    // Yalnız "Muhasebe_Audit_..._Test" adı silinir; başka veritabanına dokunulmaz.
+    public async Task DisposeAsync()
+    {
+        if (_connectionString is null || Environment.GetEnvironmentVariable("MUHASEBE_TEST_DB_KORU") == "1")
+            return;
+        var builder = new NpgsqlConnectionStringBuilder(_connectionString);
+        var ad = builder.Database!;
+        if (!ad.StartsWith("Muhasebe_Audit_", StringComparison.Ordinal) || !ad.EndsWith("_Test", StringComparison.Ordinal))
+            return;
+        NpgsqlConnection.ClearAllPools();
+        builder.Database = "postgres";
+        builder.Pooling = false;
+        try
+        {
+            await using var baglanti = new NpgsqlConnection(builder.ConnectionString);
+            await baglanti.OpenAsync();
+            await using var komut = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{ad}\" WITH (FORCE)", baglanti);
+            await komut.ExecuteNonQueryAsync();
+        }
+        catch
+        {
+            // Silinemezse test sonucu etkilenmez; bir sonraki temizlikte silinir.
+        }
+    }
 
     public void RequireDatabase()
     {

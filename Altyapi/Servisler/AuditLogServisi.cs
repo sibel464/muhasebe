@@ -25,7 +25,7 @@ public class AuditLogServisi : IAuditLogServisi
         int limit = 100)
     {
         _kullaniciServisi.YetkiKontrolEt(y => y.AuditLogGoruntule, "Denetim Kayıtlarını Görüntüleme");
-        var sorgu = _baglam.AuditLoglar.AsQueryable();
+        var sorgu = _baglam.AuditLoglar.AsNoTracking().AsQueryable();
 
         if (baslangic.HasValue)
             sorgu = sorgu.Where(l => l.Tarih >= baslangic.Value);

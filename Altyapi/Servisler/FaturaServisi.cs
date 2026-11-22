@@ -417,6 +417,9 @@ public class FaturaServisi : IFaturaServisi
             if (posBanka != null) await FinansMuhasebeKaydi.BankaHareketiFisiEkleAsync(_baglam, posBanka, "120", posBanka.CariKartId);
 
             await transaction.CommitAsync();
+            // Kasa ekranı gün boyu açık kalır: tamamlanan satışın kayıtları bellekte izlenmeye devam ederse
+            // her yeni satışta değişiklik taraması uzar ve ekran giderek ağırlaşır. Dönen fatura nesnesi (fiş için) korunur.
+            _baglam.ChangeTracker.Clear();
             return eklenenFatura;
         }
         catch

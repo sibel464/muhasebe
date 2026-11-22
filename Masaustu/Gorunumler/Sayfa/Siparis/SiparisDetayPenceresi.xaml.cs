@@ -5,6 +5,7 @@ public partial class SiparisDetayPenceresi : System.Windows.Window
     public SiparisDetayPenceresi(EtkiAlani.Modeller.Siparis.Siparis siparis) { InitializeComponent(); _siparis = siparis; DataContext = siparis; SevkEtDugmesi.Visibility = SevkEdilebilir(siparis) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
     private async void SevkEt_Click(object sender, System.Windows.RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         var siparisServisi = App.HizmetSaglayici.GetService(typeof(Uygulama.Arayuzler.ISiparisServisi)) as Uygulama.Arayuzler.ISiparisServisi;
         var irsaliyeServisi = App.HizmetSaglayici.GetService(typeof(Uygulama.Arayuzler.IIrsaliyeServisi)) as Uygulama.Arayuzler.IIrsaliyeServisi;
         if (siparisServisi == null || irsaliyeServisi == null) return;

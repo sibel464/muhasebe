@@ -32,6 +32,7 @@ public partial class CekSenetEklePenceresi : Window
 
     private async void Kaydet_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         if (_seciliCari == null)
         {
             MessageBox.Show("Lütfen bir cari kart seçiniz.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);

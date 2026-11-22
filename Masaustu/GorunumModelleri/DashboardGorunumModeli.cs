@@ -264,6 +264,8 @@ public class DashboardGorunumModeli : TemelGorunumModeli
                 var son = _yedekServisi.YedekleriListele().MaxBy(y => y.OlusturmaTarihi);
                 SonYedekMetni = son == null ? "Henüz yedek alınmadı" : $"Son yedek: {son.OlusturmaTarihi:dd.MM.yyyy HH:mm}";
                 YedekUyarisi = son == null || son.OlusturmaTarihi < DateTime.Now.AddDays(-2);
+                // Disk dolmak üzereyse program yedek silmez; kullanıcı ana sayfada uyarılır.
+                if (_yedekServisi.DiskUyarisi is { } disk) { SonYedekMetni = disk; YedekUyarisi = true; }
             }
         }
         catch (Exception ex)

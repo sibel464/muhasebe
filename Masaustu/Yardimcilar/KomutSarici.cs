@@ -2,10 +2,15 @@ using System.Windows.Input;
 
 namespace Masaustu.Yardimcilar;
 
+// Zaman alan (async) komut çalışırken aynı komut yeniden çalıştırılamaz: "Kaydet"e çift tıklamak ya da
+// ağ yavaşken tekrar basmak aynı faturayı/tahsilatı iki kez kaydetmesin. Düğme o süre pasif görünür.
+// Barkod okutma gibi art arda hızlı gelmesi gereken komutlar tekrarGirisli: true ile açılır (okutma kaybolmasın).
 public class KomutSarici : ICommand
 {
     private readonly Func<object?, Task> _yurutme;
     private readonly Func<object?, bool>? _calistirabilir;
+    private readonly bool _tekrarGirisli;
+    private bool _calisiyor;
 
     public KomutSarici(Action<object?> yurutme, Func<object?, bool>? calistirabilir = null)
         : this(parametre =>
@@ -14,10 +19,11 @@ public class KomutSarici : ICommand
             return Task.CompletedTask;
         }, calistirabilir) { }
 
-    public KomutSarici(Func<object?, Task> yurutme, Func<object?, bool>? calistirabilir = null)
+    public KomutSarici(Func<object?, Task> yurutme, Func<object?, bool>? calistirabilir = null, bool tekrarGirisli = false)
     {
         _yurutme = yurutme;
         _calistirabilir = calistirabilir;
+        _tekrarGirisli = tekrarGirisli;
     }
 
     public KomutSarici(Action yurutme, Func<bool>? calistirabilir = null)
@@ -29,8 +35,32 @@ public class KomutSarici : ICommand
         remove => CommandManager.RequerySuggested -= value;
     }
 
-    public bool CanExecute(object? parametre) => _calistirabilir?.Invoke(parametre) ?? true;
-    public async void Execute(object? parametre) => await _yurutme(parametre);
+    public bool Calisiyor => _calisiyor;
+
+    public bool CanExecute(object? parametre) => (_tekrarGirisli || !_calisiyor) && (_calistirabilir?.Invoke(parametre) ?? true);
+
+    public async void Execute(object? parametre)
+    {
+        if (!_tekrarGirisli && _calisiyor)
+            return;
+        var gorev = _yurutme(parametre);
+        if (gorev.IsCompleted || _tekrarGirisli)
+        {
+            await gorev;
+            return;
+        }
+        _calisiyor = true;
+        CommandManager.InvalidateRequerySuggested();
+        try
+        {
+            await gorev;
+        }
+        finally
+        {
+            _calisiyor = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
 
     public void BildirimGonder() => CommandManager.InvalidateRequerySuggested();
 }

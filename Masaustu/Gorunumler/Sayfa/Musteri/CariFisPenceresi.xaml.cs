@@ -77,6 +77,7 @@ public partial class CariFisPenceresi : Window
 
     private async void Kaydet_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         HataMetni.Text = string.Empty;
         if (!decimal.TryParse(TutarKutusu.Text, NumberStyles.Number, Tr, out var tutar) || tutar <= 0)
         { HataMetni.Text = "Geçerli bir tutar girin (ör. 1.250,50)."; return; }

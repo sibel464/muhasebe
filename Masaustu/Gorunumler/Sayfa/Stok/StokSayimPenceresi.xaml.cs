@@ -12,7 +12,7 @@ public partial class StokSayimPenceresi : Window
     public StokSayimPenceresi(int? devamEdilecekSayimId = null)
     {
         InitializeComponent();
-        _model = App.HizmetSaglayici.GetRequiredService<StokSayimGorunumModeli>();
+        _model = App.PencereServisi<StokSayimGorunumModeli>(this);
         DataContext = _model;
         var onaylandi = false;
         _model.KapatAction = () => { onaylandi = true; Close(); };

@@ -283,7 +283,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         FormuTemizleKomutu = new KomutSarici(FormuTemizle);
         CariSecKomutu = new KomutSarici(CariSec);
         UrunSecKomutu = new KomutSarici(UrunSec);
-        BarkodOkutKomutu = new KomutSarici(async () => await BarkodOkutAsync());
+        BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);
         StokDagilimiKomutu = new KomutSarici(p => StokDagilimiAc(p as FaturaKalemiGorunumModeli));
         KaydetKomutu = new KomutSarici(async () => await FaturaKaydetAsync(BelgeDurumu.Onaylandi), () => !Kaydediliyor);
         IptalKomutu = new KomutSarici(() => { if (Kapat != null) Kapat(); else _navigasyon.Git("Fatura"); });

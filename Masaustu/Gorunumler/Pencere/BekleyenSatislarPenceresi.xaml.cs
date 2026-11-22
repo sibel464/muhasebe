@@ -17,6 +17,7 @@ public partial class BekleyenSatislarPenceresi : Window
     private void SatisGrid_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { Ac(); e.Handled = true; } }
     private async void Sil_Click(object sender, RoutedEventArgs e)
     {
+        using var tiklamaKilidi = Masaustu.Yardimcilar.TiklamaKilidi.Al(sender); if (tiklamaKilidi == null) return;
         if (SatisGrid.SelectedItem is not Fatura f) return;
         if (MessageBox.Show($"{f.FaturaNo} numaralı bekleyen satış silinsin mi?", "Bekleyen Satışı Sil", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         await _servis.SilAsync(f.Id);

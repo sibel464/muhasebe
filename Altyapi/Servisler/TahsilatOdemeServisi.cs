@@ -131,10 +131,15 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
         catch { await tx.RollbackAsync(); throw; }
     }
 
-    public async Task<IReadOnlyList<TahsilatOdemeKaydi>> GecmisiGetirAsync(FinansIslemTuru? tur = null, string? arama = null)
+    public async Task<IReadOnlyList<TahsilatOdemeKaydi>> GecmisiGetirAsync(FinansIslemTuru? tur = null, string? arama = null, int? cariKartId = null)
     {
-        var kasalar = await _baglam.KasaHareketleri.Include(x => x.CariKart).Where(x => x.CariKartId != null).ToListAsync();
-        var bankalar = await _baglam.BankaHareketleri.Include(x => x.CariKart).Where(x => x.CariKartId != null).ToListAsync();
+        // Süzme veritabanında yapılır ve kayıtlar izlenmez: eskiden bütün yılların hareketleri belleğe izlenen olarak
+        // alınıyordu; ekran bağlamı uzun ömürlü olduğundan sonraki her kayıt da yavaşlıyordu.
+        HareketTuru? hTur = tur switch { FinansIslemTuru.Tahsilat => HareketTuru.Gelir, FinansIslemTuru.Odeme => HareketTuru.Gider, _ => null };
+        var kasalar = await _baglam.KasaHareketleri.AsNoTracking().Include(x => x.CariKart)
+            .Where(x => x.CariKartId != null && (cariKartId == null || x.CariKartId == cariKartId) && (hTur == null || x.Tur == hTur)).ToListAsync();
+        var bankalar = await _baglam.BankaHareketleri.AsNoTracking().Include(x => x.CariKart)
+            .Where(x => x.CariKartId != null && (cariKartId == null || x.CariKartId == cariKartId) && (hTur == null || x.Tur == hTur)).ToListAsync();
         var sonuc = kasalar.Select(x => KaydaDonustur("Kasa", x.Id, x.Tarih, x.Tur == HareketTuru.Gelir ? FinansIslemTuru.Tahsilat : FinansIslemTuru.Odeme,
                 OdemeYontemi.Nakit, x.IslemDurumu, x.CariKart!, x.Tutar, x.Aciklama, x.Belge, null, null, x.TersKayitId, x.ParaBirimiId, x.Kur, x.DovizTutar))
             .Concat(bankalar.Select(x => KaydaDonustur("Banka", x.Id, x.Tarih, x.Tur == HareketTuru.Gelir ? FinansIslemTuru.Tahsilat : FinansIslemTuru.Odeme,
@@ -146,7 +151,7 @@ public sealed class TahsilatOdemeServisi : ITahsilatOdemeServisi
         var cekIdleri = cekFisleri.Where(f => f.BelgeTipi == "TahsilatOdeme").Select(f => f.BelgeId).ToHashSet();
         var iptalCekler = cekFisleri.Where(f => f.BelgeTipi == "TahsilatOdemeIptal").Select(f => f.BelgeId).ToHashSet();
         var cekler = await _baglam.CekSenetler.IgnoreQueryFilters([MuhasebeBaglami.SilinmisFiltresi]).AsNoTracking().Include(x => x.CariKart)
-            .Where(x => cekIdleri.Contains(x.Id)).ToListAsync();
+            .Where(x => cekIdleri.Contains(x.Id) && (cariKartId == null || x.CariKartId == cariKartId)).ToListAsync();
         sonuc = sonuc.Concat(cekler.Select(x => KaydaDonustur("Portfoy", x.Id, x.DuzenlemeTarihi,
             x.Tur is CekSenetTuru.AlinanCek or CekSenetTuru.AlinanSenet ? FinansIslemTuru.Tahsilat : FinansIslemTuru.Odeme,
             x.Tur is CekSenetTuru.AlinanCek or CekSenetTuru.VerilenCek ? OdemeYontemi.Cek : OdemeYontemi.Senet,

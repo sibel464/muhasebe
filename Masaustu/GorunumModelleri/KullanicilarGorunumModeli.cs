@@ -316,7 +316,7 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
                 tabloAdi: tablo,
                 islemTuru: islemTuru,
                 kullaniciId: AuditSeciliKullaniciId,
-                limit: 1000);
+                limit: 0); // sınırsız: seçilen tarih aralığının tamamı
 
             if (!string.IsNullOrWhiteSpace(AuditAramaMetni))
             {

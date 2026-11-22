@@ -31,7 +31,7 @@ public partial class CariDetayPenceresi : Window
         Loaded+=(_,_)=>_model.Init(cariId);
         KolonlariKur();
     }
-    private static T Get<T>() where T:notnull=>App.HizmetSaglayici.GetRequiredService<T>();
+    private T Get<T>() where T:notnull=>App.PencereServisi<T>(this);
     private void KolonlariKur()
     {
         KayitTablosu.Columns.Clear();

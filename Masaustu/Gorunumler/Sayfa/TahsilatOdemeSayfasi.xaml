@@ -526,7 +526,8 @@
                         </StackPanel>
                     </DockPanel>
 
-                    <DataGrid ItemsSource="{Binding Gecmis}"
+                    <!-- Yükseklik sınırı tablonun kendi içinde kaydırmasını ve satırları sanal çizmesini sağlar (binlerce kayıtta donmasın). -->
+                    <DataGrid ItemsSource="{Binding Gecmis}" MaxHeight="560"
                               SelectedItem="{Binding SecilenKayit}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"

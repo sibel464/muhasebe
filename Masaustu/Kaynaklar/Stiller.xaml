@@ -447,7 +447,21 @@
 
     <Style x:Key="ModernSifreKutusu" TargetType="PasswordBox" BasedOn="{StaticResource FormSifreKutusu}"/>
 
-    <Style x:Key="FormAcilirKutu" TargetType="ComboBox">
+    <!-- Açılır kutular satırları sanal çizer: on binlerce ürün/cari olsa da liste açılırken donmaz.
+         (WPF varsayılanı tüm satırları bir kerede oluşturur.) Stilsiz kutular aşağıdaki örtük stille aynı ayarı alır. -->
+    <ItemsPanelTemplate x:Key="SanalAcilirListe">
+        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/>
+    </ItemsPanelTemplate>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="ItemsPanel" Value="{StaticResource SanalAcilirListe}"/>
+        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="MaxDropDownHeight" Value="420"/>
+    </Style>
+
+    <Style x:Key="FormAcilirKutu" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
         <Setter Property="Background" Value="White"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryFirca}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderDarkFirca}"/>
@@ -703,7 +717,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryFirca}"/>
     </Style>
 
-    <Style x:Key="FormComboBox" TargetType="ComboBox">
+    <Style x:Key="FormComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
         <Setter Property="Padding" Value="12,8"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Background" Value="{StaticResource SurfaceFirca}"/>

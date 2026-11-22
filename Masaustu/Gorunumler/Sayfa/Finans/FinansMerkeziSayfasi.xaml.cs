@@ -15,29 +15,29 @@ public partial class FinansMerkeziSayfasi : UserControl
         DataContextChanged += (_, _) =>
         {
             if (DataContext is not FinansMerkeziGorunumModeli vm) return;
-            vm.TransferAcAction = tur => _ = PencereAcAsync(async () =>
+            vm.TransferAcAction = tur => _ = PencereAcAsync(async sp =>
             {
-                var m = App.HizmetSaglayici.GetRequiredService<FinansTransferGorunumModeli>();
+                var m = sp.GetRequiredService<FinansTransferGorunumModeli>();
                 await m.InitAsync(tur);
                 var p = new FinansTransferPenceresi { DataContext = m };
                 m.BasariliKayitAction = () => p.Close();
                 return p;
             }, vm);
-            vm.Kasa360AcAction = id => _ = PencereAcAsync(async () =>
+            vm.Kasa360AcAction = id => _ = PencereAcAsync(async sp =>
             {
-                var m = App.HizmetSaglayici.GetRequiredService<Kasa360GorunumModeli>();
+                var m = sp.GetRequiredService<Kasa360GorunumModeli>();
                 await m.YukleAsync(id);
                 return new Kasa360Penceresi { DataContext = m };
             });
-            vm.Banka360AcAction = id => _ = PencereAcAsync(async () =>
+            vm.Banka360AcAction = id => _ = PencereAcAsync(async sp =>
             {
-                var m = App.HizmetSaglayici.GetRequiredService<Banka360GorunumModeli>();
+                var m = sp.GetRequiredService<Banka360GorunumModeli>();
                 await m.YukleAsync(id);
                 return new Banka360Penceresi { DataContext = m };
             });
-            vm.MutabakatAcAction = () => _ = PencereAcAsync(async () =>
+            vm.MutabakatAcAction = () => _ = PencereAcAsync(async sp =>
             {
-                var m = App.HizmetSaglayici.GetRequiredService<MutabakatGorunumModeli>();
+                var m = sp.GetRequiredService<MutabakatGorunumModeli>();
                 await m.InitAsync();
                 var p = new MutabakatPenceresi { DataContext = m };
                 m.BasariliKayitAction = () => p.Close();
@@ -47,11 +47,16 @@ public partial class FinansMerkeziSayfasi : UserControl
     }
 
     // Pencereyi modal açar; verilmişse kapanınca Finans Merkezi özetini yeniler.
-    private async Task PencereAcAsync(Func<Task<Window>> olustur, FinansMerkeziGorunumModeli? yenilenecek = null)
+    // Pencere kendi servis kapsamıyla (kendi veritabanı bağlamıyla) açılır; kapanınca kapsam bırakılır.
+    private async Task PencereAcAsync(Func<IServiceProvider, Task<Window>> olustur, FinansMerkeziGorunumModeli? yenilenecek = null)
     {
         try
         {
-            var pencere = await olustur();
+            var kapsam = App.HizmetSaglayici.CreateScope();
+            Window pencere;
+            try { pencere = await olustur(kapsam.ServiceProvider); }
+            catch { kapsam.Dispose(); throw; }
+            App.KapsamiPencereyeBagla(pencere, kapsam);
             pencere.Owner = Window.GetWindow(this);
             pencere.ShowDialog();
             if (yenilenecek != null) await yenilenecek.YukleAsync();
