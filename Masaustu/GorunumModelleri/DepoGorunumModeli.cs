@@ -16,11 +16,11 @@ public class DepoGorunumModeli : TemelGorunumModeli
     private readonly IUrunServisi _urunServisi;
     private readonly IBelgeYazdirmaServisi _yazdirmaServisi;
 
-    private ObservableCollection<Depo> _depolar = new();
-    private ObservableCollection<DepoStokMatrisDto> _stokMatrisi = new();
-    private ObservableCollection<DepoHareketDetayDto> _hareketler = new();
-    private ObservableCollection<DepoTransferFisi> _transferFisleri = new();
-    private ObservableCollection<Urun> _urunler = new();
+    private TopluKoleksiyon<Depo> _depolar = new();
+    private TopluKoleksiyon<DepoStokMatrisDto> _stokMatrisi = new();
+    private TopluKoleksiyon<DepoHareketDetayDto> _hareketler = new();
+    private TopluKoleksiyon<DepoTransferFisi> _transferFisleri = new();
+    private TopluKoleksiyon<Urun> _urunler = new();
     private ObservableCollection<DepoTransferKalemi> _transferKalemleri = new();
 
     private readonly ICollectionView _stokMatrisiView;
@@ -107,13 +107,13 @@ public class DepoGorunumModeli : TemelGorunumModeli
         _ = IlkYuklemeAsync();
     }
 
-    public ObservableCollection<Depo> Depolar
+    public TopluKoleksiyon<Depo> Depolar
     {
         get => _depolar;
         set => OzellikAyarla(ref _depolar, value);
     }
 
-    public ObservableCollection<DepoStokMatrisDto> StokMatrisi
+    public TopluKoleksiyon<DepoStokMatrisDto> StokMatrisi
     {
         get => _stokMatrisi;
         set => OzellikAyarla(ref _stokMatrisi, value);
@@ -121,19 +121,19 @@ public class DepoGorunumModeli : TemelGorunumModeli
 
     public ICollectionView FiltrelenmisStokMatrisi => _stokMatrisiView;
 
-    public ObservableCollection<DepoHareketDetayDto> Hareketler
+    public TopluKoleksiyon<DepoHareketDetayDto> Hareketler
     {
         get => _hareketler;
         set => OzellikAyarla(ref _hareketler, value);
     }
 
-    public ObservableCollection<DepoTransferFisi> TransferFisleri
+    public TopluKoleksiyon<DepoTransferFisi> TransferFisleri
     {
         get => _transferFisleri;
         set => OzellikAyarla(ref _transferFisleri, value);
     }
 
-    public ObservableCollection<Urun> Urunler
+    public TopluKoleksiyon<Urun> Urunler
     {
         get => _urunler;
         set => OzellikAyarla(ref _urunler, value);
@@ -478,8 +478,7 @@ public class DepoGorunumModeli : TemelGorunumModeli
         try
         {
             var depolar = await _depoServisi.DepolariGetirAsync();
-            Depolar.Clear();
-            foreach (var d in depolar) Depolar.Add(d);
+            Depolar.HepsiniDegistir(depolar);
 
             if (SeciliKaynakDepo == null && Depolar.Count >= 2)
             {
@@ -493,12 +492,10 @@ public class DepoGorunumModeli : TemelGorunumModeli
             }
 
             var urunler = await _urunServisi.TumunuGetirAsync();
-            Urunler.Clear();
-            foreach (var u in urunler) Urunler.Add(u);
+            Urunler.HepsiniDegistir(urunler);
 
             var matris = await _depoServisi.DepoStokMatrisiGetirAsync();
-            StokMatrisi.Clear();
-            foreach (var m in matris) StokMatrisi.Add(m);
+            StokMatrisi.HepsiniDegistir(matris);
             StokAramasiniYenile();
 
             // KPI Hesaplamaları
@@ -509,12 +506,10 @@ public class DepoGorunumModeli : TemelGorunumModeli
             Depo2ToplamStok = matris.Sum(m => m.Depo2Miktar);
 
             var hareketler = await _depoServisi.DepoHareketleriGetirAsync();
-            Hareketler.Clear();
-            foreach (var h in hareketler) Hareketler.Add(h);
+            Hareketler.HepsiniDegistir(hareketler);
 
             var transferler = await _depoServisi.TransferFisleriGetirAsync();
-            TransferFisleri.Clear();
-            foreach (var t in transferler) TransferFisleri.Add(t);
+            TransferFisleri.HepsiniDegistir(transferler);
         }
         catch (Exception ex)
         {

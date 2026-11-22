@@ -34,7 +34,7 @@ public class GiderPusulasiGorunumModeli : TemelGorunumModeli
         _ = YukleAsync();
     }
 
-    public ObservableCollection<GiderPusulasiListeDto> Belgeler { get; } = new();
+    public TopluKoleksiyon<GiderPusulasiListeDto> Belgeler { get; } = new();
     public ICommand YenileKomutu { get; }
     public ICommand YeniKomutu { get; }
     public ICommand YazdirKomutu { get; }
@@ -81,8 +81,7 @@ public class GiderPusulasiGorunumModeli : TemelGorunumModeli
         try
         {
             var seciliId = Secili?.Id;
-            Belgeler.Clear();
-            foreach (var b in await _servis.ListeAsync(Baslangic, Bitis, IptalleriGoster)) Belgeler.Add(b);
+            Belgeler.HepsiniDegistir(await _servis.ListeAsync(Baslangic, Bitis, IptalleriGoster));
             Secili = Belgeler.FirstOrDefault(b => b.Id == seciliId) ?? Belgeler.FirstOrDefault();
         }
         catch (Exception ex)

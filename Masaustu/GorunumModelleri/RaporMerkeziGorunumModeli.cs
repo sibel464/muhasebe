@@ -35,18 +35,18 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
     private bool _maliyetGor = true;
     private bool _karlilikGor = true;
 
-    public ObservableCollection<TopUrunRaporKalemiDto> TopSatanUrunler { get; } = new();
+    public TopluKoleksiyon<TopUrunRaporKalemiDto> TopSatanUrunler { get; } = new();
     public ObservableCollection<TopUrunRaporKalemiDto> TopKarliUrunler { get; } = new();
     public ObservableCollection<TopUrunRaporKalemiDto> EnDusukKarliUrunler { get; } = new();
-    public ObservableCollection<CariYaslandirmaRaporuKalemiDto> CariYaslandirmaRaporu { get; } = new();
-    public ObservableCollection<TahsilatPerformansiKalemiDto> TahsilatPerformansi { get; } = new();
-    public ObservableCollection<HareketsizUrunKalemiDto> HareketsizUrunler { get; } = new();
-    public ObservableCollection<StokDegerRaporuKalemiDto> StokDegerRaporu { get; } = new();
-    public ObservableCollection<KasaBankaRaporKalemiDto> KasaBankaRaporu { get; } = new();
-    public ObservableCollection<PosRaporuKalemiDto> PosRaporu { get; } = new();
-    public ObservableCollection<CekSenetRaporuKalemiDto> CekSenetRaporu { get; } = new();
-    public ObservableCollection<KdvRaporuKalemiDto> KdvRaporu { get; } = new();
-    public ObservableCollection<BaBsKalemiDto> BaBsRaporu { get; } = new();
+    public TopluKoleksiyon<CariYaslandirmaRaporuKalemiDto> CariYaslandirmaRaporu { get; } = new();
+    public TopluKoleksiyon<TahsilatPerformansiKalemiDto> TahsilatPerformansi { get; } = new();
+    public TopluKoleksiyon<HareketsizUrunKalemiDto> HareketsizUrunler { get; } = new();
+    public TopluKoleksiyon<StokDegerRaporuKalemiDto> StokDegerRaporu { get; } = new();
+    public TopluKoleksiyon<KasaBankaRaporKalemiDto> KasaBankaRaporu { get; } = new();
+    public TopluKoleksiyon<PosRaporuKalemiDto> PosRaporu { get; } = new();
+    public TopluKoleksiyon<CekSenetRaporuKalemiDto> CekSenetRaporu { get; } = new();
+    public TopluKoleksiyon<KdvRaporuKalemiDto> KdvRaporu { get; } = new();
+    public TopluKoleksiyon<BaBsKalemiDto> BaBsRaporu { get; } = new();
 
     public SatisRaporFiltreDto Filtre
     {
@@ -256,8 +256,7 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                 case 1: // Satış Raporları
                     SatisRaporu = await _raporServisi.GetSatisRaporuAsync(filtre);
                     var topSatis = await _raporServisi.GetEnCokSatanUrunlerAsync(filtre, 10);
-                    TopSatanUrunler.Clear();
-                    foreach (var item in topSatis) TopSatanUrunler.Add(item);
+                    TopSatanUrunler.HepsiniDegistir(topSatis);
                     break;
                 case 2: // Alış Raporları
                     AlisRaporu = await _raporServisi.GetAlisRaporuAsync(filtre);
@@ -267,21 +266,18 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                     break;
                 case 4: // Cari Yaşlandırma
                     var yaslandirma = await _raporServisi.GetCariYaslandirmaAsync(filtre);
-                    CariYaslandirmaRaporu.Clear();
-                    foreach (var item in yaslandirma) CariYaslandirmaRaporu.Add(item);
+                    CariYaslandirmaRaporu.HepsiniDegistir(yaslandirma);
                     break;
                 case 5: // Stok Raporları
                     StokRaporu = await _raporServisi.GetStokRaporuAsync(filtre);
                     break;
                 case 6: // Stok Devir / Hareketsiz
                     var hareketsiz = await _raporServisi.GetHareketsizUrunlerAsync(filtre, 30);
-                    HareketsizUrunler.Clear();
-                    foreach (var item in hareketsiz) HareketsizUrunler.Add(item);
+                    HareketsizUrunler.HepsiniDegistir(hareketsiz);
                     break;
                 case 7: // Stok Değeri
                     var stokDeger = await _raporServisi.GetStokDegerRaporuAsync(filtre);
-                    StokDegerRaporu.Clear();
-                    foreach (var item in stokDeger) StokDegerRaporu.Add(item);
+                    StokDegerRaporu.HepsiniDegistir(stokDeger);
                     break;
                 case 8: // Finans Raporları
                     FinansRaporu = await _raporServisi.GetFinansRaporuAsync(filtre);
@@ -291,33 +287,27 @@ public class RaporMerkeziGorunumModeli : TemelGorunumModeli
                     break;
                 case 10: // Kasa / Banka
                     var kasaBanka = await _raporServisi.GetKasaBankaRaporuAsync(filtre);
-                    KasaBankaRaporu.Clear();
-                    foreach (var item in kasaBanka) KasaBankaRaporu.Add(item);
+                    KasaBankaRaporu.HepsiniDegistir(kasaBanka);
                     break;
                 case 11: // POS Raporu
                     var posList = await _raporServisi.GetPosRaporuAsync(filtre);
-                    PosRaporu.Clear();
-                    foreach (var item in posList) PosRaporu.Add(item);
+                    PosRaporu.HepsiniDegistir(posList);
                     break;
                 case 12: // Çek / Senet
                     var cekList = await _raporServisi.GetCekSenetRaporuAsync(filtre);
-                    CekSenetRaporu.Clear();
-                    foreach (var item in cekList) CekSenetRaporu.Add(item);
+                    CekSenetRaporu.HepsiniDegistir(cekList);
                     break;
                 case 13: // KDV Raporu
                     var kdvList = await _raporServisi.GetKdvRaporuAsync(filtre);
-                    KdvRaporu.Clear();
-                    foreach (var item in kdvList) KdvRaporu.Add(item);
+                    KdvRaporu.HepsiniDegistir(kdvList);
                     break;
                 case 14: // Tahsilat Performansı
                     var tahsilat = await _raporServisi.GetTahsilatPerformansiAsync(filtre);
-                    TahsilatPerformansi.Clear();
-                    foreach (var item in tahsilat) TahsilatPerformansi.Add(item);
+                    TahsilatPerformansi.HepsiniDegistir(tahsilat);
                     break;
                 case 15: // Ba-Bs
                     var babs = await _raporServisi.GetBaBsRaporuAsync(filtre);
-                    BaBsRaporu.Clear();
-                    foreach (var item in babs) BaBsRaporu.Add(item);
+                    BaBsRaporu.HepsiniDegistir(babs);
                     break;
             }
             DurumMesaji = "Rapor güncellendi.";

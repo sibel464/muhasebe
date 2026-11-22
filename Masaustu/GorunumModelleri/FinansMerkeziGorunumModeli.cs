@@ -23,9 +23,9 @@ public class FinansMerkeziGorunumModeli : TemelGorunumModeli
     private PosIslemOzetDto? _seciliPosIslemi;
     private YuruyenFinansSatirDto? _seciliHareket;
 
-    public ObservableCollection<KasaOzetDto> Kasalar { get; } = new();
-    public ObservableCollection<BankaHesapOzetDto> BankaHesaplari { get; } = new();
-    public ObservableCollection<YuruyenFinansSatirDto> Hareketler { get; } = new();
+    public TopluKoleksiyon<KasaOzetDto> Kasalar { get; } = new();
+    public TopluKoleksiyon<BankaHesapOzetDto> BankaHesaplari { get; } = new();
+    public TopluKoleksiyon<YuruyenFinansSatirDto> Hareketler { get; } = new();
     public ObservableCollection<PosIslemOzetDto> PosIslemleri { get; } = new();
     public ObservableCollection<VadeKalemOzetDto> Vadeler { get; } = new();
 
@@ -177,14 +177,11 @@ public class FinansMerkeziGorunumModeli : TemelGorunumModeli
         {
             Dashboard = await _finansServisi.GetDashboardOzetAsync(_firmaBaglami.SirketId);
 
-            Kasalar.Clear();
-            foreach (var k in Dashboard.KasaDagilimi) Kasalar.Add(k);
+            Kasalar.HepsiniDegistir(Dashboard.KasaDagilimi);
 
-            BankaHesaplari.Clear();
-            foreach (var b in Dashboard.BankaHesapBakiyeleri) BankaHesaplari.Add(b);
+            BankaHesaplari.HepsiniDegistir(Dashboard.BankaHesapBakiyeleri);
 
-            Hareketler.Clear();
-            foreach (var h in Dashboard.SonFinansalHareketler) Hareketler.Add(h);
+            Hareketler.HepsiniDegistir(Dashboard.SonFinansalHareketler);
 
             PosIslemleri.Clear();
             var poslar = await _finansServisi.GetPosIslemleriAsync(_firmaBaglami.SirketId);

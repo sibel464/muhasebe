@@ -32,7 +32,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
     public int KritikStokSayisi { get => _kritikStokSayisi; set => OzellikAyarla(ref _kritikStokSayisi, value); }
 
     // "Başlarken": yeni kurulumda yapılması gereken tanımlar; hepsi tamamlanınca kart gizlenir.
-    public ObservableCollection<BaslangicAdimi> BaslangicAdimlari { get; } = new();
+    public TopluKoleksiyon<BaslangicAdimi> BaslangicAdimlari { get; } = new();
     private string _baslangicOzeti = string.Empty;
     public string BaslangicOzeti { get => _baslangicOzeti; set => OzellikAyarla(ref _baslangicOzeti, value); }
     private bool _baslangicGorunur;
@@ -253,8 +253,7 @@ public class DashboardGorunumModeli : TemelGorunumModeli
             if (_baslangicServisi != null)
             {
                 var adimlar = await _baslangicServisi.AdimlariGetirAsync();
-                BaslangicAdimlari.Clear();
-                foreach (var a in adimlar) BaslangicAdimlari.Add(a);
+                BaslangicAdimlari.HepsiniDegistir(adimlar);
                 BaslangicOzeti = $"{adimlar.Count(a => a.Tamam)} / {adimlar.Count} tamamlandı";
                 BaslangicGorunur = !App.OrnekMod && adimlar.Any(a => !a.Tamam); // tanıtım modunda kurulum listesi gösterilmez
             }

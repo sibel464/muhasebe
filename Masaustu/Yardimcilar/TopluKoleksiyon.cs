@@ -10,8 +10,10 @@ public class TopluKoleksiyon<T> : ObservableCollection<T>
 {
     public void HepsiniDegistir(IEnumerable<T> yeniler)
     {
+        // Önce kopyalanır: yeni satırlar bu listenin kendisinden süzülüyorsa (X.Where(...)) temizlik onları silmesin.
+        var liste = yeniler.ToList();
         Items.Clear();
-        foreach (var x in yeniler) Items.Add(x);
+        foreach (var x in liste) Items.Add(x);
         OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
         OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));

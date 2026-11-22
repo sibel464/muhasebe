@@ -30,7 +30,7 @@ public class VadeTakvimiGorunumModeli : TemelGorunumModeli
     public static IReadOnlyList<SecenekOgesi<int>> Gunler { get; } = [new("7 gün", 7), new("15 gün", 15), new("30 gün", 30), new("60 gün", 60), new("90 gün", 90)];
     public static IReadOnlyList<string> Yonler { get; } = ["Tümü", "Tahsilat", "Ödeme"];
 
-    public ObservableCollection<VadeTakvimiKalemiDto> Kalemler { get; } = new();
+    public TopluKoleksiyon<VadeTakvimiKalemiDto> Kalemler { get; } = new();
     public int Gun { get => _gun; set { if (OzellikAyarla(ref _gun, value)) _ = YukleAsync(); } }
     public string Yon { get => _yon; set { if (OzellikAyarla(ref _yon, value)) Suz(); } }
     public string Ozet { get => _ozet; private set => OzellikAyarla(ref _ozet, value); }
@@ -61,8 +61,7 @@ public class VadeTakvimiGorunumModeli : TemelGorunumModeli
 
     private void Suz()
     {
-        Kalemler.Clear();
-        foreach (var k in _tum.Where(k => Yon == "Tümü" || k.Yon == Yon)) Kalemler.Add(k);
+        Kalemler.HepsiniDegistir(_tum.Where(k => Yon == "Tümü" || k.Yon == Yon));
         decimal T(bool tahsilat, bool gecmis) => _tum.Where(k => k.Tahsilat == tahsilat && (k.GecikmeGun > 0) == gecmis).Sum(k => k.Tutar);
         var tahsilat = T(true, false) + T(true, true);
         var odeme = T(false, false) + T(false, true);

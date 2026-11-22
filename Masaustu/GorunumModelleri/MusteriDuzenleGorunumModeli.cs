@@ -58,7 +58,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
         } 
     }
 
-    public ObservableCollection<CariTipiTanimi> CariTipleri { get; } = new();
+    public TopluKoleksiyon<CariTipiTanimi> CariTipleri { get; } = new();
     public IReadOnlyList<KeyValuePair<CariTuru, string>> CariTurleri { get; } = [new(CariTuru.Musteri, "Müşteri"), new(CariTuru.Tedarikci, "Tedarikçi"), new(CariTuru.MusteriTedarikci, "Müşteri ve Tedarikçi")];
     public CariTuru SeciliCariTuru { get => _cariTuru; set => OzellikAyarla(ref _cariTuru, value); }
     public ObservableCollection<string> GrupKodlari { get; } = new();
@@ -362,8 +362,7 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
     {
         var secilecekId = SeciliCariTipi?.Id ?? _mevcutCari?.CariTipiId ?? CariTipiTanimi.KurumsalId;
         var liste = await _cariTipiServisi.ListeleAsync(true, _mevcutCari?.CariTipiId);
-        CariTipleri.Clear();
-        foreach (var tip in liste) CariTipleri.Add(tip);
+        CariTipleri.HepsiniDegistir(liste);
         SeciliCariTipi = CariTipleri.FirstOrDefault(x => x.Id == secilecekId) ?? CariTipleri.FirstOrDefault();
         GrupKodlari.Clear(); foreach (var grup in await _cariServisi.GrupKodlariniGetirAsync()) GrupKodlari.Add(grup);
     }

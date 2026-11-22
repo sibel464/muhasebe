@@ -95,7 +95,7 @@ public class TekrarlayanFaturalarModeli : TemelGorunumModeli
         SilKomutu = new KomutSarici(async _ => await SilAsync(), _ => !_calisiyor && Secili != null);
     }
 
-    public ObservableCollection<TekrarlayanFaturaListeDto> Planlar { get; } = new();
+    public TopluKoleksiyon<TekrarlayanFaturaListeDto> Planlar { get; } = new();
     public TekrarlayanFaturaListeDto? Secili { get => _secili; set { OzellikAyarla(ref _secili, value); CommandManager.InvalidateRequerySuggested(); } }
     public string Durum { get => _durum; private set => OzellikAyarla(ref _durum, value); }
     // Pencere kapanınca fatura listesi yenilensin mi
@@ -120,8 +120,7 @@ public class TekrarlayanFaturalarModeli : TemelGorunumModeli
         {
             var seciliId = Secili?.Id;
             var liste = await _servis.ListeAsync();
-            Planlar.Clear();
-            foreach (var p in liste) Planlar.Add(p);
+            Planlar.HepsiniDegistir(liste);
             Secili = Planlar.FirstOrDefault(p => p.Id == seciliId);
             var bekleyen = Planlar.Sum(p => p.BekleyenAdet);
             Durum = mesaj ?? (Planlar.Count == 0

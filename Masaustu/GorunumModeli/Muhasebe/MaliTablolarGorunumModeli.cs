@@ -43,9 +43,9 @@ public class MaliTablolarGorunumModeli : TemelGorunumModeli
     public ICommand PdfKomutu { get; }
     public ICommand YazdirKomutu { get; }
 
-    public ObservableCollection<MaliTabloSatiriDto> BilancoSatirlari { get; } = new();
-    public ObservableCollection<MaliTabloSatiriDto> GelirSatirlari { get; } = new();
-    public ObservableCollection<string> Uyarilar { get; } = new();
+    public TopluKoleksiyon<MaliTabloSatiriDto> BilancoSatirlari { get; } = new();
+    public TopluKoleksiyon<MaliTabloSatiriDto> GelirSatirlari { get; } = new();
+    public TopluKoleksiyon<string> Uyarilar { get; } = new();
     public bool UyariVar => Uyarilar.Count > 0;
 
     public DateTime BilancoTarihi { get => _bilancoTarihi; set { if (OzellikAyarla(ref _bilancoTarihi, value)) _ = YukleAsync(); } }
@@ -95,16 +95,14 @@ public class MaliTablolarGorunumModeli : TemelGorunumModeli
         }
     }
 
-    private static void Doldur(ObservableCollection<MaliTabloSatiriDto> hedef, MaliTabloDto tablo)
+    private static void Doldur(TopluKoleksiyon<MaliTabloSatiriDto> hedef, MaliTabloDto tablo)
     {
-        hedef.Clear();
-        foreach (var s in tablo.Satirlar) hedef.Add(s);
+        hedef.HepsiniDegistir(tablo.Satirlar);
     }
 
     private void UyarilariGoster()
     {
-        Uyarilar.Clear();
-        foreach (var u in (SeciliSekme == 0 ? _bilanco : _gelirTablosu)?.Uyarilar ?? []) Uyarilar.Add(u);
+        Uyarilar.HepsiniDegistir((SeciliSekme == 0 ? _bilanco : _gelirTablosu)?.Uyarilar ?? []);
         BildirimGonder(nameof(UyariVar));
     }
 

@@ -73,8 +73,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public string Birim { get => _birim; set => OzellikAyarla(ref _birim, value); }
 
     public IReadOnlyList<string> KodlamaSecenekleri { get; } = ["Otomatik", "Manuel"];
-    public ObservableCollection<string> KullanilanKodlar { get; } = new();
-    public ObservableCollection<string> KullanilanBarkodlar { get; } = new();
+    public TopluKoleksiyon<string> KullanilanKodlar { get; } = new();
+    public TopluKoleksiyon<string> KullanilanBarkodlar { get; } = new();
     public bool KodOtomatik { get => _kodOtomatik; set { if (OzellikAyarla(ref _kodOtomatik, value)) { BildirimGonder(nameof(Kodlama)); BildirimGonder(nameof(KodSaltOkunur)); if (value) _ = OnizlemeleriYukleAsync(); else Kod = string.Empty; } } }
     public bool BarkodOtomatik { get => _barkodOtomatik; set { if (OzellikAyarla(ref _barkodOtomatik, value)) { BildirimGonder(nameof(BarkodKodlama)); BildirimGonder(nameof(BarkodSaltOkunur)); if (value) _ = OnizlemeleriYukleAsync(); else Barkod = string.Empty; } } }
     public string Kodlama { get => KodOtomatik ? "Otomatik" : "Manuel"; set => KodOtomatik = value == "Otomatik"; }
@@ -119,8 +119,8 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     public bool Depo1Girilebilir => StokGirilebilir && _depo1 != null;
     public bool Depo2Girilebilir => StokGirilebilir && _depo2 != null;
 
-    public ObservableCollection<MerkeziTanim> Kategoriler { get; }=new();
-    public ObservableCollection<MerkeziTanim> Markalar { get; }=new();
+    public TopluKoleksiyon<MerkeziTanim> Kategoriler { get; }=new();
+    public TopluKoleksiyon<MerkeziTanim> Markalar { get; }=new();
     public ObservableCollection<MerkeziTanim> Birimler { get; }=new();
     public MerkeziTanim? SeciliKategori {get=>_seciliKategori;set{if(OzellikAyarla(ref _seciliKategori,value))Kategori=value?.Ad??"";}}
     public MerkeziTanim? SeciliMarka {get=>_seciliMarka;set=>OzellikAyarla(ref _seciliMarka,value);}
@@ -268,12 +268,10 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     private async Task KullanilanKodlariYukleAsync()
     {
         var kodlar = await _urunServisi.KullanilanKodlariGetirAsync();
-        KullanilanKodlar.Clear();
-        foreach (var x in kodlar) KullanilanKodlar.Add(x);
+        KullanilanKodlar.HepsiniDegistir(kodlar);
 
         var barkodlar = await _urunServisi.KullanilanBarkodlariGetirAsync();
-        KullanilanBarkodlar.Clear();
-        foreach (var x in barkodlar) KullanilanBarkodlar.Add(x);
+        KullanilanBarkodlar.HepsiniDegistir(barkodlar);
     }
 
     private async Task DepolariYukleAsync()
@@ -414,8 +412,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
     {
         if (string.IsNullOrWhiteSpace(KategoriAramaMetni))
         {
-            Kategoriler.Clear();
-            foreach (var item in _tumKategoriler) Kategoriler.Add(item);
+            Kategoriler.HepsiniDegistir(_tumKategoriler);
             return;
         }
 
@@ -424,16 +421,14 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             k.Ad.ToLowerInvariant().Contains(arama) ||
             k.Kod.ToLowerInvariant().Contains(arama)).ToList();
 
-        Kategoriler.Clear();
-        foreach (var item in filtreli) Kategoriler.Add(item);
+        Kategoriler.HepsiniDegistir(filtreli);
     }
 
     private void MarkaFiltrele()
     {
         if (string.IsNullOrWhiteSpace(MarkaAramaMetni))
         {
-            Markalar.Clear();
-            foreach (var item in _tumMarkalar) Markalar.Add(item);
+            Markalar.HepsiniDegistir(_tumMarkalar);
             return;
         }
 
@@ -442,8 +437,7 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
             m.Ad.ToLowerInvariant().Contains(arama) ||
             m.Kod.ToLowerInvariant().Contains(arama)).ToList();
 
-        Markalar.Clear();
-        foreach (var item in filtreli) Markalar.Add(item);
+        Markalar.HepsiniDegistir(filtreli);
     }
 
     private async Task KaydetAsync()

@@ -93,11 +93,11 @@ public class PersonelGorunumModeli : TemelGorunumModeli
         _ = YukleAsync();
     }
 
-    public ObservableCollection<PersonelListeDto> Personeller { get; } = new();
+    public TopluKoleksiyon<PersonelListeDto> Personeller { get; } = new();
     public ObservableCollection<PersonelEkstreSatiriDto> Ekstre { get; } = new();
     public ObservableCollection<TahakkukSatiriModeli> Satirlar { get; } = new();
-    public ObservableCollection<MaasTahakkukSatiriDto> Yapilanlar { get; } = new();
-    public ObservableCollection<OdemeHesabiDto> OdemeHesaplari { get; } = new();
+    public TopluKoleksiyon<MaasTahakkukSatiriDto> Yapilanlar { get; } = new();
+    public TopluKoleksiyon<OdemeHesabiDto> OdemeHesaplari { get; } = new();
     public IReadOnlyList<int> Yillar { get; } = Enumerable.Range(DateTime.Today.Year - 5, 6).Reverse().ToList();
     public IReadOnlyList<int> Aylar { get; } = Enumerable.Range(1, 12).ToList();
 
@@ -168,15 +168,13 @@ public class PersonelGorunumModeli : TemelGorunumModeli
         try
         {
             var seciliId = Secili?.Id;
-            Personeller.Clear();
-            foreach (var p in await _servis.ListeAsync(AyrilanlariGoster)) Personeller.Add(p);
+            Personeller.HepsiniDegistir(await _servis.ListeAsync(AyrilanlariGoster));
             Secili = Personeller.FirstOrDefault(p => p.Id == seciliId) ?? Personeller.FirstOrDefault();
             BildirimGonder(nameof(ToplamOdenecek));
             BildirimGonder(nameof(TopluOdemeMetni));
             var hesapKaynak = OdemeHesabi?.Kaynak;
             var hesapId = OdemeHesabi?.Id;
-            OdemeHesaplari.Clear();
-            foreach (var h in await _servis.OdemeHesaplariAsync()) OdemeHesaplari.Add(h);
+            OdemeHesaplari.HepsiniDegistir(await _servis.OdemeHesaplariAsync());
             OdemeHesabi = OdemeHesaplari.FirstOrDefault(h => h.Kaynak == hesapKaynak && h.Id == hesapId) ?? OdemeHesaplari.FirstOrDefault();
             VergiSgk = await _servis.VergiSgkBakiyeAsync();
             await DonemYukleAsync();
@@ -203,8 +201,7 @@ public class PersonelGorunumModeli : TemelGorunumModeli
             var d = await _servis.DonemAsync(Yil, Ay);
             Satirlar.Clear();
             foreach (var s in d.Bekleyenler) Satirlar.Add(new TahakkukSatiriModeli(s, () => { BildirimGonder(nameof(DonemMetni)); CommandManager.InvalidateRequerySuggested(); }));
-            Yapilanlar.Clear();
-            foreach (var s in d.Yapilanlar) Yapilanlar.Add(s);
+            Yapilanlar.HepsiniDegistir(d.Yapilanlar);
             Donem = d;
         }
         catch (Exception ex) { DurumMesaji = ex.Message; }

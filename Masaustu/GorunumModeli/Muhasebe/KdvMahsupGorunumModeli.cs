@@ -34,7 +34,7 @@ public class KdvMahsupGorunumModeli : TemelGorunumModeli
     public ICommand GeriAlKomutu { get; }
 
     public IReadOnlyList<int> Yillar { get; } = Enumerable.Range(DateTime.Today.Year - 6, 7).Reverse().ToList();
-    public ObservableCollection<KdvMahsupAyDto> Aylar { get; } = new();
+    public TopluKoleksiyon<KdvMahsupAyDto> Aylar { get; } = new();
     public ObservableCollection<string> Engeller { get; } = new();
     public ObservableCollection<string> Uyarilar { get; } = new();
     public bool EngelVar => Engeller.Count > 0;
@@ -97,8 +97,7 @@ public class KdvMahsupGorunumModeli : TemelGorunumModeli
         {
             Yukleniyor = true;
             var aylar = await _servis.YilAsync(Yil);
-            Aylar.Clear();
-            foreach (var a in aylar) Aylar.Add(a);
+            Aylar.HepsiniDegistir(aylar);
             _seciliAy = Aylar.FirstOrDefault(a => a.Ay == ay);
             BildirimGonder(nameof(SeciliAy));
         }

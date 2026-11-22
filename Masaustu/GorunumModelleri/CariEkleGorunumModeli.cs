@@ -47,7 +47,7 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
 
     public string Kod { get => _kod; set { if (OzellikAyarla(ref _kod, value) && KodManuel) _ = ManuelKodDogrulaAsync(); } }
     public string GrupKodu { get => _grupKodu; set => OzellikAyarla(ref _grupKodu, value); }
-    public ObservableCollection<string> GrupKodlari { get; } = new();
+    public TopluKoleksiyon<string> GrupKodlari { get; } = new();
     public ObservableCollection<string> CariKodlari { get; } = new();
     public IReadOnlyList<string> KodlamaSecenekleri { get; } = ["Otomatik", "Manuel"];
     public string Kodlama { get => _kodlama; set { if (OzellikAyarla(ref _kodlama, value)) { BildirimGonder(nameof(KodManuel)); BildirimGonder(nameof(KodSaltOkunur)); BildirimGonder(nameof(KodYardimMetni)); if (KodManuel) Kod = string.Empty; else _ = KodOnizlemesiniYukleAsync(); } } }
@@ -188,8 +188,7 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
     private async Task IlkVerileriYukleAsync()
     {
         await CariTipleriniYukleAsync();
-        GrupKodlari.Clear();
-        foreach (var grup in await _cariServisi.GrupKodlariniGetirAsync()) GrupKodlari.Add(grup);
+        GrupKodlari.HepsiniDegistir(await _cariServisi.GrupKodlariniGetirAsync());
         CariKodlari.Clear(); foreach (var kod in await _cariServisi.CariKodlariniGetirAsync()) CariKodlari.Add(kod);
         await KodOnizlemesiniYukleAsync();
         await GrupKoduOnizlemesiniYukleAsync();

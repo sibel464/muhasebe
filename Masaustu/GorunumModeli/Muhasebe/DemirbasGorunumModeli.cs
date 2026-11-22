@@ -33,7 +33,7 @@ public class DemirbasGorunumModeli : TemelGorunumModeli
         _ = YukleAsync();
     }
 
-    public ObservableCollection<SabitKiymetListeDto> Demirbaslar { get; } = new();
+    public TopluKoleksiyon<SabitKiymetListeDto> Demirbaslar { get; } = new();
     public ObservableCollection<AmortismanSatiri> Plan { get; } = new();
     public IReadOnlyList<int> Yillar { get; } = Enumerable.Range(DateTime.Today.Year - 8, 9).Reverse().ToList();
 
@@ -82,8 +82,7 @@ public class DemirbasGorunumModeli : TemelGorunumModeli
         try
         {
             var seciliId = Secili?.Id;
-            Demirbaslar.Clear();
-            foreach (var d in await _servis.ListeAsync(EldenCikanlariGoster)) Demirbaslar.Add(d);
+            Demirbaslar.HepsiniDegistir(await _servis.ListeAsync(EldenCikanlariGoster));
             Secili = Demirbaslar.FirstOrDefault(d => d.Id == seciliId) ?? Demirbaslar.FirstOrDefault();
             await OnizleAsync();
         }
