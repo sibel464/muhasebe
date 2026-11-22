@@ -29,6 +29,11 @@ public class KomutSarici : ICommand
     public KomutSarici(Action yurutme, Func<bool>? calistirabilir = null)
         : this(_ => yurutme(), calistirabilir == null ? null : _ => calistirabilir()) { }
 
+    // "async () => ..." biçimi bu kurucuya gelir (eskiden Action kurucusuna düşüp async void oluyordu ve
+    // çift tıklama korumasının dışında kalıyordu: 121 komut).
+    public KomutSarici(Func<Task> yurutme, Func<bool>? calistirabilir = null, bool tekrarGirisli = false)
+        : this(_ => yurutme(), calistirabilir == null ? null : _ => calistirabilir(), tekrarGirisli) { }
+
     public event EventHandler? CanExecuteChanged
     {
         add => CommandManager.RequerySuggested += value;
