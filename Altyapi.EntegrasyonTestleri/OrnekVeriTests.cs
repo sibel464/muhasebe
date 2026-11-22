@@ -1,4 +1,4 @@
-using Altyapi.Servisler;
+﻿using Altyapi.Servisler;
 using Altyapi.Veri;
 using EtkiAlani.Modeller.Fatura;
 using EtkiAlani.Modeller.Kullanici;
@@ -38,6 +38,11 @@ public sealed class OrnekVeriTests : IAsyncLifetime
         Assert.Equal(9, await c.Faturalar.CountAsync(f => f.Tur == FaturaTuru.Alis && f.Durum == BelgeDurumu.Onaylandi));
         Assert.All(await c.Urunler.ToListAsync(), u => Assert.True(u.StokMiktari >= 0, u.Ad));
         Assert.True((await c.CariKartlar.ToListAsync()).Any(x => x.Bakiye > 0), "açık alacak olmalı");
+        // Personel ve demirbaş ekranları da dolu: geçen ayın maaşı tahakkuk edilmiş, bir avans verilmiş.
+        Assert.Equal(3, await c.Personeller.CountAsync());
+        Assert.Equal(3, await c.SabitKiymetler.CountAsync());
+        Assert.True(await c.PersonelHareketleri.AnyAsync(h => h.Tur == EtkiAlani.Modeller.Muhasebe.PersonelHareketTuru.MaasTahakkuku), "maaş tahakkuku olmalı");
+        Assert.True(await c.PersonelHareketleri.AnyAsync(h => h.Tur == EtkiAlani.Modeller.Muhasebe.PersonelHareketTuru.Avans), "avans olmalı");
 
         var rapor = new MuhasebeRaporServisi(c, oturum);
         Assert.True((await rapor.MizanAlAsync(MuhasebeBaglami.VarsayilanSirketId, null, null)).DengedeMi);

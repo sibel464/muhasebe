@@ -188,6 +188,72 @@ public static class OrnekVeriServisi
                 await banka.PosBlokeHesabaGecirAsync(posId, vadesizId, pos, decimal.Round(pos * 0.02m, 2), "POS hesabından aktarım", Gun(5, 16));
         }
 
+        // Demirbaşlar: amortisman planı ekranda görünsün diye farklı tarih ve ömürlerde üç kıymet (amortisman yıl sonunda ayrılır).
+        await using (var c = baglamUret())
+        {
+            var sk = new SabitKiymetServisi(c, oturum);
+            await sk.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.SabitKiymet { Ad = "Dizüstü bilgisayar (muhasebe)", Maliyet = 32000, FaydaliOmurYil = 4, AlisTarihi = Gun(400, 0) });
+            await sk.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.SabitKiymet { Ad = "Depo raf sistemi", Maliyet = 48000, FaydaliOmurYil = 10, AlisTarihi = Gun(250, 0) });
+            await sk.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.SabitKiymet { Ad = "Yazarkasa POS cihazı", Maliyet = 9500, FaydaliOmurYil = 5, AlisTarihi = Gun(70, 0), GiderHesapKodu = "760" });
+        }
+
+        // Personel: üç çalışan; geçen ayın maaşı tahakkuk edilip bankadan ödenmiş, bir çalışana bu ay avans verilmiş.
+        // Vergi ve SGK borcu (360/361) ödenmemiş görünür: ana sayfadaki hatırlatma da dolu olur.
+        await using (var c = baglamUret())
+        {
+            var ps = new PersonelServisi(c, oturum);
+            var giris = Gun(420, 0);
+            var ayse = await ps.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.Personel
+            {
+                AdSoyad = "Ayşe Yılmaz (TANITIM)", Gorev = "Muhasebe Sorumlusu", IseGirisTarihi = giris, NetUcret = 32000, SgkIsciPayi = 5300, IssizlikIsciPayi = 380,
+                GelirVergisi = 2900, DamgaVergisi = 290, SgkIsverenPayi = 7200, IssizlikIsverenPayi = 760, Iban = Iban("7000001")
+            });
+            await ps.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.Personel
+            {
+                AdSoyad = "Burak Demir (TANITIM)", Gorev = "Depo Sorumlusu", IseGirisTarihi = giris, NetUcret = 26000, SgkIsciPayi = 4300, IssizlikIsciPayi = 310,
+                GelirVergisi = 1900, DamgaVergisi = 230, SgkIsverenPayi = 5900, IssizlikIsverenPayi = 620, GiderHesapKodu = "760", Iban = Iban("7000002")
+            });
+            await ps.KaydetAsync(new EtkiAlani.Modeller.Muhasebe.Personel
+            {
+                AdSoyad = "Can Öztürk (TANITIM)", Gorev = "Satış Danışmanı", IseGirisTarihi = Gun(200, 0), NetUcret = 22000, SgkIsciPayi = 3600, IssizlikIsciPayi = 260,
+                GelirVergisi = 1200, DamgaVergisi = 190, SgkIsverenPayi = 4900, IssizlikIsverenPayi = 520, GiderHesapKodu = "760", Iban = Iban("7000003")
+            });
+
+            var gecenAy = DateTime.Today.AddMonths(-1);
+            var donem = await ps.DonemAsync(gecenAy.Year, gecenAy.Month);
+            if (donem.Engeller.Count == 0 && donem.Bekleyenler.Count > 0)
+                await ps.TahakkukEtAsync(gecenAy.Year, gecenAy.Month, donem.Bekleyenler);
+            var kasaHesabi = (await ps.OdemeHesaplariAsync()).FirstOrDefault(h => h.Kaynak == PersonelServisi.Kasa);
+
+            // Maaş bankadan, banka yetmezse kasadan ödenir; ikisi de yetmezse ödenmemiş maaş olarak kalır (ana sayfa uyarısı).
+            // Toplu ödeme tek işlemdir: yetersiz bakiyede hiçbir şey yazılmaz, diğer kaynak yeni bağlamla denenir.
+            var kaynaklar = new List<(string Kaynak, int Id)> { (PersonelServisi.Banka, vadesizId) };
+            if (kasaHesabi != null) kaynaklar.Add((PersonelServisi.Kasa, kasaHesabi.Id));
+            foreach (var (kaynak, hesapId) in kaynaklar)
+            {
+                try
+                {
+                    await using var c2 = baglamUret();
+                    await new PersonelServisi(c2, oturum).TopluOdemeAsync(Gun(DateTime.Today.Day - 1, 10), kaynak, hesapId);
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+            if (kasaHesabi != null)
+            {
+                try
+                {
+                    await using var c3 = baglamUret();
+                    await new PersonelServisi(c3, oturum).AvansVerAsync(ayse.Id, 3000, Gun(1, 11), PersonelServisi.Kasa, kasaHesabi.Id, "Bu ayın avansı");
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+        }
+
         // Tedarikçi ödemeleri: eski alışlar bankadaki para yettiği kadar ödenir; kalanı borç olarak görünür.
         await using (var c = baglamUret())
         {
