@@ -8,14 +8,20 @@ namespace Altyapi.Servisler;
 public sealed class BelgeKapamaServisi : IBelgeKapamaServisi
 {
     private readonly MuhasebeBaglami _baglam;
+    private readonly IKullaniciServisi? _kullaniciServisi;
 
-    public BelgeKapamaServisi(MuhasebeBaglami baglam)
+    public BelgeKapamaServisi(MuhasebeBaglami baglam, IKullaniciServisi? kullaniciServisi = null)
     {
         _baglam = baglam;
+        _kullaniciServisi = kullaniciServisi;
     }
+
+    // Oturum yoksa (servis elle kurulmuşsa) işlem yapılmaz: yetki denetimi atlanamaz.
+    private IKullaniciServisi Oturum => _kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama");
 
     public async Task<IReadOnlyList<AcikBelge>> AcikBelgeleriGetirAsync(int cariKartId)
     {
+        Oturum.YetkiKontrolEt(y => y.CariGoruntule || y.TahsilatYap || y.OdemeYap, "Açık belgeleri görüntüleme");
         var hareketler = await _baglam.CariHareketler
             .Where(c => c.CariKartId == cariKartId && !c.Silindi)
             .ToListAsync();
@@ -45,6 +51,7 @@ public sealed class BelgeKapamaServisi : IBelgeKapamaServisi
 
     public async Task<BelgeKapama> KapatAsync(int odenenCariHareketId, int faturaCariHareketId, decimal tutar, decimal dovizTutar = 0)
     {
+        Oturum.YetkiKontrolEt(y => y.TahsilatYap || y.OdemeYap, "Belge kapama");
         if (tutar <= 0) throw new ArgumentException("Kapama tutarı 0'dan büyük olmalıdır.");
 
         await using var tx = await _baglam.Database.BeginTransactionAsync();
@@ -97,6 +104,7 @@ public sealed class BelgeKapamaServisi : IBelgeKapamaServisi
 
     public async Task IptalEtAsync(int kapamaId)
     {
+        Oturum.YetkiKontrolEt(y => y.FinansIptal || y.TahsilatYap || y.OdemeYap, "Belge kapama iptali");
         await using var tx = await _baglam.Database.BeginTransactionAsync();
         try
         {

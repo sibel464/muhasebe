@@ -8,8 +8,17 @@ namespace Altyapi.Servisler;
 public class CariTipiTanimiServisi : ICariTipiTanimiServisi
 {
     private readonly MuhasebeBaglami _baglam;
+    private readonly IKullaniciServisi? _kullaniciServisi;
 
-    public CariTipiTanimiServisi(MuhasebeBaglami baglam) => _baglam = baglam;
+    public CariTipiTanimiServisi(MuhasebeBaglami baglam, IKullaniciServisi? kullaniciServisi = null)
+    {
+        _baglam = baglam;
+        _kullaniciServisi = kullaniciServisi;
+    }
+
+    private void DegisiklikYetkisi(string islem) =>
+        (_kullaniciServisi ?? throw new YetkisizErisimException("Oturum doğrulama"))
+            .YetkiKontrolEt(y => y.AyarlariYonet || y.CariDuzenle, islem);
 
     public Task<List<CariTipiTanimi>> ListeleAsync(bool sadeceAktif = true, int? dahilEdilecekId = null) =>
         _baglam.CariTipiTanimlari
@@ -19,6 +28,7 @@ public class CariTipiTanimiServisi : ICariTipiTanimiServisi
 
     public async Task<CariTipiTanimi> KaydetAsync(CariTipiTanimi tanim)
     {
+        DegisiklikYetkisi("Cari tipi tanımı kaydetme");
         tanim.Kod = tanim.Kod.Trim().ToUpperInvariant();
         tanim.Ad = tanim.Ad.Trim();
         tanim.Aciklama = tanim.Aciklama?.Trim();
@@ -56,6 +66,7 @@ public class CariTipiTanimiServisi : ICariTipiTanimiServisi
 
     public async Task AktiflikDegistirAsync(int id, bool aktifMi)
     {
+        DegisiklikYetkisi("Cari tipi tanımı değiştirme");
         var kayit = await _baglam.CariTipiTanimlari.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Cari tipi bulunamadı.");
         kayit.AktifMi = aktifMi;

@@ -56,6 +56,31 @@ public sealed class GirisGuvenligiTests(IsolatedPostgreSqlFixture fixture)
     }
 
     [Fact]
+    public async Task Acik_oturum_yetki_degisikligini_alir_pasif_yapilan_kullanicinin_oturumu_kapanir()
+    {
+        fixture.RequireDatabase();
+        var (id, ad) = await KullaniciOlusturAsync(yetkiler: new KullaniciYetkileri { CariGoruntule = true });
+        var servis = Servis();
+        Assert.True((await servis.GirisDeneAsync(ad, Sifre)).Basarili);
+        Assert.False(servis.YetkiliMi(y => y.CariSil));
+
+        await using (var baglam = new MuhasebeBaglami(fixture.Options))
+        {
+            var k = await baglam.Kullanicilar.Include(x => x.Yetkiler).SingleAsync(x => x.Id == id);
+            k.Yetkiler!.CariSil = true;
+            await baglam.SaveChangesAsync();
+        }
+        Assert.True(await servis.OturumuTazeleAsync());
+        Assert.True(servis.YetkiliMi(y => y.CariSil));
+
+        await using (var baglam = new MuhasebeBaglami(fixture.Options))
+            await baglam.Kullanicilar.Where(x => x.Id == id).ExecuteUpdateAsync(g => g.SetProperty(x => x.Aktif, false));
+        Assert.False(await servis.OturumuTazeleAsync());
+        Assert.Null(servis.AktifKullanici);
+        Assert.Throws<YetkisizErisimException>(() => servis.YetkiKontrolEt(y => y.CariGoruntule, "Deneme"));
+    }
+
+    [Fact]
     public async Task Basarili_giris_hatali_deneme_sayacini_sifirlar()
     {
         fixture.RequireDatabase();

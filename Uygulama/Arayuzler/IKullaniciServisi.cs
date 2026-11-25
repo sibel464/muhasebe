@@ -19,6 +19,10 @@ public interface IKullaniciServisi
     Task KendiSifreniDegistirAsync(string mevcutSifre, string yeniSifre) =>
         throw new NotSupportedException();
     void CikisYap();
+
+    // Açık oturumu veritabanından tazeler (yetki değişikliği hemen geçerli olsun). Kullanıcı silinmiş ya da pasif
+    // yapılmışsa false döner ve oturum kapatılmalıdır.
+    Task<bool> OturumuTazeleAsync(CancellationToken cancellationToken = default) => Task.FromResult(AktifKullanici != null);
     bool YetkiliMi(Func<KullaniciYetkileri, bool> yetkiSorgusu);
     void YetkiKontrolEt(Func<KullaniciYetkileri, bool> yetkiSorgusu, string islemAdi);
 

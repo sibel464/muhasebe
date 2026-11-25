@@ -22,6 +22,10 @@ public partial class AnaPencere : Window
     private DateTime _sonEtkinlik = DateTime.UtcNow;
     private bool _kilitli;
 
+    // Yönetici bu kullanıcıyı pasif yapar ya da yetkilerini değiştirirse açık oturum en geç bir dakikada güncellenir.
+    private readonly DispatcherTimer _oturumTazelemeZamanlayicisi = new() { Interval = TimeSpan.FromMinutes(1) };
+    private bool _tazeleniyor;
+
     public AnaPencere(AnaGorunumModeli gorunumModeli)
     {
         InitializeComponent();
@@ -85,6 +89,9 @@ public partial class AnaPencere : Window
             _bostaKalmaZamanlayicisi.Start();
         }
 
+        _oturumTazelemeZamanlayicisi.Tick += async (_, _) => await OturumuTazeleAsync();
+        _oturumTazelemeZamanlayicisi.Start();
+
         Loaded += async (_, _) => await GuncellemeyiDenetleAsync();
 
         // Pencere sürükleme (üst bar ile)
@@ -133,6 +140,29 @@ public partial class AnaPencere : Window
             _sonEtkinlik = DateTime.UtcNow;
     }
 
+    private async Task OturumuTazeleAsync()
+    {
+        if (_tazeleniyor || _kilitli) return;
+        _tazeleniyor = true;
+        try
+        {
+            var kullaniciServisi = App.HizmetSaglayici.GetRequiredService<IKullaniciServisi>();
+            if (kullaniciServisi.AktifKullanici == null || await kullaniciServisi.OturumuTazeleAsync()) return;
+            _oturumTazelemeZamanlayicisi.Stop();
+            MessageBox.Show(this, "Kullanıcı hesabınız yönetici tarafından kapatıldı. Oturum sonlandırılıyor.",
+                "Oturum", MessageBoxButton.OK, MessageBoxImage.Warning);
+            foreach (var w in Application.Current.Windows.OfType<Window>().Where(w => w != this).ToList())
+                w.Close();
+            _gorunumModeli.CikisYapildi?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            // Bağlantı anlık koparsa oturum korunur; bir sonraki denemede yeniden bakılır.
+            System.Diagnostics.Debug.WriteLine($"Oturum tazelenemedi: {ex.Message}");
+        }
+        finally { _tazeleniyor = false; }
+    }
+
     private void ZamanAsiminiDenetle()
     {
         if (_kilitli || DateTime.UtcNow - _sonEtkinlik < TimeSpan.FromMinutes(_zamanAsimiDakika))
@@ -178,6 +208,7 @@ public partial class AnaPencere : Window
     protected override void OnClosed(EventArgs e)
     {
         _bostaKalmaZamanlayicisi?.Stop();
+        _oturumTazelemeZamanlayicisi.Stop();
         if (_zamanAsimiDakika > 0)
             InputManager.Current.PreProcessInput -= GirdiAlgilandi;
         base.OnClosed(e);

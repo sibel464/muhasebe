@@ -155,6 +155,23 @@ public class KullaniciServisi : IKullaniciServisi
         AktifKullanici = null;
     }
 
+    public async Task<bool> OturumuTazeleAsync(CancellationToken cancellationToken = default)
+    {
+        var aktif = AktifKullanici;
+        if (aktif == null) return false;
+        await using var baglam = await _baglamFactory.CreateDbContextAsync(cancellationToken);
+        var guncel = await baglam.Kullanicilar.AsNoTracking().Include(k => k.Yetkiler)
+            .FirstOrDefaultAsync(k => k.Id == aktif.Id, cancellationToken);
+        if (guncel == null || !guncel.Aktif || guncel.Silindi)
+        {
+            if (ReferenceEquals(AktifKullanici, aktif)) AktifKullanici = null;
+            return false;
+        }
+        // Arada çıkış ya da başka kullanıcıyla giriş yapıldıysa ona dokunulmaz.
+        if (ReferenceEquals(AktifKullanici, aktif)) AktifKullanici = guncel;
+        return true;
+    }
+
     public static bool YoneticiRolu(string? rol) => rol is "Yonetici" or "Yönetici";
 
     private bool AktifYoneticiMi => AktifKullanici != null && YoneticiRolu(AktifKullanici.Rol);

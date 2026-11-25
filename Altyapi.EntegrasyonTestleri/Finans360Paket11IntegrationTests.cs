@@ -213,7 +213,7 @@ public sealed class Finans360Paket11IntegrationTests
         db.CariHareketler.Add(faturaCariHareket);
         await db.SaveChangesAsync();
 
-        var kapamaServis = new BelgeKapamaServisi(db);
+        var kapamaServis = new BelgeKapamaServisi(db, AuthorizedUser());
         var kapama = await kapamaServis.KapatAsync(odenenCariHareket.Id, faturaCariHareket.Id, 10000m);
 
         Assert.Equal(10000m, kapama.KapananTutar);
@@ -234,7 +234,7 @@ public sealed class Finans360Paket11IntegrationTests
         db.CariHareketler.Add(faturaCariHareket);
         await db.SaveChangesAsync();
 
-        var kapamaServis = new BelgeKapamaServisi(db);
+        var kapamaServis = new BelgeKapamaServisi(db, AuthorizedUser());
         var kapama = await kapamaServis.KapatAsync(odenenCariHareket.Id, faturaCariHareket.Id, 6000m);
 
         Assert.Equal(6000m, kapama.KapananTutar);
@@ -252,7 +252,7 @@ public sealed class Finans360Paket11IntegrationTests
         db.CariHareketler.AddRange(f1, f2);
         await db.SaveChangesAsync();
 
-        var kapamaServis = new BelgeKapamaServisi(db);
+        var kapamaServis = new BelgeKapamaServisi(db, AuthorizedUser());
         var acikBelgeler = await kapamaServis.AcikBelgeleriGetirAsync(cari.Id);
 
         Assert.Equal(2, acikBelgeler.Count);
@@ -272,7 +272,7 @@ public sealed class Finans360Paket11IntegrationTests
         db.CariHareketler.Add(faturaCariHareket);
         await db.SaveChangesAsync();
 
-        var kapamaServis = new BelgeKapamaServisi(db);
+        var kapamaServis = new BelgeKapamaServisi(db, AuthorizedUser());
         await kapamaServis.KapatAsync(odenenCariHareket.Id, faturaCariHareket.Id, 4000m);
         Assert.Equal(4000m, faturaCariHareket.KapaliTutar);
     }

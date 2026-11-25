@@ -63,7 +63,16 @@ public static class AgYoneticisi
         if (Calistir(pgCtl, "status", "-D", veri).Kod == 0)
             Gerekli(Calistir(pgCtl, "stop", "-D", veri, "-m", "fast", "-w", "-t", "60"), "Veritabanı durdurulamadı");
 
-        Log("2/6 Ağ erişimi açılıyor (yalnız yerel ağ, şifreli giriş)");
+        Log("2/6 Ağ erişimi açılıyor (yalnız yerel ağ, SSL şifreli bağlantı, parolalı giriş)");
+        // Sertifika yoksa üretilir (varsa korunur: istemciler aynı sunucuyu görmeye devam eder).
+        var sertifikaYolu = Path.Combine(veri, AgAyarlari.SertifikaDosyasi);
+        var anahtarYolu = Path.Combine(veri, AgAyarlari.AnahtarDosyasi);
+        if (!File.Exists(sertifikaYolu) || !File.Exists(anahtarYolu))
+        {
+            var (sertifika, anahtar) = AgAyarlari.SunucuSertifikasiUret(Environment.MachineName);
+            File.WriteAllText(anahtarYolu, anahtar);
+            File.WriteAllText(sertifikaYolu, sertifika);
+        }
         DosyaDuzenle(Path.Combine(veri, "postgresql.conf"), AgAyarlari.KonfigurasyonaAgBloguYaz);
         DosyaDuzenle(Path.Combine(veri, "pg_hba.conf"), AgAyarlari.ErisimeAgBloguYaz);
 
@@ -172,7 +181,9 @@ public static class AgYoneticisi
         {
             var csb = new NpgsqlConnectionStringBuilder
             {
-                Host = adres, Port = kod.Port, Database = kod.Veritabani, Username = kod.Kullanici, Password = kod.Sifre, Timeout = 4, Pooling = false
+                Host = adres, Port = kod.Port, Database = kod.Veritabani, Username = kod.Kullanici, Password = kod.Sifre, Timeout = 4, Pooling = false,
+                // Sunucu SSL sunuyorsa trafik şifrelenir (yeni sunucular yalnız şifreli bağlantı kabul eder).
+                SslMode = SslMode.Prefer
             };
             try
             {

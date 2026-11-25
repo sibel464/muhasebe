@@ -270,7 +270,7 @@ public sealed class CiftTiklamaTests
         }
 
         // Her biri tek başına geçerli (600 ≤ 1000) ama ikisi birlikte açık tutarı aşar.
-        var basari = await IkiKezAsync(async db => await new BelgeKapamaServisi(db).KapatAsync(odenenId, faturaHareketId, 600m));
+        var basari = await IkiKezAsync(async db => await new BelgeKapamaServisi(db, new TamYetkili()).KapatAsync(odenenId, faturaHareketId, 600m));
 
         Assert.Equal(1, basari);
         await using var k = Yeni();

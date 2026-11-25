@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
@@ -44,15 +46,34 @@ public static class AgAyarlari
         catch (Exception ex) when (ex is FormatException or JsonException) { return null; }
     }
 
-    // postgresql.conf: tüm ağ arayüzlerinden dinle. Önceki blok varsa yenisiyle değiştirilir.
+    public const string SertifikaDosyasi = "server.crt";
+    public const string AnahtarDosyasi = "server.key";
+
+    // postgresql.conf: tüm ağ arayüzlerinden dinle; ağ trafiği SSL ile şifrelenir. Önceki blok varsa yenisiyle değiştirilir.
     public static string KonfigurasyonaAgBloguYaz(string icerik) =>
         BlokuKaldir(icerik).TrimEnd() + Environment.NewLine + Environment.NewLine +
-        string.Join(Environment.NewLine, BlokBasi, "listen_addresses = '*'", BlokSonu) + Environment.NewLine;
+        string.Join(Environment.NewLine, BlokBasi, "listen_addresses = '*'", "ssl = on",
+            $"ssl_cert_file = '{SertifikaDosyasi}'", $"ssl_key_file = '{AnahtarDosyasi}'", "ssl_min_protocol_version = 'TLSv1.2'", BlokSonu) + Environment.NewLine;
 
-    // pg_hba.conf: yalnız sunucunun bağlı olduğu yerel ağlardan (samenet), şifreyle (scram) bağlantı.
+    // pg_hba.conf: yalnız sunucunun bağlı olduğu yerel ağlardan (samenet), yalnız şifreli bağlantıyla (hostssl) ve
+    // parolayla (scram). Ağdaki biri trafiği dinlese de fatura, cari ve parola bilgisi okunamaz.
     public static string ErisimeAgBloguYaz(string icerik) =>
         BlokuKaldir(icerik).TrimEnd() + Environment.NewLine + Environment.NewLine +
-        string.Join(Environment.NewLine, BlokBasi, "host    all    all    samenet    scram-sha-256", BlokSonu) + Environment.NewLine;
+        string.Join(Environment.NewLine, BlokBasi, "hostssl    all    all    samenet    scram-sha-256", BlokSonu) + Environment.NewLine;
+
+    // Sunucu için kendinden imzalı sertifika (PEM). Amaç ağ trafiğini şifrelemektir; istemci kimlik doğrulamasını
+    // parolayla (scram) yapar.
+    public static (string Sertifika, string Anahtar) SunucuSertifikasiUret(string bilgisayarAdi)
+    {
+        using var rsa = RSA.Create(2048);
+        var ad = string.Concat(bilgisayarAdi.Where(c => char.IsLetterOrDigit(c) || c is '-' or '.'));
+        var istek = new CertificateRequest($"CN={(ad.Length > 0 ? ad : "MuhasebeYonetim")}, O=Muhasebe Yonetim", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        istek.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+        istek.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, true));
+        istek.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.1")], false));
+        using var sertifika = istek.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(30));
+        return (sertifika.ExportCertificatePem(), rsa.ExportPkcs8PrivateKeyPem());
+    }
 
     public static string BlokuKaldir(string icerik)
     {

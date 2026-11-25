@@ -615,7 +615,7 @@ public sealed class Finans360Paket11_1KabulTestleri
         {
             Assert.Equal(1000m, (await k.CariHareketler.SingleAsync(x => x.Id == fatA.Id)).KapaliTutar);
             Assert.Equal(200m, (await k.CariHareketler.SingleAsync(x => x.Id == fatB.Id)).KapaliTutar);
-            var acik = await new BelgeKapamaServisi(k).AcikBelgeleriGetirAsync(cari.Id);
+            var acik = await new BelgeKapamaServisi(k, PermittedUser()).AcikBelgeleriGetirAsync(cari.Id);
             Assert.DoesNotContain(acik, b => b.CariHareketId == fatA.Id);
             Assert.Equal(300m, acik.Single(b => b.CariHareketId == fatB.Id).AcikTutar);
             var fis = await k.YevmiyeFisleri.Include(f => f.Satirlar).ThenInclude(x => x.Hesap).SingleAsync(f => f.BelgeTipi == "TahsilatOdeme" && f.BelgeId == kayit.HareketId);
@@ -627,7 +627,7 @@ public sealed class Finans360Paket11_1KabulTestleri
         await using var kontrol = new MuhasebeBaglami(_fixture.Options);
         Assert.Equal(0m, (await kontrol.CariHareketler.SingleAsync(x => x.Id == fatA.Id)).KapaliTutar);
         Assert.Equal(0m, (await kontrol.CariHareketler.SingleAsync(x => x.Id == fatB.Id)).KapaliTutar);
-        var acikSonra = await new BelgeKapamaServisi(kontrol).AcikBelgeleriGetirAsync(cari.Id);
+        var acikSonra = await new BelgeKapamaServisi(kontrol, PermittedUser()).AcikBelgeleriGetirAsync(cari.Id);
         // Yalnız iki fatura açık kalır; iptal edilen tahsilat ve ters kaydı birbirini kapatmıştır.
         Assert.Equal(new[] { fatA.Id, fatB.Id }.OrderBy(x => x), acikSonra.Select(b => b.CariHareketId).OrderBy(x => x));
         var ters = await kontrol.KasaHareketleri.SingleAsync(x => x.TersKayitId == kayit.HareketId && x.IslemDurumu == FinansIslemDurumu.TersKayit);
@@ -684,7 +684,7 @@ public sealed class Finans360Paket11_1KabulTestleri
         Assert.True(await TahsilatOdemeServisi.EskiIptalleriEslestirAsync(db) >= 1);
         Assert.Equal(0, await TahsilatOdemeServisi.EskiIptalleriEslestirAsync(db));
 
-        var acik = await new BelgeKapamaServisi(db).AcikBelgeleriGetirAsync(cari.Id);
+        var acik = await new BelgeKapamaServisi(db, PermittedUser()).AcikBelgeleriGetirAsync(cari.Id);
         Assert.DoesNotContain(acik, b => b.CariHareketId == asilCari.Id || b.CariHareketId == tersCari.Id);
     }
     [Fact]

@@ -132,6 +132,8 @@
   <li><b>Modül Erişim ve İşlem İzinleri</b> listesinden kişinin neleri görebileceğini ve yapabileceğini işaretleyin. "Hazır şablon" ile tipik roller (ör. kasiyer, muhasebe) tek tıkla uygulanır.</li>
   <li>Şifresini unutan çalışanın şifresini yönetici, kullanıcıyı seçip <b>🔑 Sıfırla</b> ile yeniler.</li>
   <li>"Maliyet" yetkisi olmayan kullanıcı raporlarda alış maliyetini ve kârı göremez.</li>
+  <li>Yetkiler yalnız ekranda değil, programın içinde her işlemde de denetlenir; yetkisi olmayan kullanıcı bir işlemi başka bir yoldan da yapamaz.</li>
+  <li>Değişiklik kaydı (Audit Log) <b>silinemez ve değiştirilemez</b>; yönetici dahil hiç kimse geçmiş kaydı ortadan kaldıramaz. (KVKK silme talebinde yalnız kişisel bilgiler *** ile gizlenir.)</li>
 </ul>
 
 <!-- ============================================================ -->
@@ -403,8 +405,8 @@
 <!-- ============================================================ -->
 <h2 id="yedek">13. Yedekleme ve geri yükleme</h2>
 <ul>
-  <li><b>Dakikalık yedek:</b> program açıkken veri her değiştiğinde dakikada bir yedek alınır. İnternet gerekmez, yedek bilgisayarın kendi diskine yazılır (<code>Belgeler\Muhasebe Yedekleri\Dakikalik</code>). Son 2 saatin her yedeği ve son 2 günün saatte bir yedeği saklanır; böylece bir sorun olduğunda en fazla 1 dakikalık iş kaybolur.</li>
-  <li>Ayrıca son yedek 24 saatten eskiyse program <b>günlük tam yedek</b> alır. Günlük yedekler <code>Belgeler\Muhasebe Yedekleri</code> klasöründedir; son 30 yedek saklanır.</li>
+  <li><b>Dakikalık yedek:</b> program açıkken veri her değiştiğinde dakikada bir yedek alınır. İnternet gerekmez, yedek bilgisayarın kendi diskine yazılır (<code>Belgeler\Muhasebe Yedekleri\Dakikalik</code>). Son 2 günün her yedeği ve son 30 günün saatte bir yedeği saklanır; böylece bir sorun olduğunda en fazla 1 dakikalık iş kaybolur.</li>
+  <li>Ayrıca son yedek 24 saatten eskiyse program <b>günlük tam yedek</b> alır. Günlük yedekler <code>Belgeler\Muhasebe Yedekleri</code> klasöründedir ve <b>hiçbiri kendiliğinden silinmez</b>. Disk dolmak üzereyse program hiçbir yedeği silmez, ana sayfada ve Ayarlar'da uyarı gösterir.</li>
   <li>Bilgisayarın diski bozulursa yedekler de gider. Bu yüzden Ayarlar'da <b>ikinci yedek konumu</b> olarak bir USB bellek ya da harici disk seçin; dakikalık ve günlük her yedeğin kopyası oraya da yazılır.</li>
   <li>Her yedek alındıktan hemen sonra baştan sona açılarak denetlenir; bozuk ya da yarım çıkan yedek saklanmaz, hata bildirilir.</li>
   <li><span class="yol">Ayarlar → Yedekleme</span> sekmesinden istediğiniz an elle yedek alabilirsiniz.</li>
@@ -422,6 +424,8 @@
 <ul>
   <li>Sunucu bilgisayar kapalıyken diğerleri çalışamaz. Yedekler sunucuda alınır.</li>
   <li>Bağlantı kodu verilere tam erişim sağlar; yalnız kendi bilgisayarlarınıza girin.</li>
+  <li>Bilgisayarlar arasındaki trafik <b>SSL ile şifrelenir</b>; sunucu ağdan şifresiz bağlantıyı kabul etmez. Bu özellikten önce sunucu yapılmış bilgisayarda <b>Bu Bilgisayarı Sunucu Yap</b> adımını bir kez daha çalıştırın (veriler etkilenmez, bağlantı kodu değişmez).</li>
+  <li>Yönetici bir kullanıcıyı pasif yaparsa ya da yetkilerini değiştirirse, o kullanıcının açık oturumu en geç bir dakika içinde güncellenir (pasif kullanıcının oturumu kapanır).</li>
   <li>Tüm bilgisayarları aynı program sürümünde tutun; bir bilgisayar güncellenince diğerleri de güncellenmelidir.</li>
 </ul>
 
