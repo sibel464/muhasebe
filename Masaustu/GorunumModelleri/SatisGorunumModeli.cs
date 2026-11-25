@@ -11,6 +11,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class SatisGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IUrunServisi _urunServisi;
     private readonly ICariServisi _cariServisi;
     private readonly IFaturaServisi _faturaServisi;
@@ -157,10 +160,10 @@ public class SatisGorunumModeli : TemelGorunumModeli
         _yazdirma = yazdirma;
         SonFisiYazdirKomutu = new KomutSarici(async _ => await FisYazdirAsync(yaziciSor: true), _ => _sonFatura != null && _yazdirma != null);
         _ = StokYerleri.YukleAsync(urunServisi);
-        _urunServisi = urunServisi;
-        _cariServisi = cariServisi;
-        _faturaServisi = faturaServisi;
-        _cariHareketServisi = cariHareketServisi;
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _faturaServisi = SiraliServis<IFaturaServisi>.Sar(faturaServisi, _servisKilidi);
+        _cariHareketServisi = SiraliServis<ICariHareketServisi>.Sar(cariHareketServisi, _servisKilidi);
 
         BarkodOkunduKomutu = new KomutSarici(async _ => await BarkodIsleAsync(), tekrarGirisli: true);
         UrunAraKomutu = new KomutSarici(async _ =>

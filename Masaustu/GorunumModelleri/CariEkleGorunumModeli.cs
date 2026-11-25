@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class CariEkleGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICariServisi _cariServisi;
     private readonly NavigasyonServisi _navigasyon;
     private readonly ICariTipiTanimiServisi _cariTipiServisi;
@@ -172,11 +175,11 @@ public class CariEkleGorunumModeli : TemelGorunumModeli
 
     public CariEkleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, NavigasyonServisi navigasyon, IEBelgeServisi? eBelgeServisi = null)
     {
-        _eBelgeServisi = eBelgeServisi;
+        _eBelgeServisi = eBelgeServisi is null ? null : SiraliServis<IEBelgeServisi>.Sar(eBelgeServisi, _servisKilidi);
         GibSorgulaKomutu = new KomutSarici(async () => await GibSorgulaAsync());
-        _cariServisi = cariServisi;
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
         _navigasyon = navigasyon;
-        _cariTipiServisi = cariTipiServisi;
+        _cariTipiServisi = SiraliServis<ICariTipiTanimiServisi>.Sar(cariTipiServisi, _servisKilidi);
         
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync(), () => !Kaydediliyor);
         FormuTemizleKomutu = new KomutSarici(FormuTemizle);

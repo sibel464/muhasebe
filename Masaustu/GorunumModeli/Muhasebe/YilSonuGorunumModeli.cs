@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModeli.Muhasebe;
 
 public class YilSonuGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IYilSonuServisi _servis;
     private int _yil = DateTime.Today.Month == 12 && DateTime.Today.Day == 31 ? DateTime.Today.Year : DateTime.Today.Year - 1;
     private YilSonuOnizlemeDto? _onizleme;
@@ -18,7 +21,7 @@ public class YilSonuGorunumModeli : TemelGorunumModeli
 
     public YilSonuGorunumModeli(IYilSonuServisi servis)
     {
-        _servis = servis;
+        _servis = SiraliServis<IYilSonuServisi>.Sar(servis, _servisKilidi);
         YenileKomutu = new KomutSarici(async () => await YukleAsync());
         KapatKomutu = new KomutSarici(async () => await KapatAsync(), () => !Yukleniyor && Onizleme?.KapatilabilirMi == true);
         GeriAlKomutu = new KomutSarici(async () => await GeriAlAsync(), () => !Yukleniyor && Onizleme?.Kapatildi == true);

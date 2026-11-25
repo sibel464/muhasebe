@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 // Stoğu veya açık siparişi olan ürün silinemez (kural serviste).
 public class UrunSilGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IUrunServisi _urunServisi;
     private string _aramaMetni = string.Empty;
     private ObservableCollection<Urun> _aramaSonuclari = new();
@@ -59,7 +62,7 @@ public class UrunSilGorunumModeli : TemelGorunumModeli
 
     public UrunSilGorunumModeli(IUrunServisi urunServisi)
     {
-        _urunServisi = urunServisi;
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
         SilKomutu = new KomutSarici(async () => await SilAsync(), () => SeciliUrun != null && !IslemYapiliyor);
         GeriAlKomutu = new KomutSarici(async () => await GeriAlAsync(), () => SeciliSilinen != null && !IslemYapiliyor);
         _ = YukleAsync();

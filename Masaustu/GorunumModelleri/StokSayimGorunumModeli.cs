@@ -53,6 +53,9 @@ public class StokSayimKalemModeli : TemelGorunumModeli
 
 public class StokSayimGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IStokOperasyonServisi _operasyonServisi;
     private readonly IUrunServisi _urunServisi;
     private readonly IDepoServisi _depoServisi;
@@ -218,9 +221,9 @@ public class StokSayimGorunumModeli : TemelGorunumModeli
         IAktifFirmaBaglami firmaBaglami,
         IKullaniciServisi kullaniciServisi)
     {
-        _operasyonServisi = operasyonServisi;
-        _urunServisi = urunServisi;
-        _depoServisi = depoServisi;
+        _operasyonServisi = SiraliServis<IStokOperasyonServisi>.Sar(operasyonServisi, _servisKilidi);
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
+        _depoServisi = SiraliServis<IDepoServisi>.Sar(depoServisi, _servisKilidi);
         _firmaBaglami = firmaBaglami;
         _kullaniciServisi = kullaniciServisi;
 

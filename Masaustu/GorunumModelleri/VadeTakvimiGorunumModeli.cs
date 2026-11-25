@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 // Vade takvimi: seçilen gün sayısı içinde vadesi gelen (ve geçmiş) tahsilat ve ödemeler.
 public class VadeTakvimiGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
     private readonly IRaporMerkeziServisi _servis;
     private List<VadeTakvimiKalemiDto> _tum = new();
@@ -19,7 +22,7 @@ public class VadeTakvimiGorunumModeli : TemelGorunumModeli
 
     public VadeTakvimiGorunumModeli(IRaporMerkeziServisi servis)
     {
-        _servis = servis;
+        _servis = SiraliServis<IRaporMerkeziServisi>.Sar(servis, _servisKilidi);
         YenileKomutu = new KomutSarici(async _ => await YukleAsync());
         ExcelKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Kalemler.Select(k => new
         {

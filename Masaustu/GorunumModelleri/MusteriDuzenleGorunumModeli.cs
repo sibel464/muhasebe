@@ -9,6 +9,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICariServisi _cariServisi;
     private readonly ICariTipiTanimiServisi _cariTipiServisi;
     private readonly CariKart? _mevcutCari;
@@ -308,10 +311,10 @@ public class MusteriDuzenleGorunumModeli : TemelGorunumModeli
 
     public MusteriDuzenleGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, CariKart? mevcutCari = null, IEBelgeServisi? eBelgeServisi = null)
     {
-        _eBelgeServisi = eBelgeServisi;
+        _eBelgeServisi = eBelgeServisi is null ? null : SiraliServis<IEBelgeServisi>.Sar(eBelgeServisi, _servisKilidi);
         GibSorgulaKomutu = new KomutSarici(async _ => await GibSorgulaAsync());
-        _cariServisi = cariServisi;
-        _cariTipiServisi = cariTipiServisi;
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _cariTipiServisi = SiraliServis<ICariTipiTanimiServisi>.Sar(cariTipiServisi, _servisKilidi);
         _mevcutCari = mevcutCari;
 
         if (mevcutCari != null)

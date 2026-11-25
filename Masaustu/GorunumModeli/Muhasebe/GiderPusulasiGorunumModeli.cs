@@ -14,6 +14,9 @@ namespace Masaustu.GorunumModeli.Muhasebe;
 
 public class GiderPusulasiGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IGiderPusulasiServisi _servis;
     private readonly IBelgeYazdirmaServisi _yazdirma;
     private GiderPusulasiListeDto? _secili;
@@ -24,7 +27,7 @@ public class GiderPusulasiGorunumModeli : TemelGorunumModeli
 
     public GiderPusulasiGorunumModeli(IGiderPusulasiServisi servis, IBelgeYazdirmaServisi yazdirma)
     {
-        _servis = servis;
+        _servis = SiraliServis<IGiderPusulasiServisi>.Sar(servis, _servisKilidi);
         _yazdirma = yazdirma;
         YenileKomutu = new KomutSarici(async () => await YukleAsync());
         YeniKomutu = new KomutSarici(async () => await YeniAsync());

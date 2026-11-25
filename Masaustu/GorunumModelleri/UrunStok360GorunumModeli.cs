@@ -27,6 +27,9 @@ public record Stok360SekmeSecimi(Stok360Sekme Tur, string Ad);
 
 public class UrunStok360GorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IStok360Servisi _stok360Servisi;
     private readonly IUrunServisi _urunServisi;
     private readonly IAktifFirmaBaglami _firmaBaglami;
@@ -152,7 +155,7 @@ public class UrunStok360GorunumModeli : TemelGorunumModeli
         IKullaniciServisi kullaniciServisi)
     {
         _stok360Servisi = stok360Servisi;
-        _urunServisi = urunServisi;
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
         _firmaBaglami = firmaBaglami;
         _kullaniciServisi = kullaniciServisi;
 

@@ -109,6 +109,9 @@ public sealed class IrsaliyeKalemiGorunumModeli : TemelGorunumModeli
 
 public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IIrsaliyeServisi _irsaliyeServisi;
     private readonly ICariServisi _cariServisi;
     private readonly IUrunServisi _urunServisi;
@@ -281,9 +284,9 @@ public class IrsaliyeEkleGorunumModeli : TemelGorunumModeli
         ICariServisi cariServisi,
         IUrunServisi urunServisi)
     {
-        _irsaliyeServisi = irsaliyeServisi;
-        _cariServisi = cariServisi;
-        _urunServisi = urunServisi;
+        _irsaliyeServisi = SiraliServis<IIrsaliyeServisi>.Sar(irsaliyeServisi, _servisKilidi);
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
 
         KalemEkleKomutu = new KomutSarici(KalemEkle, () => SeciliUrun != null);
         BarkodOkutKomutu = new KomutSarici(async _ => await BarkodOkutAsync(), tekrarGirisli: true);

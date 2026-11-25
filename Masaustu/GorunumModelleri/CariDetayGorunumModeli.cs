@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 public sealed record CariSekmeSecimi(CariSekme Tur,string Ad);
 public sealed class CariDetayGorunumModeli : TemelGorunumModeli, IDisposable
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICariDetayServisi _servis;
     private readonly IAktifFirmaBaglami _firma;
     private readonly IKullaniciServisi _kullanici;
@@ -106,7 +109,7 @@ public sealed class CariDetayGorunumModeli : TemelGorunumModeli, IDisposable
     public Func<CariBelgeDetayDto,Task>? BelgeGoster { get; set; }
     public CariDetayGorunumModeli(ICariDetayServisi servis,IAktifFirmaBaglami firma,IKullaniciServisi kullanici)
     {
-        _servis=servis;_firma=firma;_kullanici=kullanici;
+        _servis = SiraliServis<ICariDetayServisi>.Sar(servis, _servisKilidi);_firma=firma;_kullanici=kullanici;
         string[] adlar=["Genel","Cari Ekstre","Satışlar","Alışlar","Siparişler","İrsaliyeler","Faturalar","Tahsilat / Ödeme","İadeler","Cari Hesap Fişleri","Çek / Senet","Risk & Vade","Notlar","Sistem Bilgisi"];
         foreach(var tur in Enum.GetValues<CariSekme>()) {
             bool izin=tur switch {

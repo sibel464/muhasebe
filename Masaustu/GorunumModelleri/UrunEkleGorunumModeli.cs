@@ -15,6 +15,9 @@ namespace Masaustu.GorunumModelleri;
 // Ürün kartı: hem yeni ürün kaydı hem de var olan ürünün düzenlenmesi bu formla yapılır.
 public class UrunEkleGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IUrunServisi _urunServisi;
     private readonly NavigasyonServisi _navigasyon;
     private readonly IMerkeziTanimServisi _tanimServisi;
@@ -212,9 +215,9 @@ public class UrunEkleGorunumModeli : TemelGorunumModeli
 
     public UrunEkleGorunumModeli(IUrunServisi urunServisi, IMerkeziTanimServisi tanimServisi, NavigasyonServisi navigasyon)
     {
-        _urunServisi = urunServisi;
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
         _navigasyon = navigasyon;
-        _tanimServisi=tanimServisi;
+        _tanimServisi = SiraliServis<IMerkeziTanimServisi>.Sar(tanimServisi, _servisKilidi);
 
         KaydetKomutu = new KomutSarici(async () => await KaydetAsync(), () => !Kaydediliyor);
         YeniUrunKomutu = new KomutSarici(async () => await YeniUrunaGecAsync());

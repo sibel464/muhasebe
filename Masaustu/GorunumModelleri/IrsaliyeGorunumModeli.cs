@@ -13,6 +13,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class IrsaliyeGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IIrsaliyeServisi _irsaliyeServisi;
     private readonly ICariServisi _cariServisi;
     private readonly IUrunServisi _urunServisi;
@@ -184,17 +187,17 @@ public class IrsaliyeGorunumModeli : TemelGorunumModeli
         IBelgeYazdirmaServisi? yazdirmaServisi = null,
         IEBelgeServisi? eBelgeServisi = null)
     {
-        _eBelgeServisi = eBelgeServisi;
+        _eBelgeServisi = eBelgeServisi is null ? null : SiraliServis<IEBelgeServisi>.Sar(eBelgeServisi, _servisKilidi);
         // Onaylı sevk irsaliyesi e-İrsaliye olarak hazırlanır (taşıma bilgisi pencerede istenir).
         EIrsaliyeKomutu = new KomutSarici(async p =>
         {
             if (p is not Irsaliye i || _eBelgeServisi == null) return;
             if (await Masaustu.Gorunumler.Sayfa.EIrsaliyePenceresi.GosterAsync(_eBelgeServisi, i)) await ListeleAsync();
         }, p => p is Irsaliye { Tur: IrsaliyeTuru.Satis, Durum: IrsaliyeDurumu.Onaylandi or IrsaliyeDurumu.Faturalandi });
-        _irsaliyeServisi = irsaliyeServisi;
-        _cariServisi = cariServisi;
-        _urunServisi = urunServisi;
-        _faturaServisi = faturaServisi;
+        _irsaliyeServisi = SiraliServis<IIrsaliyeServisi>.Sar(irsaliyeServisi, _servisKilidi);
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
+        _faturaServisi = SiraliServis<IFaturaServisi>.Sar(faturaServisi, _servisKilidi);
         _navigasyon = navigasyon;
         _yazdirmaServisi = yazdirmaServisi;
 

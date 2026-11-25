@@ -13,6 +13,9 @@ namespace Masaustu.GorunumModelleri;
 
 public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ITahsilatOdemeServisi _servis;
     private readonly ICariServisi _cariler;
     private readonly IBelgeKapamaServisi _kapama;
@@ -258,9 +261,9 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         IBelgeKapamaServisi kapama,
         FinansIslemTuru tur)
     {
-        _servis = servis;
-        _cariler = cariler;
-        _kapama = kapama;
+        _servis = SiraliServis<ITahsilatOdemeServisi>.Sar(servis, _servisKilidi);
+        _cariler = SiraliServis<ICariServisi>.Sar(cariler, _servisKilidi);
+        _kapama = SiraliServis<IBelgeKapamaServisi>.Sar(kapama, _servisKilidi);
         IslemTuru = tur;
 
         CariSecKomutu = new KomutSarici(CariSec);

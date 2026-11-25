@@ -12,6 +12,9 @@ namespace Masaustu.GorunumModeli.Muhasebe;
 
 public class DemirbasGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ISabitKiymetServisi _servis;
     private SabitKiymetListeDto? _secili;
     private bool _eldenCikanlar;
@@ -22,7 +25,7 @@ public class DemirbasGorunumModeli : TemelGorunumModeli
 
     public DemirbasGorunumModeli(ISabitKiymetServisi servis)
     {
-        _servis = servis;
+        _servis = SiraliServis<ISabitKiymetServisi>.Sar(servis, _servisKilidi);
         YenileKomutu = new KomutSarici(async () => await YukleAsync());
         YeniKomutu = new KomutSarici(async () => await FormAcAsync(null));
         DuzenleKomutu = new KomutSarici(async () => await FormAcAsync(Secili), () => Secili != null);

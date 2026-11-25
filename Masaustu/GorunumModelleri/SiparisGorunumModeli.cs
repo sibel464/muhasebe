@@ -16,6 +16,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class SiparisGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ISiparisServisi _servis;
     private readonly ICariServisi _cariServisi;
     private readonly IUrunServisi _urunServisi;
@@ -108,7 +111,7 @@ public class SiparisGorunumModeli : TemelGorunumModeli
 
     public SiparisGorunumModeli(ISiparisServisi servis, ICariServisi cariServisi, IUrunServisi urunServisi, IBelgeYazdirmaServisi? yazdirma = null)
     {
-        _servis = servis; _cariServisi = cariServisi; _urunServisi = urunServisi; _yazdirma = yazdirma;
+        _servis = SiraliServis<ISiparisServisi>.Sar(servis, _servisKilidi); _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi); _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi); _yazdirma = yazdirma;
         YazdirKomutu = new KomutSarici(async x =>
         {
             if (x is not Siparis s || _yazdirma == null) return;

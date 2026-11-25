@@ -9,6 +9,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IStokOperasyonServisi _operasyonServisi;
     private readonly IUrunServisi _urunServisi;
     private readonly IDepoServisi _depoServisi;
@@ -117,7 +120,7 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
         Masaustu.Servisler.NavigasyonServisi navigasyon,
         IBelgeYazdirmaServisi? yazdirmaServisi = null)
     {
-        _operasyonServisi = operasyonServisi;
+        _operasyonServisi = SiraliServis<IStokOperasyonServisi>.Sar(operasyonServisi, _servisKilidi);
         // Raf etiketi: fiyat KDV dahil (kayıtlı satış fiyatı KDV hariçtir); her ürün istenen adet kadar basılır.
         EtiketYazdirKomutu = new KomutSarici(async _ =>
         {
@@ -148,8 +151,8 @@ public class StokOperasyonMerkeziGorunumModeli : TemelGorunumModeli
             if (id > 0)
                 navigasyon.Git("UrunEkle", gm => _ = ((UrunEkleGorunumModeli)gm).DuzenlemeIcinYukleAsync(id));
         }, _ => SeciliSatir != null && _kullaniciServisi!.YetkiliMi(x => x.StokDuzenle));
-        _urunServisi = urunServisi;
-        _depoServisi = depoServisi;
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
+        _depoServisi = SiraliServis<IDepoServisi>.Sar(depoServisi, _servisKilidi);
         _firmaBaglami = firmaBaglami;
         _kullaniciServisi = kullaniciServisi;
 

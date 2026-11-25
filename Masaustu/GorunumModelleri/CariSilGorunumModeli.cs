@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 // KVKK: seçili (aranan ya da silinmiş) carinin kişisel veri dökümü alınır, yasal saklama süresi dolmuşsa anonimleştirilir.
 public class CariSilGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICariServisi _cariServisi;
     private readonly IKvkkServisi _kvkkServisi;
     private string _aramaMetni = string.Empty;
@@ -74,8 +77,8 @@ public class CariSilGorunumModeli : TemelGorunumModeli
 
     public CariSilGorunumModeli(ICariServisi cariServisi, IKvkkServisi kvkkServisi)
     {
-        _cariServisi = cariServisi;
-        _kvkkServisi = kvkkServisi;
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _kvkkServisi = SiraliServis<IKvkkServisi>.Sar(kvkkServisi, _servisKilidi);
         KvkkDokumKomutu = new KomutSarici(async () => await KvkkDokumAsync(), () => KvkkHedefi != null && !IslemYapiliyor);
         KvkkAnonimlestirKomutu = new KomutSarici(async () => await KvkkAnonimlestirAsync(), () => KvkkHedefi != null && !IslemYapiliyor);
         SilKomutu = new KomutSarici(async () => await SilAsync(), () => SeciliCari != null && !IslemYapiliyor);

@@ -9,6 +9,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class MusteriGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICariServisi _cariServisi;
     private readonly ICariTipiTanimiServisi _cariTipiServisi;
 
@@ -156,8 +159,8 @@ public class MusteriGorunumModeli : TemelGorunumModeli
 
     public MusteriGorunumModeli(ICariServisi cariServisi, ICariTipiTanimiServisi cariTipiServisi, NavigasyonServisi? navigasyon = null, Action? cikisAction = null)
     {
-        _cariServisi = cariServisi;
-        _cariTipiServisi = cariTipiServisi;
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _cariTipiServisi = SiraliServis<ICariTipiTanimiServisi>.Sar(cariTipiServisi, _servisKilidi);
         _navigasyon = navigasyon;
         _cikisAction = cikisAction;
 

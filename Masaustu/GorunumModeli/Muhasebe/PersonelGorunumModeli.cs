@@ -75,7 +75,8 @@ public class PersonelGorunumModeli : TemelGorunumModeli
 
     public PersonelGorunumModeli(IPersonelServisi servis, IBelgeYazdirmaServisi? yazdirma = null)
     {
-        _servis = servis;
+        // Seçim/dönem değişince başlayan yüklemeler süren yüklemeyle aynı bağlamı kullanır: çağrılar sıraya konur.
+        _servis = SiraliServis<IPersonelServisi>.Sar(servis);
         _yazdirma = yazdirma;
         YenileKomutu = new KomutSarici(async () => await YukleAsync());
         YeniKomutu = new KomutSarici(async () => await FormAcAsync(null));
@@ -188,9 +189,15 @@ public class PersonelGorunumModeli : TemelGorunumModeli
 
     private async Task EkstreYukleAsync()
     {
-        Ekstre.Clear();
-        if (Secili == null) return;
-        try { foreach (var s in (await _servis.EkstreAsync(Secili.Id)).AsEnumerable().Reverse()) Ekstre.Add(s); }
+        var secili = Secili;
+        if (secili == null) { Ekstre.Clear(); return; }
+        try
+        {
+            var satirlar = await _servis.EkstreAsync(secili.Id);
+            if (!ReferenceEquals(secili, Secili)) return; // arada başka personel seçildi; onun yüklemesi yazar
+            Ekstre.Clear();
+            foreach (var s in satirlar.AsEnumerable().Reverse()) Ekstre.Add(s);
+        }
         catch (Exception ex) { DurumMesaji = ex.Message; }
     }
 

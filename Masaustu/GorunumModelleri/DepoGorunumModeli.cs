@@ -12,6 +12,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class DepoGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IDepoServisi _depoServisi;
     private readonly IUrunServisi _urunServisi;
     private readonly IBelgeYazdirmaServisi _yazdirmaServisi;
@@ -86,8 +89,8 @@ public class DepoGorunumModeli : TemelGorunumModeli
         IUrunServisi urunServisi,
         IBelgeYazdirmaServisi yazdirmaServisi)
     {
-        _depoServisi = depoServisi;
-        _urunServisi = urunServisi;
+        _depoServisi = SiraliServis<IDepoServisi>.Sar(depoServisi, _servisKilidi);
+        _urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
         _yazdirmaServisi = yazdirmaServisi;
 
         _stokMatrisiView = CollectionViewSource.GetDefaultView(_stokMatrisi);

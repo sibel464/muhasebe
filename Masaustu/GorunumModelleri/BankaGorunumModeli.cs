@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class BankaGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IBankaServisi _bankaServisi;
     private readonly IBelgeYazdirmaServisi? _yazdirmaServisi;
     private readonly ICariServisi? _cariServisi;
@@ -353,10 +356,10 @@ public class BankaGorunumModeli : TemelGorunumModeli
         ICariServisi? cariServisi = null,
         IKasaServisi? kasaServisi = null)
     {
-        _bankaServisi = bankaServisi;
+        _bankaServisi = SiraliServis<IBankaServisi>.Sar(bankaServisi, _servisKilidi);
         _yazdirmaServisi = yazdirmaServisi;
-        _cariServisi = cariServisi;
-        _kasaServisi = kasaServisi;
+        _cariServisi = cariServisi is null ? null : SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _kasaServisi = kasaServisi is null ? null : SiraliServis<IKasaServisi>.Sar(kasaServisi, _servisKilidi);
 
         ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Hareketler.Select(r => new
         {

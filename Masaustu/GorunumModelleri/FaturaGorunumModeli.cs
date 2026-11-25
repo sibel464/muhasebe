@@ -161,6 +161,9 @@ public sealed class FaturaKalemiGorunumModeli : TemelGorunumModeli
 
 public class FaturaGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
 	private readonly IFaturaServisi _faturaServisi;
 	private readonly ICariServisi _cariServisi;
 	private readonly IUrunServisi _urunServisi;
@@ -266,10 +269,10 @@ public class FaturaGorunumModeli : TemelGorunumModeli
 		IBelgeYazdirmaServisi? yazdirmaServisi = null,
 		IEBelgeServisi? eBelgeServisi = null)
 	{
-		_eBelgeServisi = eBelgeServisi;
-		_faturaServisi = faturaServisi;
-		_cariServisi = cariServisi;
-		_urunServisi = urunServisi;
+		_eBelgeServisi = eBelgeServisi is null ? null : SiraliServis<IEBelgeServisi>.Sar(eBelgeServisi, _servisKilidi);
+		_faturaServisi = SiraliServis<IFaturaServisi>.Sar(faturaServisi, _servisKilidi);
+		_cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+		_urunServisi = SiraliServis<IUrunServisi>.Sar(urunServisi, _servisKilidi);
 		_navigasyon = navigasyon;
 		_yazdirmaServisi = yazdirmaServisi;
 

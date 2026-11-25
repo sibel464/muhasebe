@@ -10,6 +10,9 @@ namespace Masaustu.GorunumModelleri;
 
 public class CekSenetGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly ICekSenetServisi _cekSenetServisi;
     private readonly ICariServisi _cariServisi;
     private readonly IKasaServisi _kasaServisi;
@@ -61,10 +64,10 @@ public class CekSenetGorunumModeli : TemelGorunumModeli
         IKasaServisi kasaServisi, 
         IBankaServisi bankaServisi)
     {
-        _cekSenetServisi = cekSenetServisi;
-        _cariServisi = cariServisi;
-        _kasaServisi = kasaServisi;
-        _bankaServisi = bankaServisi;
+        _cekSenetServisi = SiraliServis<ICekSenetServisi>.Sar(cekSenetServisi, _servisKilidi);
+        _cariServisi = SiraliServis<ICariServisi>.Sar(cariServisi, _servisKilidi);
+        _kasaServisi = SiraliServis<IKasaServisi>.Sar(kasaServisi, _servisKilidi);
+        _bankaServisi = SiraliServis<IBankaServisi>.Sar(bankaServisi, _servisKilidi);
 
         ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(TabloVerisi, "Cek_Senet_Listesi"));
 

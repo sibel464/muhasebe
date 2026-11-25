@@ -12,6 +12,9 @@ namespace Masaustu.GorunumModeli.Muhasebe;
 
 public class MaliTablolarGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IMaliTabloServisi _servis;
     private readonly IExcelExportServisi _excel;
     private readonly IPdfRaporServisi _pdf;
@@ -27,7 +30,7 @@ public class MaliTablolarGorunumModeli : TemelGorunumModeli
 
     public MaliTablolarGorunumModeli(IMaliTabloServisi servis, IExcelExportServisi excel, IPdfRaporServisi pdf, IAktifFirmaBaglami? firma = null)
     {
-        _servis = servis;
+        _servis = SiraliServis<IMaliTabloServisi>.Sar(servis, _servisKilidi);
         _excel = excel;
         _pdf = pdf;
         _firma = firma;

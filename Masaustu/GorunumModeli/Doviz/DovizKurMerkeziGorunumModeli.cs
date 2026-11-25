@@ -11,6 +11,9 @@ namespace Masaustu.GorunumModeli.Doviz;
 
 public class DovizKurMerkeziGorunumModeli : TemelGorunumModeli
 {
+    // Sayfanın servisleri tek veritabanı bağlamını paylaşır; çağrılar sıraya konur (bkz. SiraliServis).
+    private readonly SemaphoreSlim _servisKilidi = new(1, 1);
+
     private readonly IAktifFirmaBaglami _aktifFirma;
     private RevaluasyonKaydiDto? _seciliRevaluasyon;
     public RevaluasyonKaydiDto? SeciliRevaluasyon
@@ -128,9 +131,9 @@ public class DovizKurMerkeziGorunumModeli : TemelGorunumModeli
         IAktifFirmaBaglami aktifFirma)
     {
         _aktifFirma = aktifFirma;
-        _kurServisi = kurServisi;
-        _tcmbServisi = tcmbServisi;
-        _revaluasyonServisi = revaluasyonServisi;
+        _kurServisi = SiraliServis<IKurServisi>.Sar(kurServisi, _servisKilidi);
+        _tcmbServisi = SiraliServis<ITcmbKurServisi>.Sar(tcmbServisi, _servisKilidi);
+        _revaluasyonServisi = SiraliServis<IRevaluasyonServisi>.Sar(revaluasyonServisi, _servisKilidi);
         _excelServisi = excelServisi;
         _pdfServisi = pdfServisi;
 
