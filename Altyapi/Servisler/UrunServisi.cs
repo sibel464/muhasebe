@@ -238,6 +238,11 @@ public class UrunServisi : IUrunServisi
         if (mevcutUrun == null)
             throw new KeyNotFoundException("Güncellenecek ürün bulunamadı.");
 
+        // Fiyat değişikliği ayrı yetkidir: kart düzenleyebilen çalışan (ör. depo) fiyatı değiştiremeyebilir.
+        if (mevcutUrun.AlisFiyati != urun.AlisFiyati || mevcutUrun.PerakendeSatisFiyati != urun.PerakendeSatisFiyati ||
+            mevcutUrun.ToptanSatisFiyati != urun.ToptanSatisFiyati)
+            _kullaniciServisi!.YetkiKontrolEt(y => y.StokFiyatDegistir, "Ürün fiyatı değiştirme");
+
         // Snapshot ve Değer Güncellemeleri
         mevcutUrun.Kod = urun.Kod;
         mevcutUrun.Ad = urun.Ad;
@@ -410,6 +415,11 @@ public class UrunServisi : IUrunServisi
         var mevcutFiyatlar = await _baglam.UrunSatisFiyatlari
             .Where(f => f.UrunId == urunId)
             .ToListAsync();
+
+        static string Imza(IEnumerable<UrunSatisFiyati> liste) => string.Join("|", liste
+            .Select(f => $"{f.TaksitSayisi};{f.Fiyat:0.######};{f.ParaBirimiId};{f.AktifMi}").Order(StringComparer.Ordinal));
+        if (Imza(mevcutFiyatlar) != Imza(fiyatlar))
+            _kullaniciServisi!.YetkiKontrolEt(y => y.StokFiyatDegistir, "Ürün fiyatı değiştirme");
 
         _baglam.UrunSatisFiyatlari.RemoveRange(mevcutFiyatlar);
         foreach (var fiyat in fiyatlar)

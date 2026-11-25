@@ -1632,7 +1632,7 @@ public class MuhasebeBaglami : DbContext
                 var yeniDegerler = entry.Properties
                     .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
                     .ToDictionary(p => p.Metadata.Name, p => DenetimDegeri(p.Metadata.Name, p.CurrentValue));
-                auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(yeniDegerler);
+                auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(yeniDegerler, DenetimJson);
             }
             else if (entry.State == EntityState.Deleted)
             {
@@ -1640,7 +1640,7 @@ public class MuhasebeBaglami : DbContext
                 var eskiDegerler = entry.Properties
                     .Where(p => DenetimAlaninaDahilEt(p.Metadata.Name))
                     .ToDictionary(p => p.Metadata.Name, p => DenetimDegeri(p.Metadata.Name, p.OriginalValue));
-                auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(eskiDegerler);
+                auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(eskiDegerler, DenetimJson);
             }
             else if (entry.State == EntityState.Modified)
             {
@@ -1661,8 +1661,8 @@ public class MuhasebeBaglami : DbContext
                     degisenYeni[prop.Metadata.Name] = DenetimDegeri(prop.Metadata.Name, prop.CurrentValue);
                 }
 
-                auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(degisenEski);
-                auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(degisenYeni);
+                auditLog.EskiDegerJson = System.Text.Json.JsonSerializer.Serialize(degisenEski, DenetimJson);
+                auditLog.YeniDegerJson = System.Text.Json.JsonSerializer.Serialize(degisenYeni, DenetimJson);
             }
 
             auditKayitlari.Add((auditLog, entry));
@@ -1713,6 +1713,12 @@ public class MuhasebeBaglami : DbContext
 
     // Anonimleştirme kaydedilirken açılır: silinen kişisel değerler değişiklik günlüğüne de yazılmaz.
     internal bool KisiselVeriMaskele { get; set; }
+
+    // Türkçe harfler kaçış koduna (ş) çevrilmeden yazılır: denetim kaydında "Şahin" diye arama yapılabilsin.
+    private static readonly System.Text.Json.JsonSerializerOptions DenetimJson = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+    };
 
     private object? DenetimDegeri(string alanAdi, object? deger) =>
         KisiselVeriMaskele && KisiselVeriAlanlari.Contains(alanAdi) && deger != null ? "***" : deger;

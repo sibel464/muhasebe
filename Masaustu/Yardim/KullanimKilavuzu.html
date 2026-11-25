@@ -126,12 +126,23 @@
 
 <!-- ============================================================ -->
 <h2 id="kullanicilar">3. Kullanıcılar ve yetkiler</h2>
-<p><span class="yol">Kullanıcı Yönetimi</span> ekranında her çalışana ayrı kullanıcı açın. Ortak şifre kullanmayın; yapılan her değişiklik kimin yaptığıyla birlikte kayıt altına alınır (<span class="yol">Ayarlar → Audit Log</span>).</p>
+<p><span class="yol">Kullanıcı Yönetimi</span> ekranında her çalışana ayrı kullanıcı açın. Ortak şifre kullanmayın; yapılan her değişiklik kimin yaptığıyla birlikte kayıt altına alınır.</p>
+<h3>Kim ne yaptı?</h3>
+<p>Aynı ekrandaki <b>📋 Kim Ne Yaptı?</b> sekmesi, programda yapılan her eklemeyi, değişikliği, silmeyi ve girişi saatiyle listeler:</p>
+<ul>
+  <li><b>Kim / Nerede / Ne yaptı / Ne zaman</b> kutularıyla süzün. Arama kutusu kullanıcı adı, belge numarası, cari ünvanı, tutar ve bilgisayar adı içinde arar (ör. <code>FAT-2026-000102</code> ya da <code>Yıldız</code>).</li>
+  <li><b>Ayrıntı</b> sütunu değişikliği tek satırda özetler (ör. <i>Satış fiyatı: 120 → 135,50</i>). Bir satırı seçince sağdaki kutuda her alanın <b>önceki</b> ve <b>sonraki</b> değeri görünür.</li>
+  <li>Kullanıcı listesindeki <span class="tus">📋</span> düğmesi o çalışanın yaptığı her şeyi tek tıkla açar. "Son giriş" sütunu en son ne zaman girdiğini gösterir.</li>
+  <li>Fatura kalemi, stok ve yevmiye satırı gibi belgeyle birlikte kendiliğinden yazılan satırlar listeyi kalabalıklaştırmasın diye gizlidir; "Ayrıntı satırlarını da göster" ile açılır.</li>
+  <li>Bu sekmeyi görmek için <b>Kim Ne Yaptı? Gör</b> yetkisi gerekir. Liste Excel'e aktarılabilir.</li>
+</ul>
 <ul>
   <li><b>+ Yeni Ekle</b> ile kullanıcı adı, ad, rol ve şifre girin.</li>
   <li><b>Modül Erişim ve İşlem İzinleri</b> listesinden kişinin neleri görebileceğini ve yapabileceğini işaretleyin. "Hazır şablon" ile tipik roller (ör. kasiyer, muhasebe) tek tıkla uygulanır.</li>
   <li>Şifresini unutan çalışanın şifresini yönetici, kullanıcıyı seçip <b>🔑 Sıfırla</b> ile yeniler.</li>
   <li>"Maliyet" yetkisi olmayan kullanıcı raporlarda alış maliyetini ve kârı göremez.</li>
+  <li><b>Ürün Fiyatı Değiştir</b> işaretli değilse çalışan ürün kartını (adı, rafı, barkodu) düzenleyebilir ama alış/satış fiyatını değiştiremez. Bu özellikten önce açılmış ve "Stok Düzenle" yetkisi olan kullanıcılara bu yetki kendiliğinden verildi; isterseniz kaldırın.</li>
+  <li><b>Personel &amp; Maaş</b> yetkileriyle personel kartlarını, maaş tahakkukunu ve ödemelerini kimin görüp yapabileceğini belirlersiniz. Hazır şablonlara "Personel / Maaş" eklendi.</li>
   <li>Yetkiler yalnız ekranda değil, programın içinde her işlemde de denetlenir; yetkisi olmayan kullanıcı bir işlemi başka bir yoldan da yapamaz.</li>
   <li>Değişiklik kaydı (Audit Log) <b>silinemez ve değiştirilemez</b>; yönetici dahil hiç kimse geçmiş kaydı ortadan kaldıramaz. (KVKK silme talebinde yalnız kişisel bilgiler *** ile gizlenir.)</li>
 </ul>

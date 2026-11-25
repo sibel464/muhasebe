@@ -4,6 +4,7 @@ using Uygulama.Arayuzler;
 using EtkiAlani.Modeller.Kullanici;
 using EtkiAlani.Modeller.Guvenlik;
 using Masaustu.Yardimcilar;
+using Uygulama.Servisler;
 
 namespace Masaustu.GorunumModelleri;
 
@@ -19,15 +20,18 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
     private string _bilgiMesaji = string.Empty;
     private bool _duzenlemeModu = false;
 
-    // İşlem / Audit Log Sekmesi Özellikleri
-    private ObservableCollection<AuditLog> _auditLoglar = new();
-    private AuditLog? _seciliAuditLog;
+    // "Kim Ne Yaptı?" sekmesi
+    private DenetimSatiri? _seciliAuditSatiri;
     private DateTime? _auditBaslangicTarihi = DateTime.Today.AddDays(-30);
-    private DateTime? _auditBitisTarihi = DateTime.Today.AddDays(1);
+    private DateTime? _auditBitisTarihi = DateTime.Today;
     private string _auditAramaMetni = string.Empty;
-    private string _auditSeciliTablo = "Tümü";
+    private SecenekOgesi _auditSeciliModul = SecenekOgesi.Tumu;
     private string _auditSeciliIslemTuruMetni = "Tümü";
-    private int? _auditSeciliKullaniciId = null;
+    private SecenekOgesi _auditSeciliKullanici = SecenekOgesi.Tumu;
+    private bool _ayrintiSatirlariniGoster;
+    private string _auditMesaji = string.Empty;
+    private int _seciliSekmeIndeksi;
+    private int _auditYuklemeNo;
 
     // Yeni veya düzenlenecek kullanıcı için model
     private Kullanici _islemKullanicisi = new() { Yetkiler = new KullaniciYetkileri() };
@@ -117,17 +121,27 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         set => OzellikAyarla(ref _bilgiMesaji, value);
     }
 
-    // ─── AUDIT LOG SEKMESİ ───
-    public ObservableCollection<AuditLog> AuditLoglar
+    // ─── KİM NE YAPTI? SEKMESİ ───
+    public TopluKoleksiyon<DenetimSatiri> AuditSatirlari { get; } = new();
+
+    public DenetimSatiri? SeciliAuditSatiri
     {
-        get => _auditLoglar;
-        set => OzellikAyarla(ref _auditLoglar, value);
+        get => _seciliAuditSatiri;
+        set
+        {
+            if (OzellikAyarla(ref _seciliAuditSatiri, value))
+                BildirimGonder(nameof(SeciliDegisiklikler));
+        }
     }
 
-    public AuditLog? SeciliAuditLog
+    // Seçili işlemin alan alan "eski → yeni" dökümü.
+    public IReadOnlyList<DenetimMetinleri.Degisiklik> SeciliDegisiklikler =>
+        _seciliAuditSatiri == null ? [] : DenetimMetinleri.Degisiklikler(_seciliAuditSatiri.Kayit);
+
+    public int SeciliSekmeIndeksi
     {
-        get => _seciliAuditLog;
-        set => OzellikAyarla(ref _seciliAuditLog, value);
+        get => _seciliSekmeIndeksi;
+        set => OzellikAyarla(ref _seciliSekmeIndeksi, value);
     }
 
     public DateTime? AuditBaslangicTarihi
@@ -145,13 +159,13 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
     public string AuditAramaMetni
     {
         get => _auditAramaMetni;
-        set { if (OzellikAyarla(ref _auditAramaMetni, value)) _ = AuditLoglariYukleAsync(); }
+        set { if (OzellikAyarla(ref _auditAramaMetni, value)) _ = AuditLoglariYukleAsync(gecikmeli: true); }
     }
 
-    public string AuditSeciliTablo
+    public SecenekOgesi AuditSeciliModul
     {
-        get => _auditSeciliTablo;
-        set { if (OzellikAyarla(ref _auditSeciliTablo, value)) _ = AuditLoglariYukleAsync(); }
+        get => _auditSeciliModul;
+        set { if (OzellikAyarla(ref _auditSeciliModul, value ?? SecenekOgesi.Tumu)) _ = AuditLoglariYukleAsync(); }
     }
 
     public string AuditSeciliIslemTuruMetni
@@ -160,26 +174,42 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         set { if (OzellikAyarla(ref _auditSeciliIslemTuruMetni, value)) _ = AuditLoglariYukleAsync(); }
     }
 
-    public int? AuditSeciliKullaniciId
+    public SecenekOgesi AuditSeciliKullanici
     {
-        get => _auditSeciliKullaniciId;
-        set { if (OzellikAyarla(ref _auditSeciliKullaniciId, value)) _ = AuditLoglariYukleAsync(); }
+        get => _auditSeciliKullanici;
+        set { if (OzellikAyarla(ref _auditSeciliKullanici, value ?? SecenekOgesi.Tumu)) _ = AuditLoglariYukleAsync(); }
     }
 
-    public List<string> TabloListesi { get; } = new()
+    public bool AyrintiSatirlariniGoster
     {
-        "Tümü", "CariKart", "Urun", "Fatura", "Siparis", "Irsaliye", "Kasa", "BankaHesabi", "CekSenet", "Kullanici"
-    };
+        get => _ayrintiSatirlariniGoster;
+        set { if (OzellikAyarla(ref _ayrintiSatirlariniGoster, value)) _ = AuditLoglariYukleAsync(); }
+    }
 
-    public List<string> IslemTurleriListesi { get; } = new()
+    public string AuditMesaji
     {
-        "Tümü", "Ekleme", "Guncelleme", "Silme", "SoftDelete"
-    };
+        get => _auditMesaji;
+        set => OzellikAyarla(ref _auditMesaji, value);
+    }
+
+    private List<SecenekOgesi> _kullaniciSecenekleri = [SecenekOgesi.Tumu];
+    public List<SecenekOgesi> KullaniciSecenekleri
+    {
+        get => _kullaniciSecenekleri;
+        private set => OzellikAyarla(ref _kullaniciSecenekleri, value);
+    }
+
+    public List<SecenekOgesi> ModulSecenekleri { get; } =
+        [SecenekOgesi.Tumu, .. DenetimMetinleri.Moduller
+            .OrderBy(m => m.Value, StringComparer.Create(new System.Globalization.CultureInfo("tr-TR"), true))
+            .Select(m => new SecenekOgesi(m.Key, m.Value))];
+
+    public List<string> IslemTurleriListesi { get; } = new() { "Tümü", "Ekledi", "Değiştirdi", "Sildi", "Sildi (kalıcı)" };
 
     public int ToplamKullaniciSayisi => _kullanicilar.Count;
     public int AktifKullaniciSayisi => _kullanicilar.Count(k => k.Aktif);
     public int YoneticiSayisi => _kullanicilar.Count(k => k.Rol == "Yonetici" || k.Rol == "Yönetici");
-    public int AuditLogToplamSayisi => _auditLoglar.Count;
+    public int AuditLogToplamSayisi => AuditSatirlari.Count;
 
     // Komutlar
     public ICommand YukleKomutu { get; }
@@ -193,16 +223,19 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
     public ICommand AuditLogYenileKomutu { get; }
     public ICommand AuditLogExcelAktarKomutu { get; }
     public ICommand SablonUygulaKomutu { get; }
+    public ICommand KullaniciIslemleriKomutu { get; }
+    public ICommand AuditFiltreTemizleKomutu { get; }
 
     // Rol şablonları: yeni kullanıcı yetkisiz başlar; yönetici uygun şablonu uygulayıp ince ayar yapar.
     private static readonly Dictionary<string, string[]> Sablonlar = new()
     {
         ["Kasiyer / Satış"] = ["SatisYap", "SatisGecmisiGoruntule", "CariGoruntule", "CariEkle", "StokGoruntule", "FaturaGoruntule", "FaturaOlustur", "KasaGoruntule", "TahsilatYap"],
         ["Depo / Stok"] = ["StokGoruntule", "StokEkle", "StokDuzenle", "DepoGoruntule", "DepoTransferYap", "IrsaliyeGoruntule", "IrsaliyeOlustur", "IrsaliyeOnayla", "CariGoruntule"],
-        ["Ön Muhasebe / Finans"] = ["CariGoruntule", "CariEkle", "CariDuzenle", "StokGoruntule", "FaturaGoruntule", "FaturaOlustur", "FaturaOnayla", "IrsaliyeGoruntule",
+        ["Personel / Maaş"] = ["PersonelGoruntule", "PersonelEkle", "PersonelDuzenle", "KasaGoruntule", "BankaGoruntule", "OdemeYap"],
+        ["Ön Muhasebe / Finans"] = ["CariGoruntule", "CariEkle", "CariDuzenle", "StokGoruntule", "StokFiyatDegistir", "FaturaGoruntule", "FaturaOlustur", "FaturaOnayla", "IrsaliyeGoruntule",
             "KasaGoruntule", "KasaYonet", "GelirEkle", "GiderEkle", "BankaGoruntule", "BankaEkle", "BankaDuzenle", "TahsilatYap", "OdemeYap", "FinansGoruntule",
             "VirmanYap", "Mutabakat", "POSYonet", "CekSenetGoruntule", "CekSenetIslemYap", "RaporGoruntule", "FinansRaporuGoruntule"],
-        ["Muhasebe"] = ["MuhasebeFisGoruntule", "MuhasebeFisEkle", "MuhasebeFisOnayla", "MuhasebeFisIptal", "HesapPlaniYonet", "MizanGoruntule", "MaliyetHesaplariGoruntule",
+        ["Muhasebe"] = ["PersonelGoruntule", "MuhasebeFisGoruntule", "MuhasebeFisEkle", "MuhasebeFisOnayla", "MuhasebeFisIptal", "HesapPlaniYonet", "MizanGoruntule", "MaliyetHesaplariGoruntule",
             "CariGoruntule", "FaturaGoruntule", "IrsaliyeGoruntule", "KasaGoruntule", "BankaGoruntule", "FinansGoruntule", "CekSenetGoruntule", "RaporGoruntule", "FinansRaporuGoruntule"],
         ["Yetkileri Temizle"] = [],
     };
@@ -255,7 +288,9 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         ExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(Kullanicilar, "Kullanici_Listesi"));
         
         AuditLogYenileKomutu = new KomutSarici(async _ => await AuditLoglariYukleAsync());
-        AuditLogExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(AuditLoglar, "Islem_Gecmisi_Audit_Logs"));
+        AuditLogExcelAktarKomutu = new KomutSarici(_ => ExcelDisaAktarYardimcisi.Aktar(AuditSatirlari, "Kim_Ne_Yapti"));
+        KullaniciIslemleriKomutu = new KomutSarici(param => KullaniciIslemleriniGoster(param as Kullanici));
+        AuditFiltreTemizleKomutu = new KomutSarici(_ => AuditFiltreleriniTemizle());
         SablonUygulaKomutu = new KomutSarici(_ => SablonUygula(), _ => SeciliYetkiSablonu != null);
 
         _ = IlkYuklemeAsync();
@@ -273,6 +308,11 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         try
         {
             var tumu = await _kullaniciServisi.TumunuGetirAsync();
+            var secili = AuditSeciliKullanici;
+            KullaniciSecenekleri = [SecenekOgesi.Tumu, .. tumu.OrderBy(k => k.KullaniciAdi)
+                .Select(k => new SecenekOgesi(k.Id, $"{k.KullaniciAdi} ({k.Ad} {k.Soyad})".Trim()))];
+            _auditSeciliKullanici = KullaniciSecenekleri.FirstOrDefault(k => Equals(k.Deger, secili.Deger)) ?? SecenekOgesi.Tumu;
+            BildirimGonder(nameof(AuditSeciliKullanici));
             if (!string.IsNullOrWhiteSpace(AramaMetni))
             {
                 var kucukArama = AramaMetni.ToLower();
@@ -296,45 +336,75 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
         }
     }
 
-    public async Task AuditLoglariYukleAsync()
+    // Kullanıcı listesindeki "İşlemleri" düğmesi: o kişinin yaptıklarını "Kim Ne Yaptı?" sekmesinde açar.
+    private void KullaniciIslemleriniGoster(Kullanici? kullanici)
+    {
+        if (kullanici == null) return;
+        AuditSeciliKullanici = KullaniciSecenekleri.FirstOrDefault(k => Equals(k.Deger, kullanici.Id)) ?? SecenekOgesi.Tumu;
+        SeciliSekmeIndeksi = 1;
+    }
+
+    private void AuditFiltreleriniTemizle()
+    {
+        _auditAramaMetni = string.Empty; BildirimGonder(nameof(AuditAramaMetni));
+        _auditSeciliModul = SecenekOgesi.Tumu; BildirimGonder(nameof(AuditSeciliModul));
+        _auditSeciliKullanici = SecenekOgesi.Tumu; BildirimGonder(nameof(AuditSeciliKullanici));
+        _auditSeciliIslemTuruMetni = "Tümü"; BildirimGonder(nameof(AuditSeciliIslemTuruMetni));
+        _auditBaslangicTarihi = DateTime.Today.AddDays(-30); BildirimGonder(nameof(AuditBaslangicTarihi));
+        _auditBitisTarihi = DateTime.Today; BildirimGonder(nameof(AuditBitisTarihi));
+        _ = AuditLoglariYukleAsync();
+    }
+
+    public async Task AuditLoglariYukleAsync(bool gecikmeli = false)
     {
         if (_auditLogServisi == null) return;
+        var no = ++_auditYuklemeNo;
+        if (gecikmeli)
+        {
+            await Task.Delay(350); // yazarken her harfte sorgu atılmasın
+            if (no != _auditYuklemeNo) return;
+        }
 
         try
         {
-            string? tablo = AuditSeciliTablo == "Tümü" ? null : AuditSeciliTablo;
-            AuditIslemTuru? islemTuru = null;
+            AuditIslemTuru? islemTuru = AuditSeciliIslemTuruMetni switch
+            {
+                "Ekledi" => AuditIslemTuru.Ekleme,
+                "Değiştirdi" => AuditIslemTuru.Guncelleme,
+                "Sildi" => AuditIslemTuru.SoftDelete,
+                "Sildi (kalıcı)" => AuditIslemTuru.Silme,
+                _ => null
+            };
 
-            if (AuditSeciliIslemTuruMetni == "Ekleme") islemTuru = AuditIslemTuru.Ekleme;
-            else if (AuditSeciliIslemTuruMetni == "Guncelleme") islemTuru = AuditIslemTuru.Guncelleme;
-            else if (AuditSeciliIslemTuruMetni == "Silme") islemTuru = AuditIslemTuru.Silme;
-            else if (AuditSeciliIslemTuruMetni == "SoftDelete") islemTuru = AuditIslemTuru.SoftDelete;
+            // Ekrandaki tarihler yerel gündür; kayıt saati UTC tutulur. Bitiş günü dahildir.
+            DateTime? baslangic = AuditBaslangicTarihi?.Date.ToUniversalTime();
+            DateTime? bitis = AuditBitisTarihi?.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
 
             var loglar = await _auditLogServisi.LoglariGetirAsync(
-                baslangic: AuditBaslangicTarihi,
-                bitis: AuditBitisTarihi,
-                tabloAdi: tablo,
+                baslangic: baslangic,
+                bitis: bitis,
+                tabloAdi: AuditSeciliModul.Deger as string,
                 islemTuru: islemTuru,
-                kullaniciId: AuditSeciliKullaniciId,
-                limit: 0); // sınırsız: seçilen tarih aralığının tamamı
+                kullaniciId: AuditSeciliKullanici.Deger as int?,
+                limit: 0, // sınırsız: seçilen tarih aralığının tamamı
+                ayrintiSatirlari: AyrintiSatirlariniGoster || AuditSeciliModul.Deger != null,
+                arama: string.IsNullOrWhiteSpace(AuditAramaMetni) ? null : AuditAramaMetni);
+            if (no != _auditYuklemeNo) return; // arada yeni bir süzme istendi
 
-            if (!string.IsNullOrWhiteSpace(AuditAramaMetni))
-            {
-                var arama = AuditAramaMetni.ToLower();
-                loglar = loglar.Where(l =>
-                    (l.KullaniciAdi != null && l.KullaniciAdi.ToLower().Contains(arama)) ||
-                    (l.TabloAdi != null && l.TabloAdi.ToLower().Contains(arama)) ||
-                    (l.IslemDetayi != null && l.IslemDetayi.ToLower().Contains(arama)) ||
-                    (l.KayitId != null && l.KayitId.ToLower().Contains(arama))
-                ).ToList();
-            }
-
-            AuditLoglar = new ObservableCollection<AuditLog>(loglar);
+            var satirlar = await Task.Run(() => loglar.Select(l => new DenetimSatiri(l)).ToList());
+            if (no != _auditYuklemeNo) return;
+            AuditSatirlari.HepsiniDegistir(satirlar);
+            AuditMesaji = satirlar.Count == 0 ? "Seçilen ölçütlere uyan işlem yok." : string.Empty;
             BildirimGonder(nameof(AuditLogToplamSayisi));
+        }
+        catch (YetkisizErisimException)
+        {
+            AuditSatirlari.HepsiniDegistir([]);
+            AuditMesaji = "İşlem geçmişini görme yetkiniz yok (Güvenlik Kayıtlarını Gör).";
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine("Audit Log yükleme hatası: " + ex.Message);
+            AuditMesaji = "İşlem geçmişi yüklenemedi: " + ex.Message;
         }
     }
 
@@ -486,4 +556,36 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
             IslemYapiliyor = false;
         }
     }
+}
+
+// Açılır liste seçeneği ("Tümü" için Deger null).
+public sealed record SecenekOgesi(object? Deger, string Ad)
+{
+    public static readonly SecenekOgesi Tumu = new(null, "Tümü");
+    public override string ToString() => Ad;
+}
+
+// "Kim Ne Yaptı?" listesinin bir satırı: denetim kaydının Türkçe, okunur hali.
+public sealed class DenetimSatiri
+{
+    public DenetimSatiri(AuditLog kayit)
+    {
+        Kayit = kayit;
+        Zaman = DenetimMetinleri.YerelZaman(kayit.Tarih);
+        Kullanici = string.IsNullOrWhiteSpace(kayit.KullaniciAdi) ? "Sistem" : kayit.KullaniciAdi!;
+        Modul = DenetimMetinleri.ModulAdi(kayit.TabloAdi);
+        Islem = DenetimMetinleri.IslemAdi(kayit.IslemTuru, kayit.TabloAdi);
+        KayitNo = kayit.KayitId;
+        Ozet = DenetimMetinleri.Ozet(kayit);
+        Bilgisayar = kayit.IstemciBilgisi ?? "";
+    }
+
+    internal AuditLog Kayit { get; }
+    public DateTime Zaman { get; }
+    public string Kullanici { get; }
+    public string Modul { get; }
+    public string Islem { get; }
+    public string KayitNo { get; }
+    public string Ozet { get; }
+    public string Bilgisayar { get; }
 }

@@ -10,7 +10,9 @@ public interface IAuditLogServisi
         string? tabloAdi = null, 
         AuditIslemTuru? islemTuru = null,
         int? kullaniciId = null,
-        int limit = 100);
+        int limit = 100,
+        bool ayrintiSatirlari = true,
+        string? arama = null);
 
     Task LogEkleAsync(AuditLog log);
 }

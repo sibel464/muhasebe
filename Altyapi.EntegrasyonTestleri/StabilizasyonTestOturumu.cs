@@ -18,7 +18,7 @@ internal static class StabilizasyonTestOturumu
         AktifYetkiler = new KullaniciYetkileri
         {
             RaporGoruntule = true, MaliyetHesaplariGoruntule = true, CariEkle = true, CariDuzenle = true, CariGoruntule = true,
-            StokEkle = true, StokDuzenle = true, StokGoruntule = true,
+            StokEkle = true, StokDuzenle = true, StokGoruntule = true, StokFiyatDegistir = true,
             KasaYonet = true, BankaEkle = true, BankaDuzenle = true,
             TahsilatYap = true, OdemeYap = true,
             CekSenetGoruntule = true, CekSenetIslemYap = true
