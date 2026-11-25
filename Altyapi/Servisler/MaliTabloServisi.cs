@@ -225,7 +225,11 @@ public class MaliTabloServisi : IMaliTabloServisi
     {
         var hesaplar = await _baglam.HesapPlanlari.IgnoreQueryFilters().AsNoTracking().Where(h => h.SirketId == sirketId)
             .Select(h => new { h.HesapKodu, h.HesapAdi }).ToListAsync();
-        return hesaplar.GroupBy(h => h.HesapKodu.Length >= 3 ? h.HesapKodu[..3] : h.HesapKodu)
+        var adlar = hesaplar.GroupBy(h => h.HesapKodu.Length >= 3 ? h.HesapKodu[..3] : h.HesapKodu)
             .ToDictionary(g => g.Key, g => (g.FirstOrDefault(x => x.HesapKodu == g.Key) ?? g.OrderBy(x => x.HesapKodu).First()).HesapAdi);
+        // Planda olmayan hesap (ör. 7'li giderlerin yansıtıldığı 632) tablolarda adsız kalmasın: Tek Düzen Hesap Planı adı.
+        foreach (var (kod, tanim) in FinansMuhasebeKaydi.StandartHesaplar)
+            adlar.TryAdd(kod, tanim.Ad);
+        return adlar;
     }
 }

@@ -66,16 +66,31 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 _ = CarileriYukleAsync();
                 if (SeciliUrun != null)
                 {
-                    EklenecekBirimFiyat = value == FaturaTuru.Alis ? SeciliUrun.AlisFiyati : SeciliUrun.PerakendeSatisFiyati;
+                    EklenecekBirimFiyat = AlisFiyatiOnerilir ? SeciliUrun.AlisFiyati : SeciliUrun.PerakendeSatisFiyati;
                 }
                 BildirimGonder(nameof(IsSatisFaturasi));
                 BildirimGonder(nameof(IsAlisFaturasi));
+                BildirimGonder(nameof(IsSatisIadesi));
+                BildirimGonder(nameof(IsAlisIadesi));
+                BildirimGonder(nameof(IadeMi));
             }
         }
     }
 
     public bool IsSatisFaturasi { get => Tur == FaturaTuru.Satis; set { if (value) Tur = FaturaTuru.Satis; } }
     public bool IsAlisFaturasi { get => Tur == FaturaTuru.Alis; set { if (value) Tur = FaturaTuru.Alis; } }
+    public bool IsSatisIadesi { get => Tur == FaturaTuru.SatisIade; set { if (value) Tur = FaturaTuru.SatisIade; } }
+    public bool IsAlisIadesi { get => Tur == FaturaTuru.AlisIade; set { if (value) Tur = FaturaTuru.AlisIade; } }
+    public bool IadeMi => Tur is FaturaTuru.SatisIade or FaturaTuru.AlisIade;
+
+    // Satış ve satış iadesinin karşısı müşteri, alış ve alış iadesinin karşısı tedarikçidir.
+    private CariTuru CariListeTuru => Tur is FaturaTuru.Satis or FaturaTuru.SatisIade ? CariTuru.Musteri : CariTuru.Tedarikci;
+    // Alış ve alış iadesinde ürünün alış fiyatı, satış ve satış iadesinde satış fiyatı önerilir.
+    private bool AlisFiyatiOnerilir => Tur is FaturaTuru.Alis or FaturaTuru.AlisIade;
+
+    // İade faturasında iade edilen asıl faturanın numarası (e-Fatura/e-Arşiv iadesinde zorunlu bilgi).
+    private string _iadeEdilenFaturaNo = string.Empty;
+    public string IadeEdilenFaturaNo { get => _iadeEdilenFaturaNo; set => OzellikAyarla(ref _iadeEdilenFaturaNo, value); }
     public Urun? SeciliKalemUrun { get => SeciliUrun; set => SeciliUrun = value; }
     private decimal _eklenecekKdvOrani;
     public decimal KalemMiktar { get => EklenecekMiktar; set => EklenecekMiktar = value; }
@@ -108,7 +123,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 BildirimGonder(nameof(SeciliUrunMetni));
                 if (value != null)
                 {
-                    EklenecekBirimFiyat = Tur == FaturaTuru.Alis ? value.AlisFiyati : value.PerakendeSatisFiyati;
+                    EklenecekBirimFiyat = AlisFiyatiOnerilir ? value.AlisFiyati : value.PerakendeSatisFiyati;
                     EklenecekKdvOrani = value.KdvOrani;
                     if (EklenecekMiktar <= 0) EklenecekMiktar = 1;
                 }
@@ -244,7 +259,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         HataMesaji = string.Empty;
         try
         {
-            var sonuc = await _urunServisi.BarkodlaBulAsync(okunan);
+            var bulunan = await StokBarkodu.BulAsync(_urunServisi, okunan); // "3*barkod" çarpanını da tanır
+            var sonuc = bulunan is { } b ? new { Urun = b.Urun, Miktar = b.Miktar } : null;
             if (sonuc == null)
             {
                 HataMesaji = $"'{okunan}' barkodlu ürün kayıtlı değil. Ürün Ekle ekranında bu barkodla tanımlayabilir ya da '+ Ürün Seç' ile listeden seçebilirsiniz.";
@@ -262,6 +278,8 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
     public ICommand IptalKomutu { get; }
     public ICommand SatisTuruSecKomutu { get; }
     public ICommand AlisTuruSecKomutu { get; }
+    public ICommand SatisIadesiSecKomutu { get; }
+    public ICommand AlisIadesiSecKomutu { get; }
 
     public FaturaEkleGorunumModeli(
         IFaturaServisi faturaServisi, 
@@ -290,15 +308,26 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         _seciliTevkifat = TevkifatSecenekleri[0];
         SatisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Satis);
         AlisTuruSecKomutu = new KomutSarici(() => Tur = FaturaTuru.Alis);
+        SatisIadesiSecKomutu = new KomutSarici(() => Tur = FaturaTuru.SatisIade);
+        AlisIadesiSecKomutu = new KomutSarici(() => Tur = FaturaTuru.AlisIade);
 
-        _ = StokYerleri.YukleAsync(_urunServisi);
-        _ = VerileriYukleAsync();
+        _ = IlkYuklemeAsync();
+    }
+
+    // Açılış yüklemeleri sırayla yapılır: sayfanın servisleri tek veritabanı bağlamını paylaşır; aynı anda iki sorgu
+    // "A second operation was started on this context" hatası verip cari/ürün listesini boş bırakıyordu.
+    private async Task IlkYuklemeAsync()
+    {
+        await _yuklemeKilidi.WaitAsync();
+        try { await StokYerleri.YukleAsync(_urunServisi); }
+        finally { _yuklemeKilidi.Release(); }
+        await VerileriYukleAsync();
     }
 
     private void CariSec()
     {
         if (IsCariKilitli) return;
-        var tur = Tur == FaturaTuru.Satis ? CariTuru.Musteri : CariTuru.Tedarikci;
+        var tur = CariListeTuru;
         var pencere = new CariSecimPenceresi(_cariServisi, tur) { Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) };
         if (pencere.ShowDialog() == true) SeciliCari = pencere.SecilenCari;
     }
@@ -333,7 +362,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         await _yuklemeKilidi.WaitAsync();
         try
         {
-            var tur = Tur == FaturaTuru.Satis ? CariTuru.Musteri : CariTuru.Tedarikci;
+            var tur = CariListeTuru;
             var tumCariler = await _cariServisi.TumunuGetirAsync(tur);
             Cariler = new ObservableCollection<CariKart>(tumCariler.Where(c => c.Aktif));
 
@@ -355,7 +384,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
         await _yuklemeKilidi.WaitAsync();
         try
         {
-            var tur = Tur == FaturaTuru.Satis ? CariTuru.Musteri : CariTuru.Tedarikci;
+            var tur = CariListeTuru;
             var tumCariler = await _cariServisi.TumunuGetirAsync(tur);
             Cariler = new ObservableCollection<CariKart>(tumCariler.Where(c => c.Aktif));
         }
@@ -515,6 +544,7 @@ public class FaturaEkleGorunumModeli : TemelGorunumModeli
                 Aciklama = string.IsNullOrWhiteSpace(ReferansNo) ? Aciklama : $"Referans: {ReferansNo} - {Aciklama}".TrimEnd(' ', '-'),
                 VadeTarihi = VadeTarihi,
                 OdemeSekli = OdemeSekli.Value,
+                IadeEdilenFaturaNo = IadeMi && !string.IsNullOrWhiteSpace(IadeEdilenFaturaNo) ? IadeEdilenFaturaNo.Trim() : null,
                 KaynakTuru = FaturaKaynakTuru.Manuel,
                 Kalemler = Kalemler.Select(k => k.ToEntity()).ToList()
             };

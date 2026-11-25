@@ -90,10 +90,22 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         {
             if (OzellikAyarla(ref _tutar, value))
             {
+                _tutarBelgedenGeldi = false; // kullanıcı yazdı
                 BildirimGonder(nameof(YeniBakiye));
                 BildirimGonder(nameof(NetTutar));
             }
         }
+    }
+
+    // Belge seçilince tutar yalnız boşsa (ya da önceki belge seçiminden gelmişse) belgeden doldurulur. Kullanıcının
+    // yazdığı tutar (kısmi tahsilat) sessizce faturanın tamamıyla değiştirilmez: belge o tutar kadar kapatılır.
+    private bool _tutarBelgedenGeldi;
+
+    private void TutariBelgedenDoldur(decimal tutar)
+    {
+        if (_tutar > 0 && !_tutarBelgedenGeldi) return;
+        Tutar = tutar;
+        _tutarBelgedenGeldi = true;
     }
     public decimal KomisyonTutar => Tutar * KomisyonOrani / 100;
     public decimal NetTutar => Tutar - KomisyonTutar;
@@ -225,8 +237,8 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
         get => _secilenAcikBelge;
         set
         {
-            if (OzellikAyarla(ref _secilenAcikBelge, value) && value != null)
-                Tutar = value.AcikTutar;
+            if (OzellikAyarla(ref _secilenAcikBelge, value) && value != null && !SeciliBelgeler.Any())
+                TutariBelgedenDoldur(value.AcikTutar);
         }
     }
     public TahsilatOdemeKaydi? SecilenKayit { get => _secilenKayit; set => OzellikAyarla(ref _secilenKayit, value); }
@@ -352,7 +364,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
     private void TutariGuncelle()
     {
         if (SeciliBelgeler.Any())
-            Tutar = SeciliBelgeler.Sum(b => b.AcikTutar);
+            TutariBelgedenDoldur(SeciliBelgeler.Sum(b => b.AcikTutar));
         BildirimGonder(nameof(ToplamSeciliBelgeTutar));
     }
 
@@ -430,6 +442,7 @@ public sealed class TahsilatOdemeGorunumModeli : TemelGorunumModeli
 
             // Formu sıfırla
             Tutar = 0;
+            _tutarBelgedenGeldi = false;
             DovizTutar = 0;
             Aciklama = BelgeNo = BankaAdi = HesapNo = CekSenetNo = Kesideci = "";
             KomisyonOrani = 0;

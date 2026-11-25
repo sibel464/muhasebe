@@ -71,7 +71,7 @@ public sealed class FinancialTransactionIntegrationTests
         var codes = await context.HesapPlanlari.ToDictionaryAsync(x => x.Id, x => x.HesapKodu);
         if (tur == FaturaTuru.SatisIade)
         {
-            Assert.Contains(fis.Satirlar, x => codes[x.HesapId] == "600" && x.Borc == 10000);
+            Assert.Contains(fis.Satirlar, x => codes[x.HesapId] == "610" && x.Borc == 10000);
             Assert.Contains(fis.Satirlar, x => codes[x.HesapId] == "391" && x.Borc == 2000);
             Assert.Contains(fis.Satirlar, x => codes[x.HesapId] == "120" && x.Alacak == 12000);
         }

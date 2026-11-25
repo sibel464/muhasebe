@@ -13,7 +13,7 @@ public static class FinansMuhasebeKaydi
     public const string BankaBelgeTipi = "BankaHareketi";
 
     // Tek Düzen Hesap Planı'ndaki standart hesaplar; şirket planında yoksa otomatik açılır.
-    private static readonly Dictionary<string, (string Ad, HesapTipi Tip, BorcAlacakYonu Yon)> StandartHesaplar = new()
+    internal static readonly Dictionary<string, (string Ad, HesapTipi Tip, BorcAlacakYonu Yon)> StandartHesaplar = new()
     {
         ["100"] = ("KASA", HesapTipi.Aktif, BorcAlacakYonu.Borc),
         ["101"] = ("ALINAN ÇEKLER", HesapTipi.Aktif, BorcAlacakYonu.Borc),

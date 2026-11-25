@@ -779,7 +779,7 @@ public class BankaServisi : IBankaServisi
         hesap.Sube = hesap.Sube?.Trim() ?? string.Empty;
         hesap.HesapNo = hesap.HesapNo?.Trim() ?? string.Empty;
         hesap.ParaBirimi = string.IsNullOrWhiteSpace(hesap.ParaBirimi) ? "TRY" : hesap.ParaBirimi.Trim().ToUpperInvariant();
-        hesap.MuhasebeKodu = string.IsNullOrWhiteSpace(hesap.MuhasebeKodu) ? "102.01.001" : hesap.MuhasebeKodu.Trim();
+        hesap.MuhasebeKodu = string.IsNullOrWhiteSpace(hesap.MuhasebeKodu) ? VarsayilanMuhasebeKodu(hesap.HesapTuru) : hesap.MuhasebeKodu.Trim();
 
         if (string.IsNullOrWhiteSpace(hesap.Kod) || hesap.Kod.Length > 30)
             throw new ArgumentException("Banka hesap kodu boş olamaz ve en fazla 30 karakter olabilir.");
@@ -822,6 +822,14 @@ public class BankaServisi : IBankaServisi
             !hesap.MuhasebeKodu.StartsWith("300", StringComparison.Ordinal))
             throw new ArgumentException("Banka muhasebe kodu 102, 108 veya 300 hesap grubu altında olmalıdır.");
     }
+
+    // Hesap türüne uygun muhasebe hesabı: POS alacakları 108, kredi 300, diğerleri 102.
+    public static string VarsayilanMuhasebeKodu(BankaHesapTuru tur) => tur switch
+    {
+        BankaHesapTuru.POSHesabi => "108.01.001",
+        BankaHesapTuru.KrediHesabi => "300.01.001",
+        _ => "102.01.001"
+    };
 
     public async Task<BankaHesabi?> BankaHesabiGetirIdAsync(int id)
     {

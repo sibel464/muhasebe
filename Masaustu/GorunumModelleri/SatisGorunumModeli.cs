@@ -275,6 +275,15 @@ public class SatisGorunumModeli : TemelGorunumModeli
             if (sonuc.TeraziEtiketi) DurumMesaji = $"✓ {sonuc.Urun.Ad} {sonuc.Miktar:0.###} kg sepete eklendi (terazi etiketi).";
             return;
         }
+        // "3*barkod" ya da "3x barkod": aynı üründen 3 adet (her birini tek tek okutmak gerekmez).
+        var carpanli = EtkiAlani.Yardimcilar.CarpanliOkuma.Coz(arama);
+        if (carpanli.Carpan != 1 && await _urunServisi.BarkodlaBulAsync(carpanli.Kod) is { } carpanSonucu)
+        {
+            var miktar = (carpanSonucu.TeraziEtiketi ? carpanSonucu.Miktar : 1) * carpanli.Carpan;
+            await UrunuSepeteEkleAsync(carpanSonucu.Urun, miktar);
+            DurumMesaji = $"✓ {carpanSonucu.Urun.Ad} × {miktar:0.###} sepete eklendi.";
+            return;
+        }
         // Barkod değil de ad yazıldıysa ve tek ürün eşleşiyorsa onu ekle.
         var bulunanlar = await _urunServisi.AraAsync(arama);
         if (bulunanlar.Count(u => u.Aktif) == 1)
@@ -488,6 +497,14 @@ public class SatisGorunumModeli : TemelGorunumModeli
                 FaturaNo = string.Empty, // sunucu müteselsil numara verir (aynı saniyedeki iki satış çakışmaz)
                 CariKartId = cariId,
                 Tarih = DateTime.Now,
+                // Fatura listesinde ve raporlarda ödeme şekli doğru görünsün (ödeme hareketini servis ayrıca yazar).
+                OdemeSekli = odemeYontemi switch
+                {
+                    "Nakit" => FaturaOdemeSekli.Nakit,
+                    "Kredi Kartı" => FaturaOdemeSekli.KrediKarti,
+                    "Banka" => FaturaOdemeSekli.Banka,
+                    _ => FaturaOdemeSekli.AcikHesap
+                },
                 Aciklama = $"POS Satış - {odemeYontemi} ({(odemeYontemi == "Kredi Kartı" ? SeciliTaksit : "")})"
             };
 

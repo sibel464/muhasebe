@@ -71,7 +71,9 @@ public class FinancialTransactionService : IFinancialTransactionService
             // Tevkifatlı alışta alıcının ödemediği KDV 360'a (KDV-2 ile beyan edilip ödenecek) yazılır.
             var hesapKodlari = fatura.TevkifatTutari > 0 && fatura.Tur == FaturaTuru.Alis
                 ? new[] { "120", "153", "191", "320", "391", "600", "360" }
-                : new[] { "120", "153", "191", "320", "391", "600" };
+                : fatura.Tur == FaturaTuru.SatisIade
+                    ? new[] { "120", "153", "191", "320", "391", "600", "610" }
+                    : new[] { "120", "153", "191", "320", "391", "600" };
             // Fatura yalnız kendi firmasının hesap planına yazılır; eksik standart hesap o firmanın planında açılır.
             var hesaplar = new Dictionary<string, HesapPlani>();
             foreach (var kod in hesapKodlari)
@@ -135,7 +137,8 @@ public class FinancialTransactionService : IFinancialTransactionService
                 ]).ToList()
                 , FaturaTuru.SatisIade => new List<YevmiyeSatiri>
                 {
-                    SatirOlustur(hesaplar["600"], matrah, 0, fatura.Aciklama),
+                    // Tek Düzen Hesap Planı: satış iadesi 600'ü azaltmaz, 610 Satıştan İadeler'e yazılır (gelir tablosunda ayrı satır).
+                    SatirOlustur(hesaplar["610"], matrah, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["391"], fatura.KdvToplam, 0, fatura.Aciklama),
                     SatirOlustur(hesaplar["120"], 0, fatura.GenelToplam, fatura.Aciklama)
                 }

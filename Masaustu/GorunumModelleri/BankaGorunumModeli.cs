@@ -283,7 +283,11 @@ public class BankaGorunumModeli : TemelGorunumModeli
         get => _yeniHesapTuru;
         set
         {
+            var oncekiVarsayilan = Altyapi.Servisler.BankaServisi.VarsayilanMuhasebeKodu(_yeniHesapTuru);
             if (!OzellikAyarla(ref _yeniHesapTuru, value)) return;
+            // Muhasebe kodu elle değiştirilmediyse yeni türün koduna geçer (POS → 108, kredi → 300).
+            if (string.IsNullOrWhiteSpace(YeniMuhasebeKodu) || YeniMuhasebeKodu == oncekiVarsayilan)
+                YeniMuhasebeKodu = Altyapi.Servisler.BankaServisi.VarsayilanMuhasebeKodu(value);
             if (value == BankaHesapTuru.VadesizDoviz && !DovizKuruYardimcisi.DovizliMi(YeniParaBirimi)) YeniParaBirimi = "USD";
             else if (value != BankaHesapTuru.VadesizDoviz && DovizKuruYardimcisi.DovizliMi(YeniParaBirimi)) YeniParaBirimi = DovizKuruYardimcisi.Tl;
         }
@@ -696,7 +700,7 @@ public class BankaGorunumModeli : TemelGorunumModeli
                 Iban = iban,
                 PosKomisyonOrani = YeniPosKomisyonOrani,
                 ValorGunu = YeniValorGunu,
-                MuhasebeKodu = string.IsNullOrWhiteSpace(YeniMuhasebeKodu) ? "102.01.001" : YeniMuhasebeKodu.Trim(),
+                MuhasebeKodu = string.IsNullOrWhiteSpace(YeniMuhasebeKodu) ? Altyapi.Servisler.BankaServisi.VarsayilanMuhasebeKodu(YeniHesapTuru) : YeniMuhasebeKodu.Trim(),
                 ParaBirimi = string.IsNullOrWhiteSpace(YeniParaBirimi) ? DovizKuruYardimcisi.Tl : YeniParaBirimi,
                 AktifMi = true
             };

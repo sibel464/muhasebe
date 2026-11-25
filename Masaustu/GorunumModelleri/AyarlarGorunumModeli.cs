@@ -160,15 +160,18 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
         YenileKomutu = new KomutSarici(async () => await AyarlariYukleAsync());
         AuditLoglariYenileKomutu = new KomutSarici(async () => await AuditLoglariYukleAsync());
 
-        if (_ayarlarServisi != null)
-        {
-            _ = AyarlariYukleAsync();
-        }
-        if (_auditLogServisi != null)
-        {
-            _ = AuditLoglariYukleAsync();
-        }
+        _ = IlkYuklemeAsync();
     }
+
+    // Ayarlar ve değişiklik kaydı aynı veritabanı bağlamını kullanır: aynı anda yüklenirse biri hata verip boş kalıyordu.
+    private async Task IlkYuklemeAsync()
+    {
+        if (_ayarlarServisi != null) await AyarlariYukleAsync();
+        if (_auditLogServisi != null) await AuditLoglariYukleAsync();
+    }
+
+    // Ayarlar okunamadıysa kaydetmek ekrandaki boş alanlarla e-posta/e-Fatura ayarlarını silerdi.
+    private bool _ayarlarYuklendi;
 
     public async Task AyarlariYukleAsync()
     {
@@ -215,6 +218,7 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
             VarsayilanVadeGunu = ayar.VarsayilanVadeGunu;
             FaturaNotu = ayar.FaturaNotu ?? string.Empty;
             IrsaliyeNotu = ayar.IrsaliyeNotu ?? string.Empty;
+            _ayarlarYuklendi = true;
         }
         catch (Exception ex)
         {
@@ -247,6 +251,12 @@ public class AyarlarGorunumModeli : TemelGorunumModeli
     {
         HataMesaji = string.Empty;
         BasariMesaji = string.Empty;
+
+        if (_ayarlarServisi != null && !_ayarlarYuklendi)
+        {
+            HataMesaji = "Mevcut ayarlar okunamadığı için kaydedilmedi (kayıtlı bilgilerin üzerine boş değer yazılmasın diye). Yenile'ye basıp tekrar deneyin.";
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(FirmaUnvani))
         {

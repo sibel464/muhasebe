@@ -34,7 +34,7 @@
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="YENİ FATURA" Style="{StaticResource SayfaBasligi}"/>
-                    <TextBlock Text="Satış / Alış faturası oluşturma" Style="{StaticResource SayfaAltBaslik}"/>
+                    <TextBlock Text="Satış, alış ve iade faturası oluşturma" Style="{StaticResource SayfaAltBaslik}"/>
                 </StackPanel>
             </StackPanel>
 
@@ -43,7 +43,13 @@
                 <RadioButton Content="📤 Satış Faturası" IsChecked="{Binding IsSatisFaturasi, Mode=OneWay}" Command="{Binding SatisTuruSecKomutu}"
                              GroupName="FaturaTuruGroup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource PrimaryDarkFirca}" Margin="0,0,16,0" VerticalAlignment="Center"/>
                 <RadioButton Content="📥 Alış Faturası" IsChecked="{Binding IsAlisFaturasi, Mode=OneWay}" Command="{Binding AlisTuruSecKomutu}"
-                             GroupName="FaturaTuruGroup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" VerticalAlignment="Center"/>
+                             GroupName="FaturaTuruGroup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessDarkFirca}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                <RadioButton Content="↩ Satış İadesi" IsChecked="{Binding IsSatisIadesi, Mode=OneWay}" Command="{Binding SatisIadesiSecKomutu}"
+                             ToolTip="Müşterinin geri getirdiği mal: stok geri girer, müşterinin borcu azalır."
+                             GroupName="FaturaTuruGroup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource DangerFirca}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                <RadioButton Content="↪ Alış İadesi" IsChecked="{Binding IsAlisIadesi, Mode=OneWay}" Command="{Binding AlisIadesiSecKomutu}"
+                             ToolTip="Tedarikçiye geri gönderilen mal: stok düşer, tedarikçiye borcunuz azalır."
+                             GroupName="FaturaTuruGroup" FontSize="13" FontWeight="Bold" Foreground="{StaticResource DangerFirca}" VerticalAlignment="Center"/>
             </StackPanel>
         </Grid>
 
@@ -125,6 +131,11 @@
                         <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,14,12,0">
                             <TextBlock Text="Referans No" Style="{StaticResource EtiketMetin}"/>
                             <TextBox Text="{Binding ReferansNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="4" Margin="0,14,0,0" Visibility="{Binding IadeMi, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="İade Edilen Fatura No" Style="{StaticResource EtiketMetin}"/>
+                            <TextBox Text="{Binding IadeEdilenFaturaNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormGirisKutusu}"
+                                     ToolTip="Geri gelen / geri gönderilen malın asıl faturasının numarası"/>
                         </StackPanel>
                     </Grid>
                 </Border>

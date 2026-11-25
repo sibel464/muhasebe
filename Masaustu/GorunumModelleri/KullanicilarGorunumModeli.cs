@@ -32,6 +32,7 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
     private string _auditMesaji = string.Empty;
     private int _seciliSekmeIndeksi;
     private int _auditYuklemeNo;
+    private readonly SemaphoreSlim _auditKilidi = new(1, 1);
 
     // Yeni veya düzenlenecek kullanıcı için model
     private Kullanici _islemKullanicisi = new() { Yetkiler = new KullaniciYetkileri() };
@@ -380,7 +381,13 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
             DateTime? baslangic = AuditBaslangicTarihi?.Date.ToUniversalTime();
             DateTime? bitis = AuditBitisTarihi?.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
 
-            var loglar = await _auditLogServisi.LoglariGetirAsync(
+            // Süzme hızlı değiştirilince sorgular üst üste binmesin (sayfa servisleri tek veritabanı bağlamını paylaşır).
+            await _auditKilidi.WaitAsync();
+            List<AuditLog> loglar;
+            try
+            {
+                if (no != _auditYuklemeNo) return;
+                loglar = await _auditLogServisi.LoglariGetirAsync(
                 baslangic: baslangic,
                 bitis: bitis,
                 tabloAdi: AuditSeciliModul.Deger as string,
@@ -389,6 +396,8 @@ public class KullanicilarGorunumModeli : TemelGorunumModeli
                 limit: 0, // sınırsız: seçilen tarih aralığının tamamı
                 ayrintiSatirlari: AyrintiSatirlariniGoster || AuditSeciliModul.Deger != null,
                 arama: string.IsNullOrWhiteSpace(AuditAramaMetni) ? null : AuditAramaMetni);
+            }
+            finally { _auditKilidi.Release(); }
             if (no != _auditYuklemeNo) return; // arada yeni bir süzme istendi
 
             var satirlar = await Task.Run(() => loglar.Select(l => new DenetimSatiri(l)).ToList());
